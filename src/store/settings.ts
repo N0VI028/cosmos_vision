@@ -18,7 +18,6 @@ import {
 import {
   DEFAULT_PRESET_NAME,
   DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
-  DEFAULT_PROMPT_LLM_MESSAGE_SOURCE,
   DEFAULT_PROMPT_LLM_MESSAGE_TITLE,
   DEFAULT_SETTINGS,
 } from '@/constants/default-settings';
@@ -35,10 +34,8 @@ import {
   type NovelAIAccount,
   type NovelAISettings,
   PROMPT_LLM_MESSAGE_ROLES,
-  PROMPT_LLM_MESSAGE_SOURCES,
   PROMPT_PERSON_INSERT_MODES,
   PROMPT_PERSON_KINDS,
-  PROMPT_PERSON_TEMPLATE_ENTRY_SOURCES,
   type PromptLlmMessagePresetSettings,
   type PromptLlmSettings,
   type PromptProfilesSettings,
@@ -149,7 +146,6 @@ const promptLlmSettingsSchema = z.object({
   maxTokens: z.number(),
   topP: z.number(),
   topK: z.number(),
-  contextParagraphCount: z.number().min(0).int(),
   preferJsonSchemaExtraction: z.boolean(),
   positivePromptJsonField: z.string(),
   negativePromptJsonField: z.string(),
@@ -171,7 +167,6 @@ const promptPersonTemplateEntrySchema = z.object({
   id: z.string().min(1),
   title: z.string(),
   enabled: z.boolean(),
-  source: z.enum(PROMPT_PERSON_TEMPLATE_ENTRY_SOURCES),
   content: z.string(),
   reference: promptPersonSourceReferenceSchema.optional(),
 });
@@ -196,7 +191,6 @@ const promptLlmMessageSchema = z.object({
   title: z.string().default(DEFAULT_PROMPT_LLM_MESSAGE_TITLE),
   role: z.enum(PROMPT_LLM_MESSAGE_ROLES),
   content: z.string(),
-  source: z.enum(PROMPT_LLM_MESSAGE_SOURCES).default(DEFAULT_PROMPT_LLM_MESSAGE_SOURCE),
   enabled: z.boolean().default(DEFAULT_PROMPT_LLM_MESSAGE_ENABLED),
 });
 
@@ -264,11 +258,6 @@ function toPlainRecord(value: unknown): PlainRecord {
   return _.isPlainObject(value) ? (value as PlainRecord) : {};
 }
 
-/**
- * 兼容旧版生图提示词预设集合结构
- * @param value 已补齐默认字段的设置对象
- * @returns 生图提示词预设已扁平化的设置对象
- */
 /**
  * 解析字段并在失败时回退
  * @param schema 字段校验器
@@ -467,7 +456,6 @@ function recoverPromptLlmSettings(value: unknown): PromptLlmSettings {
     maxTokens: read('maxTokens', z.number()),
     topP: read('topP', z.number()),
     topK: read('topK', z.number()),
-    contextParagraphCount: read('contextParagraphCount', z.number().min(0).int()),
     preferJsonSchemaExtraction: read('preferJsonSchemaExtraction', z.boolean()),
     positivePromptJsonField: read('positivePromptJsonField', z.string()),
     negativePromptJsonField: read('negativePromptJsonField', z.string()),

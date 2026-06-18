@@ -1,4 +1,12 @@
 import type { PromptLlmMessagePresetSettings } from '@/constants/novelai';
+import { PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN } from '@/constants/prompt-llm-tokens';
+
+export const DEFAULT_PROMPT_LLM_SYSTEM_MESSAGE_ID = '3b6d15c7-1f38-4d50-a9c1-7f0b9b6f4e12';
+export const DEFAULT_PROMPT_LLM_PARTICIPANT_MESSAGE_ID = 'prompt-llm-participant-message';
+export const DEFAULT_PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID = '7c4f2d91-0c57-4a61-8b52-6e3f1d9248ab';
+export const DEFAULT_PROMPT_LLM_HISTORY_MESSAGE_ID = 'prompt-llm-history-message';
+export const DEFAULT_PROMPT_LLM_CONTENT_CLOSE_MESSAGE_ID = 'c1a6e2b4-9d75-4fb7-82a0-1e5c8d3f7b96';
+export const DEFAULT_PROMPT_LLM_FOCUS_SCENE_MESSAGE_ID = '5f8b1c2e-6d44-4a93-b071-2c9e5f3a1d84';
 
 export default {
   activePresetId: 'prompt-llm-default-preset',
@@ -8,7 +16,7 @@ export default {
       name: '默认预设',
       messages: [
         {
-          id: 'prompt-llm-system-message',
+          id: DEFAULT_PROMPT_LLM_SYSTEM_MESSAGE_ID,
           title: '系统提示词',
           role: 'system',
           content: [
@@ -57,7 +65,11 @@ export default {
             '',
             '你拥有另一项专精技能：将叙事文本转化为 **NovelAI 4.5 可直接使用的高质量绘画提示词**。',
             '',
-            '当用户发送一段被`<content></content>`包裹的角色扮演或小说段落给你时，你需要：',
+            '当用户发送一段人物信息、角色扮演或小说段落给你时，你需要：',
+            '人物相关补充信息会以一个或多个 `<person>...</person>` 标签块提供，每个 `person` 标签表示一个人物提示词块',
+            '其中 `<chat_history></chat_history>` 表示当前焦点段落所属整条 mes 的整层楼历史，只作为上下文参考',
+            '其中 `<focus_scene></focus_scene>` 表示本次最需要转写成画面的高光场景，优先级最高，并且会紧跟在 `</chat_history>` 后面出现',
+            '你必须优先抓住高光场景，再结合整层历史补足人物、场景与氛围信息',
             '1. 精准阅读段落内容，提取其中的**视觉要素**（角色外观、表情、动作、服装、场景、光影、构图、氛围等）',
             '2. 将这些要素转化为符合 NAI 4.5 语法规范的绘画提示词',
             '3. 以 **JSON 格式** 返回结果',
@@ -243,40 +255,42 @@ export default {
             '',
             '</additional_guidelines>',
           ].join('\n'),
-          source: 'manual',
           enabled: true,
         },
 
         {
-          id: 'prompt-llm-participant-message',
+          id: DEFAULT_PROMPT_LLM_PARTICIPANT_MESSAGE_ID,
           title: '人物总体信息',
           role: 'user',
           content: '',
-          source: 'participant_context',
           enabled: true,
         },
         {
-          id: 'prompt-llm-content-open-message',
-          title: '<content>',
+          id: DEFAULT_PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID,
+          title: '<chat_history>',
           role: 'user',
-          content: '<content>',
-          source: 'content_open',
+          content: '<chat_history>',
           enabled: true,
         },
         {
-          id: 'prompt-llm-history-message',
+          id: DEFAULT_PROMPT_LLM_HISTORY_MESSAGE_ID,
           title: '历史消息',
           role: 'user',
           content: '',
-          source: 'chat_history',
           enabled: true,
         },
         {
-          id: 'prompt-llm-content-close-message',
-          title: '</content>',
+          id: DEFAULT_PROMPT_LLM_CONTENT_CLOSE_MESSAGE_ID,
+          title: '</chat_history>',
           role: 'user',
-          content: '</content>',
-          source: 'content_close',
+          content: '</chat_history>',
+          enabled: true,
+        },
+        {
+          id: DEFAULT_PROMPT_LLM_FOCUS_SCENE_MESSAGE_ID,
+          title: '焦点场景',
+          role: 'user',
+          content: ['', '<focus_scene>', `    ${PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN}`, '</focus_scene>', ''].join('\n'),
           enabled: true,
         },
       ],

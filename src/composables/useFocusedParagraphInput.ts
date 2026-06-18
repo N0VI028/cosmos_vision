@@ -1,15 +1,16 @@
 import { onBeforeUnmount, onMounted, ref, type Ref } from 'vue';
 
+import type { PromptLlmContext } from '@/constants/novelai';
 import {
-  getChatParagraphElements,
+  buildPromptLlmContextFromParagraph,
+  extractCleanParagraphText,
   getFocusedChatParagraph,
-  normalizeContextParagraphCount,
 } from '@/services/sillytavern/chat-dom';
 
 interface FocusedParagraphInputState {
   paragraphText: Ref<string>;
   hasFocusedParagraph: Ref<boolean>;
-  buildTestContext: (contextParagraphCount: number) => string[];
+  buildTestContext: () => PromptLlmContext;
 }
 
 /**
@@ -24,36 +25,33 @@ export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInp
 
   onMounted(() => {
     syncFocusedParagraph(paragraphText, hasFocusedParagraph);
-    document.addEventListener('click', handleDocumentClick, true);
+    document.addEventListener('pointerup', handleDocumentPointerUp, true);
   });
 
   onBeforeUnmount(() => {
-    document.removeEventListener('click', handleDocumentClick, true);
+    document.removeEventListener('pointerup', handleDocumentPointerUp, true);
   });
 
   /**
    * 监听聊天点击后同步新的焦点段落
+   * 使用 pointerup 替代 click，避免被其他插件的 touchend.preventDefault() 阻断
    */
-  function handleDocumentClick(): void {
+  function handleDocumentPointerUp(): void {
     window.setTimeout(() => {
       syncFocusedParagraph(paragraphText, hasFocusedParagraph);
     }, 50);
   }
 
   /**
-   * 构建当前测试所需的段落上下文
-   * @param contextParagraphCount 焦点段落前后段落数
-   * @returns 可发送给 LLM 的上下文数组
+   * 构建当前测试所需的 Prompt LLM 上下文
+   * @returns 可发送给 LLM 的上下文对象
    */
-  function buildTestContext(contextParagraphCount: number): string[] {
+  function buildTestContext(): PromptLlmContext {
     const focusedParagraph = getFocusedChatParagraph();
-    if (!focusedParagraph) return buildManualTestContext(paragraphText.value);
-
-    const paragraphs = getChatParagraphElements();
-    const targetIndex = paragraphs.indexOf(focusedParagraph);
-    if (targetIndex === -1) return buildManualTestContext(paragraphText.value);
-
-    return sliceFocusedParagraphContext(paragraphs, targetIndex, paragraphText.value, contextParagraphCount);
+    if (!focusedParagraph) {
+      return buildManualPromptLlmContext(paragraphText.value);
+    }
+    return buildPromptLlmContextFromParagraph(focusedParagraph);
   }
 
   return { paragraphText, hasFocusedParagraph, buildTestContext };
@@ -68,48 +66,18 @@ function syncFocusedParagraph(paragraphText: Ref<string>, hasFocusedParagraph: R
   const focusedParagraph = getFocusedChatParagraph();
   hasFocusedParagraph.value = Boolean(focusedParagraph);
   if (!focusedParagraph) return;
-  paragraphText.value = extractCleanText(focusedParagraph);
+  paragraphText.value = extractCleanParagraphText(focusedParagraph);
 }
 
 /**
  * 仅根据手动输入构建测试上下文
  * @param content 手动输入内容
- * @returns 上下文数组
+ * @returns Prompt LLM 上下文对象
  */
-function buildManualTestContext(content: string): string[] {
-  const trimmed = content.trim();
-  return trimmed ? [trimmed] : [];
-}
-
-/**
- * 截取焦点段落附近的上下文
- * @param paragraphs 聊天段落列表
- * @param targetIndex 焦点段落索引
- * @param paragraphText 当前测试输入文本
- * @param contextParagraphCount 焦点段落前后段落数
- * @returns 上下文数组
- */
-function sliceFocusedParagraphContext(
-  paragraphs: HTMLElement[],
-  targetIndex: number,
-  paragraphText: string,
-  contextParagraphCount: number,
-): string[] {
-  const radius = normalizeContextParagraphCount(contextParagraphCount);
-  const start = Math.max(0, targetIndex - radius);
-  const end = Math.min(paragraphs.length, targetIndex + radius + 1);
-  return paragraphs.slice(start, end).map((paragraph, index) => {
-    return start + index === targetIndex ? paragraphText : extractCleanText(paragraph);
-  });
-}
-
-/**
- * 读取段落纯文本并移除插件按钮
- * @param paragraph 段落元素
- * @returns 清理后的文本
- */
-function extractCleanText(paragraph: HTMLElement): string {
-  const clone = paragraph.cloneNode(true) as HTMLElement;
-  clone.querySelectorAll('.cv-inline-gen-btn').forEach(element => element.remove());
-  return clone.textContent?.trim() ?? '';
+function buildManualPromptLlmContext(content: string): PromptLlmContext {
+  const focusParagraph = content.trim();
+  return {
+    historyParagraphs: focusParagraph ? [focusParagraph] : [],
+    focusParagraph,
+  };
 }

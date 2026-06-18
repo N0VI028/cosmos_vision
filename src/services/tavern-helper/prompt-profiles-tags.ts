@@ -75,6 +75,7 @@ function buildPromptPersonRuntimeContent(contextText: string): PromptLlmRuntimeC
   return {
     historyContent: '',
     participantContent: contextText,
+    focusParagraphContent: '',
   };
 }
 

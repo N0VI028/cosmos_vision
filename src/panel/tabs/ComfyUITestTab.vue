@@ -291,9 +291,9 @@ async function runLlmModeTest(): Promise<ComfyUIResolvedRequest> {
  * @returns generateRaw 请求体
  */
 function buildLlmModeRequest(schemaFields: ReturnType<typeof buildPromptLlmSchemaFields>) {
-  const contextParagraphs = buildTestContext(settings.promptLlm.contextParagraphCount);
+  const context = buildTestContext();
   return buildPromptLlmRuntimeRequestFromContext(
-    contextParagraphs,
+    context,
     settings.promptLlm,
     settings.promptLlmMessagePresets,
     settings.promptProfiles,

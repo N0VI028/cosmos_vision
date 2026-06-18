@@ -1,36 +1,28 @@
 import {
   DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
   PROMPT_LLM_CONTENT_CLOSE_MESSAGE_ID,
-  PROMPT_LLM_CONTENT_CLOSE_MESSAGE_SOURCE,
   PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID,
-  PROMPT_LLM_CONTENT_OPEN_MESSAGE_SOURCE,
+  PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN,
   PROMPT_LLM_HISTORY_MESSAGE_ID,
-  PROMPT_LLM_HISTORY_MESSAGE_SOURCE,
   PROMPT_LLM_HISTORY_MESSAGE_TITLE,
   PROMPT_LLM_HISTORY_PREVIEW_TEXT,
   PROMPT_LLM_PARTICIPANT_MESSAGE_ID,
-  PROMPT_LLM_PARTICIPANT_MESSAGE_SOURCE,
   PROMPT_LLM_PARTICIPANT_MESSAGE_TITLE,
   PROMPT_LLM_PARTICIPANT_PREVIEW_TEXT,
 } from '@/constants/default-settings';
-import type {
-  PromptLlmMessage,
-  PromptLlmMessagePreset,
-  PromptLlmMessagePresetSettings,
-  PromptLlmMessageSource,
-} from '@/constants/novelai';
+import type { PromptLlmMessage, PromptLlmMessagePreset, PromptLlmMessagePresetSettings } from '@/constants/novelai';
 
 /** LLM 运行时替换内容 */
 export interface PromptLlmRuntimeContent {
   historyContent: string;
   participantContent: string;
+  focusParagraphContent: string;
 }
 
 /** 保留消息条目配置 */
 interface PromptLlmReservedMessageConfig {
   id: string;
   title: string;
-  source: PromptLlmMessageSource;
   role: PromptLlmMessage['role'];
   previewText: string;
 }
@@ -38,21 +30,18 @@ interface PromptLlmReservedMessageConfig {
 /** 内容锚点配置 */
 interface PromptLlmAnchorMessageConfig {
   id: string;
-  source: PromptLlmMessageSource;
 }
 
 const RESERVED_MESSAGE_CONFIGS = {
   history: {
     id: PROMPT_LLM_HISTORY_MESSAGE_ID,
     title: PROMPT_LLM_HISTORY_MESSAGE_TITLE,
-    source: PROMPT_LLM_HISTORY_MESSAGE_SOURCE,
     role: 'user',
     previewText: PROMPT_LLM_HISTORY_PREVIEW_TEXT,
   },
   participant: {
     id: PROMPT_LLM_PARTICIPANT_MESSAGE_ID,
     title: PROMPT_LLM_PARTICIPANT_MESSAGE_TITLE,
-    source: PROMPT_LLM_PARTICIPANT_MESSAGE_SOURCE,
     role: 'system',
     previewText: PROMPT_LLM_PARTICIPANT_PREVIEW_TEXT,
   },
@@ -61,11 +50,9 @@ const RESERVED_MESSAGE_CONFIGS = {
 const ANCHOR_MESSAGE_CONFIGS = {
   open: {
     id: PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID,
-    source: PROMPT_LLM_CONTENT_OPEN_MESSAGE_SOURCE,
   },
   close: {
     id: PROMPT_LLM_CONTENT_CLOSE_MESSAGE_ID,
-    source: PROMPT_LLM_CONTENT_CLOSE_MESSAGE_SOURCE,
   },
 } as const satisfies Record<string, PromptLlmAnchorMessageConfig>;
 
@@ -88,7 +75,7 @@ export function getActivePromptLlmPreset(presetSettings: PromptLlmMessagePresetS
  * @param message 消息条目
  * @returns 是否为历史消息
  */
-export function isPromptLlmHistoryMessage(message: Pick<PromptLlmMessage, 'id' | 'source'>): boolean {
+export function isPromptLlmHistoryMessage(message: Pick<PromptLlmMessage, 'id'>): boolean {
   return matchesReservedMessage(message, RESERVED_MESSAGE_CONFIGS.history);
 }
 
@@ -97,7 +84,7 @@ export function isPromptLlmHistoryMessage(message: Pick<PromptLlmMessage, 'id' |
  * @param message 消息条目
  * @returns 是否为人物总体信息
  */
-export function isPromptLlmParticipantMessage(message: Pick<PromptLlmMessage, 'id' | 'source'>): boolean {
+export function isPromptLlmParticipantMessage(message: Pick<PromptLlmMessage, 'id'>): boolean {
   return matchesReservedMessage(message, RESERVED_MESSAGE_CONFIGS.participant);
 }
 
@@ -106,7 +93,7 @@ export function isPromptLlmParticipantMessage(message: Pick<PromptLlmMessage, 'i
  * @param message 消息条目
  * @returns 是否为保留消息
  */
-export function isPromptLlmReservedMessage(message: Pick<PromptLlmMessage, 'id' | 'source'>): boolean {
+export function isPromptLlmReservedMessage(message: Pick<PromptLlmMessage, 'id'>): boolean {
   return isPromptLlmHistoryMessage(message) || isPromptLlmParticipantMessage(message);
 }
 
@@ -115,7 +102,7 @@ export function isPromptLlmReservedMessage(message: Pick<PromptLlmMessage, 'id' 
  * @param message 消息条目
  * @returns 预览占位文本
  */
-export function getPromptLlmReservedPreviewText(message: Pick<PromptLlmMessage, 'id' | 'source'>): string {
+export function getPromptLlmReservedPreviewText(message: Pick<PromptLlmMessage, 'id'>): string {
   if (isPromptLlmHistoryMessage(message)) return RESERVED_MESSAGE_CONFIGS.history.previewText;
   if (isPromptLlmParticipantMessage(message)) return RESERVED_MESSAGE_CONFIGS.participant.previewText;
   return '';
@@ -175,12 +162,22 @@ export function ensurePromptLlmReservedMessages(
  * @returns 实际发送文本
  */
 export function resolvePromptLlmMessageContent(
-  message: Pick<PromptLlmMessage, 'id' | 'source' | 'content'>,
+  message: Pick<PromptLlmMessage, 'id' | 'content'>,
   runtimeContent: PromptLlmRuntimeContent,
 ): string {
   if (isPromptLlmHistoryMessage(message)) return runtimeContent.historyContent;
   if (isPromptLlmParticipantMessage(message)) return runtimeContent.participantContent;
-  return message.content;
+  return replacePromptLlmContentTokens(message.content, runtimeContent);
+}
+
+/**
+ * 替换自定义消息中的动态宏
+ * @param content 原始消息内容
+ * @param runtimeContent 运行时内容
+ * @returns 宏替换后的消息内容
+ */
+function replacePromptLlmContentTokens(content: string, runtimeContent: PromptLlmRuntimeContent): string {
+  return content.replaceAll(PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN, runtimeContent.focusParagraphContent);
 }
 
 /**
@@ -190,10 +187,10 @@ export function resolvePromptLlmMessageContent(
  * @returns 是否匹配
  */
 function matchesReservedMessage(
-  message: Pick<PromptLlmMessage, 'id' | 'source'>,
+  message: Pick<PromptLlmMessage, 'id'>,
   config: PromptLlmReservedMessageConfig,
 ): boolean {
-  return message.id === config.id || message.source === config.source;
+  return message.id === config.id;
 }
 
 /**
@@ -203,10 +200,10 @@ function matchesReservedMessage(
  * @returns 是否匹配
  */
 function matchesAnchorMessage(
-  message: Pick<PromptLlmMessage, 'id' | 'source'>,
+  message: Pick<PromptLlmMessage, 'id'>,
   config: PromptLlmAnchorMessageConfig,
 ): boolean {
-  return message.id === config.id || message.source === config.source;
+  return message.id === config.id;
 }
 
 /**
@@ -214,7 +211,7 @@ function matchesAnchorMessage(
  * @param message 消息条目
  * @returns 是否为开始锚点
  */
-function isPromptLlmContentOpenMessage(message: Pick<PromptLlmMessage, 'id' | 'source'>): boolean {
+function isPromptLlmContentOpenMessage(message: Pick<PromptLlmMessage, 'id'>): boolean {
   return matchesAnchorMessage(message, ANCHOR_MESSAGE_CONFIGS.open);
 }
 
@@ -223,7 +220,7 @@ function isPromptLlmContentOpenMessage(message: Pick<PromptLlmMessage, 'id' | 's
  * @param message 消息条目
  * @returns 是否为结束锚点
  */
-function isPromptLlmContentCloseMessage(message: Pick<PromptLlmMessage, 'id' | 'source'>): boolean {
+function isPromptLlmContentCloseMessage(message: Pick<PromptLlmMessage, 'id'>): boolean {
   return matchesAnchorMessage(message, ANCHOR_MESSAGE_CONFIGS.close);
 }
 
@@ -238,7 +235,6 @@ function createReservedMessage(config: PromptLlmReservedMessageConfig): PromptLl
     title: config.title,
     role: config.role,
     content: '',
-    source: config.source,
     enabled: DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
   };
 }
@@ -264,7 +260,6 @@ function normalizePromptLlmAnchorMessage(message: PromptLlmMessage): void {
  */
 function applyAnchorMessageConfig(message: PromptLlmMessage, config: PromptLlmAnchorMessageConfig): void {
   message.id = config.id;
-  message.source = config.source;
   if (message.enabled === undefined) {
     message.enabled = DEFAULT_PROMPT_LLM_MESSAGE_ENABLED;
   }
@@ -278,7 +273,6 @@ function applyAnchorMessageConfig(message: PromptLlmMessage, config: PromptLlmAn
 function applyReservedMessageConfig(message: PromptLlmMessage, config: PromptLlmReservedMessageConfig): void {
   message.id = config.id;
   message.title = config.title;
-  message.source = config.source;
   message.content = '';
   if (message.enabled === undefined) {
     message.enabled = DEFAULT_PROMPT_LLM_MESSAGE_ENABLED;

@@ -1,5 +1,11 @@
-import type { PromptPersonKind, PromptPersonTemplateEntry, PromptPersonTemplateEntrySource } from '@/constants/novelai';
-import { PROMPT_PERSON_TEMPLATE_ENTRY_SOURCE_LABELS } from '@/constants/novelai';
+import {
+  getPromptPersonTemplateEntryKind,
+  normalizePromptPersonTemplateEntryId,
+  PROMPT_PERSON_TEMPLATE_ENTRY_KIND_LABELS,
+  type PromptPersonKind,
+  type PromptPersonTemplateEntry,
+  type PromptPersonTemplateEntryKind,
+} from '@/constants/novelai';
 import { createCustomPromptPersonTemplateEntry } from '@/services/prompt-profiles/runtime';
 import {
   createPromptPersonCharacterDescriptionEntry,
@@ -12,7 +18,7 @@ import {
 /** 弹窗来源选项 */
 export interface EntrySourceOption {
   label: string;
-  value: PromptPersonTemplateEntrySource;
+  value: PromptPersonTemplateEntryKind;
 }
 
 /** 普通下拉选项 */
@@ -23,6 +29,7 @@ export interface SelectOption<TValue extends string | number> {
 
 /** 模板条目编辑草稿 */
 export interface PromptSourceEditorDraft extends PromptPersonTemplateEntry {
+  kind: PromptPersonTemplateEntryKind;
   customTitle: string;
   customContent: string;
   selectedCharacterName: string;
@@ -54,7 +61,7 @@ type SourceEntryBuilder = (
  */
 export function buildSourceOptions(
   _kind: PromptPersonKind,
-  currentSource?: PromptPersonTemplateEntrySource,
+  currentSource?: PromptPersonTemplateEntryKind,
 ): EntrySourceOption[] {
   const options = [
     createSourceOption('custom', '自定义'),
@@ -79,10 +86,12 @@ export function createSourceEditorDraft(
   worldbooks: PromptPersonWorldbookGroup[],
 ): PromptSourceEditorDraft {
   const nextEntry = _.cloneDeep(entry ?? createCustomPromptPersonTemplateEntry());
+  const nextSource = getPromptPersonTemplateEntryKind(nextEntry);
   const draft = {
     ...nextEntry,
-    customTitle: nextEntry.source === 'custom' ? nextEntry.title : '自定义条目',
-    customContent: nextEntry.source === 'custom' ? nextEntry.content : '',
+    kind: nextSource,
+    customTitle: nextSource === 'custom' ? nextEntry.title : '自定义条目',
+    customContent: nextSource === 'custom' ? nextEntry.content : '',
     selectedCharacterName: nextEntry.reference?.characterName ?? defaults.characterName.trim(),
     selectedPersonaKey:
       nextEntry.reference?.personaId ?? nextEntry.reference?.personaName ?? defaults.personaKey.trim(),
@@ -103,8 +112,7 @@ export function buildSavedPromptSourceEntry(
   draft: PromptSourceEditorDraft,
   worldbooks: PromptPersonWorldbookGroup[],
 ): PromptPersonTemplateEntry {
-  const entry = SOURCE_ENTRY_BUILDERS[draft.source](draft, worldbooks);
-  return { ...entry, id: draft.id, enabled: draft.enabled };
+  return { ...SOURCE_ENTRY_BUILDERS[draft.kind](draft, worldbooks), enabled: draft.enabled };
 }
 
 /**
@@ -130,7 +138,7 @@ export function applySourceDefaults(
   defaults: SourceSelectDefaults,
   worldbooks: PromptPersonWorldbookGroup[],
 ): void {
-  SOURCE_DEFAULT_APPLIERS[draft.source]?.(draft, defaults, worldbooks);
+  SOURCE_DEFAULT_APPLIERS[draft.kind]?.(draft, defaults, worldbooks);
 }
 
 /**
@@ -139,7 +147,7 @@ export function applySourceDefaults(
  * @returns 是否可保存
  */
 export function canSaveSourceEditor(draft: PromptSourceEditorDraft): boolean {
-  return SOURCE_SAVE_VALIDATORS[draft.source](draft);
+  return SOURCE_SAVE_VALIDATORS[draft.kind](draft);
 }
 
 /**
@@ -199,7 +207,7 @@ export function pickWorldbookEntryUid(
  * @param label 显示名称
  * @returns 来源类型选项
  */
-function createSourceOption(value: PromptPersonTemplateEntrySource, label: string): EntrySourceOption {
+function createSourceOption(value: PromptPersonTemplateEntryKind, label: string): EntrySourceOption {
   return { label, value };
 }
 
@@ -209,7 +217,10 @@ function createSourceOption(value: PromptPersonTemplateEntrySource, label: strin
  * @returns 自定义模板条目
  */
 function buildCustomEntry(draft: PromptSourceEditorDraft): PromptPersonTemplateEntry {
-  return createCustomPromptPersonTemplateEntry(draft.customTitle.trim() || '自定义条目', draft.customContent);
+  return {
+    ...createCustomPromptPersonTemplateEntry(draft.customTitle.trim() || '自定义条目', draft.customContent),
+    id: normalizePromptPersonTemplateEntryId(draft.id, 'custom'),
+  };
 }
 
 /**
@@ -218,7 +229,7 @@ function buildCustomEntry(draft: PromptSourceEditorDraft): PromptPersonTemplateE
  * @returns 角色描述模板条目
  */
 function buildCharacterDescriptionEntry(draft: PromptSourceEditorDraft): PromptPersonTemplateEntry {
-  return createPromptPersonCharacterDescriptionEntry(draft.selectedCharacterName);
+  return createPromptPersonCharacterDescriptionEntry(draft.selectedCharacterName, draft.id);
 }
 
 /**
@@ -227,7 +238,7 @@ function buildCharacterDescriptionEntry(draft: PromptSourceEditorDraft): PromptP
  * @returns 用户人设 模板条目
  */
 function buildUserPersonaEntry(draft: PromptSourceEditorDraft): PromptPersonTemplateEntry {
-  return createPromptPersonUserPersonaEntry(draft.selectedPersonaKey, draft.selectedPersonaKey);
+  return createPromptPersonUserPersonaEntry(draft.selectedPersonaKey, draft.selectedPersonaKey, draft.id);
 }
 
 /**
@@ -242,7 +253,7 @@ function buildWorldbookEntry(
 ): PromptPersonTemplateEntry {
   const entry = findWorldbookEntry(worldbooks, draft.selectedWorldbookName, draft.selectedWorldbookEntryUid);
   const reference = { worldbookName: draft.selectedWorldbookName, entryUid: draft.selectedWorldbookEntryUid ?? -1 };
-  return createPromptPersonCharacterWorldbookEntry(reference, entry?.name ?? '世界书条目');
+  return createPromptPersonCharacterWorldbookEntry(reference, entry?.name ?? '世界书条目', draft.id);
 }
 
 /**
@@ -327,11 +338,11 @@ function getWorldbookEntries(
  * @param source 来源类型
  * @returns 来源类型名称
  */
-function getSourceTypeLabel(source: PromptPersonTemplateEntrySource): string {
-  return PROMPT_PERSON_TEMPLATE_ENTRY_SOURCE_LABELS[source] ?? '外部资料';
+function getSourceTypeLabel(source: PromptPersonTemplateEntryKind): string {
+  return PROMPT_PERSON_TEMPLATE_ENTRY_KIND_LABELS[source] ?? '外部资料';
 }
 
-const SOURCE_SAVE_VALIDATORS: Record<PromptPersonTemplateEntrySource, (draft: PromptSourceEditorDraft) => boolean> = {
+const SOURCE_SAVE_VALIDATORS: Record<PromptPersonTemplateEntryKind, (draft: PromptSourceEditorDraft) => boolean> = {
   custom: () => true,
   character_description: draft => Boolean(draft.selectedCharacterName.trim()),
   character_worldbook_entry: draft =>
@@ -341,7 +352,7 @@ const SOURCE_SAVE_VALIDATORS: Record<PromptPersonTemplateEntrySource, (draft: Pr
 
 const SOURCE_DEFAULT_APPLIERS: Partial<
   Record<
-    PromptPersonTemplateEntrySource,
+    PromptPersonTemplateEntryKind,
     (draft: PromptSourceEditorDraft, defaults: SourceSelectDefaults, worldbooks: PromptPersonWorldbookGroup[]) => void
   >
 > = {
@@ -350,7 +361,7 @@ const SOURCE_DEFAULT_APPLIERS: Partial<
   user_persona: applyPersonaDefaults,
 };
 
-const SOURCE_ENTRY_BUILDERS: Record<PromptPersonTemplateEntrySource, SourceEntryBuilder> = {
+const SOURCE_ENTRY_BUILDERS: Record<PromptPersonTemplateEntryKind, SourceEntryBuilder> = {
   custom: buildCustomEntry,
   character_description: buildCharacterDescriptionEntry,
   character_worldbook_entry: buildWorldbookEntry,

@@ -134,9 +134,9 @@ async function runTest(): Promise<void> {
   testStatus.value = 'running';
 
   try {
-    const contextParagraphs = buildTestContext(settings.promptLlm.contextParagraphCount);
+    const context = buildTestContext();
     const request = await buildPromptLlmRuntimeRequestFromContext(
-      contextParagraphs,
+      context,
       settings.promptLlm,
       settings.promptLlmMessagePresets,
       settings.promptProfiles,

@@ -1,6 +1,12 @@
 import { uuidv4 } from '@sillytavern/scripts/utils';
 
-import type { PromptPersonSourceReference, PromptPersonTemplateEntry } from '@/constants/novelai';
+import {
+  getPromptPersonTemplateEntryKind,
+  normalizePromptPersonTemplateEntryId,
+  type PromptPersonSourceReference,
+  type PromptPersonTemplateEntry,
+  type PromptPersonTemplateEntryKind,
+} from '@/constants/novelai';
 import { getTavernHelper } from '@/services/tavern-helper/availability';
 
 /** 已解析的人物模板条目 */
@@ -36,7 +42,9 @@ type TemplateEntryResolver = (
   reference: PromptPersonSourceReference,
 ) => Promise<ResolvedPromptPersonTemplateEntry> | ResolvedPromptPersonTemplateEntry;
 
-const TEMPLATE_ENTRY_RESOLVERS: Partial<Record<PromptPersonTemplateEntry['source'], TemplateEntryResolver>> = {
+const TEMPLATE_ENTRY_RESOLVERS: Partial<
+  Record<Exclude<PromptPersonTemplateEntryKind, 'custom'>, TemplateEntryResolver>
+> = {
   user_persona: resolveUserPersonaEntry,
   character_description: resolveCharacterDescriptionEntry,
   character_worldbook_entry: resolveCharacterWorldbookEntry,
@@ -156,11 +164,12 @@ export async function getPromptPersonCharacterSourceOptions(
 export async function resolvePromptPersonTemplateEntry(
   entry: PromptPersonTemplateEntry,
 ): Promise<ResolvedPromptPersonTemplateEntry> {
-  if (entry.source === 'custom') {
+  const kind = getPromptPersonTemplateEntryKind(entry);
+  if (kind === 'custom') {
     return buildResolvedTemplateEntry('ready', entry.title, entry.content);
   }
   const reference = entry.reference;
-  const resolver = TEMPLATE_ENTRY_RESOLVERS[entry.source];
+  const resolver = TEMPLATE_ENTRY_RESOLVERS[kind];
   if (!reference || !resolver) return buildResolvedTemplateEntry('missing', entry.title, '');
   return resolver(entry.title, reference);
 }
@@ -170,12 +179,14 @@ export async function resolvePromptPersonTemplateEntry(
  * @param characterName 角色名
  * @returns 模板条目片段
  */
-export function createPromptPersonCharacterDescriptionEntry(characterName: string): PromptPersonTemplateEntry {
+export function createPromptPersonCharacterDescriptionEntry(
+  characterName: string,
+  id = uuidv4(),
+): PromptPersonTemplateEntry {
   return {
-    id: uuidv4(),
+    id: normalizePromptPersonTemplateEntryId(id, 'character_description'),
     title: '角色描述',
     enabled: true,
-    source: 'character_description',
     content: '',
     reference: { characterName },
   };
@@ -190,12 +201,12 @@ export function createPromptPersonCharacterDescriptionEntry(characterName: strin
 export function createPromptPersonCharacterWorldbookEntry(
   reference: PromptPersonSourceReference,
   entryName: string,
+  id = uuidv4(),
 ): PromptPersonTemplateEntry {
   return {
-    id: uuidv4(),
+    id: normalizePromptPersonTemplateEntryId(id, 'character_worldbook_entry'),
     title: entryName.trim() || '世界书条目',
     enabled: true,
-    source: 'character_worldbook_entry',
     content: '',
     reference,
   };
@@ -207,12 +218,15 @@ export function createPromptPersonCharacterWorldbookEntry(
  * @param personaName persona 显示名称
  * @returns 模板条目片段
  */
-export function createPromptPersonUserPersonaEntry(personaId: string, personaName = ''): PromptPersonTemplateEntry {
+export function createPromptPersonUserPersonaEntry(
+  personaId: string,
+  personaName = '',
+  id = uuidv4(),
+): PromptPersonTemplateEntry {
   return {
-    id: uuidv4(),
+    id: normalizePromptPersonTemplateEntryId(id, 'user_persona'),
     title: '用户介绍',
     enabled: true,
-    source: 'user_persona',
     content: '',
     reference: { personaId, personaName },
   };

@@ -1,3 +1,5 @@
+import type { PromptLlmContext } from '@/constants/novelai';
+
 /**
  * ST 聊天 DOM 段落定位与上下文抽取
  * 以当前可见聊天界面为准,不依赖 TavernHelper.getChatMessages
@@ -8,7 +10,7 @@
  * @param p 段落 DOM 元素
  * @returns 段落文本(已去首尾空白)
  */
-function getCleanParagraphText(p: HTMLElement): string {
+export function extractCleanParagraphText(p: HTMLElement): string {
   // 克隆后剥离插件注入节点,避免污染原文
   const clone = p.cloneNode(true) as HTMLElement;
   clone.querySelectorAll('.cv-inline-gen-btn').forEach(el => el.remove());
@@ -16,21 +18,20 @@ function getCleanParagraphText(p: HTMLElement): string {
 }
 
 /**
+ * 批量提取段落纯文本
+ * @param paragraphs 段落 DOM 列表
+ * @returns 清理后的段落文本数组
+ */
+function extractParagraphTexts(paragraphs: HTMLElement[]): string[] {
+  return paragraphs.map(extractCleanParagraphText).filter(Boolean);
+}
+
+/**
  * 从聊天 DOM 中提取所有可见段落
  * @returns 段落文本数组,按 DOM 顺序排列
  */
 export function extractAllParagraphs(): string[] {
-  const paragraphs: string[] = [];
-  const paragraphElements = getChatParagraphElements();
-
-  paragraphElements.forEach(p => {
-    const text = getCleanParagraphText(p);
-    if (text) {
-      paragraphs.push(text);
-    }
-  });
-
-  return paragraphs;
+  return extractParagraphTexts(getChatParagraphElements());
 }
 
 /**
@@ -42,33 +43,44 @@ export function getChatParagraphElements(): HTMLElement[] {
 }
 
 /**
- * 定位目标段落在全局段落序列中的索引
+ * 获取目标段落所属 mes 内的全部段落元素
  * @param targetP 目标段落 DOM 元素
- * @returns 段落索引,未找到返回 -1
+ * @returns 同一条 mes 内的段落元素数组
  */
-export function findParagraphIndex(targetP: HTMLElement): number {
-  return getChatParagraphElements().indexOf(targetP);
+function getMessageParagraphElements(targetP: HTMLElement): HTMLElement[] {
+  const mesBlock = targetP.closest('[mesid]');
+  if (!(mesBlock instanceof HTMLElement)) {
+    throw new Error('未找到目标段落所属消息');
+  }
+  return Array.from(mesBlock.querySelectorAll('.mes_text p'));
 }
 
 /**
- * 提取目标段落前后各 N 段的上下文
+ * 提取目标段落所属 mes 的全部段落文本
  * @param targetP 目标段落 DOM 元素
- * @param radius 焦点段落前后各取几个段落
- * @returns 上下文段落文本数组(包含目标段落)
+ * @returns 整层历史段落文本数组
  */
-export function extractContextAroundParagraph(targetP: HTMLElement, radius: number): string[] {
-  const allParagraphs = extractAllParagraphs();
-  const targetIndex = findParagraphIndex(targetP);
-  const safeRadius = normalizeContextParagraphCount(radius);
+export function extractMessageParagraphs(targetP: HTMLElement): string[] {
+  const historyParagraphs = extractParagraphTexts(getMessageParagraphElements(targetP));
+  if (historyParagraphs.length > 0) return historyParagraphs;
+  const focusParagraph = extractCleanParagraphText(targetP);
+  return focusParagraph ? [focusParagraph] : [];
+}
 
-  if (targetIndex === -1) {
-    throw new Error('未找到目标段落');
+/**
+ * 构建 Prompt LLM 所需的整层历史与焦点段落上下文
+ * @param targetP 当前焦点段落
+ * @returns Prompt LLM 运行时上下文
+ */
+export function buildPromptLlmContextFromParagraph(targetP: HTMLElement): PromptLlmContext {
+  const focusParagraph = extractCleanParagraphText(targetP);
+  if (!focusParagraph) {
+    throw new Error('未找到目标段落文本');
   }
-
-  const start = Math.max(0, targetIndex - safeRadius);
-  const end = Math.min(allParagraphs.length, targetIndex + safeRadius + 1);
-
-  return allParagraphs.slice(start, end);
+  return {
+    historyParagraphs: extractMessageParagraphs(targetP),
+    focusParagraph,
+  };
 }
 
 /**
@@ -78,15 +90,6 @@ export function extractContextAroundParagraph(targetP: HTMLElement, radius: numb
 export function getFocusedChatParagraph(): HTMLElement | null {
   const paragraph = document.querySelector('.mes_text p.cv-inline-selected');
   return paragraph instanceof HTMLElement ? paragraph : null;
-}
-
-/**
- * 规范化聊天段落范围输入
- * @param value 用户填写值
- * @returns 可安全用于上下文截取的非负整数
- */
-export function normalizeContextParagraphCount(value: number): number {
-  return Math.max(0, Math.floor(value));
 }
 
 /**

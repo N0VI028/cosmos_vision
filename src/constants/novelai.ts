@@ -131,8 +131,6 @@ export interface PromptLlmSettings {
   topP: number;
   /** top_k(可选) */
   topK: number;
-  /** 焦点段落前后各取几个段落作为聊天段落 */
-  contextParagraphCount: number;
   /** 是否优先 JSON Schema 解析(公共:所有生图渠道共享) */
   preferJsonSchemaExtraction: boolean;
   /** 正面提示词 JSON 字段名 */
@@ -149,6 +147,14 @@ export interface PromptLlmSettings {
   negativePromptExtractReplacement: string;
 }
 
+/** 提示词 LLM 运行时上下文 */
+export interface PromptLlmContext {
+  /** 焦点段落所属整条 mes 的全部历史段落 */
+  historyParagraphs: string[];
+  /** 当前选中的高光段落 */
+  focusParagraph: string;
+}
+
 /** 提示词 LLM 输出字段名(单侧留空表示该侧不参与 JSON 提取,交给固定预设) */
 export interface PromptLlmOutputFields {
   positive?: string;
@@ -160,18 +166,6 @@ export const PROMPT_LLM_MESSAGE_ROLES = ['system', 'user', 'assistant'] as const
 
 /** 提示词 LLM 消息角色 */
 export type PromptLlmMessageRole = (typeof PROMPT_LLM_MESSAGE_ROLES)[number];
-
-/** 提示词 LLM 消息来源 */
-export const PROMPT_LLM_MESSAGE_SOURCES = [
-  'manual',
-  'chat_history',
-  'participant_context',
-  'content_open',
-  'content_close',
-] as const;
-
-/** 提示词 LLM 消息来源 */
-export type PromptLlmMessageSource = (typeof PROMPT_LLM_MESSAGE_SOURCES)[number];
 
 /** 人物类型 */
 export const PROMPT_PERSON_KINDS = ['user', 'character'] as const;
@@ -185,23 +179,32 @@ export const PROMPT_PERSON_INSERT_MODES = ['always', 'keyword'] as const;
 /** 人物触发模式 */
 export type PromptPersonInsertMode = (typeof PROMPT_PERSON_INSERT_MODES)[number];
 
-/** 人物模板条目来源 */
-export const PROMPT_PERSON_TEMPLATE_ENTRY_SOURCES = [
+/** 人物模板条目类型 */
+export const PROMPT_PERSON_TEMPLATE_ENTRY_KINDS = [
   'custom',
   'character_description',
   'character_worldbook_entry',
   'user_persona',
 ] as const;
 
-/** 人物模板条目来源 */
-export type PromptPersonTemplateEntrySource = (typeof PROMPT_PERSON_TEMPLATE_ENTRY_SOURCES)[number];
+/** 人物模板条目类型 */
+export type PromptPersonTemplateEntryKind = (typeof PROMPT_PERSON_TEMPLATE_ENTRY_KINDS)[number];
 
-/** 人物模板条目来源 → 指示灯右侧中文显示标签 */
-export const PROMPT_PERSON_TEMPLATE_ENTRY_SOURCE_LABELS: Record<PromptPersonTemplateEntrySource, string> = {
+/** 人物模板条目类型 → 指示灯右侧中文显示标签 */
+export const PROMPT_PERSON_TEMPLATE_ENTRY_KIND_LABELS: Record<PromptPersonTemplateEntryKind, string> = {
   custom: '自定义',
   character_description: '角色描述',
   character_worldbook_entry: '世界书',
   user_persona: '用户人设',
+};
+
+const PROMPT_PERSON_TEMPLATE_ENTRY_ID_PREFIXES: Record<
+  Exclude<PromptPersonTemplateEntryKind, 'custom'>,
+  string
+> = {
+  character_description: 'character-description',
+  character_worldbook_entry: 'character-worldbook-entry',
+  user_persona: 'user-persona',
 };
 
 /** 人物模板条目来源引用 */
@@ -218,7 +221,6 @@ export interface PromptPersonTemplateEntry {
   id: string;
   title: string;
   enabled: boolean;
-  source: PromptPersonTemplateEntrySource;
   content: string;
   reference?: PromptPersonSourceReference;
 }
@@ -247,7 +249,6 @@ export interface PromptLlmMessage {
   title: string;
   role: PromptLlmMessageRole;
   content: string;
-  source: PromptLlmMessageSource;
   /** 是否启用该条目 */
   enabled?: boolean;
 }
@@ -263,6 +264,59 @@ export interface PromptLlmMessagePreset {
 export interface PromptLlmMessagePresetSettings {
   activePresetId: string;
   presets: PromptLlmMessagePreset[];
+}
+
+/**
+ * 读取人物模板条目类型
+ * 外部资料条目使用固定英文 id 前缀，自定义条目使用裸 uuid
+ * @param entry 模板条目
+ * @returns 条目类型
+ */
+export function getPromptPersonTemplateEntryKind(
+  entry: Pick<PromptPersonTemplateEntry, 'id'>,
+): PromptPersonTemplateEntryKind {
+  return readPromptPersonTemplateEntryKindFromId(entry.id) ?? 'custom';
+}
+
+/**
+ * 规范化人物模板条目 id
+ * 自定义条目保留裸 id，外部条目统一写成固定英文前缀
+ * @param id 原始条目 id
+ * @param kind 条目类型
+ * @returns 新结构下的条目 id
+ */
+export function normalizePromptPersonTemplateEntryId(id: string, kind: PromptPersonTemplateEntryKind): string {
+  const baseId = stripPromptPersonTemplateEntryIdPrefix(id);
+  if (kind === 'custom') return baseId;
+  return `${PROMPT_PERSON_TEMPLATE_ENTRY_ID_PREFIXES[kind]}:${baseId}`;
+}
+
+/**
+ * 按条目 id 前缀读取人物模板条目类型
+ * @param id 条目 id
+ * @returns 外部条目类型或 null
+ */
+function readPromptPersonTemplateEntryKindFromId(
+  id: string,
+): Exclude<PromptPersonTemplateEntryKind, 'custom'> | null {
+  for (const [kind, prefix] of Object.entries(PROMPT_PERSON_TEMPLATE_ENTRY_ID_PREFIXES)) {
+    if (id === prefix || id.startsWith(`${prefix}:`)) {
+      return kind as Exclude<PromptPersonTemplateEntryKind, 'custom'>;
+    }
+  }
+  return null;
+}
+
+/**
+ * 去掉人物模板条目 id 上的固定前缀
+ * @param id 条目 id
+ * @returns 不带类型前缀的基础 id
+ */
+function stripPromptPersonTemplateEntryIdPrefix(id: string): string {
+  const kind = readPromptPersonTemplateEntryKindFromId(id);
+  if (!kind) return id;
+  const prefix = `${PROMPT_PERSON_TEMPLATE_ENTRY_ID_PREFIXES[kind]}:`;
+  return id.startsWith(prefix) ? id.slice(prefix.length) || id : id;
 }
 
 /**

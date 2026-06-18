@@ -2,17 +2,14 @@
   <PromptEntryList
     v-model="entries"
     empty-text="暂无人物模板条目"
-    :get-role="entry => (entry as PromptPersonTemplateEntry).source"
+    :get-role="entry => getEntryKind(entry as PromptPersonTemplateEntry)"
   >
     <template #main="{ entry }">
       <span class="cv-source-indicator cv-indicator" />
       <span class="cv-source-kind">{{ getEntrySourceLabel(entry as PromptPersonTemplateEntry) }}</span>
       <span class="cv-source-title">{{ getEntryTitle(entry as PromptPersonTemplateEntry) }}</span>
       <Tag
-        v-if="
-          (entry as PromptPersonTemplateEntry).source !== 'custom' &&
-          !isEntryStatusReady(entry as PromptPersonTemplateEntry)
-        "
+        v-if="!isCustomEntry(entry as PromptPersonTemplateEntry) && !isEntryStatusReady(entry as PromptPersonTemplateEntry)"
         class="cv-status-tag-mini"
         :value="getEntryStatusText(entry as PromptPersonTemplateEntry)"
         :severity="getEntryStatusSeverity(entry as PromptPersonTemplateEntry)"
@@ -48,7 +45,7 @@
       <label class="cv-field">
         <span>来源</span>
         <Select
-          :model-value="editorDraft.source"
+          :model-value="editorDraft.kind"
           :options="editorSourceOptions"
           option-label="label"
           option-value="value"
@@ -58,7 +55,7 @@
           @update:model-value="updateEditorSource"
         />
       </label>
-      <label v-if="editorDraft.source === 'character_description'" class="cv-field">
+      <label v-if="editorDraft.kind === 'character_description'" class="cv-field">
         <span>角色卡</span>
         <Select
           :model-value="editorDraft.selectedCharacterName"
@@ -70,7 +67,7 @@
           @update:model-value="updateSelectedCharacterName"
         />
       </label>
-      <label v-if="editorDraft.source === 'user_persona'" class="cv-field">
+      <label v-if="editorDraft.kind === 'user_persona'" class="cv-field">
         <span>用户人设</span>
         <Select
           :model-value="editorDraft.selectedPersonaKey"
@@ -82,7 +79,7 @@
           @update:model-value="updateSelectedPersonaKey"
         />
       </label>
-      <div v-if="editorDraft.source === 'character_worldbook_entry'" class="cv-source-pair-row">
+      <div v-if="editorDraft.kind === 'character_worldbook_entry'" class="cv-source-pair-row">
         <label class="cv-field cv-source-pair-field">
           <span>世界书</span>
           <Select
@@ -111,9 +108,9 @@
         </label>
       </div>
       <label class="cv-field">
-        <span>条目名称</span>
+          <span>条目名称</span>
         <InputText
-          v-if="editorDraft.source === 'custom'"
+          v-if="editorDraft.kind === 'custom'"
           :model-value="editorDraft.title"
           placeholder="用于条目列表显示"
           @update:model-value="updateCustomTitle"
@@ -122,15 +119,15 @@
       </label>
       <label class="cv-field cv-message-editor-content-field">
         <div class="cv-field-header">
-          <span>{{ editorDraft.source === 'custom' ? '内容' : '资料预览' }}</span>
-          <div v-if="editorDraft.source === 'custom'" class="cv-source-tokens" @click.prevent>
+          <span>{{ editorDraft.kind === 'custom' ? '内容' : '资料预览' }}</span>
+          <div v-if="editorDraft.kind === 'custom'" class="cv-source-tokens" @click.prevent>
             <span class="cv-token-label">插入：</span>
             <button type="button" class="cv-token-btn" @click="insertToken(triggerToken)">关键词</button>
             <button type="button" class="cv-token-btn" @click="insertToken(fixedTagsToken)">固定 tag</button>
           </div>
         </div>
         <Textarea
-          v-if="editorDraft.source === 'custom'"
+          v-if="editorDraft.kind === 'custom'"
           :model-value="editorDraft.content"
           rows="10"
           class="cv-message-editor-textarea custom-scrollbar"
@@ -157,8 +154,13 @@
 
 <script setup lang="ts">
 import { PROMPT_LLM_FIXED_TAGS_TOKEN, PROMPT_LLM_TRIGGER_NAMES_TOKEN } from '@/constants/default-settings';
-import { PROMPT_PERSON_TEMPLATE_ENTRY_SOURCE_LABELS } from '@/constants/novelai';
-import type { PromptPersonKind, PromptPersonTemplateEntry, PromptPersonTemplateEntrySource } from '@/constants/novelai';
+import {
+  getPromptPersonTemplateEntryKind,
+  PROMPT_PERSON_TEMPLATE_ENTRY_KIND_LABELS,
+  type PromptPersonKind,
+  type PromptPersonTemplateEntry,
+  type PromptPersonTemplateEntryKind,
+} from '@/constants/novelai';
 import PromptEntryList from '@/panel/components/PromptEntryList.vue';
 import {
   applySourceDefaults as applyEditorSourceDefaults,
@@ -217,7 +219,7 @@ let worldbookSourceRequestId = 0;
 let entryStatusRequestId = 0;
 let editorPreviewRequestId = 0;
 
-const editorSourceOptions = computed(() => buildSourceOptions(props.kind, editorDraft.value?.source));
+const editorSourceOptions = computed(() => buildSourceOptions(props.kind, editorDraft.value?.kind));
 const characterOptions = computed(() =>
   buildTextSelectOptions([...getPromptPersonCharacterNames(), props.characterName]),
 );
@@ -253,7 +255,7 @@ watch(
   () =>
     [
       isEditorVisible.value,
-      editorDraft.value?.source ?? '',
+      editorDraft.value?.kind ?? '',
       editorDraft.value?.selectedCharacterName ?? '',
       editorDraft.value?.selectedPersonaKey ?? '',
       editorDraft.value?.selectedWorldbookName ?? '',
@@ -269,7 +271,7 @@ async function refreshEntryStatuses(): Promise<void> {
   const requestId = ++entryStatusRequestId;
   const statusEntries = await Promise.all(
     entries.value
-      .filter(entry => entry.source !== 'custom')
+      .filter(entry => !isCustomEntry(entry))
       .map(async entry => [entry.id, await resolvePromptPersonTemplateEntry(entry)] as const),
   );
   if (requestId !== entryStatusRequestId) return;
@@ -338,9 +340,10 @@ function closeEntryEditor(): void {
  * 保存模板条目编辑结果
  */
 function saveEntryEditor(): void {
-  if (!editorDraft.value || !canSaveEditor.value) return;
-  const nextEntry = buildSavedEntry(editorDraft.value);
-  const index = entries.value.findIndex(item => item.id === nextEntry.id);
+  const draft = editorDraft.value;
+  if (!draft || !canSaveEditor.value) return;
+  const nextEntry = buildSavedEntry(draft);
+  const index = entries.value.findIndex(item => item.id === draft.id);
   if (index === -1) {
     entries.value.push(nextEntry);
     return closeEntryEditor();
@@ -353,10 +356,10 @@ function saveEntryEditor(): void {
  * 切换编辑弹窗来源
  * @param source 来源类型
  */
-function updateEditorSource(source: PromptPersonTemplateEntrySource): void {
+function updateEditorSource(source: PromptPersonTemplateEntryKind): void {
   const draft = editorDraft.value;
   if (!draft) return;
-  draft.source = source;
+  draft.kind = source;
   applySourceDefaults(draft);
   syncDraftEntryFields(draft);
 }
@@ -425,7 +428,7 @@ function updateCustomContent(content: string | undefined): void {
  */
 function insertToken(token: string): void {
   const draft = editorDraft.value;
-  if (!draft || draft.source !== 'custom') return;
+  if (!draft || draft.kind !== 'custom') return;
   const separator = draft.customContent && !draft.customContent.endsWith(' ') ? ' ' : '';
   updateCustomContent(`${draft.customContent}${separator}${token}`);
 }
@@ -435,7 +438,7 @@ function insertToken(token: string): void {
  */
 async function refreshEditorPreview(): Promise<void> {
   const draft = editorDraft.value;
-  if (!isEditorVisible.value || !draft || draft.source === 'custom') {
+  if (!isEditorVisible.value || !draft || draft.kind === 'custom') {
     editorPreview.value = null;
     return;
   }
@@ -489,7 +492,7 @@ function getEntryStatusSeverity(entry: PromptPersonTemplateEntry): 'success' | '
  * @returns 来源标签
  */
 function getEntrySourceLabel(entry: PromptPersonTemplateEntry): string {
-  return PROMPT_PERSON_TEMPLATE_ENTRY_SOURCE_LABELS[entry.source] ?? '外部资料';
+  return PROMPT_PERSON_TEMPLATE_ENTRY_KIND_LABELS[getEntryKind(entry)] ?? '外部资料';
 }
 
 /**
@@ -515,6 +518,24 @@ function getResolvedPreviewText(resolved: ResolvedPromptPersonTemplateEntry | nu
   if (resolved.status === 'ready') return resolved.content;
   if (resolved.status === 'unsupported') return '该资料来源本期仅保留占位';
   return '来源失效，运行时会跳过该条目';
+}
+
+/**
+ * 获取条目类型
+ * @param entry 模板条目
+ * @returns 条目类型
+ */
+function getEntryKind(entry: PromptPersonTemplateEntry): PromptPersonTemplateEntryKind {
+  return getPromptPersonTemplateEntryKind(entry);
+}
+
+/**
+ * 判断是否为自定义条目
+ * @param entry 模板条目
+ * @returns 是否为自定义条目
+ */
+function isCustomEntry(entry: PromptPersonTemplateEntry): boolean {
+  return getEntryKind(entry) === 'custom';
 }
 
 /**
@@ -570,7 +591,7 @@ function applySourceDefaults(draft: PromptSourceEditorDraft): void {
  */
 function reconcileEditorSourceDefaults(): void {
   const draft = editorDraft.value;
-  if (!draft || draft.source !== 'character_worldbook_entry') return;
+  if (!draft || draft.kind !== 'character_worldbook_entry') return;
   applySourceDefaults(draft);
   syncDraftEntryFields(draft);
 }

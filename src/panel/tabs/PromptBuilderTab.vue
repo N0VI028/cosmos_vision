@@ -1,11 +1,5 @@
 <template>
   <div class="cv-tab-content">
-    <h2 class="cv-section-title">聊天段落</h2>
-    <label class="cv-field-inline">
-      <span>焦点段落前后段落数</span>
-      <InputNumber v-model="settings.promptLlm.contextParagraphCount" :min="0" :max="20" show-buttons />
-    </label>
-
     <div class="cv-message-section-head">
       <h2 class="cv-section-title">提示词生成预设</h2>
     </div>
@@ -81,7 +75,15 @@
           />
         </label>
         <label class="cv-field cv-message-editor-content-field">
-          <span>内容</span>
+          <div class="cv-field-header">
+            <span>内容</span>
+            <div v-if="!isReservedDraft(editorDraft)" class="cv-source-tokens" @click.prevent>
+              <span class="cv-token-label">插入：</span>
+              <button type="button" class="cv-token-btn" @click="insertMessageToken(focusParagraphToken)">
+                焦点段落
+              </button>
+            </div>
+          </div>
           <Textarea
             v-if="isReservedDraft(editorDraft)"
             :model-value="getReservedDraftPreviewText(editorDraft)"
@@ -160,10 +162,10 @@ import {
   DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
   DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID,
   DEFAULT_PROMPT_LLM_MESSAGE_PRESET_NAME,
-  DEFAULT_PROMPT_LLM_MESSAGE_SOURCE,
   DEFAULT_PROMPT_LLM_MESSAGE_TITLE,
   DEFAULT_PROMPT_EXTRACT_REPLACEMENT,
   DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN,
+  PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN,
   DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN,
   DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
 } from '@/constants/default-settings';
@@ -171,7 +173,6 @@ import {
   type PromptLlmMessage,
   type PromptLlmMessagePreset,
   type PromptLlmMessageRole,
-  type PromptLlmMessageSource,
 } from '@/constants/novelai';
 import {
   createPromptLlmHistoryMessage,
@@ -190,7 +191,6 @@ interface MessageEditorDraft {
   title: string;
   role: PromptLlmMessageRole;
   content: string;
-  source: PromptLlmMessageSource;
 }
 
 interface PromptExtractRuleField {
@@ -238,6 +238,7 @@ const ROLE_OPTIONS = [
 
 const { settings } = useSettingsStore();
 const promptExtractRuleFields = [...PROMPT_EXTRACT_RULE_FIELDS];
+const focusParagraphToken = PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN;
 
 const activePreset = computed(() => {
   const { activePresetId, presets } = settings.promptLlmMessagePresets;
@@ -414,7 +415,6 @@ function addMessage(role: PromptLlmMessageRole, content: string): void {
     title: DEFAULT_PROMPT_LLM_MESSAGE_TITLE,
     role,
     content,
-    source: DEFAULT_PROMPT_LLM_MESSAGE_SOURCE,
     enabled: DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
   });
 }
@@ -460,7 +460,6 @@ function openMessageEditor(message: PromptLlmMessage): void {
     title: message.title,
     role: message.role,
     content: message.content,
-    source: message.source,
   };
   isEditorVisible.value = true;
 }
@@ -489,6 +488,17 @@ function saveMessageEditor(): void {
   message.role = editorDraft.value.role;
   message.content = editorDraft.value.content;
   closeMessageEditor();
+}
+
+/**
+ * 向自定义消息末尾插入宏
+ * @param token 宏文本
+ */
+function insertMessageToken(token: string): void {
+  const draft = editorDraft.value;
+  if (!draft || isReservedDraft(draft)) return;
+  const separator = draft.content && !draft.content.endsWith(' ') ? ' ' : '';
+  draft.content = `${draft.content}${separator}${token}`;
 }
 
 /**
@@ -640,6 +650,48 @@ function getReservedDraftPreviewText(draft: MessageEditorDraft): string {
   display: flex;
   flex-direction: column;
   gap: var(--cv-space-3xl);
+}
+
+.cv-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.cv-field-header > span {
+  font-family: var(--cv-font-body);
+  font-size: calc(var(--mainFontSize) * 1);
+  font-weight: 500;
+  color: var(--cv-on-surface);
+}
+
+.cv-source-tokens {
+  display: flex;
+  align-items: center;
+  gap: var(--cv-space-xs);
+  font-size: calc(var(--mainFontSize) * 0.75);
+}
+
+.cv-token-label {
+  color: var(--cv-on-surface-variant);
+  opacity: 0.8;
+}
+
+.cv-token-btn {
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--p-primary-color);
+  cursor: pointer;
+  font-size: inherit;
+  transition: all 0.2s;
+}
+
+.cv-token-btn:hover {
+  background: var(--cv-surface-container-high);
+  color: var(--p-primary-hover-color);
 }
 
 .cv-message-editor-dialog {

@@ -300,10 +300,10 @@ async function runNovelAIWithOverrides(overrides: NovelAIPromptOverrides): Promi
  * @returns generateRaw 请求体
  */
 function buildLlmModeRequest() {
-  const contextParagraphs = buildTestContext(settings.promptLlm.contextParagraphCount);
+  const context = buildTestContext();
   const schemaFields = buildPromptLlmSchemaFields(settings.promptLlm);
   return buildPromptLlmRuntimeRequestFromContext(
-    contextParagraphs,
+    context,
     settings.promptLlm,
     settings.promptLlmMessagePresets,
     settings.promptProfiles,

@@ -1,5 +1,6 @@
 import { DEFAULT_PROMPT_LLM_OUTPUT_FIELDS } from '@/constants/default-settings';
 import type {
+  PromptLlmContext,
   PromptLlmMessagePresetSettings,
   PromptLlmOutputFields,
   PromptLlmSettings,
@@ -25,7 +26,7 @@ import {
 
 /**
  * 基于上下文与人物配置构建运行时请求
- * @param contextParagraphs 焦点上下文段落
+ * @param context Prompt LLM 运行时上下文
  * @param settings LLM 配置
  * @param presetSettings 消息预设集合
  * @param promptProfiles 提示词Profile设置
@@ -33,13 +34,13 @@ import {
  * @returns generateRaw 请求体
  */
 export async function buildPromptLlmRuntimeRequestFromContext(
-  contextParagraphs: string[],
+  context: PromptLlmContext,
   settings: PromptLlmSettings,
   presetSettings: PromptLlmMessagePresetSettings,
   promptProfiles: PromptProfilesSettings,
   schemaFields: PromptLlmOutputFields | null = DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
 ): Promise<TavernHelperGenerateRawConfig> {
-  const runtimeContent = await buildPromptLlmRuntimeContent(contextParagraphs, promptProfiles);
+  const runtimeContent = await buildPromptLlmRuntimeContent(context, promptProfiles);
   return buildPromptLlmRuntimeRequest(settings, presetSettings, runtimeContent, schemaFields);
 }
 
@@ -83,7 +84,7 @@ export function buildPromptLlmOrderedPrompts(
 
 /**
  * 基于上下文发送 LLM 请求并返回原始文本
- * @param contextParagraphs 焦点上下文段落
+ * @param context Prompt LLM 运行时上下文
  * @param settings LLM 配置
  * @param presetSettings 消息预设集合
  * @param promptProfiles 提示词Profile设置
@@ -91,7 +92,7 @@ export function buildPromptLlmOrderedPrompts(
  * @returns LLM 原始响应文本
  */
 export async function generatePromptTextFromRuntimeContext(
-  contextParagraphs: string[],
+  context: PromptLlmContext,
   settings: PromptLlmSettings,
   presetSettings: PromptLlmMessagePresetSettings,
   promptProfiles: PromptProfilesSettings,
@@ -102,7 +103,7 @@ export async function generatePromptTextFromRuntimeContext(
     throw new Error('TavernHelper 不可用,无法生成提示词');
   }
   const request = await buildPromptLlmRuntimeRequestFromContext(
-    contextParagraphs,
+    context,
     settings,
     presetSettings,
     promptProfiles,
@@ -117,7 +118,7 @@ export async function generatePromptTextFromRuntimeContext(
 
 /**
  * 基于上下文发送 LLM 请求并解析正负提示词
- * @param contextParagraphs 焦点上下文段落
+ * @param context Prompt LLM 运行时上下文
  * @param settings LLM 配置
  * @param presetSettings 消息预设集合
  * @param promptProfiles 提示词Profile设置
@@ -125,14 +126,14 @@ export async function generatePromptTextFromRuntimeContext(
  * @returns 正负提示词
  */
 export async function generatePromptFromRuntimeContext(
-  contextParagraphs: string[],
+  context: PromptLlmContext,
   settings: PromptLlmSettings,
   presetSettings: PromptLlmMessagePresetSettings,
   promptProfiles: PromptProfilesSettings,
   schemaFields: PromptLlmOutputFields | null = DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
 ): Promise<PromptLlmOutput> {
   const rawText = await generatePromptTextFromRuntimeContext(
-    contextParagraphs,
+    context,
     settings,
     presetSettings,
     promptProfiles,

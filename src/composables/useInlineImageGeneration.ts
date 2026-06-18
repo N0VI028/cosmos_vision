@@ -1,4 +1,4 @@
-import type { CosmosVisionSettings } from '@/constants/novelai';
+import type { CosmosVisionSettings, PromptLlmContext } from '@/constants/novelai';
 import { DARK_CLASS } from '@/constants/theme';
 import { generateComfyUIImageFromPrompts, generateComfyUIImageFromResolvedRequest } from '@/services/comfyui/api';
 import { buildComfyUIResolvedRequest, getComfyUIRequestError } from '@/services/comfyui/workflow';
@@ -9,9 +9,8 @@ import {
   generateNovelAIImageFromResolvedRequest,
 } from '@/services/novelai/api';
 import {
-  extractContextAroundParagraph,
+  buildPromptLlmContextFromParagraph,
   findChatParagraph,
-  normalizeContextParagraphCount,
 } from '@/services/sillytavern/chat-dom';
 import {
   generatePromptFromRuntimeContext,
@@ -74,21 +73,57 @@ export function useInlineImageGeneration(
    * 监听聊天区点击,选中段落并显示生图按钮
    */
   function attachChatClickListener(): void {
-    document.addEventListener('click', handleChatClick, true);
+    document.addEventListener('pointerdown', handleChatPointerDown, true);
   }
 
   /**
    * 移除聊天区点击监听
    */
   function detachChatClickListener(): void {
-    document.removeEventListener('click', handleChatClick, true);
+    document.removeEventListener('pointerdown', handleChatPointerDown, true);
+  }
+
+  /** 记录 pointerdown 的位置,用于区分点击和拖拽 */
+  let pointerDownX = 0;
+  let pointerDownY = 0;
+
+  /**
+   * 处理聊天区 pointerdown 事件
+   * 使用 pointerdown 替代 click,避免被其他插件的 touchend.preventDefault() 阻断
+   */
+  function handleChatPointerDown(e: PointerEvent): void {
+    if (!isRuntimeEnabled()) return;
+
+    // 记录起始位置
+    pointerDownX = e.clientX;
+    pointerDownY = e.clientY;
+
+    const target = e.target as HTMLElement;
+
+    // 点击生图按钮或图片卡片内部时不处理
+    if (target.closest('.cv-inline-toolbar') || target.closest('.cv-inline-img-wrap')) {
+      return;
+    }
+
+    // 监听 pointerup 以区分点击和拖拽
+    document.addEventListener('pointerup', handleChatPointerUp, { once: true, capture: true });
   }
 
   /**
-   * 处理聊天区点击事件
+   * 处理聊天区 pointerup 事件
+   * 检查移动距离,仅处理短距离移动(真正的点击)
    */
-  function handleChatClick(e: MouseEvent): void {
+  function handleChatPointerUp(e: PointerEvent): void {
     if (!isRuntimeEnabled()) return;
+
+    // 计算移动距离
+    const moveX = Math.abs(e.clientX - pointerDownX);
+    const moveY = Math.abs(e.clientY - pointerDownY);
+
+    // 移动距离超过 10px 视为拖拽,不处理
+    if (moveX > 10 || moveY > 10) {
+      return;
+    }
 
     const target = e.target as HTMLElement;
 
@@ -100,7 +135,12 @@ export function useInlineImageGeneration(
     // 向上回溯,兼容点击 p 内部 em/q/strong 等子元素
     const p = findChatParagraph(target);
     if (p) {
-      selectParagraph(p);
+      // 如果点击的是已选中的段落,则取消选中(切换行为)
+      if (selectedParagraph.value === p) {
+        deselectParagraph();
+      } else {
+        selectParagraph(p);
+      }
       return;
     }
 
@@ -123,9 +163,6 @@ export function useInlineImageGeneration(
    */
   function selectParagraph(p: HTMLElement): void {
     if (!isRuntimeEnabled()) return;
-
-    // 如果已选中同一段落,不重复处理
-    if (selectedParagraph.value === p) return;
 
     // 清理旧选中态
     deselectParagraph();
@@ -337,10 +374,7 @@ export function useInlineImageGeneration(
    * @returns 图片与提示词快照
    */
   async function generateImageResultFromContext(paragraph: HTMLElement): Promise<InlineGenerationResult> {
-    const context = extractContextAroundParagraph(
-      paragraph,
-      normalizeContextParagraphCount(settings.promptLlm.contextParagraphCount),
-    );
+    const context = buildPromptLlmContextFromParagraph(paragraph);
     return settings.imageSource === 'comfyui'
       ? generateComfyUIImageResult(context)
       : generateNovelAIImageResult(context);
@@ -378,10 +412,10 @@ export function useInlineImageGeneration(
 
   /**
    * 使用 NovelAI 生成图片
-   * @param context 焦点段落上下文
+   * @param context Prompt LLM 运行时上下文
    * @returns NovelAI 返回的图片与提示词快照
    */
-  async function generateNovelAIImageResult(context: string[]): Promise<InlineGenerationResult> {
+  async function generateNovelAIImageResult(context: PromptLlmContext): Promise<InlineGenerationResult> {
     toastr.info('正在生成提示词...');
     const schemaFields = buildPromptLlmSchemaFields(settings.promptLlm);
     const rawResponse = await generatePromptTextFromRuntimeContext(
@@ -409,10 +443,10 @@ export function useInlineImageGeneration(
 
   /**
    * 使用 ComfyUI 生成图片
-   * @param context 焦点段落上下文
+   * @param context Prompt LLM 运行时上下文
    * @returns ComfyUI 返回的图片与提示词快照
    */
-  async function generateComfyUIImageResult(context: string[]): Promise<InlineGenerationResult> {
+  async function generateComfyUIImageResult(context: PromptLlmContext): Promise<InlineGenerationResult> {
     toastr.info('正在生成提示词...');
     const schemaFields = buildPromptLlmSchemaFields(settings.promptLlm);
     const prompts = await generatePromptFromRuntimeContext(
@@ -444,6 +478,10 @@ export function useInlineImageGeneration(
     img.src = objectUrl;
     img.alt = '生成的图片';
     img.draggable = false;
+
+    img.addEventListener('click', (e: MouseEvent) => {
+      handleImageClick(e, img, wrap, isRuntimeEnabled, promptSnapshots.get(p));
+    });
 
     wrap.append(img, createImageActionBar(p));
 
@@ -520,4 +558,146 @@ export function useInlineImageGeneration(
     deselectParagraph,
     cleanup,
   };
+}
+
+/**
+ * 处理内联生成的图片点击事件
+ * @param e 点击事件对象
+ * @param img 图片元素
+ * @param wrap 外层容器元素
+ * @param isRuntimeEnabled 是否启用运行时
+ * @param snapshot 提示词快照
+ */
+function handleImageClick(
+  e: MouseEvent,
+  img: HTMLImageElement,
+  wrap: HTMLElement,
+  isRuntimeEnabled: () => boolean,
+  snapshot?: InlinePromptSnapshot,
+): void {
+  if (!isRuntimeEnabled()) return;
+  e.stopPropagation();
+  const isTouch = window.matchMedia('(hover: none)').matches;
+  if (isTouch && !wrap.classList.contains('cv-inline-img-active')) {
+    wrap.classList.add('cv-inline-img-active');
+  } else {
+    openLightbox(img.src, snapshot);
+    if (isTouch) wrap.classList.remove('cv-inline-img-active');
+  }
+}
+
+/**
+ * 复制文本并更新按钮状态
+ * @param text 复制的文本
+ * @param btn 触发复制的按钮
+ */
+async function copyText(text: string, btn: HTMLElement): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> 已复制';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerHTML = originalHTML;
+      btn.classList.remove('copied');
+    }, 1500);
+  } catch (err) {
+    toastr.error('复制失败');
+  }
+}
+
+/**
+ * 创建 Lightbox 的 DOM 结构
+ * @param src 图片地址
+ * @param snapshot 提示词快照
+ * @returns Lightbox 根元素
+ */
+function createLightboxDOM(src: string, snapshot?: InlinePromptSnapshot): HTMLElement {
+  const overlay = document.createElement('div');
+  overlay.className = 'cv-lightbox-overlay';
+
+  const pos = snapshot?.positivePrompt || '无正向提示词';
+  const neg = snapshot?.negativePrompt || '无负面提示词';
+
+  overlay.innerHTML = `
+    <button class="cv-lightbox-close"><i class="fa-solid fa-xmark"></i></button>
+    <div class="cv-lightbox-wrapper">
+      <div class="cv-lightbox-img-box">
+        <img class="cv-lightbox-preview-img" src="${src}" alt="放大图片" draggable="false" />
+      </div>
+      <div class="cv-lightbox-info">
+        <div class="cv-lightbox-info-header">
+          <span class="cv-lightbox-info-title">提示词详情</span>
+          <button class="cv-lightbox-toggle-btn" title="隐藏/显示提示词">
+            <i class="fa-solid fa-eye-slash"></i> <span>隐藏提示词</span>
+          </button>
+        </div>
+        <div class="cv-lightbox-info-body">
+          <div class="cv-lightbox-prompt-group">
+            <div class="cv-lightbox-prompt-header">
+              <span class="cv-lightbox-prompt-title cv-lightbox-title-pos">正向提示词</span>
+              <button class="cv-lightbox-copy-btn cv-copy-pos"><i class="fa-solid fa-copy"></i> 复制</button>
+            </div>
+            <div class="cv-lightbox-prompt-content">${pos}</div>
+          </div>
+          <div class="cv-lightbox-prompt-group">
+            <div class="cv-lightbox-prompt-header">
+              <span class="cv-lightbox-prompt-title cv-lightbox-title-neg">负面提示词</span>
+              <button class="cv-lightbox-copy-btn cv-copy-neg"><i class="fa-solid fa-copy"></i> 复制</button>
+            </div>
+            <div class="cv-lightbox-prompt-content">${neg}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  return overlay;
+}
+
+/**
+ * 绑定 Lightbox 相关的事件
+ * @param overlay Lightbox 根元素
+ * @param snapshot 提示词快照
+ */
+function bindLightboxEvents(overlay: HTMLElement, snapshot?: InlinePromptSnapshot): void {
+  const close = () => {
+    overlay.classList.remove('cv-lightbox-active');
+    setTimeout(() => overlay.remove(), 250);
+    document.removeEventListener('keydown', handleEsc);
+  };
+  const handleEsc = (e: KeyboardEvent) => e.key === 'Escape' && close();
+  document.addEventListener('keydown', handleEsc);
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay || e.target === overlay.querySelector('.cv-lightbox-img-box')) close();
+  });
+  overlay.querySelector('.cv-lightbox-close')?.addEventListener('click', close);
+  
+  // 折叠隐藏/显示控制
+  const info = overlay.querySelector('.cv-lightbox-info') as HTMLElement;
+  const toggleBtn = overlay.querySelector('.cv-lightbox-toggle-btn') as HTMLElement;
+  toggleBtn?.addEventListener('click', () => {
+    const isCollapsed = info.classList.toggle('cv-info-collapsed');
+    toggleBtn.innerHTML = isCollapsed 
+      ? '<i class="fa-solid fa-eye"></i> <span>显示提示词</span>' 
+      : '<i class="fa-solid fa-eye-slash"></i> <span>隐藏提示词</span>';
+  });
+
+  // 复制提示词
+  overlay.querySelector('.cv-copy-pos')?.addEventListener('click', (e) => copyText(snapshot?.positivePrompt || '', e.currentTarget as HTMLElement));
+  overlay.querySelector('.cv-copy-neg')?.addEventListener('click', (e) => copyText(snapshot?.negativePrompt || '', e.currentTarget as HTMLElement));
+}
+
+/**
+ * 打开 Lightbox 大图预览弹窗
+ * @param src 图片地址
+ * @param snapshot 提示词快照
+ */
+function openLightbox(src: string, snapshot?: InlinePromptSnapshot): void {
+  const overlay = createLightboxDOM(src, snapshot);
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => {
+    overlay.classList.add('cv-lightbox-active');
+  });
+  bindLightboxEvents(overlay, snapshot);
 }

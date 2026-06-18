@@ -1,40 +1,39 @@
-import defaultPromptLlmPresetSettings from '@/constants/default-prompt-llm-preset';
+import defaultPromptLlmPresetSettings, {
+  DEFAULT_PROMPT_LLM_CONTENT_CLOSE_MESSAGE_ID,
+  DEFAULT_PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID,
+  DEFAULT_PROMPT_LLM_HISTORY_MESSAGE_ID,
+  DEFAULT_PROMPT_LLM_PARTICIPANT_MESSAGE_ID,
+} from '@/constants/default-prompt-llm-preset';
 import { COMFYUI_CUSTOM_RESOLUTION_PRESET, COMFYUI_DEFAULT_SAMPLER, type ImageSource } from '@/constants/comfyui';
 import { createDefaultComfyUILoraSettings, DEFAULT_COMFYUI_WORKFLOW_JSON } from '@/constants/default-comfyui-workflow';
 import { createImagePromptPresetSettings } from '@/constants/image-prompt';
 import {
+  PROMPT_LLM_FIXED_TAGS_TOKEN,
+  PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN,
+  PROMPT_LLM_TRIGGER_NAMES_TOKEN,
+} from '@/constants/prompt-llm-tokens';
+import {
   createNovelAIAccount,
   NOVELAI_DEFAULT_ACCOUNT_ID,
   type CosmosVisionSettings,
-  type PromptLlmMessageSource,
   type PromptLlmOutputFields,
 } from '@/constants/novelai';
 
 const defaultPromptLlmPreset = defaultPromptLlmPresetSettings.presets[0];
-const defaultPromptLlmContentOpenMessage = defaultPromptLlmPreset.messages[1];
-const defaultPromptLlmParticipantMessage = defaultPromptLlmPreset.messages[2];
-const defaultPromptLlmHistoryMessage = defaultPromptLlmPreset.messages[3];
-const defaultPromptLlmContentCloseMessage = defaultPromptLlmPreset.messages[4];
 
 export const DEFAULT_NOVELAI_RESOLUTION_PRESET = 'normal-portrait';
 export const DEFAULT_PRESET_NAME = '';
 export const DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID = defaultPromptLlmPresetSettings.activePresetId;
 export const DEFAULT_PROMPT_LLM_MESSAGE_PRESET_NAME = defaultPromptLlmPreset.name;
 export const DEFAULT_PROMPT_LLM_MESSAGE_TITLE = '';
-export const DEFAULT_PROMPT_LLM_MESSAGE_SOURCE: PromptLlmMessageSource = 'manual';
 export const DEFAULT_PROMPT_LLM_MESSAGE_ENABLED = true;
-export const PROMPT_LLM_HISTORY_MESSAGE_ID = defaultPromptLlmHistoryMessage.id;
-export const PROMPT_LLM_HISTORY_MESSAGE_TITLE = defaultPromptLlmHistoryMessage.title;
-export const PROMPT_LLM_HISTORY_MESSAGE_SOURCE = defaultPromptLlmHistoryMessage.source;
-export const PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID = defaultPromptLlmContentOpenMessage.id;
-export const PROMPT_LLM_CONTENT_OPEN_MESSAGE_SOURCE = defaultPromptLlmContentOpenMessage.source;
-export const PROMPT_LLM_CONTENT_CLOSE_MESSAGE_ID = defaultPromptLlmContentCloseMessage.id;
-export const PROMPT_LLM_CONTENT_CLOSE_MESSAGE_SOURCE = defaultPromptLlmContentCloseMessage.source;
-export const PROMPT_LLM_PARTICIPANT_MESSAGE_ID = defaultPromptLlmParticipantMessage.id;
-export const PROMPT_LLM_PARTICIPANT_MESSAGE_TITLE = defaultPromptLlmParticipantMessage.title;
-export const PROMPT_LLM_PARTICIPANT_MESSAGE_SOURCE = defaultPromptLlmParticipantMessage.source;
-export const PROMPT_LLM_TRIGGER_NAMES_TOKEN = '{{trigger_names}}';
-export const PROMPT_LLM_FIXED_TAGS_TOKEN = '{{fixed_tags}}';
+export const PROMPT_LLM_HISTORY_MESSAGE_ID = DEFAULT_PROMPT_LLM_HISTORY_MESSAGE_ID;
+export const PROMPT_LLM_HISTORY_MESSAGE_TITLE = '历史消息';
+export const PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID = DEFAULT_PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID;
+export const PROMPT_LLM_CONTENT_CLOSE_MESSAGE_ID = DEFAULT_PROMPT_LLM_CONTENT_CLOSE_MESSAGE_ID;
+export const PROMPT_LLM_PARTICIPANT_MESSAGE_ID = DEFAULT_PROMPT_LLM_PARTICIPANT_MESSAGE_ID;
+export const PROMPT_LLM_PARTICIPANT_MESSAGE_TITLE = '人物总体信息';
+export { PROMPT_LLM_FIXED_TAGS_TOKEN, PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN, PROMPT_LLM_TRIGGER_NAMES_TOKEN };
 export const PROMPT_LLM_HISTORY_PREVIEW_TEXT = '历史消息';
 export const PROMPT_LLM_PARTICIPANT_PREVIEW_TEXT = '人物总体信息';
 export const DEFAULT_POSITIVE_PROMPT_PRESET_ID = 'novelai-positive-current-preset';
@@ -106,7 +105,6 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     maxTokens: 1000,
     topP: 1.0,
     topK: 0,
-    contextParagraphCount: 2,
     preferJsonSchemaExtraction: true,
     positivePromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.positive,
     negativePromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.negative,

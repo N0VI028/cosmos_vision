@@ -2,11 +2,13 @@ import { uuidv4 } from '@sillytavern/scripts/utils';
 
 import { PROMPT_LLM_FIXED_TAGS_TOKEN, PROMPT_LLM_TRIGGER_NAMES_TOKEN } from '@/constants/default-settings';
 import type {
+  PromptLlmContext,
   PromptPerson,
   PromptPersonKind,
   PromptPersonTemplateEntry,
   PromptProfilesSettings,
 } from '@/constants/novelai';
+import { getPromptPersonTemplateEntryKind } from '@/constants/novelai';
 import type { PromptLlmRuntimeContent } from '@/services/prompt-llm/message-preset';
 import { resolvePromptPersonTemplateEntry } from '@/services/tavern-helper/prompt-profiles-sources';
 
@@ -24,6 +26,7 @@ export interface MatchedPromptPerson {
 export interface PromptProfilesRuntimeResult {
   historyContent: string;
   participantContent: string;
+  focusParagraphContent: string;
   matchedProfiles: MatchedPromptPerson[];
 }
 
@@ -74,44 +77,45 @@ export function createCustomPromptPersonTemplateEntry(title = '自定义条目',
     id: uuidv4(),
     title,
     enabled: true,
-    source: 'custom',
     content,
   };
 }
 
 /**
  * 构建人物运行时内容
- * @param contextParagraphs 焦点上下文段落
+ * @param context Prompt LLM 运行时上下文
  * @param promptProfiles 提示词Profile设置
  * @returns 历史消息与人物总体信息
  */
 export async function buildPromptProfilesRuntimeContent(
-  contextParagraphs: string[],
+  context: PromptLlmContext,
   promptProfiles: PromptProfilesSettings,
 ): Promise<PromptProfilesRuntimeResult> {
-  const historyContent = contextParagraphs.join('\n\n').trim();
-  const matchedProfiles = await matchPromptProfiles(contextParagraphs, promptProfiles.profiles);
+  const historyContent = context.historyParagraphs.join('\n\n').trim();
+  const matchedProfiles = await matchPromptProfiles(context.historyParagraphs, promptProfiles.profiles);
   return {
     historyContent,
     participantContent: buildParticipantContext(matchedProfiles),
+    focusParagraphContent: context.focusParagraph.trim(),
     matchedProfiles,
   };
 }
 
 /**
  * 构建 LLM 运行时替换内容
- * @param contextParagraphs 焦点上下文段落
+ * @param context Prompt LLM 运行时上下文
  * @param promptProfiles 提示词Profile设置
  * @returns 供消息预设替换的运行时内容
  */
 export async function buildPromptLlmRuntimeContent(
-  contextParagraphs: string[],
+  context: PromptLlmContext,
   promptProfiles: PromptProfilesSettings,
 ): Promise<PromptLlmRuntimeContent> {
-  const result = await buildPromptProfilesRuntimeContent(contextParagraphs, promptProfiles);
+  const result = await buildPromptProfilesRuntimeContent(context, promptProfiles);
   return {
     historyContent: result.historyContent,
     participantContent: result.participantContent,
+    focusParagraphContent: result.focusParagraphContent,
   };
 }
 
@@ -202,7 +206,7 @@ async function renderPromptPersonTemplateEntry(
   person: PromptPerson,
   entry: PromptPersonTemplateEntry,
 ): Promise<string> {
-  if (entry.source === 'custom') {
+  if (getPromptPersonTemplateEntryKind(entry) === 'custom') {
     return replacePromptPersonTemplateTokens(entry.content, person);
   }
   const resolvedEntry = await resolvePromptPersonTemplateEntry(entry);
