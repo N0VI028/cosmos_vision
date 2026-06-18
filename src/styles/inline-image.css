@@ -3,36 +3,101 @@
  * PrimeVue 操作按钮 + 临时图片卡片
  */
 
-/* 被选中的段落:作为浮窗按钮的定位锚点 + 半透明背景高亮 */
+/* 生图模式悬浮小球:可自由拖动，left/top 由 JS useDraggable 动态提供 */
+#cosmos_vision .cv-inline-mode-fab,
+.cosmos-vision-root.cv-inline-mode-fab {
+  position: fixed;
+  z-index: 30000;
+  touch-action: none; /* 允许 useDraggable 接管触摸事件 */
+  width: 3.2em;
+  height: 3.2em;
+  border: var(--cv-border-width) solid var(--cv-surface-variant);
+  border-radius: var(--cv-radius-full);
+  background: var(--cv-surface-container-high);
+  color: var(--cv-on-surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: var(--cv-floating-shadow);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+#cosmos_vision .cv-inline-mode-fab:hover,
+#cosmos_vision .cv-inline-mode-fab:focus-visible,
+.cosmos-vision-root.cv-inline-mode-fab:hover,
+.cosmos-vision-root.cv-inline-mode-fab:focus-visible {
+  background: color-mix(in srgb, var(--cv-primary-container) 16%, var(--cv-surface-container-high));
+  border-color: var(--cv-primary-container);
+  color: var(--cv-on-surface);
+}
+
+#cosmos_vision .cv-inline-mode-fab:active,
+.cosmos-vision-root.cv-inline-mode-fab:active {
+  transform: scale(0.96);
+}
+
+#cosmos_vision .cv-inline-mode-fab--active,
+.cosmos-vision-root.cv-inline-mode-fab--active {
+  background: var(--cv-primary-container);
+  border-color: var(--cv-primary-container);
+}
+
+#cosmos_vision .cv-inline-mode-fab svg,
+.cosmos-vision-root.cv-inline-mode-fab svg {
+  width: 1.8em;
+  height: 1.8em;
+}
+
+#cosmos_vision .cv-inline-mode-fab i,
+.cosmos-vision-root.cv-inline-mode-fab i {
+  font-size: 1.35em;
+}
+
+/* 被选中的段落:作为浮窗按钮的定位锚点 + 半透明蒙版高亮 */
 .cv-inline-selected {
   position: relative;
-  background: var(--SmartThemeBlurTintColor, rgba(96, 165, 250, 0.1)) !important;
-  border-radius: 0.2667em;
+  border-radius: var(--cv-radius-sm);
   transition: background 0.2s ease;
 }
 
-/* 段落工具栏:使用 PrimeVue 按钮，样式只负责定位 */
-.cv-inline-toolbar {
+.cv-inline-selected::before {
+  content: '';
   position: absolute;
-  top: -2.9em;
-  right: 0;
-  z-index: 10;
-  max-width: min(100%, 34em);
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border: none;
+  border-radius: inherit;
+  background: rgba(0, 0, 0, 0.4);
 }
 
-/* 强制右上角生图按钮为正方形,且防止被 flex 挤压变形；使用现代 CSS color-mix 混合半透明主题色底面，并以 100% 不透明的主题色高亮 icon */
+/* 段落工具栏:使用 PrimeVue 按钮，样式只负责右侧定位 */
+.cv-inline-toolbar {
+  position: absolute;
+  top: 50%;
+  right: 1em;
+  z-index: 3;
+  transform: translateY(-50%);
+}
+
+/* 强制右侧生图按钮为合适大小，且防止被 flex 挤压变形 */
 .cv-inline-toolbar .cv-inline-action-button {
   flex-shrink: 0 !important;
-  aspect-ratio: 1 / 1 !important;
-  width: 2.4em !important;
   height: 2.4em !important;
-  padding: 0 !important;
+  padding: 0 0.8em !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background-color: color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 18%, transparent) !important;
-  border: 1px solid color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 30%, transparent) !important;
-  color: var(--SmartThemeQuoteColor, #3b82f6) !important;
+  gap: 0.4em !important;
+  background-color: var(--SmartThemeQuoteColor, #3b82f6) !important;
+  border: 1px solid var(--SmartThemeQuoteColor, #3b82f6) !important;
+  color: #ffffff !important;
   box-shadow: none !important;
   transition:
     background-color 0.2s ease,
@@ -41,9 +106,9 @@
 }
 
 .cv-inline-toolbar .cv-inline-action-button:not([data-p-disabled='true']):hover {
-  background-color: color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 30%, transparent) !important;
-  border-color: color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 50%, transparent) !important;
-  transform: scale(1.05);
+  background-color: color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 85%, black) !important;
+  border-color: color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 85%, black) !important;
+  transform: scale(1.02);
 }
 
 .cv-inline-button-row {
@@ -165,7 +230,7 @@
   align-items: center;
   opacity: 0;
   transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: var(--mainFontFamily, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  font-family: var(--mainFontFamily, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
 }
 
 .cv-lightbox-overlay.cv-lightbox-active {
@@ -419,4 +484,63 @@
 }
 .cv-lightbox-prompt-content::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+/* 顶部生图模式提示蒙版 */
+.cv-mode-indicator-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 80px;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 35%, transparent) 0%,
+    color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 15%, transparent) 40%,
+    transparent 100%
+  );
+  z-index: 25000;
+  pointer-events: none;
+}
+
+/* 底部生图提示文字容器 */
+.cv-mode-indicator-bottom {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25000;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 提示文字胶囊 */
+.cv-mode-indicator-text {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: color-mix(in srgb, var(--cv-surface-container-high) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 40%, transparent);
+  color: var(--SmartThemeQuoteColor, #3b82f6);
+  padding: 0.35rem 1rem;
+  border-radius: var(--cv-radius-full, 9999px);
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0.95;
+}
+
+/* 提示蒙版淡入淡出过渡 */
+.cv-fade-enter-active,
+.cv-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.cv-fade-enter-from,
+.cv-fade-leave-to {
+  opacity: 0;
 }

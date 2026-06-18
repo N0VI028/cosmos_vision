@@ -57,6 +57,9 @@ export function useInlineImageGeneration(
   /** 当前是否正在生成 */
   const isGenerating = ref(false);
 
+  /** 是否处于段落生图选择模式 */
+  const isSelectionMode = ref(false);
+
   /** 段落到临时图片容器的映射 */
   const imageContainers = new Map<HTMLElement, HTMLElement>();
 
@@ -69,100 +72,118 @@ export function useInlineImageGeneration(
   /** Object URL 清理表 */
   const objectUrls = new Set<string>();
 
-  /**
-   * 监听聊天区点击,选中段落并显示生图按钮
-   */
-  function attachChatClickListener(): void {
-    document.addEventListener('pointerdown', handleChatPointerDown, true);
-  }
-
-  /**
-   * 移除聊天区点击监听
-   */
-  function detachChatClickListener(): void {
-    document.removeEventListener('pointerdown', handleChatPointerDown, true);
-  }
-
   /** 记录 pointerdown 的位置,用于区分点击和拖拽 */
   let pointerDownX = 0;
   let pointerDownY = 0;
 
   /**
-   * 处理聊天区 pointerdown 事件
-   * 使用 pointerdown 替代 click,避免被其他插件的 touchend.preventDefault() 阻断
+   * 切换段落生图选择模式
    */
-  function handleChatPointerDown(e: PointerEvent): void {
-    if (!isRuntimeEnabled()) return;
-
-    // 记录起始位置
-    pointerDownX = e.clientX;
-    pointerDownY = e.clientY;
-
-    const target = e.target as HTMLElement;
-
-    // 点击生图按钮或图片卡片内部时不处理
-    if (target.closest('.cv-inline-toolbar') || target.closest('.cv-inline-img-wrap')) {
+  function toggleSelectionMode(): void {
+    if (isSelectionMode.value) {
+      exitSelectionMode();
       return;
     }
-
-    // 监听 pointerup 以区分点击和拖拽
-    document.addEventListener('pointerup', handleChatPointerUp, { once: true, capture: true });
+    enterSelectionMode();
   }
 
   /**
-   * 处理聊天区 pointerup 事件
-   * 检查移动距离,仅处理短距离移动(真正的点击)
+   * 进入段落生图选择模式
    */
-  function handleChatPointerUp(e: PointerEvent): void {
+  function enterSelectionMode(): void {
+    if (!isRuntimeEnabled() || isSelectionMode.value) return;
+    isSelectionMode.value = true;
+    document.addEventListener('pointerdown', handleSelectionPointerDown, true);
+  }
+
+  /**
+   * 退出段落生图选择模式
+   */
+  function exitSelectionMode(): void {
+    document.removeEventListener('pointerdown', handleSelectionPointerDown, true);
+    document.removeEventListener('pointerup', handleSelectionPointerUp, true);
+    isSelectionMode.value = false;
+    deselectParagraph();
+  }
+
+  /**
+   * 处理选择模式 pointerdown 事件
+   * 在移动端焦点默认行为发生前拦截段落点击
+   * @param e 指针事件
+   */
+  function handleSelectionPointerDown(e: PointerEvent): void {
+    if (!shouldHandleParagraphPointer(e)) return;
+    pointerDownX = e.clientX;
+    pointerDownY = e.clientY;
+    e.preventDefault();
+    document.addEventListener('pointerup', handleSelectionPointerUp, { once: true, capture: true });
+  }
+
+  /**
+   * 判断本次 pointer 事件是否应进入段落选择处理
+   * @param e 指针事件
+   * @returns 是否应处理
+   */
+  function shouldHandleParagraphPointer(e: PointerEvent): boolean {
+    const target = e.target as HTMLElement;
+    return !isIgnoredInlineTarget(target) && Boolean(target.closest('.mes_text, [mesid]'));
+  }
+
+  /**
+   * 处理选择模式 pointerup 事件
+   * 检查移动距离,仅处理短距离移动(真正的点击)
+   * @param e 指针事件
+   */
+  function handleSelectionPointerUp(e: PointerEvent): void {
     if (!isRuntimeEnabled()) return;
-
-    // 计算移动距离
-    const moveX = Math.abs(e.clientX - pointerDownX);
-    const moveY = Math.abs(e.clientY - pointerDownY);
-
-    // 移动距离超过 10px 视为拖拽,不处理
-    if (moveX > 10 || moveY > 10) {
-      return;
-    }
+    if (!isShortTap(e)) return;
 
     const target = e.target as HTMLElement;
-
-    // 点击生图按钮或图片卡片内部时不处理
-    if (target.closest('.cv-inline-toolbar') || target.closest('.cv-inline-img-wrap')) {
-      return;
-    }
+    if (isIgnoredInlineTarget(target)) return;
 
     // 向上回溯,兼容点击 p 内部 em/q/strong 等子元素
     const p = findChatParagraph(target);
     if (p) {
-      // 避免阻断正常的链接、按钮等元素交互
-      if (target.closest('a, button, input, textarea, [role="button"]')) {
-        return;
-      }
       // 阻止 pointerup 默认行为,从而避免产生 click 事件唤起手机键盘
       e.preventDefault();
-
-      // 如果点击的是已选中的段落,则取消选中(切换行为)
-      if (selectedParagraph.value === p) {
-        deselectParagraph();
-      } else {
-        selectParagraph(p);
-      }
+      toggleParagraphSelection(p);
       return;
     }
 
-    if (isChatAreaTarget(target)) {
+    // 点击聊天区空白处取消选中
+    if (target.closest('.mes_text, [mesid]')) {
       deselectParagraph();
     }
   }
 
   /**
-   * 判断点击目标是否仍在聊天区域内
-   * @param target 点击目标
-   * @returns 是否属于聊天区域
+   * 判断目标是否应跳过段落选择
+   * @param target 事件目标
+   * @returns 是否跳过
    */
-  function isChatAreaTarget(target: HTMLElement): boolean {
-    return Boolean(target.closest('.mes_text, [mesid]'));
+  function isIgnoredInlineTarget(target: HTMLElement): boolean {
+    return Boolean(target.closest('.cv-inline-toolbar, .cv-inline-img-wrap, .cv-inline-mode-fab, a, button, input, textarea, [role="button"]'));
+  }
+
+  /**
+   * 判断本次 pointer 是否是短距离点击
+   * @param e 指针事件
+   * @returns 是否为点击
+   */
+  function isShortTap(e: PointerEvent): boolean {
+    return Math.abs(e.clientX - pointerDownX) <= 10 && Math.abs(e.clientY - pointerDownY) <= 10;
+  }
+
+  /**
+   * 切换段落选中状态
+   * @param p 目标段落
+   */
+  function toggleParagraphSelection(p: HTMLElement): void {
+    if (selectedParagraph.value === p) {
+      deselectParagraph();
+      return;
+    }
+    selectParagraph(p);
   }
 
   /**
@@ -206,9 +227,15 @@ export function useInlineImageGeneration(
   function createSelectionToolbar(): HTMLElement {
     return createActionHost('cv-inline-toolbar', [
       {
+        label: '生成图片',
         icon: 'fa-solid fa-paint-brush',
-        variant: 'outlined',
-        onClick: () => void handleGenerateWithFreshPrompt(),
+        onClick: () => {
+          const paragraph = selectedParagraph.value;
+          if (paragraph) {
+            exitSelectionMode();
+            void handleGenerateWithFreshPrompt(paragraph);
+          }
+        },
       },
     ]);
   }
@@ -350,6 +377,7 @@ export function useInlineImageGeneration(
     }
 
     isGenerating.value = true;
+    exitSelectionMode();
 
     try {
       const result = await task();
@@ -549,6 +577,8 @@ export function useInlineImageGeneration(
    * 清理所有临时图片与 Object URL
    */
   function cleanup(): void {
+    exitSelectionMode();
+
     // 移除所有图片容器
     imageContainers.forEach(container => {
       const actions = container.querySelector(':scope > .cv-inline-img-actions') as HTMLElement | null;
@@ -563,13 +593,12 @@ export function useInlineImageGeneration(
     objectUrls.forEach(url => URL.revokeObjectURL(url));
     objectUrls.clear();
 
-    // 取消选中
-    deselectParagraph();
   }
 
   return {
-    attachChatClickListener,
-    detachChatClickListener,
+    isSelectionMode,
+    toggleSelectionMode,
+    exitSelectionMode,
     deselectParagraph,
     cleanup,
   };
