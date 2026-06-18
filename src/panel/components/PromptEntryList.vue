@@ -67,7 +67,6 @@ const entries = defineModel<PromptEntryListItem[]>({ required: true });
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   border-radius: var(--cv-radius-sm);
   background: var(--cv-surface-container-low);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cv-message-row.is-disabled {
@@ -87,8 +86,8 @@ const entries = defineModel<PromptEntryListItem[]>({ required: true });
 }
 
 .cv-message-row-ghost {
-  border: 1px dashed var(--p-primary-color) !important;
-  background: rgba(255, 255, 255, 0.05) !important;
+  border: var(--cv-border-width) dashed var(--p-primary-color) !important;
+  background: color-mix(in srgb, var(--cv-surface-container-low) 55%, transparent) !important;
   opacity: 0.4;
 }
 
