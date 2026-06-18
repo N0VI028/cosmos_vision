@@ -486,6 +486,28 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* 移动端 Lightbox 布局修复：防止负面提示词被 flex 压缩裁剪 */
+@media (max-width: 640px) {
+  .cv-lightbox-wrapper {
+    height: 90vh;
+    overflow-y: auto;
+    justify-content: flex-start;
+    gap: 1rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .cv-lightbox-img-box {
+    flex: none;
+    width: 100%;
+    max-height: 45vh;
+  }
+
+  .cv-lightbox-info {
+    max-height: none;
+    flex-shrink: 0;
+  }
+}
+
 /* 顶部生图模式提示蒙版 */
 .cv-mode-indicator-bar {
   position: fixed;
@@ -499,17 +521,17 @@
     color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 15%, transparent) 40%,
     transparent 100%
   );
-  z-index: 25000;
+  z-index: 99998;
   pointer-events: none;
 }
 
 /* 底部生图提示文字容器 */
 .cv-mode-indicator-bottom {
-  position: fixed;
+  position: absolute;
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 25000;
+  z-index: 99999;
   pointer-events: none;
   display: flex;
   justify-content: center;
