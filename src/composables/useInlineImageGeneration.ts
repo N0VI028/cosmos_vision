@@ -135,6 +135,13 @@ export function useInlineImageGeneration(
     // 向上回溯,兼容点击 p 内部 em/q/strong 等子元素
     const p = findChatParagraph(target);
     if (p) {
+      // 避免阻断正常的链接、按钮等元素交互
+      if (target.closest('a, button, input, textarea, [role="button"]')) {
+        return;
+      }
+      // 阻止 pointerup 默认行为,从而避免产生 click 事件唤起手机键盘
+      e.preventDefault();
+
       // 如果点击的是已选中的段落,则取消选中(切换行为)
       if (selectedParagraph.value === p) {
         deselectParagraph();
@@ -246,6 +253,10 @@ export function useInlineImageGeneration(
   function createActionHost(hostClass: string, actions: InlineActionButtonSpec[]): HTMLElement {
     const host = document.createElement('div');
     host.className = buildActionHostClass(hostClass);
+
+    // 阻止交互事件冒泡,防止触发底层的输入框聚焦
+    const stopEvents = ['pointerdown', 'mousedown', 'touchstart', 'pointerup', 'mouseup', 'touchend', 'click'];
+    stopEvents.forEach(evt => host.addEventListener(evt, e => e.stopPropagation()));
 
     const vnode = h(
       'div',
@@ -473,6 +484,10 @@ export function useInlineImageGeneration(
 
     const wrap = document.createElement('div');
     wrap.className = 'cv-inline-img-wrap';
+
+    // 阻止交互事件冒泡,防止触发底层的输入框聚焦
+    const stopEvents = ['pointerdown', 'mousedown', 'touchstart', 'pointerup', 'mouseup', 'touchend', 'click'];
+    stopEvents.forEach(evt => wrap.addEventListener(evt, e => e.stopPropagation()));
 
     const img = document.createElement('img');
     img.src = objectUrl;
