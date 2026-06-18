@@ -1,0 +1,169 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 0,
+      "steps": 1,
+      "cfg": 1,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": [
+        "56",
+        0
+      ],
+      "positive": [
+        "64",
+        0
+      ],
+      "negative": [
+        "66",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "K采样器"
+    }
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "Illustrious\\hassakuXLIllustrious_v13StyleA.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Checkpoint加载器（简易）"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 64,
+      "height": 64,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "空Latent图像"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "14": {
+    "inputs": {
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "预览图像"
+    }
+  },
+  "55": {
+    "inputs": {
+      "group_mode": false,
+      "default_active": {
+        "__value__": []
+      },
+      "allow_strength_adjustment": false,
+      "toggle_trigger_words": {
+        "__value__": []
+      },
+      "orinalMessage": "",
+      "trigger_words": [
+        "56",
+        2
+      ]
+    },
+    "class_type": "TriggerWord Toggle (LoraManager)",
+    "_meta": {
+      "title": "TriggerWord Toggle (LoraManager)"
+    }
+  },
+  "56": {
+    "inputs": {
+      "text": "",
+      "loras": {
+        "__value__": []
+      },
+      "model": [
+        "4",
+        0
+      ],
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "class_type": "Lora Loader (LoraManager)",
+    "_meta": {
+      "title": "Lora Loader (LoraManager)"
+    }
+  },
+  "60": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "file_format": "jpeg",
+      "lossless_webp": false,
+      "quality": 100,
+      "embed_workflow": false,
+      "add_counter_to_filename": true,
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "Save Image (LoraManager)",
+    "_meta": {
+      "title": "Save Image (LoraManager)"
+    }
+  },
+  "64": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "56",
+        1
+      ],
+      "trigger_words": [
+        "55",
+        0
+      ]
+    },
+    "class_type": "Prompt (LoraManager)",
+    "_meta": {
+      "title": "Prompt (LoraManager)"
+    }
+  },
+  "66": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "56",
+        1
+      ]
+    },
+    "class_type": "Prompt (LoraManager)",
+    "_meta": {
+      "title": "Prompt (LoraManager)"
+    }
+  }
+}

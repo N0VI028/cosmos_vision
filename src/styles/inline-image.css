@@ -1,0 +1,80 @@
+/**
+ * 段落生图临时 UI 样式
+ * PrimeVue 操作按钮 + 临时图片卡片
+ */
+
+/* 被选中的段落:作为浮窗按钮的定位锚点 + 半透明背景高亮 */
+.cv-inline-selected {
+  position: relative;
+  background: var(--SmartThemeBlurTintColor, rgba(96, 165, 250, 0.1)) !important;
+  border-radius: 0.2667em;
+  transition: background 0.2s ease;
+}
+
+/* 段落工具栏:使用 PrimeVue 按钮，样式只负责定位 */
+.cv-inline-toolbar {
+  position: absolute;
+  top: -2.9em;
+  right: 0;
+  z-index: 10;
+  max-width: min(100%, 34em);
+}
+
+.cv-inline-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4em;
+}
+
+/* 聊天气泡外的 PrimeVue 按钮不在 #cosmos_vision 作用域内，这里补一层最小化反压 */
+.cv-inline-action-button {
+  background-image: none !important;
+  box-shadow: none !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  white-space: nowrap !important;
+  font-size: calc(var(--mainFontSize) * 0.8) !important;
+}
+
+.cv-inline-action-button:not(.p-button-rounded) {
+  border-radius: var(--cv-radius, 0.2667em) !important;
+}
+
+/* 临时图片容器:纯净展示原图,无背景无边框,hover/移动端点击浮现操作图标 */
+.cv-inline-img-wrap {
+  position: relative;
+  display: block;
+  max-width: 40em;
+  margin: var(--cv-space-10xl) auto;
+}
+
+.cv-inline-img-wrap img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 0.2667em;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* 操作图标:覆盖在图片 Z 轴上方,默认隐藏 */
+.cv-inline-img-actions {
+  position: absolute;
+  top: 0.6667em;
+  right: 0.6667em;
+  z-index: 2;
+  max-width: calc(100% - 1.3333em);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+/* 桌面 hover / 移动端点击激活 / 按钮聚焦时浮现 */
+.cv-inline-img-wrap:hover .cv-inline-img-actions,
+.cv-inline-img-wrap.cv-inline-img-active .cv-inline-img-actions,
+.cv-inline-img-actions:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}

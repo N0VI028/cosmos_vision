@@ -1,0 +1,810 @@
+/**
+ * CosmosVision 样式隔离
+ *
+ * PrimeVue 已配置 `cssLayer: false`,规则保持 unlayered。类选择器(0,1,0)
+ * 凭特异性能压过 ST 普通的标签选择器(0,0,1),但 **压不过 `!important`**:
+ *
+ *   - ToggleSwitch 内的隐藏 checkbox:
+ *       PrimeVue input 经 PT 注入 `.cv-prime-toggleswitch-input`  (0,1,0)
+ *       ST      `input[type='checkbox']`  (0,1,1) —— ST 赢
+ *   - 普通 input / textarea:
+ *       PrimeVue input 经 PT 注入 `.cv-prime-field`  (0,1,0) 无 !important
+ *       ST 内联 `input[type='text']`...          (0,0,1) + !important —— ST 赢
+ *
+ * 两类情况都用更高特异性 `.cosmos-vision-root .xxx` (0,2,0) + 必要时 !important
+ * 反压,并显式列出 PrimeVue 期望的关键属性(只覆盖部分会让 ST 未覆盖的属性继续
+ * 生效,导致 ToggleSwitch handle 错位 / 输入框背景错色)。
+ *
+ * 作用域锚点:
+ *   - `.cosmos-vision-root` —— Dialog 经 Teleport 后由 :pt 注入的根类
+ *   - `#cosmos_vision`       —— 扩展挂载容器(覆盖抽屉内 UI)
+ */
+
+.cosmos-vision-root .cv-prime-toggleswitch-input,
+#cosmos_vision .cv-prime-toggleswitch-input {
+  /* 定位 / 尺寸:与 PrimeVue @primeuix/styles/toggleswitch 内置完全一致 */
+  position: absolute;
+  top: 0;
+  inset-inline-start: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  z-index: 1;
+  /* 外观抹平:对抗 ST `input[type='checkbox']` 的 grid / transform / 边框 / 背景 */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: transparent;
+  background-image: none;
+  border: 0;
+  outline: 0 none;
+  box-shadow: none;
+  transform: none;
+  filter: none;
+  display: block;
+  overflow: hidden;
+  border-radius: inherit;
+  padding: 0;
+  margin: 0;
+  place-content: initial;
+  flex-shrink: initial;
+  cursor: pointer;
+}
+
+/* 干掉 ST 给 checkbox 加的 ✓ 伪元素,避免覆盖在 ToggleSwitch handle 上 */
+.cosmos-vision-root .cv-prime-toggleswitch-input::before,
+#cosmos_vision .cv-prime-toggleswitch-input::before {
+  content: none;
+}
+
+/**
+ * 反压 PrimeVue Checkbox 被 ST 全局 checkbox 样式污染
+ *
+ * MultiSelect 面板里的选项勾选框使用原生 checkbox 作为可访问性输入层,
+ * ST 的 `input[type='checkbox']` 会把它挤压成异常尺寸并带入浅色背景。
+ * 这里按 PrimeVue Checkbox 结构重置 input / box / icon,只作用于扩展作用域。
+ */
+.cosmos-vision-root .cv-prime-checkbox,
+#cosmos_vision .cv-prime-checkbox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--p-checkbox-width, 1.25rem);
+  height: var(--p-checkbox-height, 1.25rem);
+  flex: 0 0 auto;
+}
+
+.cosmos-vision-root .cv-prime-checkbox-input,
+#cosmos_vision .cv-prime-checkbox-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  z-index: 1;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0 none;
+  background: transparent;
+  background-image: none;
+  box-shadow: none;
+  transform: none;
+  filter: none;
+  place-content: initial;
+  cursor: pointer;
+}
+
+.cosmos-vision-root .cv-prime-checkbox-input::before,
+#cosmos_vision .cv-prime-checkbox-input::before {
+  content: none;
+}
+
+.cosmos-vision-root .cv-prime-checkbox-box,
+#cosmos_vision .cv-prime-checkbox-box {
+  width: 100%;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border: var(--cv-border-width) solid var(--p-checkbox-border-color, var(--cv-surface-variant));
+  border-radius: var(--p-checkbox-border-radius, var(--cv-radius-sm));
+  background: var(--p-checkbox-background, var(--cv-surface-container-high));
+  color: var(--p-checkbox-icon-color, var(--cv-on-surface));
+  box-shadow: none;
+  transition:
+    background var(--p-checkbox-transition-duration, 0.2s),
+    border-color var(--p-checkbox-transition-duration, 0.2s),
+    color var(--p-checkbox-transition-duration, 0.2s);
+}
+
+.cosmos-vision-root .cv-prime-checkbox-icon,
+#cosmos_vision .cv-prime-checkbox-icon {
+  width: var(--p-checkbox-icon-size, 0.875rem);
+  height: var(--p-checkbox-icon-size, 0.875rem);
+  color: inherit;
+}
+
+.cosmos-vision-root .cv-prime-checkbox[data-p-checked='true'] .cv-prime-checkbox-box,
+#cosmos_vision .cv-prime-checkbox[data-p-checked='true'] .cv-prime-checkbox-box {
+  background: var(--p-checkbox-checked-background, var(--cv-primary-container));
+  border-color: var(--p-checkbox-checked-border-color, var(--cv-primary-container));
+  color: var(--p-checkbox-icon-checked-color, var(--cv-on-primary-container));
+}
+
+.cosmos-vision-root .cv-prime-checkbox:not([data-p-disabled='true']):hover .cv-prime-checkbox-box,
+#cosmos_vision .cv-prime-checkbox:not([data-p-disabled='true']):hover .cv-prime-checkbox-box {
+  border-color: var(--p-checkbox-hover-border-color, var(--cv-outline));
+}
+
+.cosmos-vision-root
+  .cv-prime-checkbox[data-p-checked='true']:not([data-p-disabled='true']):hover
+  .cv-prime-checkbox-box,
+#cosmos_vision .cv-prime-checkbox[data-p-checked='true']:not([data-p-disabled='true']):hover .cv-prime-checkbox-box {
+  background: var(--p-checkbox-checked-hover-background, var(--cv-primary-container));
+  border-color: var(--p-checkbox-checked-hover-border-color, var(--cv-primary-container));
+  color: var(--p-checkbox-icon-checked-hover-color, var(--cv-on-primary-container));
+}
+
+.cosmos-vision-root .cv-prime-checkbox[data-p-disabled='true'] .cv-prime-checkbox-box,
+#cosmos_vision .cv-prime-checkbox[data-p-disabled='true'] .cv-prime-checkbox-box {
+  background: var(
+    --p-checkbox-disabled-background,
+    color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent)
+  );
+  border-color: var(--p-checkbox-checked-disabled-border-color, var(--cv-surface-variant));
+  color: var(--p-checkbox-icon-disabled-color, var(--cv-on-surface-variant));
+}
+
+/**
+ * 反压 ST 全局 input / textarea 污染
+ *
+ * ST 主程序内联 <style> 注入了带 !important 的标签选择器:
+ *   input[type='text'|'number'|'switch'], input:not([type]), textarea:not([type='search']) {
+ *     background-color: var(--ui-color-sec) !important;
+ *     border: 固定描边 solid var(--ui-color-sec) !important;
+ *   }
+ * PrimeVue `.cv-prime-field` (0,1,0) 无 !important,压不过 ST 的 (0,0,1)+!important。
+ * 这里用 `.cosmos-vision-root` / `#cosmos_vision` 锚点 + !important 反压,
+ * 把背景 / 边框 / 文字色还原到 PrimeVue token,让主题切换与组件升级自动跟随。
+ *
+ * 覆盖面:`input.cv-prime-field` 涵盖 InputText / InputNumber / Password 内部 input /
+ *        AutoComplete 等大多数 PrimeVue 文本类组件,新增同类组件无需扩规则。
+ */
+
+/* InputText 系列(含 Password 内部 input、InputNumber、AutoComplete 等) */
+.cosmos-vision-root input.cv-prime-field,
+#cosmos_vision input.cv-prime-field {
+  background: var(--p-inputtext-background) !important;
+  border-color: var(--p-inputtext-border-color) !important;
+  color: var(--p-inputtext-color) !important;
+  padding-block: var(--p-inputtext-padding-y, var(--p-form-field-padding-y)) !important;
+  padding-inline: var(--p-inputtext-padding-x, var(--p-form-field-padding-x)) !important;
+}
+
+/* 密码输入框需要给右侧眼睛/切显按钮预留单独占位空间，防止长文本被遮挡 */
+.cosmos-vision-root .p-password > input.cv-prime-field,
+#cosmos_vision .p-password > input.cv-prime-field {
+  padding-inline-end: 2.5rem !important;
+}
+
+.cosmos-vision-root input.cv-prime-field.p-invalid,
+#cosmos_vision input.cv-prime-field.p-invalid {
+  border-color: var(--p-inputtext-invalid-border-color, var(--p-red-500)) !important;
+}
+
+/* Select label 承载可见文本,内边距必须落在 label 上 */
+.cosmos-vision-root .cv-prime-field > .cv-prime-field-text,
+#cosmos_vision .cv-prime-field > .cv-prime-field-text {
+  padding-block: var(--p-select-padding-y, var(--p-form-field-padding-y)) !important;
+  padding-inline: var(--p-select-padding-x, var(--p-form-field-padding-x)) !important;
+}
+
+/* Textarea */
+.cosmos-vision-root textarea.cv-prime-textarea,
+#cosmos_vision textarea.cv-prime-textarea {
+  background: var(--p-textarea-background) !important;
+  border-color: var(--p-textarea-border-color) !important;
+  color: var(--p-textarea-color) !important;
+}
+
+.cosmos-vision-root textarea.cv-prime-textarea.p-invalid,
+#cosmos_vision textarea.cv-prime-textarea.p-invalid {
+  border-color: var(--p-textarea-invalid-border-color, var(--p-red-500)) !important;
+}
+
+/* Placeholder 提示文本可见度优化 */
+.cosmos-vision-root input.cv-prime-field::placeholder,
+#cosmos_vision input.cv-prime-field::placeholder,
+.cosmos-vision-root textarea.cv-prime-textarea::placeholder,
+#cosmos_vision textarea.cv-prime-textarea::placeholder {
+  color: var(--cv-on-surface-variant) !important;
+  opacity: 0.65 !important;
+}
+
+/* focus 状态:还原 PrimeVue focus token,避免被 ST `:focus` 规则覆盖 */
+.cosmos-vision-root input.cv-prime-field:focus,
+.cosmos-vision-root textarea.cv-prime-textarea:focus,
+#cosmos_vision input.cv-prime-field:focus,
+#cosmos_vision textarea.cv-prime-textarea:focus {
+  border-color: var(--p-inputtext-focus-border-color) !important;
+  box-shadow: var(--p-inputtext-focus-ring-shadow) !important;
+}
+
+/**
+ * 反压 ST 全局 button 标签污染 — PrimeVue 按钮族
+ *
+ * ST 主程序对 <button> 注入了带 !important 的 background-image / box-shadow /
+ * text-transform / letter-spacing 等;PrimeVue 的 .p-button 系列 (0,1,0) 无 !important,
+ * 压不过 ST 标签级 (0,0,1)+!important,会显示出 ST 主题渐变背景 / 大写文本 / 投影。
+ *
+ * 这里只清理"PrimeVue 不会自己重新声明"的属性,不钉死 background/border/color,
+ * 让 PrimeVue 各 severity 变体(primary/secondary/danger)与 ToggleSwitch handle 等
+ * 仍由 PrimeVue 自身类按主题色生效。
+ *
+ * 覆盖面:Button、InputNumber 步进按钮、Password 切显按钮、Message 关闭按钮。
+ * 新增带内嵌 button 的 PrimeVue 组件出现污染时,把其按钮 class 追加到下方 :is() 列表。
+ */
+.cosmos-vision-root :is(.cv-prime-button, .cv-prime-icon-button),
+#cosmos_vision :is(.cv-prime-button, .cv-prime-icon-button) {
+  background-image: none !important;
+  box-shadow: none !important;
+  flex-shrink: 0;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  white-space: nowrap !important;
+}
+
+/* InputNumber 步进按钮 / Message 关闭按钮:扁平方块,跟随 input 边框 token */
+.cosmos-vision-root .cv-prime-icon-button,
+#cosmos_vision .cv-prime-icon-button {
+  background: transparent !important;
+  border-color: var(--p-inputtext-border-color) !important;
+  color: var(--p-text-muted-color) !important;
+}
+
+/* Button 默认圆角钉死,PrimeVue 的 --p-button-border-radius 在 :root 已展开为字面值,子元素重写桥接 token 不回传。
+   注意:排除 .p-button-rounded —— rounded 变体交还 PrimeVue 自身的 .p-button-rounded 规则
+   (border-radius: var(--p-button-rounded-border-radius)),否则 !important 会压过它导致 rounded 失效。 */
+.cosmos-vision-root .cv-prime-button:not(.p-button-rounded),
+#cosmos_vision .cv-prime-button:not(.p-button-rounded) {
+  border-radius: var(--cv-radius, 0.1333em) !important;
+}
+
+/* Outlined secondary 按钮在 hover 时的边框颜色补偿，因主题类型限制在 CSS 重写 */
+.cosmos-vision-root .p-button-outlined.p-button-secondary:not([data-p-disabled='true']):hover,
+#cosmos_vision .p-button-outlined.p-button-secondary:not([data-p-disabled='true']):hover {
+  border-color: var(--cv-outline) !important;
+}
+
+/* Slider:紧凑轨道与可见手柄,避免 ST 全局样式和大阴影污染 */
+.cosmos-vision-root .cv-prime-slider,
+#cosmos_vision .cv-prime-slider {
+  background: var(--cv-surface-variant) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  margin: var(--cv-space-xl) var(--cv-space-lg) var(--cv-space-md);
+}
+
+.cosmos-vision-root .cv-prime-slider-range,
+#cosmos_vision .cv-prime-slider-range {
+  background: var(--cv-outline) !important;
+}
+
+.cosmos-vision-root .cv-prime-slider-handle,
+#cosmos_vision .cv-prime-slider-handle {
+  background: var(--cv-surface-container) !important;
+  border: var(--cv-border-width) solid var(--cv-outline) !important;
+  box-shadow: none !important;
+}
+
+.cosmos-vision-root .cv-prime-slider-handle::before,
+#cosmos_vision .cv-prime-slider-handle::before {
+  background: var(--cv-on-surface) !important;
+  box-shadow: none !important;
+}
+
+.cosmos-vision-root .cv-prime-slider:not(.p-disabled) .cv-prime-slider-handle:hover,
+#cosmos_vision .cv-prime-slider:not(.p-disabled) .cv-prime-slider-handle:hover {
+  background: var(--cv-surface-container-high) !important;
+}
+
+/* SelectButton / ToggleButton checked 状态:反压 ST 全局 button 色值 */
+.cosmos-vision-root .cv-prime-togglebutton.p-togglebutton-checked,
+#cosmos_vision .cv-prime-togglebutton.p-togglebutton-checked {
+  background: var(--cv-primary-container) !important;
+  border-color: var(--cv-primary-container) !important;
+  color: var(--cv-on-primary-container) !important;
+}
+
+.cosmos-vision-root .cv-prime-togglebutton.p-togglebutton-checked .cv-prime-togglebutton-content,
+#cosmos_vision .cv-prime-togglebutton.p-togglebutton-checked .cv-prime-togglebutton-content {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
+}
+
+.cosmos-vision-root .cv-prime-togglebutton.p-togglebutton-checked .cv-prime-togglebutton-content > *,
+#cosmos_vision .cv-prime-togglebutton.p-togglebutton-checked .cv-prime-togglebutton-content > * {
+  color: inherit !important;
+}
+
+/**
+ * 文字阴影消除
+ *
+ * SillyTavern 的“文字阴影”功能会给全局注入 text-shadow,影响扩展 UI 的易读性。
+ * 这里完全消除插件面板(.cosmos-vision-root)内的阴影,以及扩展抽屉(#cosmos_vision)
+ * 内除按钮外的阴影,但保留“打开设置”按钮阴影,以维持与 ST 原生扩展列表的视觉统一。
+ */
+.cosmos-vision-root,
+.cosmos-vision-root *,
+#cosmos_vision :not(.cv-prime-button, .cv-prime-button *) {
+  text-shadow: none !important;
+}
+
+/**
+ * 字号 / 间距桥接到 ST --mainFontSize
+ *
+ * - font-size:让作用域内 em 单位与 ST 字号一致
+ * - --spacing:Tailwind 4 spacing 系统的基准变量
+ *   覆写为 calc(--mainFontSize * 0.25) 后,`p-N / m-N / gap-N` 全部基于
+ *   ST 字号重算(如 p-4 = mainFontSize),不再依赖根字号
+ *
+ * 仅作用于扩展容器与 PrimeVue Teleport 根类,不污染 ST 全局
+ */
+#cosmos_vision,
+.cosmos-vision-root,
+.cv-inline-selected,
+.cv-inline-img-wrap {
+  font-size: var(--mainFontSize, 1em);
+  --spacing: calc(var(--mainFontSize) * 0.25);
+}
+
+/**
+ * CosmosVision 公共间距 token
+ *
+ * 挂到 :root 供面板、Teleport overlay、聊天内联 UI 全局复用
+ */
+:root {
+  --cv-space-xxs: 0.1333em;
+  --cv-space-xs: 0.2em;
+  --cv-space-sm: 0.2667em;
+  --cv-space-md: 0.4em;
+  --cv-space-lg: 0.5333em;
+  --cv-space-lg-plus: 0.6em;
+  --cv-space-xl: 0.6667em;
+  --cv-space-2xl: 0.7333em;
+  --cv-space-3xl: 0.8em;
+  --cv-space-4xl: 0.9333em;
+  --cv-space-5xl: 1.0667em;
+  --cv-space-6xl: 1.2em;
+  --cv-space-7xl: 1.3333em;
+  --cv-space-8xl: 1.5em;
+  --cv-space-9xl: 1.6em;
+  --cv-space-10xl: 2.1333em;
+  --cv-space-11xl: 2.4em;
+  --cv-space-12xl: 3.6em;
+  --cv-space-13xl: 8em;
+  --cv-border-width: 0.0667em;
+}
+
+/**
+ * PrimeVue 间距 / 尺寸 token 桥接到 em
+ *
+ * 容器 font-size 已 = mainFontSize,em 自动跟随,无需 calc。
+ * 覆盖:padding / margin / gap / 控件尺寸 / 图标尺寸
+ * borderRadius 在下方独立 block 集中收敛(扁平方块设计语言);
+ * 不覆盖:像素级精度(anchorGutter / focusRing offset / activeBar height)
+ *
+ * 新增组件出现硬编码尺寸时,按下方"component: XXX"格式追加。
+ */
+#cosmos_vision,
+.cosmos-vision-root {
+  /* semantic: form field */
+  --p-form-field-padding-x: var(--cv-space-5xl);
+  --p-form-field-padding-y: var(--cv-space-md);
+  --p-form-field-sm-padding-x: var(--cv-space-4xl);
+  --p-form-field-sm-padding-y: var(--cv-space-sm);
+  --p-form-field-lg-padding-x: var(--cv-space-6xl);
+  --p-form-field-lg-padding-y: var(--cv-space-lg);
+
+  /* semantic: list */
+  --p-list-padding: 0.25em 0.25em;
+  --p-list-header-padding: 0.5em 1em 0.25em 1em;
+  --p-list-option-padding: 0.5em 0.75em;
+  --p-list-option-group-padding: 0.5em 0.75em;
+
+  /* semantic: navigation */
+  --p-navigation-list-padding: 0.25em 0.25em;
+  --p-navigation-item-padding: 0.5em 0.75em;
+  --p-navigation-item-gap: 0.5em;
+  --p-navigation-submenu-label-padding: 0.5em 0.75em;
+  --p-navigation-submenu-icon-size: 0.875em;
+
+  /* semantic: overlay */
+  --p-overlay-popover-padding: 0.75em;
+  --p-overlay-modal-padding: 1.25em;
+
+  /* semantic: icon */
+  --p-icon-size: 1em;
+
+  /* component: dialog */
+  --p-dialog-background: var(--cv-surface-container-lowest);
+  --p-dialog-border-color: transparent;
+  --p-dialog-color: var(--cv-on-surface);
+  --p-dialog-shadow: var(--cv-floating-shadow);
+  --p-dialog-header-gap: 0.5em;
+  --p-dialog-footer-gap: 0.5em;
+  --p-dialog-title-font-size: calc(var(--mainFontSize) * 1.25);
+  --p-dialog-border: none;
+  --p-dialog-border-radius: var(--cv-radius-lg);
+
+  /* component: tabs */
+  --p-tabs-tab-padding: 1em 1.125em;
+  --p-tabs-tab-gap: 0.5em;
+  --p-tabs-tabpanel-padding: 0.875em 1.125em 1.125em 1.125em;
+  --p-tabs-nav-button-width: 2.5em;
+
+  /* component: button */
+  --p-button-gap: 0.5em;
+  --p-button-icon-only-width: 2.5em;
+  --p-button-sm-icon-only-width: 2em;
+  --p-button-lg-icon-only-width: 3em;
+  --p-button-badge-size: 1em;
+
+  /* component: password */
+  --p-password-content-gap: 0.5em;
+  --p-password-meter-height: 0.75em;
+
+  /* component: message */
+  --p-message-text-font-size: calc(var(--mainFontSize) * 0.85);
+  --p-message-text-sm-font-size: calc(var(--mainFontSize) * 0.8);
+  --p-message-text-lg-font-size: calc(var(--mainFontSize) * 0.9);
+
+  /* component: select */
+  --p-select-dropdown-width: 2.5em;
+  --p-select-checkmark-gutter-start: -0.375em;
+  --p-select-checkmark-gutter-end: 0.375em;
+
+  /* component: toggleswitch */
+  --p-toggleswitch-width: 2.5em;
+  --p-toggleswitch-height: 1.5em;
+  --p-toggleswitch-handle-size: 1em;
+}
+
+.cosmos-vision-root {
+  --p-content-background: var(--cv-surface-container);
+  --p-content-hover-background: var(--cv-surface-container-high);
+  --p-content-border-color: var(--cv-surface-variant);
+  --p-content-color: var(--cv-on-surface);
+  --p-overlay-select-background: var(--cv-surface-container-high);
+  --p-overlay-select-border-color: var(--cv-surface-variant);
+  --p-overlay-select-color: var(--cv-on-surface);
+  --p-overlay-select-shadow: var(--cv-popover-shadow);
+  --p-list-option-focus-background: var(--cv-surface-variant);
+  --p-list-option-selected-background: color-mix(in srgb, var(--cv-primary-container) 18%, transparent);
+  --p-list-option-selected-focus-background: color-mix(in srgb, var(--cv-primary-container) 26%, transparent);
+  --p-list-option-color: var(--cv-on-surface);
+  --p-list-option-focus-color: var(--cv-on-surface);
+  --p-list-option-selected-color: var(--cv-on-surface);
+  --p-list-option-selected-focus-color: var(--cv-on-surface);
+  --p-list-option-group-background: var(--cv-surface-container-high);
+  --p-list-option-group-color: var(--cv-on-surface-variant);
+  --p-text-color: var(--cv-on-surface);
+  --p-text-muted-color: var(--cv-on-surface-variant);
+  --p-text-hover-color: var(--cv-on-surface);
+  --p-text-hover-muted-color: var(--cv-on-surface);
+  --p-form-field-background: var(--cv-surface-container-high);
+  --p-form-field-disabled-background: color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent);
+  --p-form-field-filled-background: var(--cv-surface-container-high);
+  --p-form-field-filled-hover-background: var(--cv-surface-container);
+  --p-form-field-filled-focus-background: var(--cv-surface-container-high);
+  --p-form-field-border-color: var(--cv-surface-variant);
+  --p-form-field-hover-border-color: var(--cv-outline);
+  --p-form-field-focus-border-color: var(--cv-primary-container);
+  --p-form-field-invalid-border-color: var(--p-red-500);
+  --p-form-field-color: var(--cv-on-surface);
+  --p-form-field-disabled-color: var(--cv-on-surface-variant);
+  --p-form-field-placeholder-color: var(--cv-on-surface-variant);
+  --p-form-field-invalid-placeholder-color: color-mix(in srgb, var(--p-red-500) 75%, var(--cv-on-surface-variant));
+  --p-inputtext-background: var(--cv-surface-container-high);
+  --p-inputtext-border-color: var(--cv-surface-variant);
+  --p-inputtext-hover-border-color: var(--cv-outline);
+  --p-inputtext-focus-border-color: var(--cv-primary-container);
+  --p-inputtext-invalid-border-color: var(--p-red-500);
+  --p-inputtext-color: var(--cv-on-surface);
+  --p-inputtext-placeholder-color: var(--cv-on-surface-variant);
+  --p-textarea-background: var(--cv-surface-container-high);
+  --p-textarea-border-color: var(--cv-surface-variant);
+  --p-textarea-hover-border-color: var(--cv-outline);
+  --p-textarea-focus-border-color: var(--cv-primary-container);
+  --p-textarea-invalid-border-color: var(--p-red-500);
+  --p-textarea-color: var(--cv-on-surface);
+  --p-textarea-placeholder-color: var(--cv-on-surface-variant);
+  --p-select-background: var(--cv-surface-container-high);
+  --p-select-border-color: var(--cv-surface-variant);
+  --p-select-hover-border-color: var(--cv-outline);
+  --p-select-focus-border-color: var(--cv-primary-container);
+  --p-select-invalid-border-color: var(--p-red-500);
+  --p-select-color: var(--cv-on-surface);
+  --p-select-placeholder-color: var(--cv-on-surface-variant);
+  --p-select-overlay-background: var(--p-overlay-select-background);
+  --p-select-overlay-border-color: var(--p-overlay-select-border-color);
+  --p-select-overlay-color: var(--p-overlay-select-color);
+  --p-select-overlay-shadow: var(--p-overlay-select-shadow);
+  --p-select-option-focus-background: var(--p-list-option-focus-background);
+  --p-select-option-selected-background: var(--p-list-option-selected-background);
+  --p-select-option-selected-focus-background: var(--p-list-option-selected-focus-background);
+  --p-select-option-color: var(--p-list-option-color);
+  --p-select-option-focus-color: var(--p-list-option-focus-color);
+  --p-select-option-selected-color: var(--p-list-option-selected-color);
+  --p-select-option-selected-focus-color: var(--p-list-option-selected-focus-color);
+  --p-select-option-group-background: var(--p-list-option-group-background);
+  --p-select-option-group-color: var(--p-list-option-group-color);
+  --p-multiselect-background: var(--cv-surface-container-high);
+  --p-multiselect-disabled-background: var(--p-form-field-disabled-background);
+  --p-multiselect-filled-background: var(--cv-surface-container-high);
+  --p-multiselect-filled-hover-background: var(--cv-surface-container);
+  --p-multiselect-filled-focus-background: var(--cv-surface-container-high);
+  --p-multiselect-border-color: var(--cv-surface-variant);
+  --p-multiselect-hover-border-color: var(--cv-outline);
+  --p-multiselect-focus-border-color: var(--cv-primary-container);
+  --p-multiselect-invalid-border-color: var(--p-red-500);
+  --p-multiselect-color: var(--cv-on-surface);
+  --p-multiselect-placeholder-color: var(--cv-on-surface-variant);
+  --p-multiselect-overlay-background: var(--p-overlay-select-background);
+  --p-multiselect-overlay-border-color: var(--p-overlay-select-border-color);
+  --p-multiselect-overlay-color: var(--p-overlay-select-color);
+  --p-multiselect-overlay-shadow: var(--p-overlay-select-shadow);
+  --p-multiselect-option-focus-background: var(--p-list-option-focus-background);
+  --p-multiselect-option-selected-background: var(--p-list-option-selected-background);
+  --p-multiselect-option-selected-focus-background: var(--p-list-option-selected-focus-background);
+  --p-multiselect-option-color: var(--p-list-option-color);
+  --p-multiselect-option-focus-color: var(--p-list-option-focus-color);
+  --p-multiselect-option-selected-color: var(--p-list-option-selected-color);
+  --p-multiselect-option-selected-focus-color: var(--p-list-option-selected-focus-color);
+  --p-multiselect-option-group-background: var(--p-list-option-group-background);
+  --p-multiselect-option-group-color: var(--p-list-option-group-color);
+  --p-multiselect-dropdown-color: var(--cv-on-surface-variant);
+  --p-multiselect-clear-icon-color: var(--cv-on-surface-variant);
+  --p-chip-background: color-mix(in srgb, var(--cv-primary-container) 14%, var(--cv-surface-container-high));
+  --p-chip-color: var(--cv-on-surface);
+  --p-chip-icon-color: var(--cv-on-surface-variant);
+  --p-chip-remove-icon-color: var(--cv-on-surface-variant);
+  --p-chip-remove-icon-focus-ring-color: color-mix(in srgb, var(--cv-primary-container) 24%, transparent);
+  --p-chip-remove-icon-focus-ring-shadow: none;
+  --p-checkbox-background: var(--cv-surface-container-high);
+  --p-checkbox-disabled-background: color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent);
+  --p-checkbox-border-color: var(--cv-surface-variant);
+  --p-checkbox-hover-border-color: var(--cv-outline);
+  --p-checkbox-checked-background: var(--cv-primary-container);
+  --p-checkbox-checked-hover-background: var(--cv-primary-container);
+  --p-checkbox-checked-border-color: var(--cv-primary-container);
+  --p-checkbox-checked-hover-border-color: var(--cv-primary-container);
+  --p-checkbox-checked-disabled-border-color: var(--cv-surface-variant);
+  --p-checkbox-icon-color: var(--cv-on-surface);
+  --p-checkbox-icon-checked-color: var(--cv-on-primary-container);
+  --p-checkbox-icon-checked-hover-color: var(--cv-on-primary-container);
+  --p-checkbox-icon-disabled-color: var(--cv-on-surface-variant);
+  --p-checkbox-border-radius: var(--cv-radius-sm);
+}
+
+/**
+ * 圆角系统：统一定义
+ *
+ * --cv-radius-* 为项目级圆角变量，所有组件优先使用此系列。
+ * --p-border-radius-* 为 PrimeVue 组件专用，继续限定在扩展作用域内
+ */
+:root {
+  /* 项目级圆角变量（主要使用） */
+  --cv-radius-sm: 0.2em;
+  --cv-radius: 0.5em;
+  --cv-radius-md: 0.75em;
+  --cv-radius-lg: 1em;
+  --cv-radius-xl: 2em;
+  --cv-radius-full: 999em;
+}
+
+#cosmos_vision,
+.cosmos-vision-root {
+  /* PrimeVue 圆角 token（映射到扁平方块风格） */
+  --p-border-radius-xs: 0.0667em;
+  --p-border-radius-sm: 0.1333em;
+  --p-border-radius-md: 0.1333em;
+  --p-border-radius-lg: 0.2em;
+  --p-border-radius-xl: 0.2667em;
+
+  /* 组件级 border-radius:PrimeVue 在 :root 直接字面值化(如 --p-button-border-radius: 0.4em),
+     不经过 --p-border-radius-md 桥接,需逐项重新声明才能在扩展子树压扁 */
+  --p-button-border-radius: var(--cv-radius-full);
+  --p-inputtext-border-radius: var(--cv-radius-full);
+  --p-textarea-border-radius: var(--cv-radius-md);
+  --p-select-border-radius: var(--cv-radius-full);
+  --p-select-overlay-border-radius: var(--cv-radius-lg);
+  --p-select-option-border-radius: var(--cv-radius-md);
+  --p-multiselect-border-radius: var(--cv-radius-full);
+  --p-multiselect-overlay-border-radius: var(--cv-radius-lg);
+  --p-multiselect-option-border-radius: var(--cv-radius-md);
+  --p-multiselect-chip-border-radius: var(--cv-radius-full);
+  --p-chip-border-radius: var(--cv-radius-full);
+  --p-password-border-radius: var(--cv-radius-full);
+  --p-inputnumber-border-radius: var(--cv-radius-full);
+  --p-togglebutton-border-radius: var(--cv-radius-full);
+  --p-message-border-radius: var(--cv-radius-lg);
+}
+
+/**
+ * Overlay 字号对齐触发器
+ *
+ * Select / MultiSelect / AutoComplete 等下拉面板由 PrimeVue 通过 Teleport 挂到 body,
+ * 经全局 :pt 注入 .cosmos-vision-root 锚点后能拿到 ST mainFontSize,
+ * 这里与触发器同档处理,避免下拉项字号视觉跳跃。
+ *
+ * 这里把 overlay 字号显式压到 .cv-field 同档(0.85em),保持触发器 → 下拉项视觉连续。
+ */
+.cosmos-vision-root.cv-prime-field-overlay {
+  font-size: calc(var(--mainFontSize) * 0.85);
+}
+
+/**
+ * 字号继承反压
+ *
+ * PrimeVue Aura 给 input / select label / button label 等子元素内置
+ * 固定根字号会打断 .cv-field(0.85em) → 子级的继承链,
+ * 导致输入框 / 下拉触发器 / 按钮字号比卡片正文大一倍。
+ *
+ * 统一强制 inherit,让 ST --mainFontSize 桥接 + .cv-field 的相对字号继续生效。
+ */
+.cosmos-vision-root
+  :is(
+    .cv-prime-field,
+    .cv-prime-field-text,
+    .cv-select-option,
+    .cv-prime-button,
+    .cv-prime-button-label,
+    .cv-prime-message
+  ),
+#cosmos_vision
+  :is(
+    .cv-prime-field,
+    .cv-prime-field-text,
+    .cv-select-option,
+    .cv-prime-button,
+    .cv-prime-button-label,
+    .cv-prime-message
+  ) {
+  font-size: inherit;
+}
+
+.cosmos-vision-root
+  :is(
+    .cv-prime-field,
+    .cv-prime-field-text,
+    .cv-prime-button,
+    .cv-prime-button-label,
+    .cv-prime-message,
+    .cv-prime-message-text
+  ),
+#cosmos_vision
+  :is(
+    .cv-prime-field,
+    .cv-prime-field-text,
+    .cv-prime-button,
+    .cv-prime-button-label,
+    .cv-prime-message,
+    .cv-prime-message-text
+  ) {
+  font-family: var(--cv-font-body) !important;
+}
+
+.cosmos-vision-root .cv-prime-button-label,
+#cosmos_vision .cv-prime-button-label {
+  white-space: nowrap !important;
+}
+
+.cosmos-vision-root .cv-select-option[data-p-selected='true'] {
+  border-radius: var(--cv-radius-full) !important;
+}
+
+.cosmos-vision-root .p-multiselect,
+#cosmos_vision .p-multiselect {
+  background: var(--p-multiselect-background) !important;
+  border-color: var(--p-multiselect-border-color) !important;
+  color: var(--p-multiselect-color) !important;
+}
+
+.cosmos-vision-root .p-multiselect-label,
+#cosmos_vision .p-multiselect-label {
+  color: inherit !important;
+}
+
+.cosmos-vision-root .p-multiselect-dropdown,
+#cosmos_vision .p-multiselect-dropdown,
+.cosmos-vision-root .p-multiselect-clear-icon,
+#cosmos_vision .p-multiselect-clear-icon {
+  color: var(--cv-on-surface-variant) !important;
+}
+
+.cosmos-vision-root .p-multiselect-overlay {
+  background: var(--p-multiselect-overlay-background) !important;
+  border-color: var(--p-multiselect-overlay-border-color) !important;
+  color: var(--p-multiselect-overlay-color) !important;
+}
+
+.cosmos-vision-root .p-multiselect-header {
+  background: inherit !important;
+}
+
+.cosmos-vision-root :is(.cv-prime-chip, .p-multiselect .p-chip),
+#cosmos_vision :is(.cv-prime-chip, .p-multiselect .p-chip) {
+  background: var(--p-chip-background) !important;
+  border-radius: var(--cv-radius-full) !important;
+  color: var(--p-chip-color) !important;
+  box-shadow: none !important;
+}
+
+.cosmos-vision-root :is(.cv-prime-chip-label, .p-multiselect .p-chip-label),
+#cosmos_vision :is(.cv-prime-chip-label, .p-multiselect .p-chip-label) {
+  color: inherit !important;
+}
+
+.cosmos-vision-root :is(.cv-prime-chip-remove-icon, .p-multiselect .p-chip-remove-icon),
+#cosmos_vision :is(.cv-prime-chip-remove-icon, .p-multiselect .p-chip-remove-icon) {
+  color: var(--p-chip-remove-icon-color) !important;
+}
+
+.cosmos-vision-root :is(.cv-prime-chip-remove-icon, .p-multiselect .p-chip-remove-icon):hover,
+#cosmos_vision :is(.cv-prime-chip-remove-icon, .p-multiselect .p-chip-remove-icon):hover {
+  color: var(--cv-on-surface) !important;
+}
+
+#cosmos_vision .cv-prime-textarea,
+.cosmos-vision-root .cv-prime-textarea {
+  border-radius: var(--cv-radius-md) !important;
+}
+
+/**
+ * Dialog 根圆角直接钉死
+ *
+ * PrimeVue 的 `--p-dialog-border-radius` 在 `:root` 上已展开为字面值(参考
+ * 深色模式注释),在子元素上重写 `--p-border-radius-*` 不会回传。
+ * 因此直接给 Dialog 根类设置 border-radius,使用 --cv-radius-lg。
+ */
+.cosmos-vision-root.cv-dialog {
+  background: var(--p-dialog-background, var(--cv-surface-container-lowest)) !important;
+  border: none !important;
+  border-radius: var(--cv-radius-lg) !important;
+  box-shadow: var(--p-dialog-shadow, var(--cv-floating-shadow)) !important;
+  color: var(--p-dialog-color, var(--cv-on-surface)) !important;
+}
+
+/**
+ * 侧边导航栏 (.cv-*) 原生 button 反压
+ *
+ * SettingsDialog 内部用原生 <button> 承载导航/折叠/关闭/Pill 切换,
+ * ST 主题 / userscript 可能给标签注入 background / border / padding / box-shadow / text-transform 等,
+ * 需要清零让 scoped 样式生效。仅作用于 .cosmos-vision-root 内的 .cv-* button,不污染 ST。
+ */
+:where(.cosmos-vision-root .cv-shell button) {
+  background: transparent;
+  background-image: none;
+  border: 0;
+  outline: 0 none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-transform: none;
+  letter-spacing: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}

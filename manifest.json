@@ -1,0 +1,13 @@
+{
+  "display_name": "CosmosVision",
+  "loading_order": 100,
+  "requires": [],
+  "optional": [],
+  "js": "dist/index.js",
+  "css": "dist/index.css",
+  "author": "KAKAA",
+  "version": "0.1.0",
+  "homePage": "",
+  "auto_update": true,
+  "minimum_client_version": "1.12.13"
+}

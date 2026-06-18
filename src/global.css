@@ -1,0 +1,11 @@
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@import 'tailwindcss-primeui';
+
+/* CosmosVision 样式隔离:对抗 ST unlayered 全局表单样式,unlayered 不进 @layer */
+@import './styles/isolation.css';
+
+/* 避免 tailwindcss 扫描 dist 中的打包产物 */
+@source not "../dist";
