@@ -20,6 +20,18 @@
   max-width: min(100%, 34em);
 }
 
+/* 强制右上角生图按钮为正方形,且防止被 flex 挤压变形 */
+.cv-inline-toolbar .cv-inline-action-button {
+  flex-shrink: 0 !important;
+  aspect-ratio: 1 / 1 !important;
+  width: 2.4em !important;
+  height: 2.4em !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
 .cv-inline-button-row {
   display: flex;
   flex-wrap: wrap;
@@ -40,6 +52,32 @@
 
 .cv-inline-action-button:not(.p-button-rounded) {
   border-radius: var(--cv-radius, 0.2667em) !important;
+}
+
+/* 图片卡片浮窗操作按钮特异样式：白色半透明底色 + 玻璃模糊效果 */
+.cv-inline-img-actions .cv-inline-action-button {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease !important;
+}
+
+.cv-inline-img-actions .cv-inline-action-button:not([data-p-disabled='true']):hover {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* 灰色按钮（secondary）文字与边框高亮：避免半透明或暗淡效果 */
+.cv-inline-img-actions .cv-inline-action-button.p-button-secondary {
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+.cv-inline-img-actions .cv-inline-action-button.p-button-secondary:not([data-p-disabled='true']):hover {
+  color: #ffffff !important;
+  border-color: #ffffff !important;
 }
 
 /* 临时图片容器:纯净展示原图,无背景无边框,hover/移动端点击浮现操作图标 */

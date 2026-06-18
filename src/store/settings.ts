@@ -340,10 +340,7 @@ function recoverImagePromptPresets(value: unknown): ImagePromptPresetSettings {
  * @param fallback 默认单侧预设
  * @returns 可安全使用的单侧预设
  */
-function recoverImagePromptCollection(
-  value: unknown,
-  fallback: ImagePromptPreset[],
-): ImagePromptPreset[] {
+function recoverImagePromptCollection(value: unknown, fallback: ImagePromptPreset[]): ImagePromptPreset[] {
   return parseField(z.array(imagePromptPresetSchema).min(1), value, fallback);
 }
 

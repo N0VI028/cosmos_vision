@@ -159,9 +159,7 @@ export function buildJsonSchema(
           {
             type: 'string',
             description:
-              name === fields.positive
-                ? '正向提示词,描述希望生成的视觉元素'
-                : '负向提示词,描述不希望出现的元素',
+              name === fields.positive ? '正向提示词,描述希望生成的视觉元素' : '负向提示词,描述不希望出现的元素',
           },
         ]),
       ),

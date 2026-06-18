@@ -113,9 +113,7 @@ watch(
 );
 
 /** 下拉选项：账号 1、账号 2 … */
-const accountOptions = computed(() =>
-  savedAccounts.value.map((_, i) => ({ label: `账号 ${i + 1}`, value: i })),
-);
+const accountOptions = computed(() => savedAccounts.value.map((_, i) => ({ label: `账号 ${i + 1}`, value: i })));
 
 /** 已保存配置中选中的账号 */
 const savedAccount = computed(() => savedAccounts.value[selectedIndex.value] ?? null);

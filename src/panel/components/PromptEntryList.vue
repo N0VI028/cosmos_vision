@@ -6,6 +6,8 @@
     handle=".cv-message-handle"
     :animation="150"
     ghost-class="cv-message-row-ghost"
+    :force-fallback="true"
+    :fallback-on-body="true"
   >
     <section
       v-for="entry in entries"

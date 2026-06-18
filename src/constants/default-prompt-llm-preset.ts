@@ -246,20 +246,21 @@ export default {
           source: 'manual',
           enabled: true,
         },
-        {
-          id: 'prompt-llm-content-open-message',
-          title: '<content>',
-          role: 'user',
-          content: '<content>',
-          source: 'content_open',
-          enabled: true,
-        },
+
         {
           id: 'prompt-llm-participant-message',
           title: '人物总体信息',
           role: 'user',
           content: '',
           source: 'participant_context',
+          enabled: true,
+        },
+        {
+          id: 'prompt-llm-content-open-message',
+          title: '<content>',
+          role: 'user',
+          content: '<content>',
+          source: 'content_open',
           enabled: true,
         },
         {

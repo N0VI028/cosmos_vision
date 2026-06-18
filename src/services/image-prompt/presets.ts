@@ -81,10 +81,6 @@ export function buildImagePromptPair(
  * @param prompt LLM 或手填提示词
  * @returns 拼接后的提示词
  */
-function resolveReferencedImagePrompt(
-  presets: readonly ImagePromptPreset[],
-  presetId: string,
-  prompt: string,
-): string {
+function resolveReferencedImagePrompt(presets: readonly ImagePromptPreset[], presetId: string, prompt: string): string {
   return resolveImagePromptPreset(getImagePromptPreset(presets, presetId), prompt);
 }

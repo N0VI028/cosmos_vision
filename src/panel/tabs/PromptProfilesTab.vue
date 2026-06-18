@@ -78,7 +78,7 @@
               />
             </div>
             <div class="cv-chip-row">
-              <Tag v-for="keyword in person.triggerKeywords" :key="keyword" :value="keyword">
+              <Tag v-for="keyword in person.triggerKeywords" :key="keyword" :value="keyword" class="cv-keyword-tag">
                 <template #icon>
                   <button type="button" class="cv-chip-remove" @click="removeKeyword(person, keyword)">
                     <i class="fa-solid fa-xmark" />
@@ -235,7 +235,9 @@ const showConfirm =
   >('showConfirm');
 const tagParseDialogStyle = { width: '30rem', maxWidth: 'calc(100vw - 2rem)' } as const;
 
-const filteredProfiles = computed(() => settings.promptProfiles.profiles.filter(person => person.kind === activeKind.value));
+const filteredProfiles = computed(() =>
+  settings.promptProfiles.profiles.filter(person => person.kind === activeKind.value),
+);
 const canConfirmTagParse = computed(() => {
   if (!tagParseDialogPerson.value || isParsingTags.value) return false;
   if (tagParseMode.value === 'template') return true;
@@ -659,12 +661,21 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
   margin-bottom: 0;
 }
 
+.cv-keyword-tag {
+  padding: 0.125rem 0.35rem !important;
+  font-size: calc(var(--mainFontSize) * 0.72) !important;
+  background: color-mix(in srgb, var(--p-primary-color) 12%, transparent) !important;
+  border: 1px solid var(--p-primary-color) !important;
+  color: var(--p-primary-color) !important;
+}
+
 .cv-chip-remove {
   border: none;
   background: transparent;
   color: inherit;
   cursor: pointer;
   padding: 0;
+  font-size: 0.85em;
 }
 
 .cv-full-textarea {

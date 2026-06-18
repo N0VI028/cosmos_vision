@@ -177,19 +177,21 @@ export function useInlineImageGeneration(
   function createImageActionBar(paragraph: HTMLElement): HTMLElement {
     return createActionHost('cv-inline-img-actions', [
       {
-        label: '沿用上次标签',
+        label: '重新生成图片',
         icon: 'fa-solid fa-repeat',
         severity: 'secondary',
         variant: 'outlined',
         onClick: () => void handleGenerateWithLastPrompt(paragraph),
       },
       {
-        label: '重新生成标签',
+        label: '重新生成TAG和图片',
         icon: 'fa-solid fa-robot',
+        severity: 'secondary',
+        variant: 'outlined',
         onClick: () => void handleGenerateWithFreshPrompt(paragraph),
       },
       {
-        label: '移除图片',
+        label: '移除',
         icon: 'fa-solid fa-trash',
         severity: 'danger',
         variant: 'outlined',

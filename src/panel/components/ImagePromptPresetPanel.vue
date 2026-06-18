@@ -224,7 +224,10 @@ function updatePromptPreset(
   updater: (preset: ImagePromptPreset) => ImagePromptPreset,
 ): void {
   const presets = getPromptPresetList(kind);
-  updatePromptPresetList(kind, presets.map(preset => (preset.id === id ? updater(preset) : preset)));
+  updatePromptPresetList(
+    kind,
+    presets.map(preset => (preset.id === id ? updater(preset) : preset)),
+  );
 }
 
 /**

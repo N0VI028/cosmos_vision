@@ -32,13 +32,16 @@ import { useSettingsStore } from '@/store/settings';
 const { settings, resetToDefaults } = useSettingsStore();
 const imageSourceOptions = [...IMAGE_SOURCES];
 
-const showConfirm = inject<(options: {
-  title?: string;
-  message: string;
-  acceptLabel?: string;
-  cancelLabel?: string;
-  severity?: string;
-}) => Promise<boolean>>('showConfirm');
+const showConfirm =
+  inject<
+    (options: {
+      title?: string;
+      message: string;
+      acceptLabel?: string;
+      cancelLabel?: string;
+      severity?: string;
+    }) => Promise<boolean>
+  >('showConfirm');
 
 /**
  * 确认后重置所有设置

@@ -177,7 +177,11 @@
           <SubTabNav v-if="activeTab === 'novelai'" v-model="novelaiSubTab" :tabs="NOVELAI_SUB_TABS" />
           <SubTabNav v-if="activeTab === 'comfyui'" v-model="comfyuiSubTab" :tabs="COMFYUI_SUB_TABS" />
           <SubTabNav v-if="activeTab === 'prompt-llm'" v-model="promptLlmSubTab" :tabs="PROMPT_LLM_SUB_TABS" />
-          <SubTabNav v-if="activeTab === 'prompt-profiles'" v-model="promptProfilesSubTab" :tabs="PROMPT_PROFILES_SUB_TABS" />
+          <SubTabNav
+            v-if="activeTab === 'prompt-profiles'"
+            v-model="promptProfilesSubTab"
+            :tabs="PROMPT_PROFILES_SUB_TABS"
+          />
         </header>
 
         <!-- 滚动内容区 -->

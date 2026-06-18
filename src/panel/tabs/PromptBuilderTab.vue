@@ -117,7 +117,8 @@
         <span>优先 JSON Schema 解析</span>
       </label>
       <div class="cv-field-hint" style="margin-top: 0">
-        开启后请求 LLM 时会附带 JSON Schema，并按字段名读取对应侧提示词；某侧字段名留空时该侧不参与 JSON 提取，交给固定预设。渠道不支持或返回非 JSON 时回退到下方的正则提取规则。
+        开启后请求 LLM 时会附带 JSON Schema，并按字段名读取对应侧提示词；某侧字段名留空时该侧不参与 JSON
+        提取，交给固定预设。渠道不支持或返回非 JSON 时回退到下方的正则提取规则。
       </div>
     </div>
     <div v-if="settings.promptLlm.preferJsonSchemaExtraction" class="cv-field-grid">
@@ -136,7 +137,6 @@
         />
       </label>
     </div>
-
 
     <div v-for="field in promptExtractRuleFields" :key="field.label" class="cv-field-grid">
       <label class="cv-field">

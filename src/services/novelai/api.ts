@@ -13,10 +13,7 @@ import {
   getUcPresetValue,
   type NovelAIPromptMode,
 } from '@/services/novelai/prompt-presets';
-import {
-  readPreferredPromptLlmOutput,
-  type PromptLlmExtractSettings,
-} from '@/services/tavern-helper/prompt-llm';
+import { readPreferredPromptLlmOutput, type PromptLlmExtractSettings } from '@/services/tavern-helper/prompt-llm';
 import { extractFirstImage } from '@/services/novelai/zip';
 import { getNovelAIRequestAccounts } from '@/services/novelai/router';
 
@@ -128,7 +125,10 @@ export function buildNovelAIResolvedRequest(
  * @param rawResponse LLM 原始返回
  * @returns NovelAI 提示词覆写
  */
-export function buildNovelAILlmPromptOverrides(settings: PromptLlmSettings, rawResponse: string): NovelAIPromptOverrides {
+export function buildNovelAILlmPromptOverrides(
+  settings: PromptLlmSettings,
+  rawResponse: string,
+): NovelAIPromptOverrides {
   const output = readPreferredPromptLlmOutput(rawResponse, settings);
   if (output) return buildDirectPromptOverrides(output.positivePrompt, output.negativePrompt);
   return buildExtractPromptOverrides(rawResponse);
