@@ -47,14 +47,12 @@
         <span>{{ errorMessage }}</span>
       </div>
       <div class="cv-preview-stage" :class="{ 'has-image': Boolean(previewUrl) }">
-        <Image
+        <img
           v-if="previewUrl"
-          preview
           :src="previewUrl"
           alt="ComfyUI 生成预览"
-          class="cv-preview-viewer"
-          image-class="cv-preview-img"
-          :image-style="PREVIEW_IMAGE_STYLE"
+          class="cv-preview-viewer cv-preview-img"
+          :style="PREVIEW_IMAGE_STYLE"
         />
         <div v-else class="cv-preview-placeholder">
           <i class="fa-regular fa-image" />
@@ -110,8 +108,6 @@
 </template>
 
 <script setup lang="ts">
-import Image from 'primevue/image';
-
 import { useFocusedParagraphInput } from '@/composables/useFocusedParagraphInput';
 import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue';
 import { generateComfyUIImageFromResolvedRequest } from '@/services/comfyui/api';
