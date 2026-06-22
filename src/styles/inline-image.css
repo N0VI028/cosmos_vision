@@ -315,6 +315,93 @@ body.dark .cv-inline-toolbar {
   pointer-events: auto;
 }
 
+/* 段落下方生成状态条容器 */
+.cv-inline-generation-status {
+  display: block;
+  width: 100%;
+  margin: var(--cv-space-md, 0.5rem) 0 var(--cv-space-lg, 0.75rem);
+  pointer-events: auto;
+  padding-inline: 1px;
+}
+
+.cv-inline-generation-status--overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  min-height: 100%;
+  margin: 0;
+  border-radius: var(--cv-radius);
+  background: color-mix(in srgb, var(--cv-surface-container-high) 42%, transparent);
+  -webkit-backdrop-filter: blur(0.35em);
+  backdrop-filter: blur(0.35em);
+}
+
+/* Message 全宽约束 */
+.cv-inline-generation-status .cv-prime-message {
+  width: 100%;
+}
+
+.cv-inline-generation-status--overlay .cv-prime-message {
+  width: calc(100% - 1.5em);
+  margin: 0.75em;
+}
+
+/* Message 内容紧凑排列:缩小 icon 与文本间距,让文本撑开把关闭按钮推到右侧 */
+.cv-inline-generation-status .p-message-content {
+  gap: 0.4em;
+  padding: 0.35em 0.5em;
+  width: 100%;
+}
+
+.cv-inline-generation-status .p-message-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* running 态:覆盖为主题色 (Basic 底 + 主题色) */
+.cv-inline-generation-message--running {
+  background: color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 14%, var(--cv-surface-container-high)) !important;
+  border-color: color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 30%, transparent) !important;
+  color: var(--SmartThemeQuoteColor, #3b82f6) !important;
+}
+
+/* 关闭按钮重置为文字按钮 */
+.cv-inline-generation-status .p-message-close-button {
+  flex: 0 0 auto;
+  width: auto !important;
+  height: auto !important;
+  padding: 0.2em 0.6em !important;
+  border: none !important;
+  border-radius: var(--cv-radius, 0.2667em) !important;
+  background: transparent !important;
+  color: inherit !important;
+  font-size: calc(var(--mainFontSize) * 0.8);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.cv-inline-generation-status .p-message-close-button:hover {
+  background: color-mix(in srgb, currentColor 14%, transparent) !important;
+}
+
+.cv-inline-generation-close-text {
+  font-size: inherit;
+  line-height: 1.2;
+}
+
+/* 状态条内部元素样式 */
+.cv-inline-generation-spinner {
+  width: 1.1em !important;
+  height: 1.1em !important;
+  flex-shrink: 0;
+}
+
+.cv-inline-generation-text {
+  font-size: calc(var(--mainFontSize) * 0.85);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 /* ---------------- Lightbox 大图及提示词预览 ---------------- */
 .cv-lightbox-overlay {
   position: fixed;

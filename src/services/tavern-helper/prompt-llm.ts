@@ -55,6 +55,7 @@ export interface TavernHelperCustomApiConfig {
  * TavernHelper.generateRaw 请求配置
  */
 export interface TavernHelperGenerateRawConfig {
+  generation_id?: string;
   user_input?: string;
   ordered_prompts?: Array<string | TavernHelperRolePrompt>;
   custom_api?: TavernHelperCustomApiConfig;

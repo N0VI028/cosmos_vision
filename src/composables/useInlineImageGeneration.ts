@@ -1,5 +1,10 @@
 import type { CosmosVisionSettings, PromptLlmContext } from '@/constants/novelai';
 import { DARK_CLASS } from '@/constants/theme';
+import {
+  createInlineGenerationSessionController,
+  type InlineGenerationSession,
+} from '@/composables/inlineGenerationSession';
+import { handleInlineImageClick, type InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { generateComfyUIImageFromPrompts, generateComfyUIImageFromResolvedRequest } from '@/services/comfyui/api';
 import { buildComfyUIResolvedRequest, getComfyUIRequestError } from '@/services/comfyui/workflow';
 import {
@@ -23,11 +28,6 @@ import { getCurrentInstance, h, render } from 'vue';
 
 type RuntimeEnabledGetter = () => boolean;
 
-interface InlinePromptSnapshot {
-  positivePrompt: string;
-  negativePrompt: string;
-}
-
 interface InlineGenerationResult {
   imageBlob: Blob;
   promptSnapshot: InlinePromptSnapshot;
@@ -41,6 +41,8 @@ interface InlineActionButtonSpec {
   onClick: () => void;
 }
 
+type InlineGenerationTask = (session: InlineGenerationSession) => Promise<InlineGenerationResult>;
+
 /**
  * 段落生图运行时控制器
  * 管理段落选中、生图按钮显隐、生成流程、临时图片插入与清理
@@ -51,6 +53,12 @@ export function useInlineImageGeneration(
 ) {
   /** 当前组件实例上下文,用于把 PrimeVue Button 渲染到聊天内联 DOM */
   const appContext = getCurrentInstance()?.appContext;
+
+  /** 生成会话与取消控制 */
+  const generationSession = createInlineGenerationSessionController({
+    appContext,
+    getDarkMode: () => settings.darkMode,
+  });
 
   /** 当前选中的段落 DOM 引用 */
   const selectedParagraph = ref<HTMLElement | null>(null);
@@ -193,15 +201,12 @@ export function useInlineImageGeneration(
   function selectParagraph(p: HTMLElement): void {
     if (!isRuntimeEnabled()) return;
 
-    // 清理旧选中态
     deselectParagraph();
 
     selectedParagraph.value = p;
 
-    // 标记段落为已选中(用于 position: relative 锚点)
     p.classList.add('cv-inline-selected');
 
-    // 在段落内部右上角插入浮窗按钮
     p.appendChild(createSelectionToolbar());
   }
 
@@ -211,11 +216,9 @@ export function useInlineImageGeneration(
   function deselectParagraph(): void {
     if (!selectedParagraph.value) return;
 
-    // 移除段落内部的浮窗按钮
     const toolbar = selectedParagraph.value.querySelector(':scope > .cv-inline-toolbar') as HTMLElement | null;
     removeActionHost(toolbar);
 
-    // 移除选中态 class
     selectedParagraph.value.classList.remove('cv-inline-selected');
 
     selectedParagraph.value = null;
@@ -372,7 +375,7 @@ export function useInlineImageGeneration(
       rows: 4,
     });
     if (specialRequest === null) return;
-    await runImageGeneration(paragraph, true, () => generateImageResultFromContext(paragraph, specialRequest));
+    await runImageGeneration(paragraph, true, session => generateImageResultFromContext(paragraph, specialRequest, session));
   }
 
   /**
@@ -385,7 +388,7 @@ export function useInlineImageGeneration(
       toastr.warning('当前图片还没有可复用的上次标签');
       return;
     }
-    await runImageGeneration(paragraph, false, () => generateImageResultFromSnapshot(snapshot));
+    await runImageGeneration(paragraph, false, session => generateImageResultFromSnapshot(snapshot, session));
   }
 
   /**
@@ -397,33 +400,68 @@ export function useInlineImageGeneration(
   async function runImageGeneration(
     paragraph: HTMLElement,
     requiresPromptLlm: boolean,
-    task: () => Promise<InlineGenerationResult>,
+    task: InlineGenerationTask,
   ): Promise<void> {
     if (!isRuntimeEnabled() || isGenerating.value) return;
-
     const requestError = getGenerationRequestError(requiresPromptLlm);
     if (requestError) {
       toastr.warning(requestError);
       return;
     }
 
-    isGenerating.value = true;
-    exitSelectionMode();
-
+    const session = startGenerationSession(paragraph, requiresPromptLlm);
     try {
-      const result = await task();
-      promptSnapshots.set(paragraph, result.promptSnapshot);
-      const objectUrl = URL.createObjectURL(result.imageBlob);
-      objectUrls.add(objectUrl);
-      insertImageCard(paragraph, objectUrl);
-      toastr.success('图片生成完成');
+      await applyGenerationResult(paragraph, await task(session), session);
     } catch (error) {
-      const message = error instanceof Error ? error.message : '图片生成失败';
-      toastr.error(message);
-      console.error('[InlineImageGeneration]', error);
+      generationSession.handleFailure(error, session);
     } finally {
+      generationSession.clear(session);
       isGenerating.value = false;
     }
+  }
+
+  /**
+   * 启动一次内联生成会话
+   * @param paragraph 目标段落
+   * @param requiresPromptLlm 是否需要先生成提示词
+   * @returns 生成会话
+   */
+  function startGenerationSession(paragraph: HTMLElement, requiresPromptLlm: boolean): InlineGenerationSession {
+    isGenerating.value = true;
+    exitSelectionMode();
+    const imageContainer = imageContainers.get(paragraph);
+    if (imageContainer) {
+      return generationSession.start(imageContainer, getInitialStatusText(requiresPromptLlm), 'overlay');
+    }
+    return generationSession.start(paragraph, getInitialStatusText(requiresPromptLlm));
+  }
+
+  /**
+   * 应用生成结果并插入图片
+   * @param paragraph 目标段落
+   * @param result 生成结果
+   * @param session 生成会话
+   */
+  function applyGenerationResult(
+    paragraph: HTMLElement,
+    result: InlineGenerationResult,
+    session: InlineGenerationSession,
+  ): void {
+    generationSession.ensureActive(session);
+    promptSnapshots.set(paragraph, result.promptSnapshot);
+    const objectUrl = URL.createObjectURL(result.imageBlob);
+    objectUrls.add(objectUrl);
+    session.status.remove();
+    insertImageCard(paragraph, objectUrl);
+  }
+
+  /**
+   * 读取初始生成状态文本
+   * @param requiresPromptLlm 是否需要先生成提示词
+   * @returns 状态文本
+   */
+  function getInitialStatusText(requiresPromptLlm: boolean): string {
+    return requiresPromptLlm ? '正在生成提示词...' : '正在生成图片...';
   }
 
   /**
@@ -447,11 +485,12 @@ export function useInlineImageGeneration(
   async function generateImageResultFromContext(
     paragraph: HTMLElement,
     specialRequest: string,
+    session: InlineGenerationSession,
   ): Promise<InlineGenerationResult> {
     const context = { ...buildPromptLlmContextFromParagraph(paragraph), specialRequest };
     return settings.imageSource === 'comfyui'
-      ? generateComfyUIImageResult(context)
-      : generateNovelAIImageResult(context);
+      ? generateComfyUIImageResult(context, session)
+      : generateNovelAIImageResult(context, session);
   }
 
   /**
@@ -459,19 +498,25 @@ export function useInlineImageGeneration(
    * @param snapshot 上次成功使用的提示词快照
    * @returns 图片与提示词快照
    */
-  async function generateImageResultFromSnapshot(snapshot: InlinePromptSnapshot): Promise<InlineGenerationResult> {
-    toastr.info('正在使用上次标签重新生成图片...');
-
+  async function generateImageResultFromSnapshot(
+    snapshot: InlinePromptSnapshot,
+    session: InlineGenerationSession,
+  ): Promise<InlineGenerationResult> {
+    session.status.setStatus('正在生成图片...');
     if (settings.imageSource === 'comfyui') {
       return {
         promptSnapshot: snapshot,
-        imageBlob: await generateComfyUIImageFromPrompts(settings.comfyui, snapshot),
+        imageBlob: await generateComfyUIImageFromPrompts(settings.comfyui, snapshot, {
+          signal: session.controller.signal,
+        }),
       };
     }
 
     return {
       promptSnapshot: snapshot,
-      imageBlob: await generateNovelAIImageFromPrompts(settings.novelai, snapshot),
+      imageBlob: await generateNovelAIImageFromPrompts(settings.novelai, snapshot, {
+        signal: session.controller.signal,
+      }),
     };
   }
 
@@ -489,8 +534,11 @@ export function useInlineImageGeneration(
    * @param context Prompt LLM 运行时上下文
    * @returns NovelAI 返回的图片与提示词快照
    */
-  async function generateNovelAIImageResult(context: PromptLlmContext): Promise<InlineGenerationResult> {
-    toastr.info('正在生成提示词...');
+  async function generateNovelAIImageResult(
+    context: PromptLlmContext,
+    session: InlineGenerationSession,
+  ): Promise<InlineGenerationResult> {
+    session.status.setStatus('正在生成提示词...');
     const schemaFields = buildPromptLlmSchemaFields(settings.promptLlm);
     const rawResponse = await generatePromptTextFromRuntimeContext(
       context,
@@ -498,7 +546,9 @@ export function useInlineImageGeneration(
       settings.promptLlmMessagePresets,
       settings.promptProfiles,
       schemaFields,
+      { generationId: session.promptGenerationId },
     );
+    generationSession.ensureActive(session);
 
     const overrides = buildNovelAILlmPromptOverrides(settings.promptLlm, rawResponse);
     const request = buildNovelAIResolvedRequest(
@@ -508,10 +558,10 @@ export function useInlineImageGeneration(
       overrides,
     );
 
-    toastr.info('正在生成图片...');
+    session.status.setStatus('正在生成图片...');
     return {
       promptSnapshot: request.prompts,
-      imageBlob: (await generateNovelAIImageFromResolvedRequest(request)).imageBlob,
+      imageBlob: (await generateNovelAIImageFromResolvedRequest(request, { signal: session.controller.signal })).imageBlob,
     };
   }
 
@@ -520,8 +570,11 @@ export function useInlineImageGeneration(
    * @param context Prompt LLM 运行时上下文
    * @returns ComfyUI 返回的图片与提示词快照
    */
-  async function generateComfyUIImageResult(context: PromptLlmContext): Promise<InlineGenerationResult> {
-    toastr.info('正在生成提示词...');
+  async function generateComfyUIImageResult(
+    context: PromptLlmContext,
+    session: InlineGenerationSession,
+  ): Promise<InlineGenerationResult> {
+    session.status.setStatus('正在生成提示词...');
     const schemaFields = buildPromptLlmSchemaFields(settings.promptLlm);
     const prompts = await generatePromptFromRuntimeContext(
       context,
@@ -529,13 +582,17 @@ export function useInlineImageGeneration(
       settings.promptLlmMessagePresets,
       settings.promptProfiles,
       schemaFields,
+      { generationId: session.promptGenerationId },
     );
+    generationSession.ensureActive(session);
 
-    toastr.info('正在生成图片...');
+    session.status.setStatus('正在生成图片...');
     const request = buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, prompts);
     return {
       promptSnapshot: request.snapshot,
-      imageBlob: await generateComfyUIImageFromResolvedRequest(settings.comfyui, request),
+      imageBlob: await generateComfyUIImageFromResolvedRequest(settings.comfyui, request, {
+        signal: session.controller.signal,
+      }),
     };
   }
 
@@ -555,7 +612,7 @@ export function useInlineImageGeneration(
     img.draggable = false;
 
     img.addEventListener('click', (e: MouseEvent) => {
-      handleImageClick(e, img, wrap, isRuntimeEnabled, promptSnapshots.get(p));
+      handleInlineImageClick(e, img, wrap, isRuntimeEnabled, promptSnapshots.get(p));
     });
 
     wrap.append(img, createImageActionBar(p));
@@ -610,6 +667,8 @@ export function useInlineImageGeneration(
    */
   function cleanup(): void {
     exitSelectionMode();
+    generationSession.cleanup();
+    isGenerating.value = false;
 
     // 移除所有图片容器
     imageContainers.forEach(container => {
@@ -626,7 +685,6 @@ export function useInlineImageGeneration(
     objectUrls.clear();
 
   }
-
   return {
     isSelectionMode,
     toggleSelectionMode,
@@ -634,148 +692,4 @@ export function useInlineImageGeneration(
     deselectParagraph,
     cleanup,
   };
-}
-
-/**
- * 处理内联生成的图片点击事件
- * @param e 点击事件对象
- * @param img 图片元素
- * @param wrap 外层容器元素
- * @param isRuntimeEnabled 是否启用运行时
- * @param snapshot 提示词快照
- */
-function handleImageClick(
-  e: MouseEvent,
-  img: HTMLImageElement,
-  wrap: HTMLElement,
-  isRuntimeEnabled: () => boolean,
-  snapshot?: InlinePromptSnapshot,
-): void {
-  if (!isRuntimeEnabled()) return;
-  e.stopPropagation();
-  const isTouch = window.matchMedia('(hover: none)').matches;
-  if (isTouch && !wrap.classList.contains('cv-inline-img-active')) {
-    wrap.classList.add('cv-inline-img-active');
-  } else {
-    openLightbox(img.src, snapshot);
-    if (isTouch) wrap.classList.remove('cv-inline-img-active');
-  }
-}
-
-/**
- * 复制文本并更新按钮状态
- * @param text 复制的文本
- * @param btn 触发复制的按钮
- */
-async function copyText(text: string, btn: HTMLElement): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(text);
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-check"></i> 已复制';
-    btn.classList.add('copied');
-    setTimeout(() => {
-      btn.innerHTML = originalHTML;
-      btn.classList.remove('copied');
-    }, 1500);
-  } catch (err) {
-    toastr.error('复制失败');
-  }
-}
-
-/**
- * 创建 Lightbox 的 DOM 结构
- * @param src 图片地址
- * @param snapshot 提示词快照
- * @returns Lightbox 根元素
- */
-function createLightboxDOM(src: string, snapshot?: InlinePromptSnapshot): HTMLElement {
-  const overlay = document.createElement('div');
-  overlay.className = 'cv-lightbox-overlay';
-
-  const pos = snapshot?.positivePrompt || '无正向提示词';
-  const neg = snapshot?.negativePrompt || '无负面提示词';
-
-  overlay.innerHTML = `
-    <button class="cv-lightbox-close"><i class="fa-solid fa-xmark"></i></button>
-    <div class="cv-lightbox-wrapper">
-      <div class="cv-lightbox-img-box">
-        <img class="cv-lightbox-preview-img" src="${src}" alt="放大图片" draggable="false" />
-      </div>
-      <div class="cv-lightbox-info">
-        <div class="cv-lightbox-info-header">
-          <span class="cv-lightbox-info-title">提示词详情</span>
-          <button class="cv-lightbox-toggle-btn" title="隐藏/显示提示词">
-            <i class="fa-solid fa-eye-slash"></i> <span>隐藏提示词</span>
-          </button>
-        </div>
-        <div class="cv-lightbox-info-body">
-          <div class="cv-lightbox-prompt-group">
-            <div class="cv-lightbox-prompt-header">
-              <span class="cv-lightbox-prompt-title cv-lightbox-title-pos">正向提示词</span>
-              <button class="cv-lightbox-copy-btn cv-copy-pos"><i class="fa-solid fa-copy"></i> 复制</button>
-            </div>
-            <div class="cv-lightbox-prompt-content">${pos}</div>
-          </div>
-          <div class="cv-lightbox-prompt-group">
-            <div class="cv-lightbox-prompt-header">
-              <span class="cv-lightbox-prompt-title cv-lightbox-title-neg">负面提示词</span>
-              <button class="cv-lightbox-copy-btn cv-copy-neg"><i class="fa-solid fa-copy"></i> 复制</button>
-            </div>
-            <div class="cv-lightbox-prompt-content">${neg}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-  return overlay;
-}
-
-/**
- * 绑定 Lightbox 相关的事件
- * @param overlay Lightbox 根元素
- * @param snapshot 提示词快照
- */
-function bindLightboxEvents(overlay: HTMLElement, snapshot?: InlinePromptSnapshot): void {
-  const close = () => {
-    overlay.classList.remove('cv-lightbox-active');
-    setTimeout(() => overlay.remove(), 250);
-    document.removeEventListener('keydown', handleEsc);
-  };
-  const handleEsc = (e: KeyboardEvent) => e.key === 'Escape' && close();
-  document.addEventListener('keydown', handleEsc);
-
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay || e.target === overlay.querySelector('.cv-lightbox-img-box')) close();
-  });
-  overlay.querySelector('.cv-lightbox-close')?.addEventListener('click', close);
-
-  // 折叠隐藏/显示控制
-  const info = overlay.querySelector('.cv-lightbox-info') as HTMLElement;
-  const toggleBtn = overlay.querySelector('.cv-lightbox-toggle-btn') as HTMLElement;
-  toggleBtn?.addEventListener('click', () => {
-    const isCollapsed = info.classList.toggle('cv-info-collapsed');
-    const icon = isCollapsed ? 'fa-eye' : 'fa-eye-slash';
-    const text = isCollapsed ? '显示提示词' : '隐藏提示词';
-    toggleBtn.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${text}</span>`;
-  });
-
-  // 复制提示词
-  const copyPos = overlay.querySelector('.cv-copy-pos');
-  const copyNeg = overlay.querySelector('.cv-copy-neg');
-  copyPos?.addEventListener('click', (e) => copyText(snapshot?.positivePrompt || '', e.currentTarget as HTMLElement));
-  copyNeg?.addEventListener('click', (e) => copyText(snapshot?.negativePrompt || '', e.currentTarget as HTMLElement));
-}
-
-/**
- * 打开 Lightbox 大图预览弹窗
- * @param src 图片地址
- * @param snapshot 提示词快照
- */
-function openLightbox(src: string, snapshot?: InlinePromptSnapshot): void {
-  const overlay = createLightboxDOM(src, snapshot);
-  document.body.appendChild(overlay);
-  requestAnimationFrame(() => {
-    overlay.classList.add('cv-lightbox-active');
-  });
-  bindLightboxEvents(overlay, snapshot);
 }

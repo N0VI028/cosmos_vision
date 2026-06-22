@@ -63,38 +63,49 @@ export interface NovelAIImageResult {
   snapshot: NovelAIRequestSnapshot;
 }
 
+/** NovelAI 请求控制选项 */
+export interface NovelAIRequestOptions {
+  signal?: AbortSignal;
+}
+
 /**
  * 使用已解析提示词请求 NovelAI 图片
  * @param settings NovelAI 设置页参数
  * @param prompts 最终提示词
+ * @param options 请求控制选项
  * @returns 官方响应中的第一张图片 Blob
  */
 export async function generateNovelAIImageFromPrompts(
   settings: NovelAISettings,
   prompts: NovelAIFinalPrompts,
+  options: NovelAIRequestOptions = {},
 ): Promise<Blob> {
   const request = createResolvedRequest(settings, prompts);
-  return (await generateNovelAIImageFromResolvedRequest(request)).imageBlob;
+  return (await generateNovelAIImageFromResolvedRequest(request, options)).imageBlob;
 }
 
 /**
  * 按预解析结果请求 NovelAI 图片
  * @param request 已确定提示词与账号顺序的请求
+ * @param options 请求控制选项
  * @returns 图片与最终成功账号快照
  */
 export async function generateNovelAIImageFromResolvedRequest(
   request: NovelAIResolvedRequest,
+  options: NovelAIRequestOptions = {},
 ): Promise<NovelAIImageResult> {
   validatePrompts(request.prompts);
   ensureRequestAccounts(request.accounts);
+  throwIfNovelAIAborted(options.signal);
   const errors: string[] = [];
   for (const [index, account] of request.accounts.entries()) {
     try {
       return {
-        imageBlob: await requestNovelAIAccountImage(request.settings, request.prompts, account),
+        imageBlob: await requestNovelAIAccountImage(request.settings, request.prompts, account, options),
         snapshot: buildRequestSnapshot(request.settings, request.prompts, account),
       };
     } catch (error) {
+      if (options.signal?.aborted) throw createNovelAIAbortError();
       errors.push(formatAccountError(index, account, error));
     }
   }
@@ -350,9 +361,12 @@ async function requestNovelAIAccountImage(
   settings: NovelAISettings,
   prompts: NovelAIFinalPrompts,
   account: NovelAIAccount,
+  options: NovelAIRequestOptions,
 ): Promise<Blob> {
-  const response = await requestNovelAIResponse(settings, prompts, account);
+  const response = await requestNovelAIResponse(settings, prompts, account, options);
+  throwIfNovelAIAborted(options.signal);
   const zipBlob = await readNovelAIResponseBlob(response);
+  throwIfNovelAIAborted(options.signal);
   return extractNovelAIImage(zipBlob);
 }
 
@@ -367,12 +381,14 @@ async function requestNovelAIResponse(
   settings: NovelAISettings,
   prompts: NovelAIFinalPrompts,
   account: NovelAIAccount,
+  options: NovelAIRequestOptions,
 ): Promise<Response> {
   try {
     const response = await fetch(buildEndpoint(account.url), {
       method: 'POST',
       headers: buildHeaders(account.apiKey),
       body: JSON.stringify(buildPayload(settings, prompts)),
+      signal: options.signal,
     });
     await ensureSuccess(response);
     return response;
@@ -426,6 +442,23 @@ function formatAccountError(index: number, account: NovelAIAccount, error: unkno
  */
 function buildAggregateErrorMessage(errors: string[]): string {
   return `已尝试多组账号但均失败: ${errors.join('； ')}`;
+}
+
+/**
+ * 抛出 NovelAI 取消错误
+ * @param signal 取消信号
+ */
+function throwIfNovelAIAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return;
+  throw createNovelAIAbortError();
+}
+
+/**
+ * 创建 NovelAI 取消错误
+ * @returns 取消错误
+ */
+function createNovelAIAbortError(): Error {
+  return new Error('已取消生成');
 }
 
 async function ensureSuccess(response: Response): Promise<void> {

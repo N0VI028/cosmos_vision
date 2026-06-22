@@ -66,6 +66,12 @@ declare global {
          */
         generateRaw(config: TavernHelperGenerateRawConfig): Promise<string>;
         /**
+         * 按生成请求 ID 停止指定 generate/generateRaw 请求
+         * @param generationId 生成请求 ID
+         * @returns 是否成功停止
+         */
+        stopGenerationById(generationId: string): boolean;
+        /**
          * 获取角色卡名称列表
          * @returns 角色卡名称列表
          */

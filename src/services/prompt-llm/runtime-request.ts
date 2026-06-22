@@ -24,6 +24,11 @@ import {
   type TavernHelperRolePrompt,
 } from '@/services/tavern-helper/prompt-llm';
 
+/** Prompt LLM 运行时生成选项 */
+export interface PromptLlmGenerateOptions {
+  generationId?: string;
+}
+
 /**
  * 基于上下文与人物配置构建运行时请求
  * @param context Prompt LLM 运行时上下文
@@ -97,6 +102,7 @@ export async function generatePromptTextFromRuntimeContext(
   presetSettings: PromptLlmMessagePresetSettings,
   promptProfiles: PromptProfilesSettings,
   schemaFields: PromptLlmOutputFields | null = DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
+  options: PromptLlmGenerateOptions = {},
 ): Promise<string> {
   const tavernHelper = getTavernHelper();
   if (!tavernHelper) {
@@ -110,10 +116,23 @@ export async function generatePromptTextFromRuntimeContext(
     schemaFields,
   );
   try {
-    return formatPromptLlmRawResult(await tavernHelper.generateRaw({ ...request, should_silence: true }));
+    return formatPromptLlmRawResult(await tavernHelper.generateRaw(buildSilentGenerateRawRequest(request, options)));
   } catch (error) {
     throw new Error(`提示词生成失败: ${(error as Error).message}`);
   }
+}
+
+/**
+ * 构建静默 generateRaw 请求
+ * @param request 原始请求
+ * @param options 生成选项
+ * @returns 可发送给 TavernHelper 的请求
+ */
+function buildSilentGenerateRawRequest(
+  request: TavernHelperGenerateRawConfig,
+  options: PromptLlmGenerateOptions,
+): TavernHelperGenerateRawConfig {
+  return { ...request, should_silence: true, generation_id: options.generationId };
 }
 
 /**
@@ -131,6 +150,7 @@ export async function generatePromptFromRuntimeContext(
   presetSettings: PromptLlmMessagePresetSettings,
   promptProfiles: PromptProfilesSettings,
   schemaFields: PromptLlmOutputFields | null = DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
+  options: PromptLlmGenerateOptions = {},
 ): Promise<PromptLlmOutput> {
   const rawText = await generatePromptTextFromRuntimeContext(
     context,
@@ -138,6 +158,7 @@ export async function generatePromptFromRuntimeContext(
     presetSettings,
     promptProfiles,
     schemaFields,
+    options,
   );
   const output = readPromptLlmOutputWithRules(rawText, settings, schemaFields);
   if (!output) {

@@ -46,21 +46,29 @@ interface ComfyUIModelFolderEntry {
 const COMFYUI_POLL_INTERVAL_MS = 1000;
 const COMFYUI_MAX_POLL_COUNT = 60;
 
+/** ComfyUI 请求控制选项 */
+export interface ComfyUIRequestOptions {
+  signal?: AbortSignal;
+}
+
 /**
  * 使用共享生图预设与正负提示词请求 ComfyUI 图片
  * @param settings ComfyUI 设置
  * @param presetSettings 共享生图提示词预设
  * @param overrides 正负提示词覆写
+ * @param options 请求控制选项
  * @returns 首张输出图片 Blob
  */
 export async function generateComfyUIImage(
   settings: ComfyUISettings,
   presetSettings: ImagePromptPresetSettings,
   prompts: ImagePromptPair,
+  options: ComfyUIRequestOptions = {},
 ): Promise<Blob> {
   return generateComfyUIImageFromResolvedRequest(
     settings,
     buildComfyUIResolvedRequest(settings, presetSettings, prompts),
+    options,
   );
 }
 
@@ -68,13 +76,19 @@ export async function generateComfyUIImage(
  * 使用最终正负提示词请求 ComfyUI 图片
  * @param settings ComfyUI 设置
  * @param prompts 已完成拼接的正负提示词
+ * @param options 请求控制选项
  * @returns 首张输出图片 Blob
  */
 export async function generateComfyUIImageFromPrompts(
   settings: ComfyUISettings,
   prompts: ImagePromptPair,
+  options: ComfyUIRequestOptions = {},
 ): Promise<Blob> {
-  return generateComfyUIImageFromResolvedRequest(settings, buildComfyUIResolvedRequestFromPrompts(settings, prompts));
+  return generateComfyUIImageFromResolvedRequest(
+    settings,
+    buildComfyUIResolvedRequestFromPrompts(settings, prompts),
+    options,
+  );
 }
 
 /**
@@ -117,31 +131,40 @@ export async function fetchComfyUILoraNames(settings: ComfyUISettings): Promise<
  * 发送已解析的 ComfyUI 请求
  * @param settings ComfyUI 设置
  * @param request 已解析请求
+ * @param options 请求控制选项
  * @returns 首张输出图片 Blob
  */
 export async function generateComfyUIImageFromResolvedRequest(
   settings: ComfyUISettings,
   request: ComfyUIResolvedRequest,
+  options: ComfyUIRequestOptions = {},
 ): Promise<Blob> {
   const baseUrl = normalizeComfyUIUrl(settings.url);
-  const promptId = await queueComfyUIPrompt(baseUrl, request.workflow);
-  const image = await waitForComfyUIHistoryImage(baseUrl, promptId);
-  return fetchComfyUIImage(baseUrl, image);
+  const promptId = await queueComfyUIPrompt(baseUrl, request.workflow, options.signal);
+  const cleanupAbort = bindComfyUIAbort(baseUrl, options.signal);
+  try {
+    const image = await waitForComfyUIHistoryImage(baseUrl, promptId, options.signal);
+    return fetchComfyUIImage(baseUrl, image, options.signal);
+  } finally {
+    cleanupAbort();
+  }
 }
 
 /**
  * 向 ComfyUI 提交工作流
  * @param baseUrl ComfyUI 基础地址
  * @param workflow 已解析工作流
+ * @param signal 取消信号
  * @returns prompt_id
  */
-async function queueComfyUIPrompt(baseUrl: string, workflow: ComfyUIWorkflow): Promise<string> {
+async function queueComfyUIPrompt(baseUrl: string, workflow: ComfyUIWorkflow, signal?: AbortSignal): Promise<string> {
   let response: Response;
   try {
     response = await fetch(`${baseUrl}/prompt`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ client_id: createClientId(), prompt: workflow }),
+      signal,
     });
   } catch (error) {
     throw new Error(`[ComfyUI /prompt] ${(error as Error).message}`);
@@ -156,14 +179,20 @@ async function queueComfyUIPrompt(baseUrl: string, workflow: ComfyUIWorkflow): P
  * 轮询历史记录直到拿到首张图片
  * @param baseUrl ComfyUI 基础地址
  * @param promptId prompt_id
+ * @param signal 取消信号
  * @returns 第一张图片元数据
  */
-async function waitForComfyUIHistoryImage(baseUrl: string, promptId: string): Promise<ComfyUIHistoryImage> {
+async function waitForComfyUIHistoryImage(
+  baseUrl: string,
+  promptId: string,
+  signal?: AbortSignal,
+): Promise<ComfyUIHistoryImage> {
   for (let index = 0; index < COMFYUI_MAX_POLL_COUNT; index += 1) {
-    const result = await fetchComfyUIHistoryResult(baseUrl, promptId);
+    throwIfComfyUIAborted(signal);
+    const result = await fetchComfyUIHistoryResult(baseUrl, promptId, signal);
     if (result.executionError) throw new Error(result.executionError);
     if (result.image) return result.image;
-    await sleep(COMFYUI_POLL_INTERVAL_MS);
+    await sleep(COMFYUI_POLL_INTERVAL_MS, signal);
   }
   throw new Error('ComfyUI 生成超时，请检查队列状态或工作流执行结果');
 }
@@ -177,12 +206,17 @@ interface ComfyUIHistoryPollResult {
  * 读取当前 prompt 的历史轮询结果
  * @param baseUrl ComfyUI 基础地址
  * @param promptId prompt_id
+ * @param signal 取消信号
  * @returns 当前轮询结果
  */
-async function fetchComfyUIHistoryResult(baseUrl: string, promptId: string): Promise<ComfyUIHistoryPollResult> {
+async function fetchComfyUIHistoryResult(
+  baseUrl: string,
+  promptId: string,
+  signal?: AbortSignal,
+): Promise<ComfyUIHistoryPollResult> {
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/history/${encodeURIComponent(promptId)}`);
+    response = await fetch(`${baseUrl}/history/${encodeURIComponent(promptId)}`, { signal });
   } catch (error) {
     throw new Error(`[ComfyUI /history] ${(error as Error).message}`);
   }
@@ -337,9 +371,10 @@ function readModelFolderName(value: unknown): string | null {
  * 下载首张图片
  * @param baseUrl ComfyUI 基础地址
  * @param image 图片元数据
+ * @param signal 取消信号
  * @returns 图片 Blob
  */
-async function fetchComfyUIImage(baseUrl: string, image: ComfyUIHistoryImage): Promise<Blob> {
+async function fetchComfyUIImage(baseUrl: string, image: ComfyUIHistoryImage, signal?: AbortSignal): Promise<Blob> {
   const query = new URLSearchParams({
     filename: image.filename,
     subfolder: image.subfolder ?? '',
@@ -348,13 +383,55 @@ async function fetchComfyUIImage(baseUrl: string, image: ComfyUIHistoryImage): P
 
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/view?${query.toString()}`);
+    response = await fetch(`${baseUrl}/view?${query.toString()}`, { signal });
   } catch (error) {
     throw new Error(`[ComfyUI /view] ${(error as Error).message}`);
   }
 
   if (!response.ok) throw new Error(`ComfyUI /view 请求失败: ${response.status}`);
   return response.blob();
+}
+
+/**
+ * 绑定 ComfyUI 取消时的服务端中断
+ * @param baseUrl ComfyUI 基础地址
+ * @param signal 取消信号
+ * @returns 解绑函数
+ */
+function bindComfyUIAbort(baseUrl: string, signal?: AbortSignal): () => void {
+  if (!signal) return () => undefined;
+  const interrupt = () => void interruptComfyUI(baseUrl);
+  signal.addEventListener('abort', interrupt, { once: true });
+  return () => signal.removeEventListener('abort', interrupt);
+}
+
+/**
+ * 尝试中断 ComfyUI 当前工作流
+ * @param baseUrl ComfyUI 基础地址
+ */
+async function interruptComfyUI(baseUrl: string): Promise<void> {
+  try {
+    await fetch(`${baseUrl}/interrupt`, { method: 'POST' });
+  } catch (error) {
+    console.warn('[ComfyUI /interrupt]', error);
+  }
+}
+
+/**
+ * 抛出 ComfyUI 取消错误
+ * @param signal 取消信号
+ */
+function throwIfComfyUIAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return;
+  throw createComfyUIAbortError();
+}
+
+/**
+ * 创建 ComfyUI 取消错误
+ * @returns 取消错误
+ */
+function createComfyUIAbortError(): Error {
+  return new Error('已取消生成');
 }
 
 /**
@@ -415,8 +492,20 @@ function createClientId(): string {
 /**
  * 简单休眠
  * @param ms 等待毫秒数
+ * @param signal 取消信号
  * @returns Promise
  */
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => window.setTimeout(resolve, ms));
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(createComfyUIAbortError());
+    const abort = () => {
+      window.clearTimeout(timeout);
+      reject(createComfyUIAbortError());
+    };
+    const timeout = window.setTimeout(() => {
+      signal?.removeEventListener('abort', abort);
+      resolve();
+    }, ms);
+    signal?.addEventListener('abort', abort, { once: true });
+  });
 }
