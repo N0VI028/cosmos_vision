@@ -330,12 +330,8 @@ function applyReservedMessageConfig(message: PromptLlmMessage, config: PromptLlm
  */
 function ensureReservedMessagesOrder(messages: PromptLlmMessage[]): PromptLlmMessage[] {
   const normalizedMessages = messages.map(normalizePromptLlmMessage);
-  const historyMessage = normalizeReservedEntry(
-    normalizedMessages.find(isPromptLlmHistoryMessage) ?? createPromptLlmHistoryMessage(),
-  );
-  const participantMessage = normalizeReservedEntry(
-    normalizedMessages.find(isPromptLlmParticipantMessage) ?? createPromptLlmParticipantMessage(),
-  );
+  const historyMessage = findOrCreateReservedMessage(normalizedMessages, isPromptLlmHistoryMessage, createPromptLlmHistoryMessage);
+  const participantMessage = findOrCreateReservedMessage(normalizedMessages, isPromptLlmParticipantMessage, createPromptLlmParticipantMessage);
   const uniqueMessages = keepFirstReservedMessages(normalizedMessages, historyMessage, participantMessage);
   return insertMissingReservedMessages(uniqueMessages, participantMessage, historyMessage);
 }
@@ -353,13 +349,20 @@ function normalizePromptLlmMessage(message: PromptLlmMessage): PromptLlmMessage 
 }
 
 /**
- * 规范化保留条目并返回自身
- * @param message 保留条目
- * @returns 规范化后的条目
+ * 查找已有保留消息或创建新的
+ * @param messages 消息列表
+ * @param predicate 判断函数
+ * @param factory 创建函数
+ * @returns 规范化后的保留消息
  */
-function normalizeReservedEntry(message: PromptLlmMessage): PromptLlmMessage {
-  normalizePromptLlmReservedMessage(message);
-  return message;
+function findOrCreateReservedMessage(
+  messages: PromptLlmMessage[],
+  predicate: (msg: Pick<PromptLlmMessage, 'id'>) => boolean,
+  factory: () => PromptLlmMessage,
+): PromptLlmMessage {
+  const found = messages.find(predicate) ?? factory();
+  normalizePromptLlmReservedMessage(found);
+  return found;
 }
 
 /**
@@ -411,14 +414,16 @@ function insertMissingReservedMessages(
 ): PromptLlmMessage[] {
   const hasParticipant = messages.some(isPromptLlmParticipantMessage);
   const hasHistory = messages.some(isPromptLlmHistoryMessage);
+
   if (hasParticipant && hasHistory) return messages;
+
   if (!hasParticipant && !hasHistory) {
     return insertBeforeContentClose(messages, [participantMessage, historyMessage]);
   }
-  if (!hasParticipant) {
-    return insertAroundSibling(messages, participantMessage, historyMessage, 'before');
-  }
-  return insertAroundSibling(messages, historyMessage, participantMessage, 'after');
+
+  return hasParticipant
+    ? insertAroundSibling(messages, historyMessage, participantMessage, 'after')
+    : insertAroundSibling(messages, participantMessage, historyMessage, 'before');
 }
 
 /**

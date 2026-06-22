@@ -397,53 +397,39 @@ function deletePreset(id: string): void {
  * 确认后重置内置提示词生成预设
  */
 async function resetDefaultPreset(): Promise<void> {
-  const confirmed = await confirmDefaultPresetReset();
+  const message = '确定要重置内置预设到初始状态吗？这会覆盖你对默认预设的修改。';
+  const confirmed = showConfirm
+    ? await showConfirm({
+        title: '重置内置预设',
+        message,
+        acceptLabel: '确认重置',
+        cancelLabel: '取消',
+        severity: 'danger',
+      })
+    : confirm(message);
+
   if (!confirmed) return;
   restoreDefaultPreset();
   toastr.success('内置预设已重置为初始状态');
 }
 
 /**
- * 弹出内置预设重置确认
- * @returns 是否确认重置
- */
-function confirmDefaultPresetReset(): Promise<boolean> {
-  const message = '确定要重置内置预设到初始状态吗？这会覆盖你对默认预设的修改。';
-  if (!showConfirm) {
-    return Promise.resolve(confirm(message));
-  }
-  return showConfirm({
-    title: '重置内置预设',
-    message,
-    acceptLabel: '确认重置',
-    cancelLabel: '取消',
-    severity: 'danger',
-  });
-}
-
-/**
  * 用初始配置替换内置默认预设
  */
 function restoreDefaultPreset(): void {
-  const defaultPreset = createInitialDefaultPreset();
+  const preset = defaultPromptLlmPresetSettings.presets.find(item => item.id === DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID);
+  if (!preset) throw new Error('未找到内置提示词预设初始配置');
+
+  const defaultPreset = _.cloneDeep(preset);
   const presets = settings.promptLlmMessagePresets.presets;
-  const index = presets.findIndex(preset => preset.id === DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID);
+  const index = presets.findIndex(p => p.id === DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID);
+
   if (index === -1) {
     presets.unshift(defaultPreset);
     settings.promptLlmMessagePresets.activePresetId = defaultPreset.id;
-    return;
+  } else {
+    presets.splice(index, 1, defaultPreset);
   }
-  presets.splice(index, 1, defaultPreset);
-}
-
-/**
- * 创建初始内置提示词生成预设副本
- * @returns 初始预设副本
- */
-function createInitialDefaultPreset(): PromptLlmMessagePreset {
-  const preset = defaultPromptLlmPresetSettings.presets.find(item => item.id === DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID);
-  if (!preset) throw new Error('未找到内置提示词预设初始配置');
-  return _.cloneDeep(preset);
 }
 
 const messages = computed<PromptLlmMessage[]>({

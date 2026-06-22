@@ -222,16 +222,22 @@ export function useInlineImageGeneration(
   }
 
   /**
+   * 阻止交互事件冒泡到底层
+   * @param host 宿主元素
+   */
+  function preventEventBubbling(host: HTMLElement): void {
+    const events = ['pointerdown', 'mousedown', 'touchstart', 'pointerup', 'mouseup', 'touchend', 'click'];
+    events.forEach(evt => host.addEventListener(evt, e => e.stopPropagation()));
+  }
+
+  /**
    * 创建选中段落的操作条
    * @returns 带有圆角白色胶囊的操作条元素
    */
   function createSelectionToolbar(): HTMLElement {
     const host = document.createElement('div');
     host.className = 'cv-inline-toolbar';
-
-    // 阻止交互事件冒泡，防止触发底层的输入框聚焦或再次触发段落选中
-    const stopEvents = ['pointerdown', 'mousedown', 'touchstart', 'pointerup', 'mouseup', 'touchend', 'click'];
-    stopEvents.forEach(evt => host.addEventListener(evt, e => e.stopPropagation()));
+    preventEventBubbling(host);
 
     const trigger = document.createElement('div');
     trigger.className = 'cv-inline-trigger';
@@ -302,10 +308,7 @@ export function useInlineImageGeneration(
   function createActionHost(hostClass: string, actions: InlineActionButtonSpec[]): HTMLElement {
     const host = document.createElement('div');
     host.className = buildActionHostClass(hostClass);
-
-    // 阻止交互事件冒泡,防止触发底层的输入框聚焦
-    const stopEvents = ['pointerdown', 'mousedown', 'touchstart', 'pointerup', 'mouseup', 'touchend', 'click'];
-    stopEvents.forEach(evt => host.addEventListener(evt, e => e.stopPropagation()));
+    preventEventBubbling(host);
 
     const vnode = h(
       'div',
@@ -438,6 +441,7 @@ export function useInlineImageGeneration(
   /**
    * 根据段落上下文重新生成提示词并生图
    * @param paragraph 目标聊天段落
+   * @param specialRequest 本次临时追加要求
    * @returns 图片与提示词快照
    */
   async function generateImageResultFromContext(
@@ -543,10 +547,7 @@ export function useInlineImageGeneration(
 
     const wrap = document.createElement('div');
     wrap.className = 'cv-inline-img-wrap';
-
-    // 阻止交互事件冒泡,防止触发底层的输入框聚焦
-    const stopEvents = ['pointerdown', 'mousedown', 'touchstart', 'pointerup', 'mouseup', 'touchend', 'click'];
-    stopEvents.forEach(evt => wrap.addEventListener(evt, e => e.stopPropagation()));
+    preventEventBubbling(wrap);
 
     const img = document.createElement('img');
     img.src = objectUrl;
@@ -747,20 +748,22 @@ function bindLightboxEvents(overlay: HTMLElement, snapshot?: InlinePromptSnapsho
     if (e.target === overlay || e.target === overlay.querySelector('.cv-lightbox-img-box')) close();
   });
   overlay.querySelector('.cv-lightbox-close')?.addEventListener('click', close);
-  
+
   // 折叠隐藏/显示控制
   const info = overlay.querySelector('.cv-lightbox-info') as HTMLElement;
   const toggleBtn = overlay.querySelector('.cv-lightbox-toggle-btn') as HTMLElement;
   toggleBtn?.addEventListener('click', () => {
     const isCollapsed = info.classList.toggle('cv-info-collapsed');
-    toggleBtn.innerHTML = isCollapsed 
-      ? '<i class="fa-solid fa-eye"></i> <span>显示提示词</span>' 
-      : '<i class="fa-solid fa-eye-slash"></i> <span>隐藏提示词</span>';
+    const icon = isCollapsed ? 'fa-eye' : 'fa-eye-slash';
+    const text = isCollapsed ? '显示提示词' : '隐藏提示词';
+    toggleBtn.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${text}</span>`;
   });
 
   // 复制提示词
-  overlay.querySelector('.cv-copy-pos')?.addEventListener('click', (e) => copyText(snapshot?.positivePrompt || '', e.currentTarget as HTMLElement));
-  overlay.querySelector('.cv-copy-neg')?.addEventListener('click', (e) => copyText(snapshot?.negativePrompt || '', e.currentTarget as HTMLElement));
+  const copyPos = overlay.querySelector('.cv-copy-pos');
+  const copyNeg = overlay.querySelector('.cv-copy-neg');
+  copyPos?.addEventListener('click', (e) => copyText(snapshot?.positivePrompt || '', e.currentTarget as HTMLElement));
+  copyNeg?.addEventListener('click', (e) => copyText(snapshot?.negativePrompt || '', e.currentTarget as HTMLElement));
 }
 
 /**
