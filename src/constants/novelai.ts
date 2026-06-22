@@ -153,6 +153,8 @@ export interface PromptLlmContext {
   historyParagraphs: string[];
   /** 当前选中的高光段落 */
   focusParagraph: string;
+  /** 用户仅针对本次生图的特别要求 */
+  specialRequest: string;
 }
 
 /** 提示词 LLM 输出字段名(单侧留空表示该侧不参与 JSON 提取,交给固定预设) */

@@ -82,6 +82,9 @@
               <button type="button" class="cv-token-btn" @click="insertMessageToken(focusParagraphToken)">
                 焦点段落
               </button>
+              <button type="button" class="cv-token-btn" @click="insertMessageToken(specialRequestToken)">
+                特别要求
+              </button>
             </div>
           </div>
           <Textarea
@@ -166,6 +169,7 @@ import {
   DEFAULT_PROMPT_EXTRACT_REPLACEMENT,
   DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN,
   PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN,
+  PROMPT_LLM_SPECIAL_REQUEST_TOKEN,
   DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN,
   DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
 } from '@/constants/default-settings';
@@ -239,6 +243,7 @@ const ROLE_OPTIONS = [
 const { settings } = useSettingsStore();
 const promptExtractRuleFields = [...PROMPT_EXTRACT_RULE_FIELDS];
 const focusParagraphToken = PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN;
+const specialRequestToken = PROMPT_LLM_SPECIAL_REQUEST_TOKEN;
 
 const activePreset = computed(() => {
   const { activePresetId, presets } = settings.promptLlmMessagePresets;

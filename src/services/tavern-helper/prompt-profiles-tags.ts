@@ -76,6 +76,7 @@ function buildPromptPersonRuntimeContent(contextText: string): PromptLlmRuntimeC
     historyContent: '',
     participantContent: contextText,
     focusParagraphContent: '',
+    specialRequestContent: '',
   };
 }
 

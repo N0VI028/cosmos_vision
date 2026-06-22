@@ -116,7 +116,17 @@ export async function buildPromptLlmRuntimeContent(
     historyContent: result.historyContent,
     participantContent: result.participantContent,
     focusParagraphContent: result.focusParagraphContent,
+    specialRequestContent: buildSpecialRequestContent(context.specialRequest),
   };
+}
+
+/**
+ * 构建本次特别要求的运行时文本
+ * @param specialRequest 用户输入的特别要求
+ * @returns 去首尾空白后的原始文本
+ */
+function buildSpecialRequestContent(specialRequest: string): string {
+  return specialRequest.trim();
 }
 
 /**

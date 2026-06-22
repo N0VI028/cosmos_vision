@@ -79,5 +79,6 @@ function buildManualPromptLlmContext(content: string): PromptLlmContext {
   return {
     historyParagraphs: focusParagraph ? [focusParagraph] : [],
     focusParagraph,
+    specialRequest: '',
   };
 }

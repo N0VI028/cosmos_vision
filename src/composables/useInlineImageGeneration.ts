@@ -12,6 +12,7 @@ import {
   buildPromptLlmContextFromParagraph,
   findChatParagraph,
 } from '@/services/sillytavern/chat-dom';
+import { showTextInputPopup } from '@/services/sillytavern/popup';
 import {
   generatePromptFromRuntimeContext,
   generatePromptTextFromRuntimeContext,
@@ -253,7 +254,6 @@ export function useInlineImageGeneration(
     trigger.addEventListener('click', () => {
       const paragraph = selectedParagraph.value;
       if (paragraph) {
-        exitSelectionMode();
         void handleGenerateWithFreshPrompt(paragraph);
       }
     });
@@ -363,7 +363,13 @@ export function useInlineImageGeneration(
    */
   async function handleGenerateWithFreshPrompt(paragraph = selectedParagraph.value): Promise<void> {
     if (!paragraph) return;
-    await runImageGeneration(paragraph, true, () => generateImageResultFromContext(paragraph));
+    exitSelectionMode();
+    const specialRequest = await showTextInputPopup({
+      message: '<h3>本次临时追加要求</h3><small>可输入本次生图的临时追加要求，如无，可不填写直接确定</small>',
+      rows: 4,
+    });
+    if (specialRequest === null) return;
+    await runImageGeneration(paragraph, true, () => generateImageResultFromContext(paragraph, specialRequest));
   }
 
   /**
@@ -434,8 +440,11 @@ export function useInlineImageGeneration(
    * @param paragraph 目标聊天段落
    * @returns 图片与提示词快照
    */
-  async function generateImageResultFromContext(paragraph: HTMLElement): Promise<InlineGenerationResult> {
-    const context = buildPromptLlmContextFromParagraph(paragraph);
+  async function generateImageResultFromContext(
+    paragraph: HTMLElement,
+    specialRequest: string,
+  ): Promise<InlineGenerationResult> {
+    const context = { ...buildPromptLlmContextFromParagraph(paragraph), specialRequest };
     return settings.imageSource === 'comfyui'
       ? generateComfyUIImageResult(context)
       : generateNovelAIImageResult(context);

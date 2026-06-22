@@ -1,4 +1,8 @@
 import {
+  DEFAULT_PROMPT_LLM_PRESET_ID,
+  DEFAULT_PROMPT_LLM_SPECIAL_REQUEST_MESSAGE_ID,
+} from '@/constants/default-prompt-llm-preset';
+import {
   DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
   PROMPT_LLM_CONTENT_CLOSE_MESSAGE_ID,
   PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID,
@@ -9,6 +13,7 @@ import {
   PROMPT_LLM_PARTICIPANT_MESSAGE_ID,
   PROMPT_LLM_PARTICIPANT_MESSAGE_TITLE,
   PROMPT_LLM_PARTICIPANT_PREVIEW_TEXT,
+  PROMPT_LLM_SPECIAL_REQUEST_TOKEN,
 } from '@/constants/default-settings';
 import type { PromptLlmMessage, PromptLlmMessagePreset, PromptLlmMessagePresetSettings } from '@/constants/novelai';
 
@@ -17,6 +22,7 @@ export interface PromptLlmRuntimeContent {
   historyContent: string;
   participantContent: string;
   focusParagraphContent: string;
+  specialRequestContent: string;
 }
 
 /** 保留消息条目配置 */
@@ -148,10 +154,7 @@ export function ensurePromptLlmReservedMessages(
 ): PromptLlmMessagePresetSettings {
   return {
     ...presetSettings,
-    presets: presetSettings.presets.map(preset => ({
-      ...preset,
-      messages: ensureReservedMessagesOrder(preset.messages),
-    })),
+    presets: presetSettings.presets.map(ensurePromptLlmPresetMessages),
   };
 }
 
@@ -177,7 +180,34 @@ export function resolvePromptLlmMessageContent(
  * @returns 宏替换后的消息内容
  */
 function replacePromptLlmContentTokens(content: string, runtimeContent: PromptLlmRuntimeContent): string {
-  return content.replaceAll(PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN, runtimeContent.focusParagraphContent);
+  return content
+    .replaceAll(PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN, runtimeContent.focusParagraphContent)
+    .replaceAll(PROMPT_LLM_SPECIAL_REQUEST_TOKEN, runtimeContent.specialRequestContent);
+}
+
+/**
+ * 规范化单个预设中的保留消息与默认内置消息
+ * @param preset 原始消息预设
+ * @returns 已补齐的消息预设
+ */
+function ensurePromptLlmPresetMessages(preset: PromptLlmMessagePreset): PromptLlmMessagePreset {
+  return {
+    ...preset,
+    messages: ensureDefaultSpecialRequestMessage(preset.id, ensureReservedMessagesOrder(preset.messages)),
+  };
+}
+
+/**
+ * 为默认内置预设补齐本次特别要求消息
+ * 仅在缺失时追加，避免覆盖用户对默认预设的自定义内容
+ * @param presetId 预设 ID
+ * @param messages 当前消息列表
+ * @returns 补齐后的消息列表
+ */
+function ensureDefaultSpecialRequestMessage(presetId: string, messages: PromptLlmMessage[]): PromptLlmMessage[] {
+  if (presetId !== DEFAULT_PROMPT_LLM_PRESET_ID) return messages;
+  if (messages.some(message => message.id === DEFAULT_PROMPT_LLM_SPECIAL_REQUEST_MESSAGE_ID)) return messages;
+  return [...messages, createSpecialRequestMessage()];
 }
 
 /**
@@ -235,6 +265,20 @@ function createReservedMessage(config: PromptLlmReservedMessageConfig): PromptLl
     title: config.title,
     role: config.role,
     content: '',
+    enabled: DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
+  };
+}
+
+/**
+ * 创建默认预设中的本次特别要求消息
+ * @returns 特别要求消息条目
+ */
+function createSpecialRequestMessage(): PromptLlmMessage {
+  return {
+    id: DEFAULT_PROMPT_LLM_SPECIAL_REQUEST_MESSAGE_ID,
+    title: '本次临时追加要求',
+    role: 'user',
+    content: ['', '<special_request>',`    ${PROMPT_LLM_SPECIAL_REQUEST_TOKEN}`, '</special_request>', ''].join('\n'),
     enabled: DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
   };
 }

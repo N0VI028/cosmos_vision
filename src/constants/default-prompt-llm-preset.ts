@@ -1,18 +1,20 @@
 import type { PromptLlmMessagePresetSettings } from '@/constants/novelai';
-import { PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN } from '@/constants/prompt-llm-tokens';
+import { PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN, PROMPT_LLM_SPECIAL_REQUEST_TOKEN } from '@/constants/prompt-llm-tokens';
 
+export const DEFAULT_PROMPT_LLM_PRESET_ID = 'prompt-llm-default-preset';
 export const DEFAULT_PROMPT_LLM_SYSTEM_MESSAGE_ID = '3b6d15c7-1f38-4d50-a9c1-7f0b9b6f4e12';
 export const DEFAULT_PROMPT_LLM_PARTICIPANT_MESSAGE_ID = 'prompt-llm-participant-message';
 export const DEFAULT_PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID = '7c4f2d91-0c57-4a61-8b52-6e3f1d9248ab';
 export const DEFAULT_PROMPT_LLM_HISTORY_MESSAGE_ID = 'prompt-llm-history-message';
 export const DEFAULT_PROMPT_LLM_CONTENT_CLOSE_MESSAGE_ID = 'c1a6e2b4-9d75-4fb7-82a0-1e5c8d3f7b96';
 export const DEFAULT_PROMPT_LLM_FOCUS_SCENE_MESSAGE_ID = '5f8b1c2e-6d44-4a93-b071-2c9e5f3a1d84';
+export const DEFAULT_PROMPT_LLM_SPECIAL_REQUEST_MESSAGE_ID = '8c1f0d29-f6ba-4e57-873d-6a9b8ce2f143';
 
 export default {
-  activePresetId: 'prompt-llm-default-preset',
+  activePresetId: DEFAULT_PROMPT_LLM_PRESET_ID,
   presets: [
     {
-      id: 'prompt-llm-default-preset',
+      id: DEFAULT_PROMPT_LLM_PRESET_ID,
       name: '默认预设',
       messages: [
         {
@@ -69,7 +71,9 @@ export default {
             '人物相关补充信息会以一个或多个 `<person>...</person>` 标签块提供，每个 `person` 标签表示一个人物提示词块',
             '其中 `<chat_history></chat_history>` 表示当前焦点段落所属整条 mes 的整层楼历史，只作为上下文参考',
             '其中 `<main_scene></main_scene>` 表示本次最需要转写成画面的高光场景，优先级最高，并且会紧跟在 `</chat_history>` 后面出现',
+            '其中 `<special_request></special_request>` 表示用户只针对当前这一张图的临时追加要求',
             '你必须优先抓住高光场景，再结合整层历史补足人物、场景与氛围信息',
+            '你必须在不偏离主场景的前提下，优先把 `<special_request>` 中能影响画面的要求落实到最终 tag 中',
             '1. 精准阅读段落内容，提取其中的**视觉要素**（角色外观、表情、动作、服装、场景、光影、构图、氛围等）',
             '2. 将这些要素转化为符合 NAI 4.5 语法规范的绘画提示词',
             '3. 以 **JSON 格式** 返回结果',
@@ -291,6 +295,20 @@ export default {
           title: '焦点场景',
           role: 'user',
           content: ['', '<main_scene>', `    ${PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN}`, '</main_scene>', ''].join('\n'),
+          enabled: true,
+        },
+        {
+          id: DEFAULT_PROMPT_LLM_SPECIAL_REQUEST_MESSAGE_ID,
+          title: '临时追加要求',
+          role: 'user',
+          content: [
+            '',
+            '<special_request>',
+            '    以下要求你必须优先把它体现在最终输出的 tag 中：',
+            PROMPT_LLM_SPECIAL_REQUEST_TOKEN,
+            '</special_request>',
+            '',
+          ].join('\n'),
           enabled: true,
         },
       ],

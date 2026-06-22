@@ -80,6 +80,7 @@ export function buildPromptLlmContextFromParagraph(targetP: HTMLElement): Prompt
   return {
     historyParagraphs: extractMessageParagraphs(targetP),
     focusParagraph,
+    specialRequest: '',
   };
 }
 
