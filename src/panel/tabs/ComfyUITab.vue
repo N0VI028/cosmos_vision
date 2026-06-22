@@ -149,16 +149,6 @@
         <InputNumber v-model="settings.comfyui.seed" :min="0" :max="maxSeed" :use-grouping="false" show-buttons />
       </label>
 
-      <h2 class="cv-section-title">生图提示词</h2>
-      <ImagePromptPresetPanel
-        :preset-settings="settings.imagePromptPresets"
-        :positive-preset-id="settings.comfyui.positivePromptPresetId"
-        :negative-preset-id="settings.comfyui.negativePromptPresetId"
-        @update:preset-settings="settings.imagePromptPresets = $event"
-        @update:positive-preset-id="settings.comfyui.positivePromptPresetId = $event"
-        @update:negative-preset-id="settings.comfyui.negativePromptPresetId = $event"
-      />
-
       <div class="cv-lora-title-row">
         <h2 class="cv-section-title">LoRA 库</h2>
         <i
@@ -221,6 +211,16 @@
           添加 LoRA
         </button>
       </div>
+
+      <h2 class="cv-section-title">生图提示词</h2>
+      <ImagePromptPresetPanel
+        :preset-settings="settings.imagePromptPresets"
+        :positive-preset-id="settings.comfyui.positivePromptPresetId"
+        :negative-preset-id="settings.comfyui.negativePromptPresetId"
+        @update:preset-settings="settings.imagePromptPresets = $event"
+        @update:positive-preset-id="settings.comfyui.positivePromptPresetId = $event"
+        @update:negative-preset-id="settings.comfyui.negativePromptPresetId = $event"
+      />
     </template>
 
     <!-- 测试 Tab -->
@@ -493,6 +493,15 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
 
 .cv-workflow-actions :deep(.p-button) {
   flex: 1;
+}
+
+@media (max-width: 48rem) {
+  .cv-field-inline.cv-workflow-actions {
+    flex-direction: column;
+  }
+  .cv-workflow-actions :deep(.p-button) {
+    width: 100%;
+  }
 }
 
 .cv-model-row {

@@ -18,7 +18,7 @@ interface InlineGenerationSessionController {
   cleanup: () => void;
   clear: (session: InlineGenerationSession) => void;
   ensureActive: (session: InlineGenerationSession) => void;
-  handleFailure: (error: unknown, session: InlineGenerationSession) => void;
+  handleFailure: (error: unknown, session: InlineGenerationSession, onRetry?: () => void) => void;
 }
 
 interface InlineGenerationSessionOptions {
@@ -143,15 +143,16 @@ function ensureActive(session: InlineGenerationSession): void {
  * 处理生成失败或取消状态
  * @param error 异常对象
  * @param session 生成会话
+ * @param onRetry 重试回调（可选）
  */
-function handleFailure(error: unknown, session: InlineGenerationSession): void {
+function handleFailure(error: unknown, session: InlineGenerationSession, onRetry?: () => void): void {
   if (session.controller.signal.aborted) {
     session.status.remove();
     return;
   }
   const message = error instanceof Error ? error.message : '图片生成失败';
-  session.status.setStatus(`生成失败: ${message}`, 'error');
-  scheduleStatusRemoval(session.status, ERROR_REMOVE_DELAY_MS);
+  session.status.setStatus(`生成失败: ${message}`, 'error', onRetry);
+  if (!onRetry) scheduleStatusRemoval(session.status, ERROR_REMOVE_DELAY_MS);
   console.error('[InlineImageGeneration]', error);
 }
 

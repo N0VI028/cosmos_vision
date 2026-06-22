@@ -402,6 +402,20 @@ body.dark .cv-inline-toolbar {
   overflow-wrap: anywhere;
 }
 
+/* error 态含重试按钮时的横向排列 */
+.cv-inline-generation-error-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cv-inline-generation-error-row .cv-inline-generation-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 /* ---------------- Lightbox 大图及提示词预览 ---------------- */
 .cv-lightbox-overlay {
   position: fixed;

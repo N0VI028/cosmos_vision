@@ -41,7 +41,10 @@ interface InlineActionButtonSpec {
   onClick: () => void;
 }
 
-type InlineGenerationTask = (session: InlineGenerationSession) => Promise<InlineGenerationResult>;
+type InlineGenerationTask = (
+  session: InlineGenerationSession,
+  onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
+) => Promise<InlineGenerationResult>;
 
 /**
  * 段落生图运行时控制器
@@ -375,7 +378,7 @@ export function useInlineImageGeneration(
       rows: 4,
     });
     if (specialRequest === null) return;
-    await runImageGeneration(paragraph, true, session => generateImageResultFromContext(paragraph, specialRequest, session));
+    await runImageGeneration(paragraph, true, (session, onSnapshotResolved) => generateImageResultFromContext(paragraph, specialRequest, session, onSnapshotResolved));
   }
 
   /**
@@ -409,11 +412,19 @@ export function useInlineImageGeneration(
       return;
     }
 
+    // 记录 LLM 成功后的提示词快照；生图失败时用于构建"仅重试生图"回调
+    let resolvedSnapshot: InlinePromptSnapshot | undefined;
+    const onSnapshotResolved = (snapshot: InlinePromptSnapshot) => { resolvedSnapshot = snapshot; };
+
     const session = startGenerationSession(paragraph, requiresPromptLlm);
     try {
-      await applyGenerationResult(paragraph, await task(session), session);
+      await applyGenerationResult(paragraph, await task(session, onSnapshotResolved), session);
     } catch (error) {
-      generationSession.handleFailure(error, session);
+      // resolvedSnapshot 有值 → LLM 通过但生图失败 → 重试只需复用快照
+      const retryTask = resolvedSnapshot
+        ? () => void runImageGeneration(paragraph, false, s => generateImageResultFromSnapshot(resolvedSnapshot!, s))
+        : () => void runImageGeneration(paragraph, requiresPromptLlm, task);
+      generationSession.handleFailure(error, session, retryTask);
     } finally {
       generationSession.clear(session);
       isGenerating.value = false;
@@ -480,17 +491,20 @@ export function useInlineImageGeneration(
    * 根据段落上下文重新生成提示词并生图
    * @param paragraph 目标聊天段落
    * @param specialRequest 本次临时追加要求
+   * @param session 生成会话
+   * @param onSnapshotResolved LLM 成功后回调，传出提示词快照
    * @returns 图片与提示词快照
    */
   async function generateImageResultFromContext(
     paragraph: HTMLElement,
     specialRequest: string,
     session: InlineGenerationSession,
+    onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
   ): Promise<InlineGenerationResult> {
     const context = { ...buildPromptLlmContextFromParagraph(paragraph), specialRequest };
     return settings.imageSource === 'comfyui'
-      ? generateComfyUIImageResult(context, session)
-      : generateNovelAIImageResult(context, session);
+      ? generateComfyUIImageResult(context, session, onSnapshotResolved)
+      : generateNovelAIImageResult(context, session, onSnapshotResolved);
   }
 
   /**
@@ -532,11 +546,14 @@ export function useInlineImageGeneration(
   /**
    * 使用 NovelAI 生成图片
    * @param context Prompt LLM 运行时上下文
+   * @param session 生成会话
+   * @param onSnapshotResolved LLM 成功后回调，传出提示词快照
    * @returns NovelAI 返回的图片与提示词快照
    */
   async function generateNovelAIImageResult(
     context: PromptLlmContext,
     session: InlineGenerationSession,
+    onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
   ): Promise<InlineGenerationResult> {
     session.status.setStatus('正在生成提示词...');
     const schemaFields = buildPromptLlmSchemaFields(settings.promptLlm);
@@ -558,6 +575,9 @@ export function useInlineImageGeneration(
       overrides,
     );
 
+    // LLM 阶段成功，通知调用方提示词快照（用于生图失败时的重试）
+    onSnapshotResolved?.(request.prompts);
+
     session.status.setStatus('正在生成图片...');
     return {
       promptSnapshot: request.prompts,
@@ -568,11 +588,14 @@ export function useInlineImageGeneration(
   /**
    * 使用 ComfyUI 生成图片
    * @param context Prompt LLM 运行时上下文
+   * @param session 生成会话
+   * @param onSnapshotResolved LLM 成功后回调，传出提示词快照
    * @returns ComfyUI 返回的图片与提示词快照
    */
   async function generateComfyUIImageResult(
     context: PromptLlmContext,
     session: InlineGenerationSession,
+    onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
   ): Promise<InlineGenerationResult> {
     session.status.setStatus('正在生成提示词...');
     const schemaFields = buildPromptLlmSchemaFields(settings.promptLlm);
@@ -586,8 +609,12 @@ export function useInlineImageGeneration(
     );
     generationSession.ensureActive(session);
 
-    session.status.setStatus('正在生成图片...');
     const request = buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, prompts);
+
+    // LLM 阶段成功，通知调用方提示词快照（用于生图失败时的重试）
+    onSnapshotResolved?.(request.snapshot);
+
+    session.status.setStatus('正在生成图片...');
     return {
       promptSnapshot: request.snapshot,
       imageBlob: await generateComfyUIImageFromResolvedRequest(settings.comfyui, request, {

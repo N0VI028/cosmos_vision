@@ -9,7 +9,7 @@ export type InlineGenerationStatusMode = 'running' | 'error';
 /** 段落内生成状态句柄 */
 export interface InlineGenerationStatusHandle {
   host: HTMLElement;
-  setStatus: (text: string, mode?: InlineGenerationStatusMode) => void;
+  setStatus: (text: string, mode?: InlineGenerationStatusMode, onRetry?: () => void) => void;
   remove: () => void;
 }
 
@@ -23,6 +23,7 @@ interface InlineGenerationStatusOptions {
 interface InlineGenerationStatusState {
   text: string;
   mode: InlineGenerationStatusMode;
+  onRetry?: () => void;
 }
 
 /** Message severity 映射:running 用基础中性底, error 用错误色 */
@@ -56,8 +57,8 @@ export function createInlineGenerationStatus(options: InlineGenerationStatusOpti
     host.remove();
   }
 
-  function setStatus(text: string, mode: InlineGenerationStatusMode = 'running'): void {
-    state = { text, mode };
+  function setStatus(text: string, mode: InlineGenerationStatusMode = 'running', onRetry?: () => void): void {
+    state = { text, mode, onRetry };
     renderStatus(host, state, options, remove);
   }
 
@@ -106,6 +107,23 @@ function renderStatus(
   // running 态用旋转 spinner 替换默认图标; error 态沿用 Message 默认警告图标
   if (isRunning) {
     slots.icon = () => h(ProgressSpinner, { class: 'cv-inline-generation-spinner', strokeWidth: '4' });
+  }
+  // error 态且有重试回调: 在文本后插入重试按钮
+  if (!isRunning && state.onRetry) {
+    const retryFn = state.onRetry;
+    slots.default = () =>
+      h('span', { class: 'cv-inline-generation-error-row' }, [
+        h('span', { class: 'cv-inline-generation-text' }, state.text),
+        h(
+          'button',
+          {
+            class: 'p-message-close-button cv-inline-generation-close-text',
+            type: 'button',
+            onClick: () => { remove(); retryFn(); },
+          },
+          '重试',
+        ),
+      ]);
   }
   const vnode = h(
     Message,
