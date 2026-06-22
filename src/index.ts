@@ -1,5 +1,6 @@
 import '@/global.css';
 import '@/styles/inline-image.css';
+import '@/styles/inline-lightbox.css';
 import App from '@/App.vue';
 import { DARK_CLASS } from '@/constants/theme';
 import { cosmosPrimePt } from '@/services/primevue/primevue-pt';
