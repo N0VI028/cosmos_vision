@@ -59,56 +59,157 @@
   font-size: 1.35em;
 }
 
-/* 被选中的段落:作为浮窗按钮的定位锚点 + 半透明蒙版高亮 */
+/* 被选中的段落: 覆盖整个段落的清透毛玻璃 (高度自适应) */
 .cv-inline-selected {
   position: relative;
   border-radius: var(--cv-radius-sm);
-  transition: background 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: none !important;
+  
+  /* 允许子元素毛玻璃外溢，不剪切 */
+  overflow: visible !important;
+  
+  /* 保证宽度占满一整行，移除硬性 min-height 从而完全自适应段落的真实流动高度，避免选中抖动 */
+  display: block !important;
+  width: 100% !important;
+}
+
+/* 完美解决父级容器对溢出毛玻璃的裁剪问题 */
+[mesid]:has(.cv-inline-selected),
+.mes_text:has(.cv-inline-selected) {
+  overflow: visible !important;
 }
 
 .cv-inline-selected::before {
   content: '';
   position: absolute;
-  inset: 0;
+  /* 垂直外扩适当微调以防超出已收缩高度的胶囊 */
+  inset: -0.3em 0 !important;
   z-index: 1;
   pointer-events: none;
-  border: none;
+  
+  /* 彻底去除所有多余边线，保持清透面板纯粹感 */
+  border: none !important;
   border-radius: inherit;
-  background: rgba(0, 0, 0, 0.4);
+  
+  /* 去除灰黑色背景，改用清澈的极淡白底折射透光（支持深浅色模式），毫无发灰发暗的补丁感 */
+  background: rgba(255, 255, 255, 0.08) !important;
+  
+  /* 强力毛玻璃覆盖整个被选中的段落，将底下原文字虚化为质感底纹 */
+  -webkit-backdrop-filter: blur(3px) saturate(150%) !important;
+  backdrop-filter: blur(3px) saturate(150%) !important;
+  
+  /* 彻底去除任何立体阴影 */
+  box-shadow: none !important;
+  transition: all 0.25s ease;
 }
 
-/* 段落工具栏:使用 PrimeVue 按钮，样式只负责右侧定位 */
+/* 段落工具栏: 居中定位的透明包装器 */
 .cv-inline-toolbar {
   position: absolute;
   top: 50%;
-  right: 1em;
+  left: 50%;
   z-index: 3;
-  transform: translateY(-50%);
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  
+  /* 移除原有的卡片背景与重叠毛玻璃，直接使用外层段落的清透毛玻璃 */
+  background: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 强制右侧生图按钮为合适大小，且防止被 flex 挤压变形 */
-.cv-inline-toolbar .cv-inline-action-button {
-  flex-shrink: 0 !important;
-  height: 2.4em !important;
-  padding: 0 0.8em !important;
+/* 深色模式下的底座微调 */
+.dark-mode .cv-inline-toolbar,
+body.dark .cv-inline-toolbar {
+  background: rgba(18, 18, 24, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 
+    0 16px 40px rgba(0, 0, 0, 0.4),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+}
+
+/* 上方白色圆角胶囊区域 */
+.cv-inline-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em; /* 适当拉近间距使整体更精致 */
+  
+  /* 白色胶囊盒 */
+  background: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
+  border-radius: 9999px !important;
+  /* 极致缩减上下 Padding，保证高度完美缩进在 calc(var(--mainFontSize) + .5rem) 空间内 */
+  padding: 0.15em 0.15em 0.15em 1em !important;
+  
+  box-shadow: 
+    0 3px 8px rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  user-select: none;
+}
+
+.cv-inline-trigger:hover {
+  background: #fcfcfd !important;
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 
+    0 6px 16px rgba(0, 0, 0, 0.12),
+    0 2px 4px rgba(0, 0, 0, 0.06) !important;
+}
+
+.cv-inline-trigger:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* 内部左侧黑色文字 */
+.cv-inline-trigger-text {
+  font-size: var(--mainFontSize, var(--mainFontsSize, var(--mainfontsize, 1rem))) !important;
+  color: #121217 !important;
+  letter-spacing: 0.02em !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+/* 右侧主题色圆形盒 */
+.cv-inline-trigger-icon-wrap {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 0.4em !important;
+  
+  /* 缩减圆圈大小为 1.25em，确保单行下极其精致，不强行撑大 */
+  width: 1.25em !important;
+  height: 1.25em !important;
+  border-radius: 50% !important;
+  
+  /* 默认使用系统高亮主题色，圆圈去除阴影，避免看起来像空洞 */
   background-color: var(--SmartThemeQuoteColor, #3b82f6) !important;
-  border: 1px solid var(--SmartThemeQuoteColor, #3b82f6) !important;
-  color: #ffffff !important;
   box-shadow: none !important;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.2s ease !important;
+  
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-.cv-inline-toolbar .cv-inline-action-button:not([data-p-disabled='true']):hover {
-  background-color: color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 85%, black) !important;
-  border-color: color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 85%, black) !important;
-  transform: scale(1.02);
+/* 内部 icon，缩小为 --mainfontsize 的 0.75 倍，在圆形包裹层中更显精致，强制为白色防止覆盖 */
+.cv-inline-trigger-icon {
+  font-size: calc(var(--mainFontSize, var(--mainFontsSize, var(--mainfontsize, 1rem))) * 0.6) !important;
+  line-height: 1 !important;
+  font-style: normal !important;
+  color: #ffffff !important;
+}
+
+/* 悬停时 icon 圆形微转动 */
+.cv-inline-trigger:hover .cv-inline-trigger-icon-wrap {
+  transform: rotate(15deg) scale(1.05);
 }
 
 .cv-inline-button-row {

@@ -222,22 +222,44 @@ export function useInlineImageGeneration(
 
   /**
    * 创建选中段落的操作条
-   * @returns PrimeVue 按钮容器
+   * @returns 带有圆角白色胶囊的操作条元素
    */
   function createSelectionToolbar(): HTMLElement {
-    return createActionHost('cv-inline-toolbar', [
-      {
-        label: '生成图片',
-        icon: 'fa-solid fa-paint-brush',
-        onClick: () => {
-          const paragraph = selectedParagraph.value;
-          if (paragraph) {
-            exitSelectionMode();
-            void handleGenerateWithFreshPrompt(paragraph);
-          }
-        },
-      },
-    ]);
+    const host = document.createElement('div');
+    host.className = 'cv-inline-toolbar';
+
+    // 阻止交互事件冒泡，防止触发底层的输入框聚焦或再次触发段落选中
+    const stopEvents = ['pointerdown', 'mousedown', 'touchstart', 'pointerup', 'mouseup', 'touchend', 'click'];
+    stopEvents.forEach(evt => host.addEventListener(evt, e => e.stopPropagation()));
+
+    const trigger = document.createElement('div');
+    trigger.className = 'cv-inline-trigger';
+
+    const text = document.createElement('span');
+    text.className = 'cv-inline-trigger-text';
+    text.textContent = '生成图片';
+
+    // 创建右侧圆形主题色包围盒
+    const iconWrap = document.createElement('span');
+    iconWrap.className = 'cv-inline-trigger-icon-wrap';
+
+    const icon = document.createElement('i');
+    icon.className = 'fa-solid fa-paint-brush cv-inline-trigger-icon';
+    iconWrap.appendChild(icon);
+
+    // 左边为黑色文字，右边为圆形 icon
+    trigger.append(text, iconWrap);
+
+    trigger.addEventListener('click', () => {
+      const paragraph = selectedParagraph.value;
+      if (paragraph) {
+        exitSelectionMode();
+        void handleGenerateWithFreshPrompt(paragraph);
+      }
+    });
+
+    host.appendChild(trigger);
+    return host;
   }
 
   /**
