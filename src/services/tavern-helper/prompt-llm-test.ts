@@ -1,7 +1,8 @@
 import { type PromptLlmSettings } from '@/constants/novelai';
 import { findProxyPreset } from '@/services/sillytavern/openai-config';
 import { getTavernHelper } from '@/services/tavern-helper/availability';
-import { formatPromptLlmRawResult, type TavernHelperGenerateRawConfig } from '@/services/tavern-helper/prompt-llm';
+import { buildGenerateRawRequestPreview, requestTavernHelperGenerateRaw } from '@/services/tavern-helper/generate-raw';
+import { type TavernHelperGenerateRawConfig } from '@/services/tavern-helper/prompt-llm';
 
 export interface PromptLlmLogParams {
   connectionType: string;
@@ -26,7 +27,7 @@ export async function requestPromptLlmRaw(request: TavernHelperGenerateRawConfig
     throw new Error('TavernHelper 不可用，请确保酒馆环境正常加载');
   }
 
-  return formatPromptLlmRawResult(await tavernHelper.generateRaw({ ...request, should_silence: true }));
+  return requestTavernHelperGenerateRaw(tavernHelper, { ...request, should_silence: true });
 }
 
 /**
@@ -67,12 +68,13 @@ export function formatPromptLlmRequestLog(request: TavernHelperGenerateRawConfig
  * @returns 可展示的请求体
  */
 function buildRequestLogSnapshot(request: TavernHelperGenerateRawConfig): TavernHelperGenerateRawConfig {
+  const previewRequest = buildGenerateRawRequestPreview(request);
   return {
-    ...request,
-    custom_api: request.custom_api
+    ...previewRequest,
+    custom_api: previewRequest.custom_api
       ? {
-          ...request.custom_api,
-          key: request.custom_api.key ? maskApiKey(request.custom_api.key) : undefined,
+          ...previewRequest.custom_api,
+          key: previewRequest.custom_api.key ? maskApiKey(previewRequest.custom_api.key) : undefined,
         }
       : undefined,
   };

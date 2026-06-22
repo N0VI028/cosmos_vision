@@ -483,7 +483,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 
 .cosmos-vision-root
   .cv-section-title
-  ~ :is(.cv-field, .cv-field-inline, .cv-field-grid, .cv-section-desc, .cv-account-list) {
+  ~ :is(.cv-field, .cv-field-inline, .cv-field-grid, .cv-section-desc, .cv-account-list, .cv-nai-advanced-block) {
   background: var(--cv-surface-container-low);
   padding: var(--cv-space-5xl);
   margin-bottom: 0;

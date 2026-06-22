@@ -7,6 +7,12 @@ const iconButton = { class: 'cv-prime-icon-button' } as const;
 const option = { class: 'cv-select-option' } as const;
 const overlay = { class: 'cosmos-vision-root' } as const;
 const fieldOverlay = { class: 'cosmos-vision-root cv-prime-field-overlay' } as const;
+const checkbox = {
+  root: { class: 'cv-prime-checkbox' },
+  input: { class: 'cv-prime-checkbox-input' },
+  box: { class: 'cv-prime-checkbox-box' },
+  icon: { class: 'cv-prime-checkbox-icon' },
+} as const;
 const selectButtonRoot = {
   class: 'cv-prime-selectbutton',
   style: { display: 'flex', gap: 'var(--cv-space-lg)', width: '100%', boxShadow: 'none' },
@@ -95,20 +101,11 @@ export const cosmosPrimePt = {
       label: { class: 'cv-prime-chip-label' },
       removeIcon: { class: 'cv-prime-chip-remove-icon' },
     },
-    pcHeaderCheckbox: {
-      root: { class: 'cv-prime-checkbox' },
-      input: { class: 'cv-prime-checkbox-input' },
-      box: { class: 'cv-prime-checkbox-box' },
-      icon: { class: 'cv-prime-checkbox-icon' },
-    },
-    pcOptionCheckbox: {
-      root: { class: 'cv-prime-checkbox' },
-      input: { class: 'cv-prime-checkbox-input' },
-      box: { class: 'cv-prime-checkbox-box' },
-      icon: { class: 'cv-prime-checkbox-icon' },
-    },
+    pcHeaderCheckbox: checkbox,
+    pcOptionCheckbox: checkbox,
   },
   autocomplete: { overlay: fieldOverlay },
+  checkbox,
   datepicker: { panel: overlay },
   popover: { root: overlay },
   confirmpopup: { root: overlay },

@@ -4,6 +4,7 @@ import {
   createInlineGenerationSessionController,
   type InlineGenerationSession,
 } from '@/composables/inlineGenerationSession';
+import { createInlineImageCleanupObserver } from '@/composables/inlineImageCleanupObserver';
 import { handleInlineImageClick, type InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { generateComfyUIImageFromPrompts, generateComfyUIImageFromResolvedRequest } from '@/services/comfyui/api';
 import { buildComfyUIResolvedRequest, getComfyUIRequestError } from '@/services/comfyui/workflow';
@@ -83,6 +84,12 @@ export function useInlineImageGeneration(
 
   /** Object URL 清理表 */
   const objectUrls = new Set<string>();
+
+  /** 聊天 DOM 变化清理器 */
+  const imageCleanupObserver = createInlineImageCleanupObserver({
+    getEntries: () => imageContainers.entries(),
+    removeImageCard,
+  });
 
   /** 记录 pointerdown 的位置,用于区分点击和拖拽 */
   let pointerDownX = 0;
@@ -174,7 +181,7 @@ export function useInlineImageGeneration(
    * @returns 是否跳过
    */
   function isIgnoredInlineTarget(target: HTMLElement): boolean {
-    return Boolean(target.closest('.cv-inline-toolbar, .cv-inline-img-wrap, .cv-inline-mode-fab, a, button, input, textarea, [role="button"]'));
+    return Boolean(target.closest('.cv-inline-toolbar, .cv-inline-img-wrap, .cv-speed-dial-container, a, button, input, textarea, [role="button"]'));
   }
 
   /**
@@ -459,11 +466,11 @@ export function useInlineImageGeneration(
     session: InlineGenerationSession,
   ): void {
     generationSession.ensureActive(session);
-    promptSnapshots.set(paragraph, result.promptSnapshot);
     const objectUrl = URL.createObjectURL(result.imageBlob);
     objectUrls.add(objectUrl);
     session.status.remove();
     insertImageCard(paragraph, objectUrl);
+    promptSnapshots.set(paragraph, result.promptSnapshot);
   }
 
   /**
@@ -654,6 +661,7 @@ export function useInlineImageGeneration(
     p.after(wrap);
     imageContainers.set(p, wrap);
     imageObjectUrls.set(p, objectUrl);
+    imageCleanupObserver.notifyImageAdded();
   }
 
   /**
@@ -668,6 +676,7 @@ export function useInlineImageGeneration(
     container?.remove();
     imageContainers.delete(p);
     imageObjectUrls.delete(p);
+    promptSnapshots.delete(p);
     releaseObjectUrl(objectUrl);
   }
 
@@ -693,6 +702,7 @@ export function useInlineImageGeneration(
    * 清理所有临时图片与 Object URL
    */
   function cleanup(): void {
+    imageCleanupObserver.disconnect();
     exitSelectionMode();
     generationSession.cleanup();
     isGenerating.value = false;

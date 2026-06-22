@@ -13,11 +13,11 @@ import {
 } from '@/services/prompt-llm/message-preset';
 import { buildPromptLlmRuntimeContent } from '@/services/prompt-profiles/runtime';
 import { getTavernHelper } from '@/services/tavern-helper/availability';
+import { requestTavernHelperGenerateRaw } from '@/services/tavern-helper/generate-raw';
 import {
   buildCustomApi,
   buildGenerateRawMessagesRequest,
   buildJsonSchema,
-  formatPromptLlmRawResult,
   readPromptLlmOutputWithRules,
   type PromptLlmOutput,
   type TavernHelperGenerateRawConfig,
@@ -116,7 +116,7 @@ export async function generatePromptTextFromRuntimeContext(
     schemaFields,
   );
   try {
-    return formatPromptLlmRawResult(await tavernHelper.generateRaw(buildSilentGenerateRawRequest(request, options)));
+    return requestTavernHelperGenerateRaw(tavernHelper, buildSilentGenerateRawRequest(request, options));
   } catch (error) {
     throw new Error(`提示词生成失败: ${(error as Error).message}`);
   }

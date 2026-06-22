@@ -30,6 +30,7 @@ import {
   NOVELAI_ROUTING_MODES,
   NOVELAI_SAMPLERS,
   NOVELAI_UC_PRESETS,
+  NOVELAI_V3_NOISE_SCHEDULES,
   type CosmosVisionSettings,
   type NovelAIAccount,
   type NovelAISettings,
@@ -61,6 +62,7 @@ function optionValues<T extends readonly [{ value: string }, ...{ value: string 
 
 const novelAIModelSchema = z.enum(optionValues(NOVELAI_MODELS));
 const novelAISamplerSchema = z.enum(optionValues(NOVELAI_SAMPLERS));
+const novelAINoiseScheduleSchema = z.enum(optionValues(NOVELAI_V3_NOISE_SCHEDULES));
 const novelAIUcPresetSchema = z.enum(optionValues(NOVELAI_UC_PRESETS));
 const novelAIRoutingModeSchema = z.enum(optionValues(NOVELAI_ROUTING_MODES));
 const imageSourceSchema = z.enum(optionValues(IMAGE_SOURCES));
@@ -111,8 +113,16 @@ const novelAISettingsSchema = z.object({
   width: novelAIImageSizeSchema,
   height: novelAIImageSizeSchema,
   steps: z.number(),
-  cfgScale: z.number(),
+  guidance: z.number(),
   sampler: novelAISamplerSchema,
+  autoSampler: z.boolean(),
+  varietyPlus: z.boolean(),
+  smea: z.boolean(),
+  smeaDyn: z.boolean(),
+  decrisp: z.boolean(),
+  legacyPromptMode: z.boolean(),
+  promptGuidanceRescale: z.number(),
+  noiseSchedule: novelAINoiseScheduleSchema,
   positivePromptPresetId: imagePromptPresetIdSchema,
   negativePromptPresetId: imagePromptPresetIdSchema,
   addQualityTags: z.boolean(),
@@ -246,7 +256,9 @@ function parseSettings(value: unknown): CosmosVisionSettings {
  * @returns 带默认字段的普通对象
  */
 function normalizeSettings(value: unknown): PlainRecord {
-  return _.defaultsDeep({}, toPlainRecord(value), DEFAULT_SETTINGS);
+  const record = _.cloneDeep(toPlainRecord(value)) as PlainRecord;
+  normalizeLegacyNovelAIGuidance(record);
+  return _.defaultsDeep({}, record, DEFAULT_SETTINGS);
 }
 
 /**
@@ -256,6 +268,18 @@ function normalizeSettings(value: unknown): PlainRecord {
  */
 function toPlainRecord(value: unknown): PlainRecord {
   return _.isPlainObject(value) ? (value as PlainRecord) : {};
+}
+
+/**
+ * 兼容旧版 NovelAI 提示词引导字段
+ * 旧字段名 cfgScale 只用于迁移，运行时统一使用 guidance
+ * @param settings 原始设置记录
+ */
+function normalizeLegacyNovelAIGuidance(settings: PlainRecord): void {
+  const novelai = toPlainRecord(settings.novelai);
+  if ('guidance' in novelai || !('cfgScale' in novelai)) return;
+  novelai.guidance = novelai.cfgScale;
+  settings.novelai = novelai;
 }
 
 /**
@@ -350,13 +374,31 @@ function recoverNovelAISettings(value: unknown): NovelAISettings {
     width: read('width', novelAIImageSizeSchema),
     height: read('height', novelAIImageSizeSchema),
     steps: read('steps', z.number()),
-    cfgScale: read('cfgScale', z.number()),
+    guidance: readNovelAIGuidance(record, fallback.guidance),
     sampler: read('sampler', novelAISamplerSchema),
+    autoSampler: read('autoSampler', z.boolean()),
+    varietyPlus: read('varietyPlus', z.boolean()),
+    smea: read('smea', z.boolean()),
+    smeaDyn: read('smeaDyn', z.boolean()),
+    decrisp: read('decrisp', z.boolean()),
+    legacyPromptMode: read('legacyPromptMode', z.boolean()),
+    promptGuidanceRescale: read('promptGuidanceRescale', z.number()),
+    noiseSchedule: read('noiseSchedule', novelAINoiseScheduleSchema),
     positivePromptPresetId: read('positivePromptPresetId', imagePromptPresetIdSchema),
     negativePromptPresetId: read('negativePromptPresetId', imagePromptPresetIdSchema),
     addQualityTags: read('addQualityTags', z.boolean()),
     ucPreset: read('ucPreset', novelAIUcPresetSchema),
   };
+}
+
+/**
+ * 读取 NovelAI 提示词引导并兼容旧字段
+ * @param record NovelAI 设置记录
+ * @param fallback 默认提示词引导值
+ * @returns 可安全使用的提示词引导值
+ */
+function readNovelAIGuidance(record: PlainRecord, fallback: number): number {
+  return parseField(z.number(), record.guidance ?? record.cfgScale, fallback);
 }
 
 /**

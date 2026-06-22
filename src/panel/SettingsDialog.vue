@@ -651,9 +651,14 @@ function findSectionEdge(sectionEl: Element): { first: Element | null; last: Ele
  * 判断元素是否为 section 内容
  */
 function isSectionContent(el: Element): boolean {
-  return ['cv-field', 'cv-field-inline', 'cv-field-grid', 'cv-section-desc', 'cv-account-list'].some(className =>
-    el.classList.contains(className),
-  );
+  return [
+    'cv-field',
+    'cv-field-inline',
+    'cv-field-grid',
+    'cv-section-desc',
+    'cv-account-list',
+    'cv-nai-advanced-block',
+  ].some(className => el.classList.contains(className));
 }
 
 /**

@@ -2,10 +2,17 @@ import type { ImagePromptPresetSettings } from '@/constants/image-prompt';
 import type {
   NovelAIAccount,
   NovelAIModel,
+  NovelAINoiseSchedule,
   NovelAISampler,
   NovelAISettings,
   NovelAIUcPreset,
   PromptLlmSettings,
+} from '@/constants/novelai';
+import {
+  isNovelAIV3Model,
+  isNovelAIV4Model,
+  isNovelAIV45Model,
+  isNovelAIV4OnlyModel,
 } from '@/constants/novelai';
 import {
   buildNegativePrompt,
@@ -16,6 +23,10 @@ import {
 import { readPreferredPromptLlmOutput, type PromptLlmExtractSettings } from '@/services/tavern-helper/prompt-llm';
 import { extractFirstImage } from '@/services/novelai/zip';
 import { getNovelAIRequestAccounts } from '@/services/novelai/router';
+
+const REFERENCE_PIXEL_COUNT = 1011712;
+const SIGMA_MAGIC_NUMBER_V3_V4 = 19;
+const SIGMA_MAGIC_NUMBER_V4_5 = 58;
 
 interface NovelAIPayload {
   action: 'generate';
@@ -46,7 +57,15 @@ export interface NovelAIRequestSnapshot {
   height: number;
   sampler: NovelAISampler;
   steps: number;
-  cfgScale: number;
+  guidance: number;
+  autoSampler: boolean;
+  varietyPlus: boolean;
+  smea: boolean;
+  smeaDyn: boolean;
+  decrisp: boolean;
+  legacyPromptMode: boolean;
+  promptGuidanceRescale: number;
+  noiseSchedule: NovelAINoiseSchedule;
   ucPreset: NovelAIUcPreset;
   addQualityTags: boolean;
 }
@@ -163,9 +182,17 @@ function buildRequestSnapshot(
     model: settings.model,
     width: settings.width,
     height: settings.height,
-    sampler: settings.sampler,
+    sampler: getEffectiveSampler(settings),
     steps: settings.steps,
-    cfgScale: settings.cfgScale,
+    guidance: settings.guidance,
+    autoSampler: settings.autoSampler,
+    varietyPlus: settings.varietyPlus,
+    smea: settings.smea,
+    smeaDyn: settings.smeaDyn,
+    decrisp: settings.decrisp,
+    legacyPromptMode: settings.legacyPromptMode,
+    promptGuidanceRescale: settings.promptGuidanceRescale,
+    noiseSchedule: getEffectiveNoiseSchedule(settings),
     ucPreset: settings.ucPreset,
     addQualityTags: settings.addQualityTags,
   };
@@ -208,11 +235,6 @@ function validatePrompts(prompts: NovelAIFinalPrompts): void {
   }
 }
 
-/** 是否为 V4+ 模型 (V4 / V4.5) */
-function isV4Model(model: NovelAIModel): boolean {
-  return model.startsWith('nai-diffusion-4');
-}
-
 /**
  * 构建 NovelAI 官方请求体
  * @param settings NovelAI 设置页参数
@@ -236,27 +258,38 @@ function buildPayload(settings: NovelAISettings, prompts: NovelAIFinalPrompts): 
  * @returns 官方 parameters
  */
 function buildParameters(settings: NovelAISettings, prompts: NovelAIFinalPrompts): Record<string, unknown> {
-  const v4 = isV4Model(settings.model);
+  const parameters = createBaseParameters(settings, prompts);
+  if (isNovelAIV3Model(settings.model)) applyV3Parameters(parameters, settings);
+  if (isNovelAIV4Model(settings.model)) applyV4Prompts(parameters, prompts);
+  return parameters;
+}
 
-  const parameters: Record<string, unknown> = {
+/**
+ * 构建 NovelAI parameters 基础字段
+ * @param settings NovelAI 设置页参数
+ * @param prompts 最终提示词
+ * @returns 官方 parameters 基础对象
+ */
+function createBaseParameters(settings: NovelAISettings, prompts: NovelAIFinalPrompts): Record<string, unknown> {
+  return {
     params_version: 3,
     width: settings.width,
     height: settings.height,
-    scale: settings.cfgScale,
-    sampler: settings.sampler,
+    scale: settings.guidance,
+    sampler: getEffectiveSampler(settings),
     steps: settings.steps,
     n_samples: 1,
     ucPreset: getUcPresetValue(settings.ucPreset),
     qualityToggle: settings.addQualityTags,
     autoSmea: false,
-    dynamic_thresholding: false,
+    dynamic_thresholding: isNovelAIV3Model(settings.model) && settings.decrisp,
     controlnet_strength: 1,
-    legacy: false,
+    legacy: isNovelAIV4OnlyModel(settings.model) && settings.legacyPromptMode,
     add_original_image: true,
-    cfg_rescale: 0,
-    noise_schedule: 'karras',
+    cfg_rescale: settings.promptGuidanceRescale,
+    noise_schedule: getEffectiveNoiseSchedule(settings),
     legacy_v3_extend: false,
-    skip_cfg_above_sigma: null,
+    skip_cfg_above_sigma: calculateSkipCfgAboveSigma(settings),
     use_coords: false,
     legacy_uc: false,
     normalize_reference_strength_multiple: true,
@@ -264,25 +297,69 @@ function buildParameters(settings: NovelAISettings, prompts: NovelAIFinalPrompts
     seed: Math.floor(Math.random() * 4294967295),
     characterPrompts: [],
     negative_prompt: prompts.negativePrompt,
-    deliberate_euler_ancestral_bug: false,
+    deliberate_euler_ancestral_bug: isNovelAIV4OnlyModel(settings.model) && settings.legacyPromptMode,
     prefer_brownian: true,
   };
+}
 
-  if (v4) {
-    parameters.v4_prompt = {
-      caption: { base_caption: prompts.positivePrompt, char_captions: [] },
-      use_coords: false,
-      use_order: false,
-    };
-    parameters.v4_negative_prompt = {
-      caption: { base_caption: prompts.negativePrompt, char_captions: [] },
-      use_coords: false,
-      use_order: false,
-      legacy_uc: false,
-    };
-  }
+/**
+ * 写入 V3 专属 NovelAI 参数
+ * @param parameters 官方 parameters
+ * @param settings NovelAI 设置页参数
+ */
+function applyV3Parameters(parameters: Record<string, unknown>, settings: NovelAISettings): void {
+  parameters.sm = settings.smea;
+  parameters.sm_dyn = settings.smea && settings.smeaDyn;
+}
 
-  return parameters;
+/**
+ * 写入 V4 提示词结构
+ * @param parameters 官方 parameters
+ * @param prompts 最终提示词
+ */
+function applyV4Prompts(parameters: Record<string, unknown>, prompts: NovelAIFinalPrompts): void {
+  parameters.v4_prompt = {
+    caption: { base_caption: prompts.positivePrompt, char_captions: [] },
+    use_coords: false,
+    use_order: false,
+  };
+  parameters.v4_negative_prompt = {
+    caption: { base_caption: prompts.negativePrompt, char_captions: [] },
+    use_coords: false,
+    use_order: false,
+    legacy_uc: false,
+  };
+}
+
+/**
+ * 读取实际发送的采样器
+ * V3 Auto 模式按 nai-webui 逻辑使用 Euler Ancestral
+ * @param settings NovelAI 设置页参数
+ * @returns 实际发送的 sampler
+ */
+function getEffectiveSampler(settings: NovelAISettings): NovelAISampler {
+  return isNovelAIV3Model(settings.model) && settings.autoSampler ? 'k_euler_ancestral' : settings.sampler;
+}
+
+/**
+ * 读取实际发送的噪声调度
+ * native 仅 V3 支持，其他模型自动回退 karras
+ * @param settings NovelAI 设置页参数
+ * @returns 实际发送的噪声调度
+ */
+function getEffectiveNoiseSchedule(settings: NovelAISettings): NovelAINoiseSchedule {
+  return !isNovelAIV3Model(settings.model) && settings.noiseSchedule === 'native' ? 'karras' : settings.noiseSchedule;
+}
+
+/**
+ * 计算 Variety+ 的 skip_cfg_above_sigma
+ * @param settings NovelAI 设置页参数
+ * @returns NovelAI sigma 阈值或 null
+ */
+function calculateSkipCfgAboveSigma(settings: NovelAISettings): number | null {
+  if (!settings.varietyPlus || (!isNovelAIV3Model(settings.model) && !isNovelAIV45Model(settings.model))) return null;
+  const ratio = Math.sqrt((settings.width * settings.height) / REFERENCE_PIXEL_COUNT);
+  return ratio * (isNovelAIV45Model(settings.model) ? SIGMA_MAGIC_NUMBER_V4_5 : SIGMA_MAGIC_NUMBER_V3_V4);
 }
 
 function buildEndpoint(url: string): string {

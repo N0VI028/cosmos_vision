@@ -28,7 +28,6 @@ interface InlineGenerationSessionOptions {
 
 type InlineGenerationStatusPlacement = 'after' | 'overlay';
 
-const STATUS_REMOVE_DELAY_MS = 1200;
 const ERROR_REMOVE_DELAY_MS = 8000;
 
 /**

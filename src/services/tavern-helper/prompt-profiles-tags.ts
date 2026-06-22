@@ -4,7 +4,8 @@ import type { PromptLlmRuntimeContent } from '@/services/prompt-llm/message-pres
 import { buildPromptLlmRuntimeRequest } from '@/services/prompt-llm/runtime-request';
 import { renderPromptPersonTemplate } from '@/services/prompt-profiles/runtime';
 import { getTavernHelper } from '@/services/tavern-helper/availability';
-import { formatPromptLlmRawResult, parsePromptLlmOutput } from '@/services/tavern-helper/prompt-llm';
+import { requestTavernHelperGenerateRaw } from '@/services/tavern-helper/generate-raw';
+import { parsePromptLlmOutput } from '@/services/tavern-helper/prompt-llm';
 
 /**
  * 从人物模板条目解析固定 tag
@@ -60,7 +61,7 @@ async function requestPromptPersonTags(
   if (!tavernHelper) throw new Error('TavernHelper 不可用，无法解析人物 tag');
   const request = buildPromptLlmRuntimeRequest(settings, presetSettings, buildPromptPersonRuntimeContent(contextText));
   try {
-    return formatPromptLlmRawResult(await tavernHelper.generateRaw({ ...request, should_silence: true }));
+    return requestTavernHelperGenerateRaw(tavernHelper, { ...request, should_silence: true });
   } catch (error) {
     throw new Error(`提示词生成失败: ${(error as Error).message}`);
   }

@@ -11,7 +11,9 @@ const QUALITY_PRESETS: Record<NovelAIModel, string> = {
   'nai-diffusion-4-5-full': 'location, very aesthetic, masterpiece, no text',
   'nai-diffusion-4-5-curated': 'very aesthetic, masterpiece, no text, -0.8::feet::, rating:general',
   'nai-diffusion-4-full': 'no text, best quality, very aesthetic, absurdres',
+  'nai-diffusion-4-curated-preview': 'rating:general, amazing quality, very aesthetic, absurdres',
   'nai-diffusion-3': 'best quality, amazing quality, very aesthetic, absurdres',
+  'nai-diffusion-furry-3': '{best quality}, {amazing quality}',
 };
 
 const UC_PRESETS: Record<NovelAIModel, Partial<Record<NovelAIUcPreset, string>>> = {
@@ -32,10 +34,20 @@ const UC_PRESETS: Record<NovelAIModel, Partial<Record<NovelAIUcPreset, string>>>
       'blurry, lowres, error, film grain, scan artifacts, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, multiple views, logo, too many watermarks',
     Light: 'blurry, lowres, error, worst quality, bad quality, jpeg artifacts, very displeasing',
   },
+  'nai-diffusion-4-curated-preview': {
+    Heavy:
+      'blurry, lowres, error, film grain, scan artifacts, worst quality, bad quality, jpeg artifacts, very displeasing, chromatic aberration, logo, dated, signature, multiple views, gigantic breasts',
+    Light: 'blurry, lowres, error, worst quality, bad quality, jpeg artifacts, very displeasing, logo, dated, signature',
+  },
   'nai-diffusion-3': {
     Heavy:
       'lowres, {bad}, error, fewer, extra, missing, worst quality, jpeg artifacts, bad quality, watermark, unfinished, displeasing, chromatic aberration, signature, extra digits, artistic error, username, scan, [abstract]',
     Light: 'lowres, jpeg artifacts, worst quality, watermark, blurry, very displeasing',
+  },
+  'nai-diffusion-furry-3': {
+    Heavy:
+      '{{worst quality}}, [displeasing], {unusual pupils}, guide lines, {{unfinished}}, {bad}, url, artist name, {{tall image}}, mosaic, {sketch page}, comic panel, impact (font), [dated], {logo}, ych, {what}, {where is your god now}, {distorted text}, repeated text, {floating head}, {1994}, {widescreen}, absolutely everyone, sequence, {compression artifacts}, hard translated, {cropped}, {commissioner name}, unknown text, high contrast',
+    Light: '{worst quality}, guide lines, unfinished, bad, url, tall image, widescreen, compression artifacts, unknown text',
   },
 };
 

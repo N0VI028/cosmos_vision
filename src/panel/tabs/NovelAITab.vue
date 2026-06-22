@@ -73,20 +73,76 @@
           <span>步数</span>
           <InputNumber v-model="settings.novelai.steps" :min="1" :max="50" show-buttons />
         </label>
-        <label class="cv-field">
-          <span>CFG Scale</span>
-          <InputNumber v-model="settings.novelai.cfgScale" :min="1" :max="20" :step="0.5" :min-fraction-digits="1" />
-        </label>
+        <div class="cv-field">
+          <div class="cv-nai-field-title-row">
+            <span>提示词引导</span>
+            <div v-if="supportsVarietyPlus || isV3Model" class="cv-nai-title-actions">
+              <ToggleButton
+                v-if="supportsVarietyPlus"
+                v-model="settings.novelai.varietyPlus"
+                class="cv-nai-mini-toggle"
+                on-label="Var+"
+                off-label="Var+"
+                on-icon="fa-solid fa-check"
+                off-icon="fa-solid fa-xmark"
+                aria-label="切换 Variety+"
+                size="small"
+              />
+              <ToggleButton
+                v-if="isV3Model"
+                v-model="settings.novelai.decrisp"
+                class="cv-nai-mini-toggle"
+                on-label="Dec"
+                off-label="Dec"
+                on-icon="fa-solid fa-check"
+                off-icon="fa-solid fa-xmark"
+                aria-label="切换 Dec"
+                size="small"
+              />
+            </div>
+          </div>
+          <InputNumber
+            v-model="settings.novelai.guidance"
+            :min="0"
+            :max="10"
+            :step="0.1"
+            :min-fraction-digits="1"
+          />
+        </div>
       </div>
-      <label class="cv-field">
-        <span>采样器</span>
+      <div class="cv-field cv-nai-sampler-field">
+        <div class="cv-nai-field-title-row">
+          <span>采样器</span>
+          <ToggleButton
+            v-if="isV3Model"
+            v-model="settings.novelai.autoSampler"
+            class="cv-nai-mini-toggle"
+            on-label="Auto"
+            off-label="Auto"
+            on-icon="fa-solid fa-check"
+            off-icon="fa-solid fa-xmark"
+            aria-label="切换 Auto 采样器"
+            size="small"
+          />
+        </div>
         <Select
           v-model="settings.novelai.sampler"
           :options="samplerOptions"
           option-label="label"
           option-value="value"
+          :disabled="settings.novelai.autoSampler && isV3Model"
         />
-      </label>
+        <div v-if="isV3Model" class="cv-nai-option-row">
+          <label class="cv-nai-check-option">
+            <Checkbox v-model="settings.novelai.smea" binary />
+            <span>SMEA</span>
+          </label>
+          <label class="cv-nai-check-option" :class="{ 'cv-nai-check-option--disabled': !settings.novelai.smea }">
+            <Checkbox v-model="settings.novelai.smeaDyn" binary :disabled="!settings.novelai.smea" />
+            <span>DYN</span>
+          </label>
+        </div>
+      </div>
       <label class="cv-field">
         <span>负向提示词程度</span>
         <Select
@@ -100,6 +156,35 @@
         <ToggleSwitch v-model="settings.novelai.addQualityTags" />
         <span>使用官方质量词</span>
       </label>
+
+      <h2 class="cv-section-title">高级设置</h2>
+      <div class="cv-nai-advanced-block">
+        <div class="cv-field-grid">
+          <label class="cv-field">
+            <span>提示词引导重缩放</span>
+            <InputNumber
+              v-model="settings.novelai.promptGuidanceRescale"
+              :min="0"
+              :max="1"
+              :step="0.01"
+              :min-fraction-digits="2"
+            />
+          </label>
+          <label class="cv-field">
+            <span>噪声调度</span>
+            <Select
+              v-model="settings.novelai.noiseSchedule"
+              :options="noiseScheduleOptions"
+              option-label="label"
+              option-value="value"
+            />
+          </label>
+        </div>
+        <label v-if="isV4OnlyModel" class="cv-nai-check-option cv-nai-legacy-option">
+          <Checkbox v-model="settings.novelai.legacyPromptMode" binary />
+          <span>旧版提示词条件模式（不推荐）</span>
+        </label>
+      </div>
 
       <h2 class="cv-section-title">生图提示词</h2>
       <ImagePromptPresetPanel
@@ -124,9 +209,14 @@ import {
   NOVELAI_IMAGE_SIZE_LIMITS,
   NOVELAI_ROUTING_MODES,
   NOVELAI_MODELS,
+  NOVELAI_NOISE_SCHEDULES,
   NOVELAI_RESOLUTION_PRESETS,
   NOVELAI_SAMPLERS,
   NOVELAI_UC_PRESETS,
+  NOVELAI_V3_NOISE_SCHEDULES,
+  isNovelAIV3Model,
+  isNovelAIV45Model,
+  isNovelAIV4OnlyModel,
 } from '@/constants/novelai';
 import ImagePromptPresetPanel from '@/panel/components/ImagePromptPresetPanel.vue';
 import SubscriptionCard from '@/panel/components/SubscriptionCard.vue';
@@ -161,11 +251,48 @@ const resolutionPresetOptions = [
 const samplerOptions = [...NOVELAI_SAMPLERS];
 const ucPresetOptions = [...NOVELAI_UC_PRESETS];
 const imageSizeLimits = NOVELAI_IMAGE_SIZE_LIMITS;
+const isV3Model = computed(() => isNovelAIV3Model(settings.novelai.model));
+const isV45Model = computed(() => isNovelAIV45Model(settings.novelai.model));
+const isV4OnlyModel = computed(() => isNovelAIV4OnlyModel(settings.novelai.model));
+const supportsVarietyPlus = computed(() => isV3Model.value || isV45Model.value);
+const noiseScheduleOptions = computed(() => {
+  return isV3Model.value ? [...NOVELAI_V3_NOISE_SCHEDULES] : [...NOVELAI_NOISE_SCHEDULES];
+});
 const { isCustomResolution, markCustomResolution } = useResolutionPreset(
   settings.novelai,
   NOVELAI_RESOLUTION_PRESETS,
   NOVELAI_CUSTOM_RESOLUTION_PRESET,
 );
+
+watch(
+  () => settings.novelai.model,
+  () => normalizeModelScopedOptions(),
+);
+
+watch(
+  () => settings.novelai.smea,
+  enabled => {
+    if (!enabled) settings.novelai.smeaDyn = false;
+  },
+);
+
+/**
+ * 清理当前模型不支持的 NovelAI 选项
+ * 模型切换后避免把 V3 专属字段或 native 噪声调度带到 V4 请求中
+ */
+function normalizeModelScopedOptions(): void {
+  if (!isV3Model.value) {
+    settings.novelai.autoSampler = false;
+    settings.novelai.smea = false;
+    settings.novelai.smeaDyn = false;
+    settings.novelai.decrisp = false;
+    settings.novelai.legacyPromptMode = false;
+    if (settings.novelai.noiseSchedule === 'native') settings.novelai.noiseSchedule = 'karras';
+  }
+  if (!supportsVarietyPlus.value) settings.novelai.varietyPlus = false;
+  if (!isV4OnlyModel.value) settings.novelai.legacyPromptMode = false;
+}
+
 const routingModeHint = computed(() => {
   return settings.novelai.routingMode === 'load_balance'
     ? '每次请求都会轮换首选账号，失败后继续尝试其它账号'
@@ -188,5 +315,79 @@ const proxyPreview = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 0;
+}
+
+.cv-nai-option-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cv-space-xl);
+}
+
+.cv-nai-field-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--cv-space-lg);
+  font-weight: 600;
+  color: var(--cv-on-surface);
+}
+
+.cv-nai-title-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: var(--cv-space-xs);
+  margin-left: auto;
+}
+
+.cv-nai-sampler-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-space-lg);
+}
+
+.cv-nai-advanced-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-space-xl);
+}
+
+.cv-nai-mini-toggle {
+  min-width: 0;
+  --p-togglebutton-sm-padding: var(--cv-space-xs) var(--cv-space-md);
+  --p-togglebutton-content-sm-padding: var(--cv-space-xs) var(--cv-space-md);
+  --p-togglebutton-sm-font-size: calc(var(--mainFontSize) * 0.75);
+}
+
+.cv-nai-mini-toggle:deep(.p-togglebutton-content) {
+  gap: var(--cv-space-xs);
+  border-radius: var(--cv-radius-sm);
+  line-height: 1;
+}
+
+.cv-nai-check-option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cv-space-lg);
+  min-height: 1.75rem;
+  color: var(--cv-on-surface);
+  font-size: calc(var(--mainFontSize) * 0.9);
+}
+
+.cv-nai-check-option > span {
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.cv-nai-check-option--disabled {
+  color: var(--cv-on-surface-variant);
+  opacity: 0.62;
+}
+
+.cv-nai-legacy-option {
+  align-self: flex-start;
 }
 </style>

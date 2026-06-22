@@ -26,6 +26,9 @@ app.use(PrimeVue, {
     },
   },
   pt: cosmosPrimePt,
+  zIndex: {
+    modal: 3101,
+  },
 });
 
 $(async () => {

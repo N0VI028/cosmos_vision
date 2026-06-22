@@ -66,6 +66,12 @@ declare global {
          */
         generateRaw(config: TavernHelperGenerateRawConfig): Promise<string>;
         /**
+         * 替换文本中的 ST 宏
+         * @param text 原始文本
+         * @returns 宏替换后的文本
+         */
+        substitudeMacros(text: string): string;
+        /**
          * 按生成请求 ID 停止指定 generate/generateRaw 请求
          * @param generationId 生成请求 ID
          * @returns 是否成功停止

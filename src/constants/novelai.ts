@@ -8,20 +8,36 @@ import type { ImagePromptPresetReferences, ImagePromptPresetSettings } from '@/c
 
 /** NovelAI 模型固定列表(本期不开放自定义) */
 export const NOVELAI_MODELS = [
-  { value: 'nai-diffusion-4-5-full', label: 'NAI Diffusion v4.5 Full' },
   { value: 'nai-diffusion-4-5-curated', label: 'NAI Diffusion v4.5 Curated' },
+  { value: 'nai-diffusion-4-5-full', label: 'NAI Diffusion v4.5 Full' },
+  { value: 'nai-diffusion-4-curated-preview', label: 'NAI Diffusion v4 Curated' },
   { value: 'nai-diffusion-4-full', label: 'NAI Diffusion v4 Full' },
-  { value: 'nai-diffusion-3', label: 'NAI Diffusion v3' },
+  { value: 'nai-diffusion-3', label: 'NAI Diffusion Anime v3' },
+  { value: 'nai-diffusion-furry-3', label: 'NAI Diffusion Furry v3' },
 ] as const;
 
 /** NovelAI 采样器固定列表 */
 export const NOVELAI_SAMPLERS = [
-  { value: 'k_euler_ancestral', label: 'Euler Ancestral' },
   { value: 'k_euler', label: 'Euler' },
+  { value: 'k_euler_ancestral', label: 'Euler Ancestral' },
   { value: 'k_dpmpp_2s_ancestral', label: 'DPM++ 2S Ancestral' },
+  { value: 'k_dpmpp_2m_sde', label: 'DPM++ 2M SDE' },
   { value: 'k_dpmpp_2m', label: 'DPM++ 2M' },
   { value: 'k_dpmpp_sde', label: 'DPM++ SDE' },
   { value: 'ddim', label: 'DDIM' },
+] as const;
+
+/** NovelAI 通用噪声调度固定列表 */
+export const NOVELAI_NOISE_SCHEDULES = [
+  { value: 'karras', label: 'karras（推荐）' },
+  { value: 'exponential', label: 'exponential' },
+  { value: 'polyexponential', label: 'polyexponential' },
+] as const;
+
+/** NovelAI V3 噪声调度固定列表 */
+export const NOVELAI_V3_NOISE_SCHEDULES = [
+  { value: 'native', label: 'native' },
+  ...NOVELAI_NOISE_SCHEDULES,
 ] as const;
 
 /** NovelAI 负向提示词程度固定列表 */
@@ -63,6 +79,9 @@ export type NovelAIModel = (typeof NOVELAI_MODELS)[number]['value'];
 /** NovelAI 采样器 value 联合类型 */
 export type NovelAISampler = (typeof NOVELAI_SAMPLERS)[number]['value'];
 
+/** NovelAI 噪声调度 value 联合类型 */
+export type NovelAINoiseSchedule = (typeof NOVELAI_V3_NOISE_SCHEDULES)[number]['value'];
+
 /** NovelAI 负向提示词程度 value 联合类型 */
 export type NovelAIUcPreset = (typeof NOVELAI_UC_PRESETS)[number]['value'];
 
@@ -73,6 +92,42 @@ export type NovelAIResolutionPreset =
 
 /** NovelAI 路由模式 value 联合类型 */
 export type NovelAIRoutingMode = (typeof NOVELAI_ROUTING_MODES)[number]['value'];
+
+/**
+ * 判断是否为 NovelAI V3 模型
+ * @param model NovelAI 模型
+ * @returns 是否为 V3 模型
+ */
+export function isNovelAIV3Model(model: NovelAIModel): boolean {
+  return model.includes('diffusion-3') || model.includes('diffusion-furry-3');
+}
+
+/**
+ * 判断是否为 NovelAI V4 模型
+ * @param model NovelAI 模型
+ * @returns 是否为 V4 或 V4.5 模型
+ */
+export function isNovelAIV4Model(model: NovelAIModel): boolean {
+  return model.startsWith('nai-diffusion-4');
+}
+
+/**
+ * 判断是否为 NovelAI V4.5 模型
+ * @param model NovelAI 模型
+ * @returns 是否为 V4.5 模型
+ */
+export function isNovelAIV45Model(model: NovelAIModel): boolean {
+  return model.startsWith('nai-diffusion-4-5');
+}
+
+/**
+ * 判断是否为 NovelAI V4 旧模型
+ * @param model NovelAI 模型
+ * @returns 是否为不含 V4.5 的 V4 模型
+ */
+export function isNovelAIV4OnlyModel(model: NovelAIModel): boolean {
+  return isNovelAIV4Model(model) && !isNovelAIV45Model(model);
+}
 
 /**
  * NovelAI 订阅档位映射
@@ -105,8 +160,16 @@ export interface NovelAISettings extends ImagePromptPresetReferences {
   width: number;
   height: number;
   steps: number;
-  cfgScale: number;
+  guidance: number;
   sampler: NovelAISampler;
+  autoSampler: boolean;
+  varietyPlus: boolean;
+  smea: boolean;
+  smeaDyn: boolean;
+  decrisp: boolean;
+  legacyPromptMode: boolean;
+  promptGuidanceRescale: number;
+  noiseSchedule: NovelAINoiseSchedule;
   addQualityTags: boolean;
   ucPreset: NovelAIUcPreset;
 }

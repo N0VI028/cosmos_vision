@@ -25,3 +25,11 @@ export function getTavernHelper(): NonNullable<typeof TavernHelper> | null {
   if (!ensureTavernHelper() || !TavernHelper) return null;
   return TavernHelper;
 }
+
+/**
+ * 获取可选 TavernHelper 实例
+ * 缺失时静默返回 null，用于日志预览等只读场景
+ */
+export function getOptionalTavernHelper(): NonNullable<typeof TavernHelper> | null {
+  return isJsSlashRunnerInstalled() && TavernHelper ? TavernHelper : null;
+}
