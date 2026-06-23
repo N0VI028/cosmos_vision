@@ -5,14 +5,17 @@
         class="list-group-item flex-container flexGap5 interactable"
         tabindex="0"
         role="listitem"
-        @click="settingsVisible = true"
+        @click="openSettings"
       >
         <div class="fa-fw fa-solid fa-gear extensionsMenuExtensionButton" />
         <span>Cosmos Vision</span>
       </div>
     </div>
   </Teleport>
-  <SettingsDialog v-model:visible="settingsVisible" />
+  <SettingsDialog
+    v-model:visible="settingsVisible"
+    :initial-focus-paragraph-text="settingsFocusParagraphText"
+  />
   <TextInputDialog
     v-model:visible="textInputDialogVisible"
     v-model:value="textInputDialogState.value"
@@ -110,6 +113,7 @@ import SettingsDialog from '@/panel/SettingsDialog.vue';
 import TextInputDialog from '@/panel/components/TextInputDialog.vue';
 import { useSettingsStore } from '@/store/settings';
 import { useInlineImageGeneration, type InlineTextInputOptions } from '@/composables/useInlineImageGeneration';
+import { extractCleanParagraphText, getFocusedChatParagraph } from '@/services/sillytavern/chat-dom';
 
 interface TextInputDialogState {
   title: string;
@@ -123,6 +127,9 @@ interface TextInputDialogState {
 
 /** 设置弹窗显隐状态 */
 const settingsVisible = ref(false);
+
+/** 打开设置时捕获的焦点段落文本快照 */
+const settingsFocusParagraphText = ref('');
 
 /** Speed Dial 菜单展开状态 */
 const speedDialOpen = ref(false);
@@ -244,9 +251,34 @@ const fabStyle = computed(() => ({
 
 /** 点击设置按钮 */
 function handleSettingsClick(): void {
+  openSettings();
+}
+
+/**
+ * 打开设置并清理段落生图选择态
+ * 设置页只保留打开瞬间捕获的段落文本快照
+ */
+function openSettings(): void {
+  settingsFocusParagraphText.value = readFocusedParagraphText();
   speedDialOpen.value = false;
-  exitSelectionMode({ preserveSelection: true });
+  exitSelectionMode();
   settingsVisible.value = true;
+}
+
+/**
+ * 读取当前焦点段落文本
+ * @returns 当前选中段落的纯文本快照
+ */
+function readFocusedParagraphText(): string {
+  const paragraph = getFocusedChatParagraph();
+  return paragraph ? extractCleanParagraphText(paragraph) : '';
+}
+
+/**
+ * 清理设置页使用的焦点段落文本快照
+ */
+function clearSettingsFocusParagraphText(): void {
+  settingsFocusParagraphText.value = '';
 }
 
 /**
@@ -292,6 +324,12 @@ watch(
 watch(isSelectionMode, active => {
   if (!active) {
     speedDialOpen.value = false;
+  }
+});
+
+watch(settingsVisible, visible => {
+  if (!visible) {
+    clearSettingsFocusParagraphText();
   }
 });
 

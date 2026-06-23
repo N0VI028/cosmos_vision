@@ -1,7 +1,10 @@
 <template>
   <div class="cv-tab-content cv-test-tab">
     <h2 class="cv-section-title">连接测试控制</h2>
-    <FocusedParagraphField v-model="testParagraph" :has-focused-paragraph="hasFocusedParagraph" />
+    <FocusedParagraphField
+      v-model="testParagraph"
+      :has-focused-paragraph="hasFocusedParagraph"
+    />
 
     <div class="cv-action-row">
       <Button
@@ -102,7 +105,11 @@ import {
 import { buildPromptLlmRuntimeRequestFromContext } from '@/services/prompt-llm/runtime-request';
 
 const { settings } = useSettingsStore();
-const { paragraphText: testParagraph, hasFocusedParagraph, buildTestContext } = useFocusedParagraphInput();
+const {
+  paragraphText: testParagraph,
+  hasFocusedParagraph,
+  buildTestContext,
+} = useFocusedParagraphInput();
 
 /** 测试状态 */
 const testStatus = ref<'idle' | 'running' | 'success' | 'error'>('idle');

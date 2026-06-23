@@ -1,4 +1,4 @@
-import { onBeforeUnmount, onMounted, ref, type Ref } from 'vue';
+import { computed, inject, onBeforeUnmount, onMounted, ref, type ComputedRef, type Ref } from 'vue';
 
 import type { PromptLlmContext } from '@/constants/novelai';
 import {
@@ -9,9 +9,11 @@ import {
 
 interface FocusedParagraphInputState {
   paragraphText: Ref<string>;
-  hasFocusedParagraph: Ref<boolean>;
+  hasFocusedParagraph: ComputedRef<boolean>;
   buildTestContext: () => PromptLlmContext;
 }
+
+export const FOCUSED_PARAGRAPH_TEXT_KEY = Symbol('focused-paragraph-text');
 
 /**
  * 管理测试面板使用的焦点段落输入
@@ -20,11 +22,13 @@ interface FocusedParagraphInputState {
  * @returns 焦点段落输入状态与上下文构建函数
  */
 export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInputState {
-  const paragraphText = ref(initialValue);
-  const hasFocusedParagraph = ref(false);
+  const initialParagraphText = inject<ComputedRef<string> | null>(FOCUSED_PARAGRAPH_TEXT_KEY, null);
+  const paragraphText = ref(initialParagraphText?.value || initialValue);
+  const hasFocusedChatParagraph = ref(false);
+  const hasFocusedParagraph = computed(() => hasFocusedChatParagraph.value || Boolean(paragraphText.value.trim()));
 
   onMounted(() => {
-    syncFocusedParagraph(paragraphText, hasFocusedParagraph);
+    syncFocusedParagraph(paragraphText, hasFocusedChatParagraph, initialParagraphText);
     document.addEventListener('pointerup', handleDocumentPointerUp, true);
   });
 
@@ -38,7 +42,7 @@ export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInp
    */
   function handleDocumentPointerUp(): void {
     window.setTimeout(() => {
-      syncFocusedParagraph(paragraphText, hasFocusedParagraph);
+      syncFocusedParagraph(paragraphText, hasFocusedChatParagraph, initialParagraphText);
     }, 50);
   }
 
@@ -60,12 +64,22 @@ export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInp
 /**
  * 同步当前焦点段落文本
  * @param paragraphText 测试输入文本
- * @param hasFocusedParagraph 是否有焦点段落
+ * @param hasFocusedChatParagraph 是否有实时焦点段落
+ * @param initialParagraphText 打开设置时捕获的焦点段落文本快照
  */
-function syncFocusedParagraph(paragraphText: Ref<string>, hasFocusedParagraph: Ref<boolean>): void {
+function syncFocusedParagraph(
+  paragraphText: Ref<string>,
+  hasFocusedChatParagraph: Ref<boolean>,
+  initialParagraphText: ComputedRef<string> | null,
+): void {
   const focusedParagraph = getFocusedChatParagraph();
-  hasFocusedParagraph.value = Boolean(focusedParagraph);
-  if (!focusedParagraph) return;
+  hasFocusedChatParagraph.value = Boolean(focusedParagraph);
+  if (!focusedParagraph) {
+    if (!paragraphText.value && initialParagraphText?.value) {
+      paragraphText.value = initialParagraphText.value;
+    }
+    return;
+  }
   paragraphText.value = extractCleanParagraphText(focusedParagraph);
 }
 

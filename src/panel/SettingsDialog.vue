@@ -289,6 +289,7 @@ import PromptLlmTab from '@/panel/tabs/PromptLlmTab.vue';
 import PromptProfilesTab from '@/panel/tabs/PromptProfilesTab.vue';
 import SubTabNav from '@/panel/components/SubTabNav.vue';
 import { useSettingsStore } from '@/store/settings';
+import { FOCUSED_PARAGRAPH_TEXT_KEY } from '@/composables/useFocusedParagraphInput';
 
 type NavValue = 'main' | 'novelai' | 'comfyui' | 'prompt-llm' | 'prompt-profiles';
 type ThemeOption = { value: boolean; label: string; icon: string };
@@ -314,6 +315,10 @@ interface CustomPromptOptions {
   defaultValue?: string;
 }
 
+interface Props {
+  initialFocusParagraphText?: string;
+}
+
 const NAV_ITEMS = [
   { value: 'main', label: '通用', icon: 'fa-solid fa-gear' },
   { value: 'novelai', label: 'NovelAI', icon: '' },
@@ -326,6 +331,10 @@ const THEME_OPTIONS: ThemeOption[] = [
   { value: false, label: 'Light', icon: 'fa-solid fa-sun' },
   { value: true, label: 'Dark', icon: 'fa-solid fa-moon' },
 ];
+
+const props = withDefaults(defineProps<Props>(), {
+  initialFocusParagraphText: '',
+});
 
 const visible = defineModel<boolean>('visible', { default: false });
 const settingsStore = useSettingsStore();
@@ -490,6 +499,7 @@ function showCustomPrompt(options: CustomPromptOptions): Promise<string | null> 
 
 provide('showConfirm', showCustomConfirm);
 provide('showPrompt', showCustomPrompt);
+provide(FOCUSED_PARAGRAPH_TEXT_KEY, computed(() => props.initialFocusParagraphText));
 
 const dialogVisible = computed({
   get: () => visible.value,

@@ -25,7 +25,7 @@ interface Props {
 withDefaults(defineProps<Props>(), {
   label: '焦点段落文本',
   placeholder: '在此处输入测试段落，或在聊天中选择任意段落，它会自动在此处填充',
-  warningText: '当前未选择焦点段落，可直接手动输入测试段落，或先在聊天中点选目标段落',
+  warningText: '当前没有可用焦点段落，可直接手动输入测试段落，或先在聊天中点选目标段落',
 });
 
 const model = defineModel<string>({ required: true });

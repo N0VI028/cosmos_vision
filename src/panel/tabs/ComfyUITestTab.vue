@@ -9,7 +9,11 @@
       <div class="cv-field-hint">{{ modeHint }}</div>
     </div>
 
-    <FocusedParagraphField v-if="useLlmMode" v-model="llmParagraphText" :has-focused-paragraph="hasFocusedParagraph" />
+    <FocusedParagraphField
+      v-if="useLlmMode"
+      v-model="llmParagraphText"
+      :has-focused-paragraph="hasFocusedParagraph"
+    />
 
     <template v-else>
       <div class="cv-field">
@@ -143,7 +147,11 @@ interface ParamRow {
 const PREVIEW_IMAGE_STYLE = { width: '100%', display: 'block' } as const;
 
 const { settings } = useSettingsStore();
-const { paragraphText: llmParagraphText, hasFocusedParagraph, buildTestContext } = useFocusedParagraphInput();
+const {
+  paragraphText: llmParagraphText,
+  hasFocusedParagraph,
+  buildTestContext,
+} = useFocusedParagraphInput();
 
 const currentMode = ref<TestMode>('direct');
 const lastRunMode = ref<TestMode | null>(null);
