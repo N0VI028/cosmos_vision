@@ -1,6 +1,6 @@
 import { extension_settings } from '@sillytavern/scripts/extensions';
 import { saveSettingsDebounced } from '@sillytavern/script';
-import { syncRef, useLocalStorage } from '@vueuse/core';
+import { useLocalStorage } from '@vueuse/core';
 import { z } from 'zod';
 
 import {
@@ -16,6 +16,7 @@ import {
   type ComfyUISettings,
 } from '@/constants/comfyui';
 import {
+  DEFAULT_DARK_MODE,
   DEFAULT_PRESET_NAME,
   DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
   DEFAULT_PROMPT_LLM_MESSAGE_TITLE,
@@ -53,7 +54,6 @@ import { ensurePromptLlmReservedMessages } from '@/services/prompt-llm/message-p
 const SETTINGS_KEY = 'cosmos_vision';
 const DARK_MODE_STORAGE_KEY = 'cosmos-vision-dark-mode';
 type PlainRecord = Record<string, unknown>;
-type PersistedCosmosVisionSettings = Omit<CosmosVisionSettings, 'darkMode'>;
 
 /**
  * 提取下拉常量中的 value 作为 Zod 枚举
@@ -236,7 +236,6 @@ const promptLlmMessagePresetSettingsSchema = promptLlmMessagePresetSettingsBaseS
 
 const cosmosVisionSettingsSchema = z.object({
   enabled: z.boolean(),
-  darkMode: z.boolean(),
   imageSource: imageSourceSchema,
   imagePromptPresets: imagePromptPresetSettingsSchema,
   novelai: novelAISettingsSchema,
@@ -336,7 +335,6 @@ function recoverSettings(value: unknown): CosmosVisionSettings {
   const record = toPlainRecord(value);
   return {
     enabled: parseField(z.boolean(), record.enabled, DEFAULT_SETTINGS.enabled),
-    darkMode: parseField(z.boolean(), record.darkMode, DEFAULT_SETTINGS.darkMode),
     imageSource: parseField(imageSourceSchema, record.imageSource, DEFAULT_SETTINGS.imageSource),
     imagePromptPresets: recoverImagePromptPresets(record.imagePromptPresets),
     novelai: recoverNovelAISettings(record.novelai),
@@ -613,28 +611,21 @@ function recoverPresetSettings<T extends { id: string }, TSettings extends { act
 
 /**
  * 从 extension_settings 读取并以默认值补齐缺失字段
+ * darkMode 不进入 ST 持久化,由 localStorage 单独管理,这里不参与读取
  * Zod 校验负责拦截异常持久化数据
  */
-function loadFromExtensionSettings(darkMode: boolean): CosmosVisionSettings {
+function loadFromExtensionSettings(): CosmosVisionSettings {
   const stored = (extension_settings as Record<string, unknown>)[SETTINGS_KEY] ?? {};
-  return { ...parseSettings(stored), darkMode };
+  return parseSettings(stored);
 }
 
 /**
- * 生成写入 ST 的设置对象
+ * 将当前 store 内容写回 ST 全局并触发持久化
  * darkMode 仅保存在浏览器 localStorage,不写入 extension_settings
  * @param settings 当前运行设置
- * @returns 去除 darkMode 的持久化对象
  */
-function toPersistedSettings(settings: CosmosVisionSettings): PersistedCosmosVisionSettings {
-  const cloned = _.cloneDeep(settings);
-  const { darkMode: _darkMode, ...persisted } = cloned;
-  return persisted;
-}
-
-/** 将当前 store 内容写回 ST 全局并触发持久化 */
 function persist(settings: CosmosVisionSettings): void {
-  (extension_settings as Record<string, unknown>)[SETTINGS_KEY] = toPersistedSettings(settings);
+  (extension_settings as Record<string, unknown>)[SETTINGS_KEY] = _.cloneDeep(settings);
   saveSettingsDebounced();
 }
 
@@ -668,27 +659,18 @@ function syncReactiveObject<T extends object>(target: T, source: T): void {
 /**
  * CosmosVision 全局设置 store
  * settings 是设置弹窗草稿,savedSettings 是已应用运行配置
+ * darkMode 独立于 ST 设置,仅走 localStorage,不进入 savedSettings/persist
  */
 export const useSettingsStore = defineStore('cosmos_vision_settings', () => {
-  const darkMode = useLocalStorage<boolean>(DARK_MODE_STORAGE_KEY, DEFAULT_SETTINGS.darkMode);
-  const savedSettings = reactive<CosmosVisionSettings>(loadFromExtensionSettings(darkMode.value));
+  const darkMode = useLocalStorage<boolean>(DARK_MODE_STORAGE_KEY, DEFAULT_DARK_MODE);
+  const savedSettings = reactive<CosmosVisionSettings>(loadFromExtensionSettings());
   const settings = reactive<CosmosVisionSettings>(_.cloneDeep(savedSettings));
-  const savedDarkMode = toRef(savedSettings, 'darkMode');
-  const draftDarkMode = toRef(settings, 'darkMode');
-
-  syncRef(darkMode, savedDarkMode, {
-    direction: 'both',
-    transform: {
-      ltr: value => value ?? DEFAULT_SETTINGS.darkMode,
-      rtl: value => value,
-    },
-  });
-  syncRef(savedDarkMode, draftDarkMode, { direction: 'both' });
 
   const isDirty = computed(() => !_.isEqual(settings, savedSettings));
 
   /**
    * 应用草稿设置并写回 ST 数据库
+   * darkMode 已通过 useLocalStorage 双向绑定即时落盘,无需在此处理
    */
   function applySettings(): void {
     syncReactiveObject(savedSettings, settings);
@@ -706,7 +688,7 @@ export const useSettingsStore = defineStore('cosmos_vision_settings', () => {
    * 丢弃草稿并恢复为 ST 数据库中的最后保存状态
    */
   function discardSettings(): void {
-    const storedSettings = loadFromExtensionSettings(darkMode.value);
+    const storedSettings = loadFromExtensionSettings();
     syncReactiveObject(savedSettings, storedSettings);
     syncReactiveObject(settings, storedSettings);
   }
@@ -721,5 +703,5 @@ export const useSettingsStore = defineStore('cosmos_vision_settings', () => {
     persist(savedSettings);
   }
 
-  return { settings, savedSettings, isDirty, applySettings, discardSettings, resetDraftSettings, resetToDefaults };
+  return { settings, savedSettings, darkMode, isDirty, applySettings, discardSettings, resetDraftSettings, resetToDefaults };
 });

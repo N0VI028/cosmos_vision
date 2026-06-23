@@ -21,7 +21,7 @@
     :rows="textInputDialogState.rows"
     :accept-label="textInputDialogState.acceptLabel"
     :cancel-label="textInputDialogState.cancelLabel"
-    :dark-mode="savedSettings.darkMode"
+    :dark-mode="darkMode"
     @submit="handleTextInputDialog"
   />
   <Teleport to="body">
@@ -53,7 +53,7 @@
       v-if="savedSettings.enabled"
       ref="fabEl"
       class="cv-speed-dial-container cosmos-vision-root"
-      :class="{ [DARK_CLASS]: savedSettings.darkMode }"
+      :class="{ [DARK_CLASS]: darkMode }"
       :style="fabStyle"
     >
       <!-- Speed Dial 菜单 -->
@@ -104,6 +104,7 @@
 
 <script setup lang="ts">
 import { useDraggable, useLocalStorage, useWindowSize, onClickOutside } from '@vueuse/core';
+import { storeToRefs } from 'pinia';
 import { DARK_CLASS } from '@/constants/theme';
 import SettingsDialog from '@/panel/SettingsDialog.vue';
 import TextInputDialog from '@/panel/components/TextInputDialog.vue';
@@ -126,7 +127,9 @@ const settingsVisible = ref(false);
 /** Speed Dial 菜单展开状态 */
 const speedDialOpen = ref(false);
 
-const { savedSettings } = useSettingsStore();
+const settingsStore = useSettingsStore();
+const { savedSettings } = settingsStore;
+const { darkMode } = storeToRefs(settingsStore);
 
 const textInputDialogVisible = ref(false);
 const textInputDialogState = ref<TextInputDialogState>({
@@ -145,6 +148,7 @@ const { isSelectionMode, toggleSelectionMode, exitSelectionMode, cleanup } = use
   {
     isRuntimeEnabled: () => savedSettings.enabled,
     requestTextInput: showTextInputDialog,
+    getDarkMode: () => darkMode.value,
   },
 );
 
@@ -241,7 +245,7 @@ const fabStyle = computed(() => ({
 /** 点击设置按钮 */
 function handleSettingsClick(): void {
   speedDialOpen.value = false;
-  exitSelectionMode();
+  exitSelectionMode({ preserveSelection: true });
   settingsVisible.value = true;
 }
 

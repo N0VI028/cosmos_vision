@@ -58,10 +58,12 @@ export const DEFAULT_PROMPT_LLM_OUTPUT_FIELDS = {
 
 export const DEFAULT_IMAGE_SOURCE: ImageSource = 'novelai';
 
-/** 插件默认设置,缺字段时由 _.defaultsDeep 补齐 */
+/** 暗色模式默认值,仅用于 localStorage 初始化与回退,不进入 ST extension_settings */
+export const DEFAULT_DARK_MODE = true;
+
+/** 插件默认设置,缺字段时由 _.defaultsDeep 补齐(darkMode 不走 ST,由 localStorage 单独管理) */
 export const DEFAULT_SETTINGS: CosmosVisionSettings = {
   enabled: true,
-  darkMode: true,
   imageSource: DEFAULT_IMAGE_SOURCE,
   imagePromptPresets: createImagePromptPresetSettings(
     DEFAULT_POSITIVE_PROMPT_PRESET_ID,

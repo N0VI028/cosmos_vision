@@ -13,7 +13,7 @@ import type { PromptLlmContext } from '@/constants/novelai';
 export function extractCleanParagraphText(p: HTMLElement): string {
   // 克隆后剥离插件注入节点,避免污染原文
   const clone = p.cloneNode(true) as HTMLElement;
-  clone.querySelectorAll('.cv-inline-gen-btn').forEach(el => el.remove());
+  clone.querySelectorAll('.cv-inline-gen-btn, .cv-inline-toolbar').forEach(el => el.remove());
   return clone.textContent?.trim() ?? '';
 }
 

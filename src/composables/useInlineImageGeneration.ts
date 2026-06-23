@@ -40,6 +40,7 @@ export interface InlineTextInputOptions {
 interface InlineImageGenerationOptions {
   isRuntimeEnabled?: RuntimeEnabledGetter;
   requestTextInput: (options: InlineTextInputOptions) => Promise<string | null>;
+  getDarkMode: () => boolean;
 }
 
 interface InlineGenerationResult {
@@ -77,7 +78,7 @@ export function useInlineImageGeneration(
   /** 生成会话与取消控制 */
   const generationSession = createInlineGenerationSessionController({
     appContext,
-    getDarkMode: () => settings.darkMode,
+    getDarkMode: options.getDarkMode,
   });
 
   /** 当前选中的段落 DOM 引用 */
@@ -133,12 +134,13 @@ export function useInlineImageGeneration(
 
   /**
    * 退出段落生图选择模式
+   * @param options 退出选项
    */
-  function exitSelectionMode(): void {
+  function exitSelectionMode(options: { preserveSelection?: boolean } = {}): void {
     document.removeEventListener('pointerdown', handleSelectionPointerDown, true);
     document.removeEventListener('pointerup', handleSelectionPointerUp, true);
     isSelectionMode.value = false;
-    deselectParagraph();
+    if (!options.preserveSelection) deselectParagraph();
   }
 
   /**
@@ -359,7 +361,7 @@ export function useInlineImageGeneration(
    * @returns 带 PrimeVue 主题作用域的 class 字符串
    */
   function buildActionHostClass(hostClass: string): string {
-    return settings.darkMode ? `${hostClass} cosmos-vision-root ${DARK_CLASS}` : `${hostClass} cosmos-vision-root`;
+    return options.getDarkMode() ? `${hostClass} cosmos-vision-root ${DARK_CLASS}` : `${hostClass} cosmos-vision-root`;
   }
 
   /**

@@ -104,7 +104,7 @@
         <div class="cv-sidebar-footer">
           <SelectButton
             v-if="!isMobile"
-            v-model="settings.darkMode"
+            v-model="darkMode"
             class="cv-theme-toggle"
             :options="THEME_OPTIONS"
             option-label="label"
@@ -121,11 +121,11 @@
             v-else
             type="button"
             class="cv-mobile-theme-btn"
-            :title="settings.darkMode ? '切换为浅色模式' : '切换为深色模式'"
-            :aria-label="settings.darkMode ? '切换为浅色模式' : '切换为深色模式'"
-            @click="settings.darkMode = !settings.darkMode"
+            :title="darkMode ? '切换为浅色模式' : '切换为深色模式'"
+            :aria-label="darkMode ? '切换为浅色模式' : '切换为深色模式'"
+            @click="darkMode = !darkMode"
           >
-            <i :class="settings.darkMode ? 'fa-solid fa-moon' : 'fa-solid fa-sun'" />
+            <i :class="darkMode ? 'fa-solid fa-moon' : 'fa-solid fa-sun'" />
           </button>
         </div>
       </nav>
@@ -278,6 +278,7 @@
 
 <script setup lang="ts">
 import { onClickOutside, useEventListener, useMediaQuery } from '@vueuse/core';
+import { storeToRefs } from 'pinia';
 
 import { DARK_CLASS } from '@/constants/theme';
 import '@/panel/styles/settings-dialog.css';
@@ -328,9 +329,9 @@ const THEME_OPTIONS: ThemeOption[] = [
 
 const visible = defineModel<boolean>('visible', { default: false });
 const settingsStore = useSettingsStore();
-const { settings } = settingsStore;
+const { darkMode } = storeToRefs(settingsStore);
 
-const settingsDialogClass = computed(() => ({ [DARK_CLASS]: settings.darkMode }));
+const settingsDialogClass = computed(() => ({ [DARK_CLASS]: darkMode.value }));
 const confirmDialogClass = computed(() => ['cv-confirm-dialog', settingsDialogClass.value]);
 
 const isMobile = useMediaQuery('(max-width: 66.6667em)');

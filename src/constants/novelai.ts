@@ -395,10 +395,9 @@ export function createNovelAIAccount(id: string, url = NOVELAI_DEFAULT_URL, apiK
   return { id, url, apiKey };
 }
 
-/** CosmosVision 顶层设置 */
+/** CosmosVision 顶层设置(持久化到 ST extension_settings) */
 export interface CosmosVisionSettings {
   enabled: boolean;
-  darkMode: boolean;
   imageSource: ImageSource;
   imagePromptPresets: ImagePromptPresetSettings;
   novelai: NovelAISettings;
