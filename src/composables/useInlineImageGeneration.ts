@@ -586,9 +586,10 @@ export function useInlineImageGeneration(
     onSnapshotResolved?.(request.prompts);
 
     session.status.setStatus('正在生成图片...');
+    const result = await generateNovelAIImageFromResolvedRequest(request, { signal: session.controller.signal });
     return {
-      promptSnapshot: request.prompts,
-      imageBlob: (await generateNovelAIImageFromResolvedRequest(request, { signal: session.controller.signal })).imageBlob,
+      promptSnapshot: result.prompts,
+      imageBlob: result.imageBlob,
     };
   }
 

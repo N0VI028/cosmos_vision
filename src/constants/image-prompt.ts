@@ -3,12 +3,25 @@
  * 由所有生图渠道共享,渠道设置只保存当前引用的预设 ID
  */
 
+export const DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH = 0.6;
+export const DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED = 1;
+
+/** 生图提示词预设绑定的 NovelAI vibe 引用 */
+export interface ImagePromptVibeRef {
+  id: string;
+  sourceHash: string;
+  enabled: boolean;
+  referenceStrength: number;
+  informationExtracted: number;
+}
+
 /** 生图固定提示词预设 */
 export interface ImagePromptPreset {
   id: string;
   name: string;
   text: string;
   placeholderOffset: number;
+  vibes: ImagePromptVibeRef[];
 }
 
 /** 生图正负固定提示词预设集合 */
@@ -36,6 +49,7 @@ export function createImagePromptPreset(id: string, name: string, text = ''): Im
     name,
     text,
     placeholderOffset: clampImagePromptPlaceholderOffset(text, text.length),
+    vibes: [],
   };
 }
 

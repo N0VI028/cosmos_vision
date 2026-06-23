@@ -1,4 +1,4 @@
-import type { ImagePromptPresetSettings } from '@/constants/image-prompt';
+import type { ImagePromptPresetSettings, ImagePromptVibeRef } from '@/constants/image-prompt';
 import type {
   NovelAIAccount,
   NovelAIModel,
@@ -23,6 +23,11 @@ import {
 import { readPreferredPromptLlmOutput, type PromptLlmExtractSettings } from '@/services/tavern-helper/prompt-llm';
 import { extractFirstImage } from '@/services/novelai/zip';
 import { getNovelAIRequestAccounts } from '@/services/novelai/router';
+import {
+  getNovelAIPositivePresetVibes,
+  resolveNovelAIVibeParameters,
+} from '@/services/novelai/vibe-parameters';
+import type { NovelAIVibeParameters, NovelAIVibeSnapshot } from '@/services/novelai/vibe-types';
 
 const REFERENCE_PIXEL_COUNT = 1011712;
 const SIGMA_MAGIC_NUMBER_V3_V4 = 19;
@@ -46,6 +51,8 @@ export interface NovelAIPromptOverrides {
 export interface NovelAIFinalPrompts {
   positivePrompt: string;
   negativePrompt: string;
+  vibeReferences?: ImagePromptVibeRef[];
+  vibeParameters?: NovelAIVibeParameters;
 }
 
 export interface NovelAIRequestSnapshot {
@@ -68,6 +75,7 @@ export interface NovelAIRequestSnapshot {
   noiseSchedule: NovelAINoiseSchedule;
   ucPreset: NovelAIUcPreset;
   addQualityTags: boolean;
+  vibes: NovelAIVibeSnapshot;
 }
 
 export interface NovelAIResolvedRequest {
@@ -80,6 +88,7 @@ export interface NovelAIResolvedRequest {
 export interface NovelAIImageResult {
   imageBlob: Blob;
   snapshot: NovelAIRequestSnapshot;
+  prompts: NovelAIFinalPrompts;
 }
 
 /** NovelAI 请求控制选项 */
@@ -116,12 +125,14 @@ export async function generateNovelAIImageFromResolvedRequest(
   validatePrompts(request.prompts);
   ensureRequestAccounts(request.accounts);
   throwIfNovelAIAborted(options.signal);
+  const prompts = await resolveRequestPrompts(request, options);
   const errors: string[] = [];
   for (const [index, account] of request.accounts.entries()) {
     try {
       return {
-        imageBlob: await requestNovelAIAccountImage(request.settings, request.prompts, account, options),
-        snapshot: buildRequestSnapshot(request.settings, request.prompts, account),
+        imageBlob: await requestNovelAIAccountImage(request.settings, prompts, account, options),
+        snapshot: buildRequestSnapshot(request.settings, prompts, account),
+        prompts,
       };
     } catch (error) {
       if (options.signal?.aborted) throw createNovelAIAbortError();
@@ -195,6 +206,7 @@ function buildRequestSnapshot(
     noiseSchedule: getEffectiveNoiseSchedule(settings),
     ucPreset: settings.ucPreset,
     addQualityTags: settings.addQualityTags,
+    vibes: buildVibeSnapshot(prompts),
   };
 }
 
@@ -261,6 +273,7 @@ function buildParameters(settings: NovelAISettings, prompts: NovelAIFinalPrompts
   const parameters = createBaseParameters(settings, prompts);
   if (isNovelAIV3Model(settings.model)) applyV3Parameters(parameters, settings);
   if (isNovelAIV4Model(settings.model)) applyV4Prompts(parameters, prompts);
+  if (prompts.vibeParameters) Object.assign(parameters, prompts.vibeParameters);
   return parameters;
 }
 
@@ -282,14 +295,11 @@ function createBaseParameters(settings: NovelAISettings, prompts: NovelAIFinalPr
     ucPreset: getUcPresetValue(settings.ucPreset),
     qualityToggle: settings.addQualityTags,
     autoSmea: false,
-    dynamic_thresholding: isNovelAIV3Model(settings.model) && settings.decrisp,
     controlnet_strength: 1,
-    legacy: isNovelAIV4OnlyModel(settings.model) && settings.legacyPromptMode,
     add_original_image: true,
     cfg_rescale: settings.promptGuidanceRescale,
     noise_schedule: getEffectiveNoiseSchedule(settings),
     legacy_v3_extend: false,
-    skip_cfg_above_sigma: calculateSkipCfgAboveSigma(settings),
     use_coords: false,
     legacy_uc: false,
     normalize_reference_strength_multiple: true,
@@ -297,8 +307,23 @@ function createBaseParameters(settings: NovelAISettings, prompts: NovelAIFinalPr
     seed: Math.floor(Math.random() * 4294967295),
     characterPrompts: [],
     negative_prompt: prompts.negativePrompt,
-    deliberate_euler_ancestral_bug: isNovelAIV4OnlyModel(settings.model) && settings.legacyPromptMode,
     prefer_brownian: true,
+    ...createModelCompatibilityParameters(settings),
+  };
+}
+
+/**
+ * 构建 NovelAI 模型兼容字段
+ * @param settings NovelAI 设置页参数
+ * @returns 与模型能力相关的 parameters 字段
+ */
+function createModelCompatibilityParameters(settings: NovelAISettings): Record<string, unknown> {
+  const legacy = isNovelAIV4OnlyModel(settings.model) && settings.legacyPromptMode;
+  return {
+    dynamic_thresholding: isNovelAIV3Model(settings.model) && settings.decrisp,
+    legacy,
+    skip_cfg_above_sigma: calculateSkipCfgAboveSigma(settings),
+    deliberate_euler_ancestral_bug: legacy,
   };
 }
 
@@ -399,6 +424,7 @@ function resolveFinalPrompts(
       overrides?.negativeLLMPrompt ?? '',
       overrides?.negativePromptMode ?? 'extract',
     ),
+    vibeReferences: cloneVibeReferences(getNovelAIPositivePresetVibes(settings, imagePromptPresets)),
   };
 }
 
@@ -415,6 +441,65 @@ function createResolvedRequest(settings: NovelAISettings, prompts: NovelAIFinalP
     prompts,
     accounts,
     snapshot: buildRequestSnapshot(settings, prompts, accounts[0] ?? null),
+  };
+}
+
+/**
+ * 解析请求中的 vibe 参数
+ * @param request 已构建请求
+ * @param options 请求控制选项
+ * @returns 带已解析 vibe 参数的提示词快照
+ */
+async function resolveRequestPrompts(
+  request: NovelAIResolvedRequest,
+  options: NovelAIRequestOptions,
+): Promise<NovelAIFinalPrompts> {
+  if (request.prompts.vibeParameters || !request.prompts.vibeReferences?.length) return request.prompts;
+  const vibeParameters = await resolveNovelAIVibeParameters(
+    request.settings,
+    request.prompts.vibeReferences,
+    request.accounts,
+    options,
+  );
+  return vibeParameters ? { ...request.prompts, vibeParameters } : request.prompts;
+}
+
+/**
+ * 克隆 vibe 引用用于本次请求快照
+ * @param vibes 预设绑定的 vibe 引用
+ * @returns 独立 vibe 引用
+ */
+function cloneVibeReferences(vibes: readonly ImagePromptVibeRef[]): ImagePromptVibeRef[] {
+  return vibes.map(vibe => ({ ...vibe }));
+}
+
+/**
+ * 构建测试面板使用的 vibe 摘要
+ * @param prompts 最终提示词快照
+ * @returns vibe 摘要
+ */
+function buildVibeSnapshot(prompts: NovelAIFinalPrompts): NovelAIVibeSnapshot {
+  if (prompts.vibeParameters) return buildResolvedVibeSnapshot(prompts.vibeParameters);
+  const vibes = (prompts.vibeReferences ?? []).filter(vibe => vibe.enabled);
+  return {
+    count: vibes.length,
+    resolved: false,
+    referenceStrengths: vibes.map(vibe => vibe.referenceStrength),
+    informationExtracted: vibes.map(vibe => vibe.informationExtracted),
+  };
+}
+
+/**
+ * 从官方数组构建已解析 vibe 摘要
+ * @param parameters 已解析 vibe 参数
+ * @returns vibe 摘要
+ */
+function buildResolvedVibeSnapshot(parameters: NovelAIVibeParameters): NovelAIVibeSnapshot {
+  return {
+    count: parameters.reference_image_multiple.length,
+    resolved: true,
+    referenceStrengths: parameters.reference_strength_multiple,
+    informationExtracted: parameters.reference_information_extracted_multiple,
   };
 }
 

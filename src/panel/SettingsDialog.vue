@@ -347,7 +347,7 @@ const contentStyle = { padding: '0', overflow: 'hidden' } as const;
 
 const activeTab = ref<NavValue>('main');
 
-type NovelAISubTab = 'api' | 'config' | 'test';
+type NovelAISubTab = 'api' | 'config' | 'preset' | 'test';
 type ComfyUISubTab = 'api' | 'config' | 'test';
 type PromptLlmSubTab = 'settings' | 'builder' | 'test';
 type PromptProfilesSubTab = 'user' | 'character';
@@ -355,6 +355,7 @@ type PromptProfilesSubTab = 'user' | 'character';
 const NOVELAI_SUB_TABS = [
   { value: 'api', label: 'API' },
   { value: 'config', label: '配置' },
+  { value: 'preset', label: '预设' },
   { value: 'test', label: '测试' },
 ] as const;
 

@@ -221,6 +221,7 @@ const novelaiParamRows = computed<ParamRow[]>(() => {
     { label: '噪声调度', value: novelaiSnapshot.value.noiseSchedule, code: true },
     { label: '负向提示词程度', value: novelaiSnapshot.value.ucPreset },
     { label: '使用官方质量词', value: novelaiSnapshot.value.addQualityTags ? '开启' : '关闭' },
+    ...buildVibeParamRows(novelaiSnapshot.value.vibes),
   ];
 });
 
@@ -326,6 +327,29 @@ function createDirectPromptOverrides(): NovelAIPromptOverrides {
     positivePromptMode: 'direct',
     negativePromptMode: 'direct',
   };
+}
+
+/**
+ * 构建 vibe 参数摘要行
+ * @param vibes vibe 快照
+ * @returns 参数展示行
+ */
+function buildVibeParamRows(vibes: NovelAIRequestSnapshot['vibes']): ParamRow[] {
+  if (!vibes.count) return [{ label: 'Vibe', value: '未启用' }];
+  return [
+    { label: 'Vibe', value: `${vibes.count} 个（${vibes.resolved ? '已解析' : '待解析'}）` },
+    { label: 'Vibe 参考强度', value: formatNumberList(vibes.referenceStrengths), code: true },
+    { label: 'Vibe 信息提取', value: formatNumberList(vibes.informationExtracted), code: true },
+  ];
+}
+
+/**
+ * 格式化数值列表
+ * @param values 数值列表
+ * @returns 展示文本
+ */
+function formatNumberList(values: readonly number[]): string {
+  return values.map(value => value.toFixed(2)).join(' / ');
 }
 
 /**

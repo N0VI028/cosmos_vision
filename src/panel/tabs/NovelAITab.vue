@@ -186,11 +186,16 @@
         </label>
       </div>
 
-      <h2 class="cv-section-title">生图提示词</h2>
+    </template>
+
+    <!-- 预设 Tab -->
+    <template v-else-if="subTab === 'preset'">
       <ImagePromptPresetPanel
         :preset-settings="settings.imagePromptPresets"
         :positive-preset-id="settings.novelai.positivePromptPresetId"
         :negative-preset-id="settings.novelai.negativePromptPresetId"
+        :novelai-settings="settings.novelai"
+        show-vibe-section
         @update:preset-settings="settings.imagePromptPresets = $event"
         @update:positive-preset-id="settings.novelai.positivePromptPresetId = $event"
         @update:negative-preset-id="settings.novelai.negativePromptPresetId = $event"
@@ -225,7 +230,7 @@ import { useSettingsStore } from '@/store/settings';
 import NovelAIAccountList from '@/panel/components/NovelAIAccountList.vue';
 import NovelAITestTab from './NovelAITestTab.vue';
 
-type NovelAISubTab = 'api' | 'config' | 'test';
+type NovelAISubTab = 'api' | 'config' | 'preset' | 'test';
 
 const { settings } = useSettingsStore();
 

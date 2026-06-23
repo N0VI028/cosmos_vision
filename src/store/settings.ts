@@ -21,7 +21,13 @@ import {
   DEFAULT_PROMPT_LLM_MESSAGE_TITLE,
   DEFAULT_SETTINGS,
 } from '@/constants/default-settings';
-import type { ImagePromptPreset, ImagePromptPresetSettings } from '@/constants/image-prompt';
+import {
+  DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
+  DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH,
+  type ImagePromptPreset,
+  type ImagePromptPresetSettings,
+  type ImagePromptVibeRef,
+} from '@/constants/image-prompt';
 import {
   NOVELAI_CUSTOM_RESOLUTION_PRESET,
   NOVELAI_IMAGE_SIZE_LIMITS,
@@ -92,11 +98,19 @@ const comfyUILoraSchema = z.object({
 });
 
 const imagePromptPresetIdSchema = z.string().min(1);
+const imagePromptVibeRefSchema = z.object({
+  id: z.string().min(1),
+  sourceHash: z.string().min(1),
+  enabled: z.boolean().default(true),
+  referenceStrength: z.number().min(0).max(1).default(DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH),
+  informationExtracted: z.number().min(0).max(1).default(DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED),
+});
 const imagePromptPresetSchema = z.object({
   id: z.string().min(1),
   name: z.string().default(DEFAULT_PRESET_NAME),
   text: z.string(),
   placeholderOffset: z.number().int().min(0),
+  vibes: z.array(imagePromptVibeRefSchema).default([]),
 });
 
 const imagePromptPresetSettingsSchema = z.object({
@@ -342,8 +356,8 @@ function recoverImagePromptPresets(value: unknown): ImagePromptPresetSettings {
   const fallback = DEFAULT_SETTINGS.imagePromptPresets;
   const record = toPlainRecord(value);
   return {
-    positive: recoverImagePromptCollection(record.positive, fallback.positive),
-    negative: recoverImagePromptCollection(record.negative, fallback.negative),
+    positive: recoverImagePromptCollection(record.positive, fallback.positive, true),
+    negative: recoverImagePromptCollection(record.negative, fallback.negative, false),
   };
 }
 
@@ -353,8 +367,54 @@ function recoverImagePromptPresets(value: unknown): ImagePromptPresetSettings {
  * @param fallback 默认单侧预设
  * @returns 可安全使用的单侧预设
  */
-function recoverImagePromptCollection(value: unknown, fallback: ImagePromptPreset[]): ImagePromptPreset[] {
-  return parseField(z.array(imagePromptPresetSchema).min(1), value, fallback);
+function recoverImagePromptCollection(
+  value: unknown,
+  fallback: ImagePromptPreset[],
+  keepVibes: boolean,
+): ImagePromptPreset[] {
+  if (!Array.isArray(value)) return _.cloneDeep(fallback);
+  const presets = value.map((preset, index) => recoverImagePromptPreset(preset, fallback[index] ?? fallback[0], keepVibes));
+  return presets.length ? presets : _.cloneDeep(fallback);
+}
+
+/**
+ * 从异常配置中恢复单个生图提示词预设
+ * @param value 原始预设
+ * @param fallback 默认预设
+ * @param keepVibes 是否保留 vibe 引用
+ * @returns 可安全使用的预设
+ */
+function recoverImagePromptPreset(value: unknown, fallback: ImagePromptPreset | undefined, keepVibes: boolean): ImagePromptPreset {
+  const source = toPlainRecord(value);
+  const preset = {
+    id: parseField(z.string().min(1), source.id, fallback?.id ?? ''),
+    name: parseField(z.string(), source.name, fallback?.name ?? DEFAULT_PRESET_NAME),
+    text: parseField(z.string(), source.text, fallback?.text ?? ''),
+    placeholderOffset: parseField(z.number().int().min(0), source.placeholderOffset, fallback?.placeholderOffset ?? 0),
+    vibes: keepVibes ? recoverImagePromptVibes(source.vibes) : [],
+  };
+  return parseField(imagePromptPresetSchema, preset, fallback ?? DEFAULT_SETTINGS.imagePromptPresets.positive[0]);
+}
+
+/**
+ * 从异常配置中恢复 NovelAI vibe 引用列表
+ * @param value 原始 vibe 列表
+ * @returns 可安全使用的 vibe 引用
+ */
+function recoverImagePromptVibes(value: unknown): ImagePromptVibeRef[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap(recoverImagePromptVibe);
+}
+
+/**
+ * 从异常配置中恢复单个 NovelAI vibe 引用
+ * @param value 原始 vibe 引用
+ * @returns 合法 vibe 引用或空数组
+ */
+function recoverImagePromptVibe(value: unknown): ImagePromptVibeRef[] {
+  const record = toPlainRecord(value);
+  const result = imagePromptVibeRefSchema.safeParse({ ...record, sourceHash: record.sourceHash ?? record.imageHash });
+  return result.success ? [result.data] : [];
 }
 
 /**
