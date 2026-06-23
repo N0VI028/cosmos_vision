@@ -118,7 +118,6 @@ async function handleDeleteActiveClick(): Promise<void> {
   display: flex;
   align-items: center;
   gap: var(--cv-space-md);
-  padding: 0 var(--cv-space-xs);
 }
 
 .cv-preset-select {

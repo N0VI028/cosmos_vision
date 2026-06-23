@@ -11,38 +11,24 @@
       />
 
       <div v-if="filteredProfiles.length > 0" class="cv-person-panel-list">
-        <Panel
+        <CollapsiblePanelItem
           v-for="person in filteredProfiles"
           :key="person.id"
-          :class="['cv-person-panel', { 'cv-person-panel--disabled': person.enabled === false }]"
+          :title="person.name || '未命名人物'"
           :collapsed="person.id !== activePersonId"
+          :disabled="person.enabled === false"
+          @toggle="togglePerson(person.id)"
         >
-          <template #header>
-            <div class="cv-person-panel-header" @click="togglePerson(person.id)">
-              <div class="cv-person-panel-title">
-                <span>{{ person.name || '未命名人物' }}</span>
-              </div>
-              <div class="cv-person-panel-actions-wrapper">
-                <div class="cv-person-panel-actions" @click.stop @keydown.stop>
-                  <ToggleSwitch v-model="person.enabled" :aria-label="getPersonEnabledLabel(person)" />
-                  <Button
-                    icon="fa-solid fa-trash"
-                    severity="danger"
-                    text
-                    rounded
-                    aria-label="删除人物"
-                    @click="deletePerson(person)"
-                  />
-                </div>
-                <i
-                  :class="[
-                    'fa-solid',
-                    person.id !== activePersonId ? 'fa-caret-right' : 'fa-caret-down',
-                    'cv-toggle-icon',
-                  ]"
-                />
-              </div>
-            </div>
+          <template #actions>
+            <ToggleSwitch v-model="person.enabled" :aria-label="getPersonEnabledLabel(person)" />
+            <Button
+              icon="fa-solid fa-trash"
+              severity="danger"
+              text
+              rounded
+              aria-label="删除人物"
+              @click="deletePerson(person)"
+            />
           </template>
 
           <section class="cv-person-editor">
@@ -117,7 +103,7 @@
               :user-persona-key="getSelectedUserPersonaKey(person)"
             />
           </section>
-        </Panel>
+        </CollapsiblePanelItem>
       </div>
 
       <section v-else class="cv-person-empty-panel">
@@ -196,6 +182,7 @@
 </template>
 
 <script setup lang="ts">
+import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import PromptSourceEntryList from '@/panel/components/PromptSourceEntryList.vue';
 import type { PromptPerson, PromptPersonInsertMode, PromptPersonKind } from '@/constants/novelai';
 import { useSettingsStore } from '@/store/settings';
@@ -518,72 +505,15 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
   padding: var(--cv-space-2xl);
 }
 
-.cv-person-panel-list,
-.cv-person-panel-title {
+.cv-person-panel-list {
   display: flex;
   flex-direction: column;
-  gap: var(--cv-space-md);
-}
-
-.cv-person-panel-list {
   gap: var(--cv-space-xl);
-}
-
-.cv-person-panel {
-  overflow: hidden;
-  border: var(--cv-border-width) solid var(--cv-surface-variant);
-  border-radius: var(--cv-radius-sm);
-  background: var(--cv-surface-container-low);
-}
-
-.cv-person-panel--disabled :deep(.cv-prime-panel-header),
-.cv-person-panel--disabled :deep(.cv-prime-panel-content) {
-  opacity: 0.62;
-}
-
-.cv-person-panel-header {
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--cv-space-lg);
-  min-width: 0;
-  cursor: pointer;
-}
-
-.cv-person-panel-actions-wrapper {
-  display: flex;
-  align-items: center;
-  gap: var(--cv-space-sm);
-}
-
-.cv-toggle-icon {
-  color: var(--cv-on-surface-variant);
-  transition: transform 0.2s ease;
-}
-
-.cv-person-panel-title {
-  min-width: 0;
-}
-
-.cv-person-panel-title > span {
-  overflow: hidden;
-  color: var(--cv-on-surface);
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .cv-muted {
   color: var(--cv-on-surface-variant);
   font-size: calc(var(--mainFontSize) * 0.78);
-}
-
-.cv-person-panel-actions {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: var(--cv-space-sm);
 }
 
 .cv-person-editor {

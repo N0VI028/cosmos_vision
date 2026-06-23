@@ -22,6 +22,18 @@ export async function parseNovelAIVibeFile(file: File): Promise<ParsedNovelAIVib
 }
 
 /**
+ * 解析用户上传的 vibe 缩略图
+ * @param file 缩略图文件
+ * @returns 缩略图 data URL
+ */
+export async function parseNovelAIVibeThumbnailFile(file: File): Promise<string> {
+  if (!isImageFile(file)) throw new Error('缩略图仅支持图片文件');
+  const buffer = await file.arrayBuffer();
+  const mime = file.type || 'application/octet-stream';
+  return `data:${mime};base64,${arrayBufferToBase64(buffer)}`;
+}
+
+/**
  * 提取 data URL 中的 base64 主体
  * @param value 图片 data URL 或纯 base64
  * @returns base64 主体

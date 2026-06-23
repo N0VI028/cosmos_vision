@@ -42,6 +42,16 @@ export async function saveNovelAIVibeEncodedData(
 }
 
 /**
+ * 保存 NovelAI vibe 缩略图
+ * @param sourceHash vibe 来源 hash
+ * @param thumbnailData 缩略图 data URL
+ */
+export async function saveNovelAIVibeThumbnailData(sourceHash: string, thumbnailData: string): Promise<void> {
+  const records = await getNovelAIVibeSourceRecords(sourceHash);
+  await Promise.all(records.map(record => upsertNovelAIVibeRecord({ ...record, thumbnailData })));
+}
+
+/**
  * 读取 vibe 原图 data URL
  * @param sourceHash vibe 来源 hash
  * @returns 原图 data URL 或 null
@@ -124,10 +134,24 @@ async function getNovelAIVibeSourceRecords(sourceHash: string): Promise<NovelAIV
  */
 async function upsertNovelAIVibeRecord(record: NovelAIVibeCacheRecord): Promise<void> {
   const existing = await findNovelAIVibeRecord(record.sourceHash, item => isSameCacheKey(item, record));
-  const next = { ...record, id: existing?.id, createdAt: existing?.createdAt ?? record.createdAt };
+  const next = createUpsertRecord(record, existing);
   const db = await openNovelAIVibeDb();
   const request = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).put(next);
   await requestToPromise(request);
+}
+
+/**
+ * 创建可写入 IndexedDB 的 upsert 记录
+ * @param record 新缓存记录
+ * @param existing 已有缓存记录
+ * @returns 可写入记录
+ */
+function createUpsertRecord(
+  record: NovelAIVibeCacheRecord,
+  existing: NovelAIVibeCacheRecord | null,
+): NovelAIVibeCacheRecord {
+  if (typeof existing?.id !== 'number') return record;
+  return { ...record, id: existing.id, createdAt: existing.createdAt ?? record.createdAt };
 }
 
 /**
@@ -221,8 +245,28 @@ function buildCacheSummary(
   const fileName = records[0]?.fileName ?? sourceHash.slice(0, 8);
   const hasImage = records.some(record => record.sourceType === 'image' && Boolean(record.imageData));
   const hasEncoded = records.some(record => record.sourceType === 'encoded-vibe' && Boolean(record.encodedData));
-  const hasExactEncoded = records.some(record => isExactEncodedRecord(record, model, informationExtracted) && Boolean(record.encodedData));
-  return { sourceHash, fileName, sourceType: hasImage ? 'image' : 'encoded-vibe', hasImage, hasEncoded, hasExactEncoded };
+  const hasExactEncoded = records.some(record =>
+    isExactEncodedRecord(record, model, informationExtracted) && Boolean(record.encodedData),
+  );
+  return {
+    sourceHash,
+    fileName,
+    sourceType: hasImage ? 'image' : 'encoded-vibe',
+    hasImage,
+    hasEncoded,
+    hasExactEncoded,
+    thumbnailData: getThumbnailData(records),
+  };
+}
+
+/**
+ * 读取缩略图数据
+ * @param records 同源缓存记录
+ * @returns 缩略图 data URL 或 undefined
+ */
+function getThumbnailData(records: NovelAIVibeCacheRecord[]): string | undefined {
+  const explicitThumbnail = records.find(record => Boolean(record.thumbnailData))?.thumbnailData;
+  return explicitThumbnail ?? records.find(record => Boolean(record.imageData))?.imageData;
 }
 
 /**

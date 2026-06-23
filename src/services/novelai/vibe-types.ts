@@ -22,6 +22,7 @@ export interface NovelAIVibeCacheRecord {
   informationExtracted: number;
   imageData?: string;
   encodedData?: string;
+  thumbnailData?: string;
   createdAt: number;
 }
 
@@ -33,6 +34,7 @@ export interface NovelAIVibeCacheSummary {
   hasImage: boolean;
   hasEncoded: boolean;
   hasExactEncoded: boolean;
+  thumbnailData?: string;
 }
 
 /** NovelAI 官方请求中的 vibe 三组数组 */

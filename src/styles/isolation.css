@@ -200,13 +200,6 @@
   border-color: var(--p-inputtext-invalid-border-color, var(--p-red-500)) !important;
 }
 
-/* Select label 承载可见文本,内边距必须落在 label 上 */
-.cosmos-vision-root .cv-prime-field > .cv-prime-field-text,
-#cosmos_vision .cv-prime-field > .cv-prime-field-text {
-  padding-block: var(--p-select-padding-y, var(--p-form-field-padding-y)) !important;
-  padding-inline: var(--p-select-padding-x, var(--p-form-field-padding-x)) !important;
-}
-
 /* Textarea */
 .cosmos-vision-root textarea.cv-prime-textarea,
 #cosmos_vision textarea.cv-prime-textarea {

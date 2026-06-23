@@ -18,7 +18,6 @@ import {
   buildPromptLlmContextFromParagraph,
   findChatParagraph,
 } from '@/services/sillytavern/chat-dom';
-import { showTextInputPopup } from '@/services/sillytavern/popup';
 import {
   generatePromptFromRuntimeContext,
   generatePromptTextFromRuntimeContext,
@@ -28,6 +27,20 @@ import Button from 'primevue/button';
 import { getCurrentInstance, h, render } from 'vue';
 
 type RuntimeEnabledGetter = () => boolean;
+
+export interface InlineTextInputOptions {
+  title?: string;
+  message: string;
+  defaultValue?: string;
+  rows?: number;
+  acceptLabel?: string;
+  cancelLabel?: string;
+}
+
+interface InlineImageGenerationOptions {
+  isRuntimeEnabled?: RuntimeEnabledGetter;
+  requestTextInput: (options: InlineTextInputOptions) => Promise<string | null>;
+}
 
 interface InlineGenerationResult {
   imageBlob: Blob;
@@ -53,8 +66,11 @@ type InlineGenerationTask = (
  */
 export function useInlineImageGeneration(
   settings: CosmosVisionSettings,
-  isRuntimeEnabled: RuntimeEnabledGetter = () => true,
+  options: InlineImageGenerationOptions,
 ) {
+  const isRuntimeEnabled = options.isRuntimeEnabled ?? (() => true);
+  const requestTextInput = options.requestTextInput;
+
   /** 当前组件实例上下文,用于把 PrimeVue Button 渲染到聊天内联 DOM */
   const appContext = getCurrentInstance()?.appContext;
 
@@ -380,8 +396,9 @@ export function useInlineImageGeneration(
   async function handleGenerateWithFreshPrompt(paragraph = selectedParagraph.value): Promise<void> {
     if (!paragraph) return;
     exitSelectionMode();
-    const specialRequest = await showTextInputPopup({
-      message: '<h3>本次临时追加要求</h3><small>可输入本次生图的临时追加要求，如无，可不填写直接确定</small>',
+    const specialRequest = await requestTextInput({
+      title: '本次临时追加要求',
+      message: '可输入本次生图的临时追加要求，如无，可不填写直接确定',
       rows: 4,
     });
     if (specialRequest === null) return;

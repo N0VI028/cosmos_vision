@@ -443,6 +443,7 @@ function handleCustomPrompt(accept: boolean): void {
  * 聚焦输入框
  */
 function focusPromptInput(): void {
+  if (isMobile.value) return;
   nextTick(() => {
     const el = promptInputRef.value?.$el || promptInputRef.value;
     if (el) {

@@ -1,7 +1,7 @@
 <template>
   <div class="cv-field cv-vibe-panel">
     <div class="cv-vibe-toolbar">
-      <span>vibe</span>
+      <span>Vibe Transfer</span>
       <Button label="添加" icon="fa-solid fa-plus" size="small" @click="triggerFileInput" />
       <input
         ref="fileInput"
@@ -11,65 +11,85 @@
         class="hidden"
         @change="handleFileChange"
       />
+      <input
+        ref="thumbnailFileInput"
+        type="file"
+        accept="image/*"
+        class="hidden"
+        @change="handleThumbnailFileChange"
+      />
     </div>
+
     <div v-if="!vibes.length" class="cv-vibe-empty">暂无 vibe</div>
     <div v-else class="cv-vibe-list">
-      <details v-for="vibe in vibes" :key="vibe.id" class="cv-vibe-item">
-        <summary class="cv-vibe-summary">
-          <Checkbox
-            :model-value="vibe.enabled"
-            binary
-            :aria-label="`${getFileName(vibe)} 启用状态`"
-            @click.stop
-            @update:model-value="updateVibe(vibe.id, { enabled: Boolean($event) })"
-          />
-          <span class="cv-vibe-name">{{ getFileName(vibe) }}</span>
-          <span class="cv-vibe-status">{{ getStatusText(vibe) }}</span>
-          <Button
+      <CollapsiblePanelItem
+        v-for="vibe in vibes"
+        :key="vibe.id"
+        :title="getDisplayFileName(vibe)"
+        :collapsed="vibe.id !== activeVibeId"
+        :disabled="!vibe.enabled"
+        @toggle="toggleVibe(vibe.id)"
+      >
+        <template #actions>
+          <div
             v-if="showParseButton(vibe)"
-            icon="fa-solid fa-wand-magic-sparkles"
-            label="解析"
-            size="small"
-            text
-            :loading="isParsing(vibe.id)"
-            @click.prevent.stop="parseVibe(vibe)"
+            class="cv-vibe-parse"
+            :class="{ 'cv-vibe-parse-busy': isParsing(vibe.id) }"
+            role="button"
+            tabindex="0"
+            aria-label="解析 vibe"
+            @click="parseVibe(vibe)"
+            @keydown.enter="parseVibe(vibe)"
+          >
+            <i :class="isParsing(vibe.id) ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-wand-magic-sparkles'" />
+            <span>解析</span>
+          </div>
+          <ToggleSwitch
+            :model-value="vibe.enabled"
+            :aria-label="getEnabledLabel(vibe)"
+            @update:model-value="updateVibe(vibe.id, { enabled: Boolean($event) })"
           />
           <Button
             icon="fa-solid fa-trash"
             severity="danger"
             size="small"
             text
+            rounded
             aria-label="删除 vibe"
-            @click.prevent.stop="removeVibe(vibe.id)"
+            @click="removeVibe(vibe.id)"
           />
-        </summary>
-        <div class="cv-vibe-controls">
-          <label class="cv-vibe-control">
-            <span>参考强度</span>
-            <InputNumber
-              :model-value="vibe.referenceStrength"
-              :min="0"
-              :max="1"
-              :step="0.01"
-              :min-fraction-digits="2"
-              :max-fraction-digits="2"
-              @update:model-value="updateNumber(vibe.id, 'referenceStrength', $event)"
-            />
-          </label>
-          <label class="cv-vibe-control">
-            <span>信息提取</span>
-            <InputNumber
-              :model-value="vibe.informationExtracted"
-              :min="0"
-              :max="1"
-              :step="0.01"
-              :min-fraction-digits="2"
-              :max-fraction-digits="2"
-              @update:model-value="updateNumber(vibe.id, 'informationExtracted', $event)"
-            />
-          </label>
-        </div>
-      </details>
+        </template>
+
+        <section class="cv-vibe-editor">
+          <button
+            type="button"
+            class="cv-vibe-thumbnail"
+            :aria-label="`${getDisplayFileName(vibe)} 缩略图`"
+            @click="triggerThumbnailInput(vibe)"
+          >
+            <img v-if="getThumbnailData(vibe)" :src="getThumbnailData(vibe)" alt="" />
+            <span v-else class="cv-vibe-thumbnail-placeholder">
+              <i class="fa-solid fa-image" />
+            </span>
+            <span class="cv-vibe-thumbnail-action">上传缩略图</span>
+          </button>
+
+          <div class="cv-vibe-controls">
+            <label v-for="field in VIBE_NUMBER_FIELDS" :key="field.key" class="cv-vibe-control">
+              <span>{{ field.label }}</span>
+              <InputNumber
+                :model-value="vibe[field.key]"
+                :min="0"
+                :max="1"
+                :step="0.01"
+                :min-fraction-digits="2"
+                :max-fraction-digits="2"
+                @update:model-value="updateNumber(vibe.id, field.key, $event)"
+              />
+            </label>
+          </div>
+        </section>
+      </CollapsiblePanelItem>
     </div>
   </div>
 </template>
@@ -83,13 +103,23 @@ import {
   type ImagePromptVibeRef,
 } from '@/constants/image-prompt';
 import { isNovelAIV3Model, type NovelAISettings } from '@/constants/novelai';
+import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import { getNovelAIRequestAccounts } from '@/services/novelai/router';
-import { saveNovelAIVibeFilePayload, summarizeNovelAIVibeCache } from '@/services/novelai/vibe-cache';
-import { parseNovelAIVibeFile } from '@/services/novelai/vibe-file';
+import {
+  saveNovelAIVibeFilePayload,
+  saveNovelAIVibeThumbnailData,
+  summarizeNovelAIVibeCache,
+} from '@/services/novelai/vibe-cache';
+import { parseNovelAIVibeFile, parseNovelAIVibeThumbnailFile } from '@/services/novelai/vibe-file';
 import { resolveNovelAIVibeParameters } from '@/services/novelai/vibe-parameters';
 import type { NovelAIVibeCacheSummary, ParsedNovelAIVibeFile } from '@/services/novelai/vibe-types';
 
 type VibeNumberKey = 'referenceStrength' | 'informationExtracted';
+
+const VIBE_NUMBER_FIELDS: Array<{ key: VibeNumberKey; label: string }> = [
+  { key: 'referenceStrength', label: '参考强度' },
+  { key: 'informationExtracted', label: '信息提取' },
+];
 
 const props = defineProps<{
   vibes: ImagePromptVibeRef[];
@@ -101,6 +131,9 @@ const emit = defineEmits<{
 }>();
 
 const fileInput = ref<HTMLInputElement | null>(null);
+const thumbnailFileInput = ref<HTMLInputElement | null>(null);
+const thumbnailTargetVibeId = ref('');
+const activeVibeId = ref('');
 const summaries = ref<Record<string, NovelAIVibeCacheSummary>>({});
 const parsingIds = ref<string[]>([]);
 const refreshSections = inject<(() => void) | undefined>('refreshSections');
@@ -111,11 +144,27 @@ watch(
   { deep: true, immediate: true },
 );
 
+watch(
+  () => props.vibes.map(vibe => vibe.id),
+  ids => {
+    if (!ids.includes(activeVibeId.value)) activeVibeId.value = '';
+  },
+);
+
 /**
  * 打开文件选择器
  */
 function triggerFileInput(): void {
   fileInput.value?.click();
+}
+
+/**
+ * 打开缩略图文件选择器
+ * @param vibe vibe 引用
+ */
+function triggerThumbnailInput(vibe: ImagePromptVibeRef): void {
+  thumbnailTargetVibeId.value = vibe.id;
+  thumbnailFileInput.value?.click();
 }
 
 /**
@@ -134,6 +183,36 @@ async function handleFileChange(event: Event): Promise<void> {
   } finally {
     input.value = '';
   }
+}
+
+/**
+ * 处理缩略图文件上传
+ * @param event 文件选择事件
+ */
+async function handleThumbnailFileChange(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  try {
+    if (file) await saveThumbnailFile(file);
+  } catch (error) {
+    handleVibeError(error, '保存缩略图失败');
+  } finally {
+    input.value = '';
+    thumbnailTargetVibeId.value = '';
+  }
+}
+
+/**
+ * 保存缩略图文件到浏览器缓存
+ * @param file 缩略图文件
+ */
+async function saveThumbnailFile(file: File): Promise<void> {
+  const vibe = props.vibes.find(item => item.id === thumbnailTargetVibeId.value);
+  if (!vibe) return;
+  const thumbnailData = await parseNovelAIVibeThumbnailFile(file);
+  await saveNovelAIVibeThumbnailData(vibe.sourceHash, thumbnailData);
+  toastr.success('缩略图已保存');
+  await refreshSummaries();
 }
 
 /**
@@ -186,6 +265,14 @@ async function parseVibe(vibe: ImagePromptVibeRef): Promise<void> {
     setParsing(vibe.id, false);
     await refreshSummaries();
   }
+}
+
+/**
+ * 切换 vibe 面板折叠状态
+ * @param id vibe ID
+ */
+function toggleVibe(id: string): void {
+  activeVibeId.value = activeVibeId.value === id ? '' : id;
 }
 
 /**
@@ -247,43 +334,32 @@ async function loadSummaryEntry(vibe: ImagePromptVibeRef): Promise<[string, Nove
 }
 
 /**
- * 读取 vibe 文件名
+ * 读取展示文件名
  * @param vibe vibe 引用
  * @returns 文件名
  */
-function getFileName(vibe: ImagePromptVibeRef): string {
-  return summaries.value[vibe.id]?.fileName ?? vibe.sourceHash.slice(0, 8);
-}
-
-/**
- * 读取当前解析状态文本
- * @param vibe vibe 引用
- * @returns 状态文本
- */
-function getStatusText(vibe: ImagePromptVibeRef): string {
-  if (isParsing(vibe.id)) return '解析中';
+function getDisplayFileName(vibe: ImagePromptVibeRef): string {
   const summary = summaries.value[vibe.id];
-  if (!summary) return '检查中';
-  return isNovelAIV3Model(props.settings.model) ? getV3StatusText(summary) : getV4StatusText(summary);
+  const fileName = summary?.fileName ?? vibe.sourceHash.slice(0, 8);
+  return shouldUseVibeExtension(summary) ? replaceFileExtension(fileName, 'vibe') : fileName;
 }
 
 /**
- * 读取 V3 模型下的 vibe 状态
- * @param summary 缓存摘要
- * @returns 状态文本
+ * 读取 vibe 缩略图
+ * @param vibe vibe 引用
+ * @returns 缩略图 data URL 或 undefined
  */
-function getV3StatusText(summary: NovelAIVibeCacheSummary): string {
-  return summary.hasImage ? 'V3 原图' : 'V3 需原图';
+function getThumbnailData(vibe: ImagePromptVibeRef): string | undefined {
+  return summaries.value[vibe.id]?.thumbnailData;
 }
 
 /**
- * 读取 V4/V4.5 模型下的 vibe 状态
- * @param summary 缓存摘要
- * @returns 状态文本
+ * 读取启用状态文案
+ * @param vibe vibe 引用
+ * @returns 可访问名称
  */
-function getV4StatusText(summary: NovelAIVibeCacheSummary): string {
-  if (summary.hasExactEncoded || (!summary.hasImage && summary.hasEncoded)) return '已解析';
-  return summary.hasImage ? '待解析' : '缓存缺失';
+function getEnabledLabel(vibe: ImagePromptVibeRef): string {
+  return vibe.enabled ? '禁用 vibe' : '启用 vibe';
 }
 
 /**
@@ -293,11 +369,16 @@ function getV4StatusText(summary: NovelAIVibeCacheSummary): string {
  */
 function showParseButton(vibe: ImagePromptVibeRef): boolean {
   const summary = summaries.value[vibe.id];
-  return Boolean(summary?.hasImage && !summary.hasExactEncoded && !isNovelAIV3Model(props.settings.model));
+  return Boolean(
+    summary?.sourceType === 'image' &&
+      summary.hasImage &&
+      !summary.hasExactEncoded &&
+      !isNovelAIV3Model(props.settings.model),
+  );
 }
 
 /**
- * 判断 vibe 是否正在解析
+ * 判断是否正在解析
  * @param id vibe ID
  * @returns 是否解析中
  */
@@ -312,6 +393,26 @@ function isParsing(id: string): boolean {
  */
 function setParsing(id: string, active: boolean): void {
   parsingIds.value = active ? [...parsingIds.value, id] : parsingIds.value.filter(item => item !== id);
+}
+
+/**
+ * 判断是否使用 vibe 扩展名展示
+ * @param summary 缓存摘要
+ * @returns 是否使用 vibe 扩展名
+ */
+function shouldUseVibeExtension(summary: NovelAIVibeCacheSummary | undefined): boolean {
+  return Boolean(summary?.sourceType === 'image' && summary.hasEncoded);
+}
+
+/**
+ * 替换文件扩展名
+ * @param fileName 原文件名
+ * @param extension 新扩展名
+ * @returns 替换后的文件名
+ */
+function replaceFileExtension(fileName: string, extension: string): string {
+  const baseName = fileName.replace(/\.[^.\\/]+$/, '');
+  return `${baseName}.${extension}`;
 }
 
 /**
@@ -360,43 +461,86 @@ function handleVibeError(error: unknown, fallback: string): void {
 .cv-vibe-list {
   display: flex;
   flex-direction: column;
-  gap: var(--cv-space-lg);
+  gap: var(--cv-space-xl);
 }
 
-.cv-vibe-item {
+.cv-vibe-parse {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cv-space-sm);
+  padding: 0 var(--cv-space-sm);
+  color: var(--cv-on-surface-variant);
+  font-size: calc(var(--mainFontSize) * 0.82);
+  cursor: pointer;
+  user-select: none;
+}
+
+.cv-vibe-parse:hover {
+  color: var(--cv-on-surface);
+}
+
+.cv-vibe-parse-busy {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.cv-vibe-editor {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 10rem) minmax(0, 1fr);
+  gap: var(--cv-space-2xl);
+  padding: var(--cv-space-2xl);
+  border-top: var(--cv-border-width) solid var(--cv-surface-variant);
+}
+
+.cv-vibe-thumbnail {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  padding: 0;
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   border-radius: var(--cv-radius-sm);
-  background: color-mix(in srgb, var(--cv-surface-container-low) 56%, transparent);
-}
-
-.cv-vibe-summary {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
-  align-items: center;
-  gap: var(--cv-space-lg);
-  padding: var(--cv-space-lg);
+  background: var(--cv-surface-container-high);
+  color: var(--cv-on-surface-variant);
   cursor: pointer;
 }
 
-.cv-vibe-name {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--cv-on-surface);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.cv-vibe-thumbnail > img,
+.cv-vibe-thumbnail-placeholder {
+  width: 100%;
+  height: 100%;
 }
 
-.cv-vibe-status {
-  color: var(--cv-on-surface-variant);
-  font-size: calc(var(--mainFontSize) * 0.85);
-  white-space: nowrap;
+.cv-vibe-thumbnail > img {
+  display: block;
+  object-fit: cover;
+}
+
+.cv-vibe-thumbnail-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(var(--mainFontSize) * 1.4);
+}
+
+.cv-vibe-thumbnail-action {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: var(--cv-space-sm);
+  background: color-mix(in srgb, var(--cv-surface-container-high) 86%, transparent);
+  color: var(--cv-on-surface);
+  font-size: calc(var(--mainFontSize) * 0.78);
+  text-align: center;
 }
 
 .cv-vibe-controls {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   gap: var(--cv-space-xl);
-  padding: 0 var(--cv-space-lg) var(--cv-space-lg);
+  min-width: 0;
 }
 
 .cv-vibe-control {
@@ -409,16 +553,8 @@ function handleVibeError(error: unknown, fallback: string): void {
 }
 
 @media (max-width: 38rem) {
-  .cv-vibe-summary {
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
-  }
-
-  .cv-vibe-status {
-    grid-column: 2 / -1;
-  }
-
-  .cv-vibe-controls {
-    grid-template-columns: 1fr;
+  .cv-vibe-editor {
+    grid-template-columns: minmax(6rem, 8rem) minmax(0, 1fr);
   }
 }
 </style>

@@ -13,6 +13,17 @@
     </div>
   </Teleport>
   <SettingsDialog v-model:visible="settingsVisible" />
+  <TextInputDialog
+    v-model:visible="textInputDialogVisible"
+    v-model:value="textInputDialogState.value"
+    :title="textInputDialogState.title"
+    :message="textInputDialogState.message"
+    :rows="textInputDialogState.rows"
+    :accept-label="textInputDialogState.acceptLabel"
+    :cancel-label="textInputDialogState.cancelLabel"
+    :dark-mode="savedSettings.darkMode"
+    @submit="handleTextInputDialog"
+  />
   <Teleport to="body">
     <!-- 顶部生图模式提示蒙版 -->
     <Transition name="cv-fade">
@@ -95,8 +106,19 @@
 import { useDraggable, useLocalStorage, useWindowSize, onClickOutside } from '@vueuse/core';
 import { DARK_CLASS } from '@/constants/theme';
 import SettingsDialog from '@/panel/SettingsDialog.vue';
+import TextInputDialog from '@/panel/components/TextInputDialog.vue';
 import { useSettingsStore } from '@/store/settings';
-import { useInlineImageGeneration } from '@/composables/useInlineImageGeneration';
+import { useInlineImageGeneration, type InlineTextInputOptions } from '@/composables/useInlineImageGeneration';
+
+interface TextInputDialogState {
+  title: string;
+  message: string;
+  value: string;
+  rows: number;
+  acceptLabel: string;
+  cancelLabel: string;
+  resolve: (value: string | null) => void;
+}
 
 /** 设置弹窗显隐状态 */
 const settingsVisible = ref(false);
@@ -106,10 +128,24 @@ const speedDialOpen = ref(false);
 
 const { savedSettings } = useSettingsStore();
 
+const textInputDialogVisible = ref(false);
+const textInputDialogState = ref<TextInputDialogState>({
+  title: '',
+  message: '',
+  value: '',
+  rows: 4,
+  acceptLabel: '确定',
+  cancelLabel: '取消',
+  resolve: () => {},
+});
+
 /** 段落生图运行时控制器 */
 const { isSelectionMode, toggleSelectionMode, exitSelectionMode, cleanup } = useInlineImageGeneration(
   savedSettings,
-  () => savedSettings.enabled,
+  {
+    isRuntimeEnabled: () => savedSettings.enabled,
+    requestTextInput: showTextInputDialog,
+  },
 );
 
 // ── 悬浮球拖动 ─────────────────────────────────────────────
@@ -209,6 +245,34 @@ function handleSettingsClick(): void {
   settingsVisible.value = true;
 }
 
+/**
+ * 显示 PrimeVue 文本输入弹窗
+ * @param options 弹窗配置
+ * @returns 用户输入文本或取消状态
+ */
+function showTextInputDialog(options: InlineTextInputOptions): Promise<string | null> {
+  return new Promise(resolve => {
+    textInputDialogState.value = {
+      title: options.title ?? '输入',
+      message: options.message,
+      value: options.defaultValue ?? '',
+      rows: options.rows ?? 4,
+      acceptLabel: options.acceptLabel ?? '确定',
+      cancelLabel: options.cancelLabel ?? '取消',
+      resolve,
+    };
+    textInputDialogVisible.value = true;
+  });
+}
+
+/**
+ * 处理文本输入弹窗结果
+ * @param value 输入文本或取消状态
+ */
+function handleTextInputDialog(value: string | null): void {
+  textInputDialogState.value.resolve(value);
+}
+
 // ── 生命周期 ─────────────────────────────────────────────
 
 watch(
@@ -228,6 +292,7 @@ watch(isSelectionMode, active => {
 });
 
 onBeforeUnmount(() => {
+  if (textInputDialogVisible.value) textInputDialogState.value.resolve(null);
   cleanup();
 });
 </script>

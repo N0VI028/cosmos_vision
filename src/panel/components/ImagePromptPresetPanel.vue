@@ -87,14 +87,14 @@ const PRESET_FIELDS = [
   {
     kind: 'positive',
     label: '正面提示词',
-    sectionLabel: '正面',
+    sectionLabel: '正面预设',
     promptLabel: '提示词',
     defaultPresetId: DEFAULT_POSITIVE_PROMPT_PRESET_ID,
   },
   {
     kind: 'negative',
     label: '负面提示词',
-    sectionLabel: '负面',
+    sectionLabel: '负面预设',
     promptLabel: '提示词',
     defaultPresetId: DEFAULT_NEGATIVE_PROMPT_PRESET_ID,
   },
