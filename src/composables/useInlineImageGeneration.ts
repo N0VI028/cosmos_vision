@@ -27,6 +27,7 @@ import Button from 'primevue/button';
 import { getCurrentInstance, h, render } from 'vue';
 
 type RuntimeEnabledGetter = () => boolean;
+type PromptLlmSchemaFields = ReturnType<typeof buildPromptLlmSchemaFields>;
 
 export interface InlineTextInputOptions {
   title?: string;
@@ -83,9 +84,6 @@ export function useInlineImageGeneration(
 
   /** 当前选中的段落 DOM 引用 */
   const selectedParagraph = ref<HTMLElement | null>(null);
-
-  /** 当前是否正在生成 */
-  const isGenerating = ref(false);
 
   /** 是否处于段落生图选择模式 */
   const isSelectionMode = ref(false);
@@ -422,6 +420,7 @@ export function useInlineImageGeneration(
 
   /**
    * 执行一次完整的内联生图流程
+   * 支持多段落并发:不同段落可同时发起生图,同一段落重复触发时保留最新请求
    * @param paragraph 目标段落
    * @param requiresPromptLlm 是否需要先校验 Prompt LLM
    * @param task 实际生图任务
@@ -431,7 +430,7 @@ export function useInlineImageGeneration(
     requiresPromptLlm: boolean,
     task: InlineGenerationTask,
   ): Promise<void> {
-    if (!isRuntimeEnabled() || isGenerating.value) return;
+    if (!isRuntimeEnabled()) return;
     const requestError = getGenerationRequestError(requiresPromptLlm);
     if (requestError) {
       toastr.warning(requestError);
@@ -453,24 +452,22 @@ export function useInlineImageGeneration(
       generationSession.handleFailure(error, session, retryTask);
     } finally {
       generationSession.clear(session);
-      isGenerating.value = false;
     }
   }
 
   /**
    * 启动一次内联生成会话
+   * 同段落若已有活动请求，会话控制器内部会先取消旧请求再创建新会话
    * @param paragraph 目标段落
    * @param requiresPromptLlm 是否需要先生成提示词
    * @returns 生成会话
    */
   function startGenerationSession(paragraph: HTMLElement, requiresPromptLlm: boolean): InlineGenerationSession {
-    isGenerating.value = true;
     exitSelectionMode();
     const imageContainer = imageContainers.get(paragraph);
-    if (imageContainer) {
-      return generationSession.start(imageContainer, getInitialStatusText(requiresPromptLlm), 'overlay');
-    }
-    return generationSession.start(paragraph, getInitialStatusText(requiresPromptLlm));
+    const target = imageContainer ?? paragraph;
+    const placement = imageContainer ? 'overlay' : 'after';
+    return generationSession.start(paragraph, target, getInitialStatusText(requiresPromptLlm), placement);
   }
 
   /**
@@ -511,6 +508,41 @@ export function useInlineImageGeneration(
     if (imageRequestError) return imageRequestError;
     if (!requiresPromptLlm) return null;
     return getPromptLlmRequestError(settings.promptLlm);
+  }
+
+  /**
+   * 执行 Prompt LLM 阶段并在完成后校验请求仍有效
+   * @param session 生成会话
+   * @param task 实际的 Prompt LLM 请求
+   * @returns Prompt LLM 阶段结果
+   */
+  async function runPromptLlmStep<T>(
+    session: InlineGenerationSession,
+    task: (schemaFields: PromptLlmSchemaFields) => Promise<T>,
+  ): Promise<T> {
+    session.status.setStatus('正在生成提示词...');
+    const result = await task(buildPromptLlmSchemaFields(settings.promptLlm));
+    generationSession.ensureActive(session);
+    return result;
+  }
+
+  /**
+   * 切换到图片生成阶段并保留失败重试所需的提示词快照
+   * @param session 生成会话
+   * @param retrySnapshot 生图失败时可复用的提示词快照
+   * @param task 实际的图片生成任务
+   * @param onSnapshotResolved LLM 成功后回调，传出提示词快照
+   * @returns 图片与提示词快照
+   */
+  async function runImageStep(
+    session: InlineGenerationSession,
+    retrySnapshot: InlinePromptSnapshot,
+    task: () => Promise<InlineGenerationResult>,
+    onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
+  ): Promise<InlineGenerationResult> {
+    onSnapshotResolved?.(retrySnapshot);
+    session.status.setStatus('正在生成图片...');
+    return task();
   }
 
   /**
@@ -581,17 +613,16 @@ export function useInlineImageGeneration(
     session: InlineGenerationSession,
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
   ): Promise<InlineGenerationResult> {
-    session.status.setStatus('正在生成提示词...');
-    const schemaFields = buildPromptLlmSchemaFields(settings.promptLlm);
-    const rawResponse = await generatePromptTextFromRuntimeContext(
-      context,
-      settings.promptLlm,
-      settings.promptLlmMessagePresets,
-      settings.promptProfiles,
-      schemaFields,
-      { generationId: session.promptGenerationId },
+    const rawResponse = await runPromptLlmStep(session, schemaFields =>
+      generatePromptTextFromRuntimeContext(
+        context,
+        settings.promptLlm,
+        settings.promptLlmMessagePresets,
+        settings.promptProfiles,
+        schemaFields,
+        { generationId: session.promptGenerationId },
+      ),
     );
-    generationSession.ensureActive(session);
 
     const overrides = buildNovelAILlmPromptOverrides(settings.promptLlm, rawResponse);
     const request = buildNovelAIResolvedRequest(
@@ -600,16 +631,18 @@ export function useInlineImageGeneration(
       settings.promptLlm,
       overrides,
     );
-
-    // LLM 阶段成功，通知调用方提示词快照（用于生图失败时的重试）
-    onSnapshotResolved?.(request.prompts);
-
-    session.status.setStatus('正在生成图片...');
-    const result = await generateNovelAIImageFromResolvedRequest(request, { signal: session.controller.signal });
-    return {
-      promptSnapshot: result.prompts,
-      imageBlob: result.imageBlob,
-    };
+    return runImageStep(
+      session,
+      request.prompts,
+      async () => {
+        const result = await generateNovelAIImageFromResolvedRequest(request, { signal: session.controller.signal });
+        return {
+          promptSnapshot: result.prompts,
+          imageBlob: result.imageBlob,
+        };
+      },
+      onSnapshotResolved,
+    );
   }
 
   /**
@@ -624,30 +657,29 @@ export function useInlineImageGeneration(
     session: InlineGenerationSession,
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
   ): Promise<InlineGenerationResult> {
-    session.status.setStatus('正在生成提示词...');
-    const schemaFields = buildPromptLlmSchemaFields(settings.promptLlm);
-    const prompts = await generatePromptFromRuntimeContext(
-      context,
-      settings.promptLlm,
-      settings.promptLlmMessagePresets,
-      settings.promptProfiles,
-      schemaFields,
-      { generationId: session.promptGenerationId },
+    const prompts = await runPromptLlmStep(session, schemaFields =>
+      generatePromptFromRuntimeContext(
+        context,
+        settings.promptLlm,
+        settings.promptLlmMessagePresets,
+        settings.promptProfiles,
+        schemaFields,
+        { generationId: session.promptGenerationId },
+      ),
     );
-    generationSession.ensureActive(session);
 
     const request = buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, prompts);
-
-    // LLM 阶段成功，通知调用方提示词快照（用于生图失败时的重试）
-    onSnapshotResolved?.(request.snapshot);
-
-    session.status.setStatus('正在生成图片...');
-    return {
-      promptSnapshot: request.snapshot,
-      imageBlob: await generateComfyUIImageFromResolvedRequest(settings.comfyui, request, {
-        signal: session.controller.signal,
+    return runImageStep(
+      session,
+      request.snapshot,
+      async () => ({
+        promptSnapshot: request.snapshot,
+        imageBlob: await generateComfyUIImageFromResolvedRequest(settings.comfyui, request, {
+          signal: session.controller.signal,
+        }),
       }),
-    };
+      onSnapshotResolved,
+    );
   }
 
   /**
@@ -691,13 +723,22 @@ export function useInlineImageGeneration(
     const container = imageContainers.get(p);
     const objectUrl = imageObjectUrls.get(p);
 
-    const actions = container?.querySelector(':scope > .cv-inline-img-actions') as HTMLElement | null;
-    removeActionHost(actions);
-    container?.remove();
+    removeImageContainer(container);
     imageContainers.delete(p);
     imageObjectUrls.delete(p);
     promptSnapshots.delete(p);
     releaseObjectUrl(objectUrl);
+  }
+
+  /**
+   * 卸载并移除图片容器
+   * @param container 图片容器元素
+   */
+  function removeImageContainer(container: HTMLElement | null | undefined): void {
+    if (!container) return;
+    const actions = container.querySelector(':scope > .cv-inline-img-actions') as HTMLElement | null;
+    removeActionHost(actions);
+    container.remove();
   }
 
   /**
@@ -725,14 +766,9 @@ export function useInlineImageGeneration(
     imageCleanupObserver.disconnect();
     exitSelectionMode();
     generationSession.cleanup();
-    isGenerating.value = false;
 
     // 移除所有图片容器
-    imageContainers.forEach(container => {
-      const actions = container.querySelector(':scope > .cv-inline-img-actions') as HTMLElement | null;
-      removeActionHost(actions);
-      container.remove();
-    });
+    imageContainers.forEach(container => removeImageContainer(container));
     imageContainers.clear();
     imageObjectUrls.clear();
     promptSnapshots.clear();
