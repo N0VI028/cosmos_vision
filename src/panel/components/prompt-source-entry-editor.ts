@@ -11,9 +11,13 @@ import {
   createPromptPersonCharacterDescriptionEntry,
   createPromptPersonCharacterWorldbookEntry,
   createPromptPersonUserPersonaEntry,
-  type PromptPersonWorldbookEntryOption,
   type PromptPersonWorldbookGroup,
 } from '@/services/tavern-helper/prompt-profiles-sources';
+import { findPromptWorldbookEntry } from '@/services/tavern-helper/worldbook-sources';
+import {
+  pickWorldbookEntryUid,
+  pickWorldbookName,
+} from '@/panel/components/prompt-worldbook-source';
 
 /** 弹窗来源选项 */
 export interface EntrySourceOption {
@@ -160,48 +164,6 @@ export function buildTextSelectOptions(values: string[]): Array<SelectOption<str
 }
 
 /**
- * 构建世界书下拉选项
- * @param worldbooks 世界书列表
- * @returns 世界书选项
- */
-export function buildWorldbookOptions(worldbooks: PromptPersonWorldbookGroup[]): Array<SelectOption<string>> {
-  return worldbooks.map(worldbook => ({
-    label: worldbook.worldbookName,
-    value: worldbook.worldbookName,
-  }));
-}
-
-/**
- * 构建世界书条目下拉选项
- * @param worldbooks 世界书列表
- * @param worldbookName 世界书名称
- * @returns 条目选项
- */
-export function buildWorldbookEntryOptions(
-  worldbooks: PromptPersonWorldbookGroup[],
-  worldbookName: string,
-): Array<SelectOption<number>> {
-  return getWorldbookEntries(worldbooks, worldbookName).map(entry => ({ label: entry.name, value: entry.uid }));
-}
-
-/**
- * 选择有效世界书条目
- * @param worldbooks 世界书列表
- * @param worldbookName 世界书名称
- * @param currentUid 当前条目 uid
- * @returns 可用条目 uid
- */
-export function pickWorldbookEntryUid(
-  worldbooks: PromptPersonWorldbookGroup[],
-  worldbookName: string,
-  currentUid: number | null,
-): number | null {
-  const options = buildWorldbookEntryOptions(worldbooks, worldbookName);
-  if (!options.length || options.some(option => option.value === currentUid)) return currentUid;
-  return options[0]?.value ?? null;
-}
-
-/**
  * 创建来源类型选项
  * @param value 来源类型
  * @param label 显示名称
@@ -251,9 +213,9 @@ function buildWorldbookEntry(
   draft: PromptSourceEditorDraft,
   worldbooks: PromptPersonWorldbookGroup[],
 ): PromptPersonTemplateEntry {
-  const entry = findWorldbookEntry(worldbooks, draft.selectedWorldbookName, draft.selectedWorldbookEntryUid);
+  const entry = findPromptWorldbookEntry(worldbooks, draft.selectedWorldbookName, draft.selectedWorldbookEntryUid);
   const reference = { worldbookName: draft.selectedWorldbookName, entryUid: draft.selectedWorldbookEntryUid ?? -1 };
-  return createPromptPersonCharacterWorldbookEntry(reference, entry?.name ?? '世界书条目', draft.id);
+  return createPromptPersonCharacterWorldbookEntry(reference, entry?.name ?? draft.title, draft.id);
 }
 
 /**
@@ -291,46 +253,6 @@ function applyWorldbookDefaults(
     draft.selectedWorldbookName,
     draft.selectedWorldbookEntryUid,
   );
-}
-
-/**
- * 选择有效世界书
- * @param worldbooks 世界书列表
- * @param currentName 当前世界书名称
- * @returns 可用世界书名称
- */
-function pickWorldbookName(worldbooks: PromptPersonWorldbookGroup[], currentName: string): string {
-  const options = buildWorldbookOptions(worldbooks);
-  if (!options.length || options.some(option => option.value === currentName)) return currentName;
-  return options[0]?.value ?? '';
-}
-
-/**
- * 查找世界书条目
- * @param worldbooks 世界书列表
- * @param worldbookName 世界书名称
- * @param entryUid 条目 uid
- * @returns 世界书条目
- */
-function findWorldbookEntry(
-  worldbooks: PromptPersonWorldbookGroup[],
-  worldbookName: string,
-  entryUid: number | null,
-): PromptPersonWorldbookEntryOption | undefined {
-  return getWorldbookEntries(worldbooks, worldbookName).find(entry => entry.uid === entryUid);
-}
-
-/**
- * 读取世界书条目列表
- * @param worldbooks 世界书列表
- * @param worldbookName 世界书名称
- * @returns 条目列表
- */
-function getWorldbookEntries(
-  worldbooks: PromptPersonWorldbookGroup[],
-  worldbookName: string,
-): PromptPersonWorldbookEntryOption[] {
-  return worldbooks.find(worldbook => worldbook.worldbookName === worldbookName)?.entries ?? [];
 }
 
 /**

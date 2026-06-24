@@ -31,100 +31,7 @@
       @delete-preset="deletePreset"
     />
 
-    <PromptEntryList
-      v-model="messages"
-      empty-text="暂无消息，点击下方按钮开始构建"
-      :get-role="entry => (entry as PromptLlmMessage).role"
-    >
-      <template #main="{ entry }">
-        <span class="cv-message-indicator cv-indicator" />
-        <span class="cv-message-role">{{ ROLE_LABELS[(entry as PromptLlmMessage).role] }}</span>
-        <span class="cv-message-title">{{ getMessageTitle(entry as PromptLlmMessage) }}</span>
-      </template>
-      <template #actions="{ entry }">
-        <ToggleSwitch v-model="entry.enabled" class="cv-message-toggle" />
-        <Button
-          icon="fa-solid fa-pen"
-          class="cv-message-edit-btn"
-          text
-          size="small"
-          @click="openMessageEditor(entry as PromptLlmMessage)"
-        />
-        <Button
-          v-if="!isReservedMessage(entry as PromptLlmMessage)"
-          icon="fa-solid fa-trash"
-          severity="danger"
-          text
-          size="small"
-          @click="deleteMessage(entry.id)"
-        />
-      </template>
-    </PromptEntryList>
-
-    <button type="button" class="cv-add-message-btn-flat-wide" @click="addMessage('user', '')">
-      <i class="fa-solid fa-plus" /> 新建条目
-    </button>
-    <Dialog
-      v-model:visible="isEditorVisible"
-      class="cv-message-editor-dialog"
-      modal
-      dismissable-mask
-      :header="editorTitle"
-      :style="editorDialogStyle"
-      :pt="MESSAGE_EDITOR_DIALOG_PT"
-      @hide="closeMessageEditor"
-    >
-      <div v-if="editorDraft" class="cv-message-editor">
-        <label v-if="!isReservedDraft(editorDraft)" class="cv-field">
-          <span>条目名称</span>
-          <InputText v-model="editorDraft.title" placeholder="用于消息列表显示" />
-        </label>
-        <label class="cv-field">
-          <span>角色</span>
-          <Select
-            v-model="editorDraft.role"
-            :options="ROLE_OPTIONS"
-            option-label="label"
-            option-value="value"
-            class="cv-role-select"
-          />
-        </label>
-        <label class="cv-field cv-message-editor-content-field">
-          <div class="cv-field-header">
-            <span>内容</span>
-            <div v-if="!isReservedDraft(editorDraft)" class="cv-source-tokens" @click.prevent>
-              <span class="cv-token-label">插入：</span>
-              <button type="button" class="cv-token-btn" @click="insertMessageToken(focusParagraphToken)">
-                焦点段落
-              </button>
-              <button type="button" class="cv-token-btn" @click="insertMessageToken(specialRequestToken)">
-                特别要求
-              </button>
-            </div>
-          </div>
-          <Textarea
-            v-if="isReservedDraft(editorDraft)"
-            :model-value="getReservedDraftPreviewText(editorDraft)"
-            class="cv-message-editor-textarea custom-scrollbar"
-            rows="4"
-            disabled
-          />
-          <Textarea
-            v-else
-            v-model="editorDraft.content"
-            class="cv-message-editor-textarea custom-scrollbar"
-            rows="10"
-            placeholder="输入消息内容..."
-          />
-        </label>
-      </div>
-      <template #footer>
-        <div class="cv-message-editor-actions">
-          <Button label="取消" text @click="closeMessageEditor" />
-          <Button label="保存" icon="fa-solid fa-check" @click="saveMessageEditor" />
-        </div>
-      </template>
-    </Dialog>
+    <PromptLlmMessageList v-model="messages" />
 
     <h2 class="cv-section-title">提示词预览</h2>
     <div v-if="messages.length === 0" class="cv-empty-hint">暂无消息</div>
@@ -173,45 +80,29 @@
 
 <script setup lang="ts">
 import { uuidv4 } from '@sillytavern/scripts/utils';
-import PromptEntryList from '@/panel/components/PromptEntryList.vue';
 import PresetSelector from '@/panel/components/PresetSelector.vue';
+import PromptLlmMessageList from '@/panel/components/PromptLlmMessageList.vue';
 import PromptMessagePreview from '@/panel/components/PromptMessagePreview.vue';
 import defaultPromptLlmPresetSettings from '@/constants/default-prompt-llm-preset';
 import {
-  DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
   DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID,
   DEFAULT_PROMPT_LLM_MESSAGE_PRESET_NAME,
-  DEFAULT_PROMPT_LLM_MESSAGE_TITLE,
   DEFAULT_PROMPT_EXTRACT_REPLACEMENT,
   DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN,
-  PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN,
-  PROMPT_LLM_SPECIAL_REQUEST_TOKEN,
   DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN,
   DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
 } from '@/constants/default-settings';
 import {
   type PromptLlmMessage,
   type PromptLlmMessagePreset,
-  type PromptLlmMessageRole,
 } from '@/constants/novelai';
 import {
   createPromptLlmHistoryMessage,
   ensurePromptLlmReservedMessages,
-  getPromptLlmReservedPreviewText,
   isPromptLlmReservedMessage,
-  normalizePromptLlmReservedMessage,
 } from '@/services/prompt-llm/message-preset';
+import { clonePromptLlmMessage } from '@/services/prompt-llm/message-source';
 import { useSettingsStore } from '@/store/settings';
-
-/**
- * 消息编辑草稿
- */
-interface MessageEditorDraft {
-  id: string;
-  title: string;
-  role: PromptLlmMessageRole;
-  content: string;
-}
 
 interface PromptExtractRuleField {
   label: string;
@@ -252,22 +143,8 @@ const PROMPT_EXTRACT_RULE_FIELDS = [
   },
 ] as const satisfies ReadonlyArray<PromptExtractRuleField>;
 
-const ROLE_LABELS: Record<PromptLlmMessageRole, string> = {
-  system: 'system',
-  user: 'user',
-  assistant: 'assistant',
-};
-
-const ROLE_OPTIONS = [
-  { label: ROLE_LABELS.system, value: 'system' },
-  { label: ROLE_LABELS.user, value: 'user' },
-  { label: ROLE_LABELS.assistant, value: 'assistant' },
-];
-
 const { settings } = useSettingsStore();
 const promptExtractRuleFields = [...PROMPT_EXTRACT_RULE_FIELDS];
-const focusParagraphToken = PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN;
-const specialRequestToken = PROMPT_LLM_SPECIAL_REQUEST_TOKEN;
 
 const activePreset = computed(() => {
   const { activePresetId, presets } = settings.promptLlmMessagePresets;
@@ -341,11 +218,7 @@ async function clonePreset(): Promise<void> {
     return;
   }
   const newId = uuidv4();
-  const copiedMessages = current.messages.map(m => ({
-    ...m,
-    id: isPromptLlmReservedMessage(m) ? m.id : uuidv4(),
-    enabled: m.enabled !== false,
-  }));
+  const copiedMessages = current.messages.map(copyPresetMessage);
   const preset = {
     id: newId,
     name: trimmed,
@@ -455,124 +328,6 @@ const messages = computed<PromptLlmMessage[]>({
 watchEffect(() => {
   ensureReservedMessages();
 });
-const isEditorVisible = ref(false);
-const editorDraft = ref<MessageEditorDraft | null>(null);
-const editorDialogStyle = {
-  width: '42rem',
-  maxHeight: 'min(42rem, calc(100dvh - 2rem))',
-  maxWidth: 'calc(100vw - 2rem)',
-} as const;
-const MESSAGE_EDITOR_DIALOG_PT = {
-  content: { style: { display: 'flex', flexDirection: 'column', overflowY: 'auto' } },
-} as const;
-
-/**
- * 当前弹窗标题
- */
-const editorTitle = computed(() => {
-  if (!editorDraft.value) {
-    return '编辑消息';
-  }
-
-  return `编辑 ${ROLE_LABELS[editorDraft.value.role]} 消息`;
-});
-
-/**
- * 添加新消息
- * @param role 消息角色
- * @param content 消息内容
- */
-function addMessage(role: PromptLlmMessageRole, content: string): void {
-  messages.value.push({
-    id: uuidv4(),
-    title: DEFAULT_PROMPT_LLM_MESSAGE_TITLE,
-    role,
-    content,
-    enabled: DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
-  });
-}
-
-/**
- * 删除消息
- * @param id 消息 id
- */
-function deleteMessage(id: string): void {
-  const index = messages.value.findIndex(message => message.id === id);
-  if (index === -1) return;
-  if (isReservedMessage(messages.value[index])) return;
-  if (editorDraft.value?.id === id) closeMessageEditor();
-  messages.value.splice(index, 1);
-}
-
-/**
- * 获取消息标题
- * @param message 消息对象
- * @returns 列表中显示的单行标题
- */
-function getMessageTitle(message: PromptLlmMessage): string {
-  const title = message.title.trim();
-  if (title) {
-    return title;
-  }
-
-  const normalized = message.content.trim().replace(/\s+/g, ' ');
-  if (!normalized) {
-    return '未命名条目';
-  }
-
-  return normalized.length > 30 ? `${normalized.slice(0, 30)}...` : normalized;
-}
-
-/**
- * 打开消息编辑弹窗
- * @param message 待编辑消息
- */
-function openMessageEditor(message: PromptLlmMessage): void {
-  editorDraft.value = {
-    id: message.id,
-    title: message.title,
-    role: message.role,
-    content: message.content,
-  };
-  isEditorVisible.value = true;
-}
-
-/**
- * 关闭消息编辑弹窗
- */
-function closeMessageEditor(): void {
-  isEditorVisible.value = false;
-  editorDraft.value = null;
-}
-
-/**
- * 保存消息编辑结果
- */
-function saveMessageEditor(): void {
-  if (!editorDraft.value) return;
-  const message = messages.value.find(item => item.id === editorDraft.value?.id);
-  if (!message) return closeMessageEditor();
-  if (isReservedMessage(message)) {
-    message.role = editorDraft.value.role;
-    return closeMessageEditor();
-  }
-
-  message.title = editorDraft.value.title;
-  message.role = editorDraft.value.role;
-  message.content = editorDraft.value.content;
-  closeMessageEditor();
-}
-
-/**
- * 向自定义消息末尾插入宏
- * @param token 宏文本
- */
-function insertMessageToken(token: string): void {
-  const draft = editorDraft.value;
-  if (!draft || isReservedDraft(draft)) return;
-  const separator = draft.content && !draft.content.endsWith(' ') ? ' ' : '';
-  draft.content = `${draft.content}${separator}${token}`;
-}
 
 /**
  * 规范化预设中的保留条目
@@ -599,31 +354,13 @@ function ensureReservedMessages(): void {
 }
 
 /**
- * 判断消息是否为保留消息
+ * 复制预设中的单条消息
  * @param message 消息条目
- * @returns 是否为保留消息
+ * @returns 克隆后的消息
  */
-function isReservedMessage(message: PromptLlmMessage): boolean {
-  normalizePromptLlmReservedMessage(message);
-  return isPromptLlmReservedMessage(message);
-}
-
-/**
- * 判断编辑草稿是否为保留消息
- * @param draft 编辑草稿
- * @returns 是否为保留消息
- */
-function isReservedDraft(draft: MessageEditorDraft): boolean {
-  return isPromptLlmReservedMessage(draft);
-}
-
-/**
- * 获取保留草稿预览文本
- * @param draft 编辑草稿
- * @returns 预览文本
- */
-function getReservedDraftPreviewText(draft: MessageEditorDraft): string {
-  return getPromptLlmReservedPreviewText(draft);
+function copyPresetMessage(message: PromptLlmMessage): PromptLlmMessage {
+  if (!isPromptLlmReservedMessage(message)) return clonePromptLlmMessage(message);
+  return { ...message, enabled: message.enabled !== false };
 }
 </script>
 
@@ -670,150 +407,5 @@ function getReservedDraftPreviewText(draft: MessageEditorDraft): string {
   color: var(--p-red-500);
   background: color-mix(in srgb, var(--p-red-500) 10%, transparent);
   outline: none;
-}
-
-.cv-add-message-btn-flat-wide {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--cv-space-sm);
-  padding: var(--cv-space-md) 0;
-  background: color-mix(in srgb, var(--cv-surface-container-low) 42%, transparent);
-  border: var(--cv-border-width) dashed var(--cv-surface-variant);
-  border-radius: var(--cv-radius-sm);
-  color: var(--cv-on-surface-variant);
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: calc(var(--mainFontSize) * 0.85);
-  margin-bottom: var(--cv-space-6xl);
-}
-
-.cv-add-message-btn-flat-wide:hover {
-  background: var(--cv-surface-container-low);
-  color: var(--p-primary-color);
-  border-color: var(--cv-outline);
-  box-shadow: 0 var(--cv-space-sm) var(--cv-space-3xl) color-mix(in srgb, var(--cv-on-surface) 10%, transparent);
-}
-
-/* LED Indicator 彩色小圆点 */
-.cv-message-indicator {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-  background: var(--p-primary-color);
-  box-shadow: 0 0 6px var(--p-primary-color);
-}
-
-.cv-message-role {
-  color: color-mix(in srgb, var(--cv-on-surface) 55%, transparent);
-  font-size: calc(var(--mainFontSize) * 0.75);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  flex: 0 0 auto;
-}
-
-.cv-message-title {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: calc(var(--mainFontSize) * 0.9);
-  color: var(--cv-on-surface);
-  font-weight: 500;
-}
-
-.cv-message-toggle {
-  transform: scale(0.7);
-  margin-right: 0;
-  flex-shrink: 0;
-}
-
-.cv-message-edit-btn {
-  color: color-mix(in srgb, var(--cv-on-surface) 60%, transparent) !important;
-}
-
-.cv-message-edit-btn:hover {
-  color: var(--cv-on-surface) !important;
-  background: var(--cv-surface-container-high) !important;
-}
-
-.cv-role-select {
-  width: 8em;
-}
-
-.cv-message-editor {
-  display: flex;
-  flex-direction: column;
-  gap: var(--cv-space-3xl);
-}
-
-.cv-field-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.cv-field-header > span {
-  font-family: var(--cv-font-body);
-  font-size: calc(var(--mainFontSize) * 1);
-  font-weight: 500;
-  color: var(--cv-on-surface);
-}
-
-.cv-source-tokens {
-  display: flex;
-  align-items: center;
-  gap: var(--cv-space-xs);
-  font-size: calc(var(--mainFontSize) * 0.75);
-}
-
-.cv-token-label {
-  color: var(--cv-on-surface-variant);
-  opacity: 0.8;
-}
-
-.cv-token-btn {
-  background: none;
-  border: none;
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: var(--p-primary-color);
-  cursor: pointer;
-  font-size: inherit;
-  transition: all 0.2s;
-}
-
-.cv-token-btn:hover {
-  background: var(--cv-surface-container-high);
-  color: var(--p-primary-hover-color);
-}
-
-.cv-message-editor-dialog {
-  display: flex;
-  flex-direction: column;
-}
-
-.cv-message-editor-content-field {
-  display: flex;
-  flex-direction: column;
-}
-
-.cv-message-editor-textarea {
-  width: 100%;
-  height: 12rem;
-  min-height: 6rem;
-  overflow-y: auto;
-  resize: vertical;
-}
-
-.cv-message-editor-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--cv-space-sm);
 }
 </style>

@@ -107,6 +107,9 @@
           />
         </label>
       </div>
+      <div v-if="isEditorWorldbookReferenceMissing()" class="cv-field-warn">
+        当前引用的世界书条目已失效，已保留原始值，请重新选择。
+      </div>
       <label class="cv-field">
           <span>条目名称</span>
         <InputText
@@ -115,7 +118,7 @@
           placeholder="用于条目列表显示"
           @update:model-value="updateCustomTitle"
         />
-        <InputText v-else :model-value="editorDraft.title" disabled />
+        <InputText v-else :model-value="editorReadonlyTitle" disabled />
       </label>
       <label class="cv-field cv-message-editor-content-field">
         <div class="cv-field-header">
@@ -167,22 +170,28 @@ import {
   buildSavedPromptSourceEntry,
   buildSourceOptions,
   buildTextSelectOptions,
-  buildWorldbookEntryOptions,
-  buildWorldbookOptions,
   canSaveSourceEditor,
   createSourceEditorDraft,
-  pickWorldbookEntryUid,
   syncDraftEntryFields as syncEditorDraftEntryFields,
   type PromptSourceEditorDraft,
 } from '@/panel/components/prompt-source-entry-editor';
 import {
+  buildWorldbookEntryOptions,
+  buildWorldbookOptions,
+  getWorldbookReferenceDisplayTitle,
+  isWorldbookReferenceMissing,
+  pickWorldbookEntryUid,
+} from '@/panel/components/prompt-worldbook-source';
+import {
   getPromptPersonCharacterNames,
   getPromptPersonUserPersonaNames,
-  type PromptPersonWorldbookGroup,
-  getPromptPersonWorldbookSourceOptions,
   resolvePromptPersonTemplateEntry,
   type ResolvedPromptPersonTemplateEntry,
 } from '@/services/tavern-helper/prompt-profiles-sources';
+import {
+  getPromptWorldbookSourceOptions,
+  type PromptWorldbookGroup,
+} from '@/services/tavern-helper/worldbook-sources';
 
 const props = withDefaults(
   defineProps<{
@@ -198,7 +207,7 @@ const props = withDefaults(
 
 const entries = defineModel<PromptPersonTemplateEntry[]>({ required: true });
 const entryStatusMap = ref<Record<string, ResolvedPromptPersonTemplateEntry>>({});
-const worldbookSourceOptions = ref<PromptPersonWorldbookGroup[]>([]);
+const worldbookSourceOptions = ref<PromptWorldbookGroup[]>([]);
 const editorDraft = ref<PromptSourceEditorDraft | null>(null);
 const editorPreview = ref<ResolvedPromptPersonTemplateEntry | null>(null);
 const isCreatingEntry = ref(false);
@@ -226,9 +235,15 @@ const characterOptions = computed(() =>
 const personaOptions = computed(() =>
   buildTextSelectOptions([...getPromptPersonUserPersonaNames(), props.userPersonaKey]),
 );
-const worldbookOptions = computed(() => buildWorldbookOptions(worldbookSourceOptions.value));
+const worldbookOptions = computed(() =>
+  buildWorldbookOptions(worldbookSourceOptions.value, editorDraft.value?.selectedWorldbookName ?? ''),
+);
 const worldbookEntryOptions = computed(() =>
-  buildWorldbookEntryOptions(worldbookSourceOptions.value, editorDraft.value?.selectedWorldbookName ?? ''),
+  buildWorldbookEntryOptions(
+    worldbookSourceOptions.value,
+    editorDraft.value?.selectedWorldbookName ?? '',
+    editorDraft.value?.selectedWorldbookEntryUid ?? null,
+  ),
 );
 const canSaveEditor = computed(() => {
   const draft = editorDraft.value;
@@ -240,6 +255,7 @@ const editorTitle = computed(() => {
   return `编辑 ${getEntryTitle(editorDraft.value)}`;
 });
 const editorPreviewText = computed(() => getResolvedPreviewText(editorPreview.value));
+const editorReadonlyTitle = computed(() => getEditorReadonlyTitle(editorDraft.value));
 
 watch(entries, refreshEntryStatuses, { deep: true, immediate: true });
 watch(
@@ -285,7 +301,7 @@ async function loadWorldbookSources(): Promise<void> {
   const requestId = ++worldbookSourceRequestId;
   isLoadingWorldbookSources.value = true;
   try {
-    const options = await getPromptPersonWorldbookSourceOptions();
+    const options = await getPromptWorldbookSourceOptions();
     if (requestId !== worldbookSourceRequestId) return;
     worldbookSourceOptions.value = options;
     reconcileEditorSourceDefaults();
@@ -517,7 +533,7 @@ function getResolvedPreviewText(resolved: ResolvedPromptPersonTemplateEntry | nu
   if (!resolved) return '正在读取资料...';
   if (resolved.status === 'ready') return resolved.content;
   if (resolved.status === 'unsupported') return '该资料来源本期仅保留占位';
-  return '来源失效，运行时会跳过该条目';
+  return '当前引用已失效，运行时会跳过该条目';
 }
 
 /**
@@ -594,6 +610,31 @@ function reconcileEditorSourceDefaults(): void {
   if (!draft || draft.kind !== 'character_worldbook_entry') return;
   applySourceDefaults(draft);
   syncDraftEntryFields(draft);
+}
+
+/**
+ * 判断编辑中的世界书引用是否已失效
+ * @returns 是否失效
+ */
+function isEditorWorldbookReferenceMissing(): boolean {
+  const draft = editorDraft.value;
+  if (!draft || draft.kind !== 'character_worldbook_entry') return false;
+  return isWorldbookReferenceMissing(
+    worldbookSourceOptions.value,
+    draft.selectedWorldbookName,
+    draft.selectedWorldbookEntryUid,
+  );
+}
+
+/**
+ * 获取编辑器只读标题展示
+ * @param draft 编辑草稿
+ * @returns 标题展示文本
+ */
+function getEditorReadonlyTitle(draft: PromptSourceEditorDraft | null): string {
+  if (!draft) return '';
+  if (draft.kind !== 'character_worldbook_entry') return draft.title;
+  return getWorldbookReferenceDisplayTitle(draft.title, isEditorWorldbookReferenceMissing());
 }
 
 /**

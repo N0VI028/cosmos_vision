@@ -8,26 +8,20 @@ import {
   type PromptPersonTemplateEntryKind,
 } from '@/constants/novelai';
 import { getTavernHelper } from '@/services/tavern-helper/availability';
+import {
+  buildResolvedSourceEntry,
+  getPromptWorldbookNames,
+  readPromptWorldbookGroupsWithOptions,
+  resolvePromptWorldbookSourceEntry,
+  type PromptWorldbookGroup,
+  type ResolvedPromptSourceEntry,
+} from '@/services/tavern-helper/worldbook-sources';
 
 /** 已解析的人物模板条目 */
-export interface ResolvedPromptPersonTemplateEntry {
-  status: 'ready' | 'missing' | 'unsupported';
-  title: string;
-  content: string;
-}
-
-/** 世界书条目选项 */
-export interface PromptPersonWorldbookEntryOption {
-  uid: number;
-  name: string;
-  content: string;
-}
+export type ResolvedPromptPersonTemplateEntry = ResolvedPromptSourceEntry;
 
 /** 世界书分组选项 */
-export interface PromptPersonWorldbookGroup {
-  worldbookName: string;
-  entries: PromptPersonWorldbookEntryOption[];
-}
+export type PromptPersonWorldbookGroup = PromptWorldbookGroup;
 
 /** 角色资料选项 */
 export interface PromptPersonCharacterSourceOptions {
@@ -82,8 +76,7 @@ export function getPromptPersonUserPersonaIds(): string[] {
  * @returns 世界书名称列表
  */
 export function getPromptPersonWorldbookNames(): string[] {
-  const tavernHelper = getTavernHelper();
-  return tavernHelper?.getWorldbookNames?.() ?? [];
+  return getPromptWorldbookNames();
 }
 
 /**
@@ -282,53 +275,22 @@ async function resolveCharacterWorldbookEntry(
   title: string,
   reference: PromptPersonSourceReference,
 ): Promise<ResolvedPromptPersonTemplateEntry> {
-  if (!reference.worldbookName || reference.entryUid === undefined) {
-    return buildResolvedTemplateEntry('missing', title, '');
-  }
-  try {
-    const tavernHelper = requirePromptProfilesTavernHelper();
-    const worldbook = await tavernHelper.getWorldbook(reference.worldbookName);
-    const entry = worldbook.find(item => item.uid === reference.entryUid);
-    if (!entry?.enabled || !normalizeText(entry.content)) {
-      return buildResolvedTemplateEntry('missing', title, '');
-    }
-    return buildResolvedTemplateEntry('ready', title, entry.content);
-  } catch {
-    return buildResolvedTemplateEntry('missing', title, '');
-  }
+  return resolvePromptWorldbookSourceEntry(title, reference, {
+    includeDisabled: false,
+    allowEmptyContent: false,
+  });
 }
 
 /**
- * 读取世界书分组列表
+ * 读取人物模板可用的世界书分组
  * @param worldbookNames 世界书名称列表
- * @returns 含有效条目的世界书分组
+ * @returns 世界书分组
  */
-async function readPromptPersonWorldbookGroups(
-  worldbookNames: Array<string | null>,
-): Promise<PromptPersonWorldbookGroup[]> {
-  const normalizedNames = Array.from(new Set(worldbookNames.map(normalizeText).filter(isNonEmptyString)));
-  const worldbooks = await Promise.all(normalizedNames.map(readPromptPersonWorldbookGroup));
-  return worldbooks.filter(isWorldbookGroup);
-}
-
-/**
- * 读取单个世界书分组
- * @param worldbookName 世界书名称
- * @returns 世界书分组或 null
- */
-async function readPromptPersonWorldbookGroup(worldbookName: string): Promise<PromptPersonWorldbookGroup | null> {
-  const tavernHelper = requirePromptProfilesTavernHelper();
-  const entries = await tavernHelper.getWorldbook(worldbookName);
-  const normalizedEntries = entries
-    .filter(entry => entry.enabled !== false)
-    .map(entry => ({
-      uid: entry.uid,
-      name: entry.name?.trim() || `条目 ${entry.uid}`,
-      content: entry.content?.trim() || '',
-    }))
-    .filter(entry => entry.content);
-  if (!normalizedEntries.length) return null;
-  return { worldbookName, entries: normalizedEntries };
+async function readPromptPersonWorldbookGroups(worldbookNames: Array<string | null>): Promise<PromptPersonWorldbookGroup[]> {
+  return readPromptWorldbookGroupsWithOptions(worldbookNames, {
+    includeDisabled: false,
+    allowEmptyContent: false,
+  });
 }
 
 /**
@@ -343,11 +305,7 @@ function buildResolvedTemplateEntry(
   title: string,
   content: string,
 ): ResolvedPromptPersonTemplateEntry {
-  return {
-    status,
-    title: title.trim() || '未命名条目',
-    content: normalizeText(content),
-  };
+  return buildResolvedSourceEntry(status, title, normalizeText(content));
 }
 
 /**
@@ -430,11 +388,3 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-/**
- * 判断是否为有效世界书分组
- * @param value 原始分组
- * @returns 是否可作为世界书列表项
- */
-function isWorldbookGroup(value: PromptPersonWorldbookGroup | null): value is PromptPersonWorldbookGroup {
-  return value !== null;
-}

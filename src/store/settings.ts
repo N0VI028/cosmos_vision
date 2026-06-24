@@ -179,12 +179,15 @@ const promptLlmSettingsSchema = z.object({
   negativePromptExtractReplacement: z.string(),
 });
 
-const promptPersonSourceReferenceSchema = z.object({
+const promptWorldbookSourceReferenceSchema = z.object({
+  worldbookName: z.string().optional(),
+  entryUid: z.number().int().optional(),
+});
+
+const promptPersonSourceReferenceSchema = promptWorldbookSourceReferenceSchema.extend({
   characterName: z.string().optional(),
   personaId: z.string().optional(),
   personaName: z.string().optional(),
-  worldbookName: z.string().optional(),
-  entryUid: z.number().int().optional(),
 });
 
 const promptPersonTemplateEntrySchema = z.object({
@@ -192,7 +195,7 @@ const promptPersonTemplateEntrySchema = z.object({
   title: z.string(),
   enabled: z.boolean(),
   content: z.string(),
-  reference: promptPersonSourceReferenceSchema.optional(),
+  reference: promptPersonSourceReferenceSchema.catch({}).optional(),
 });
 
 const promptPersonSchema = z.object({
@@ -216,6 +219,7 @@ const promptLlmMessageSchema = z.object({
   role: z.enum(PROMPT_LLM_MESSAGE_ROLES),
   content: z.string(),
   enabled: z.boolean().default(DEFAULT_PROMPT_LLM_MESSAGE_ENABLED),
+  reference: promptWorldbookSourceReferenceSchema.catch({}).optional(),
 });
 
 const promptLlmMessagePresetSchema = z.object({

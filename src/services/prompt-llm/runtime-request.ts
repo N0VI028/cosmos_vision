@@ -57,13 +57,13 @@ export async function buildPromptLlmRuntimeRequestFromContext(
  * @param schemaFields JSON Schema 字段配置
  * @returns generateRaw 请求体
  */
-export function buildPromptLlmRuntimeRequest(
+export async function buildPromptLlmRuntimeRequest(
   settings: PromptLlmSettings,
   presetSettings: PromptLlmMessagePresetSettings,
   runtimeContent: PromptLlmRuntimeContent,
   schemaFields: PromptLlmOutputFields | null = DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
-): TavernHelperGenerateRawConfig {
-  const orderedPrompts = buildPromptLlmOrderedPrompts(presetSettings, runtimeContent);
+): Promise<TavernHelperGenerateRawConfig> {
+  const orderedPrompts = await buildPromptLlmOrderedPrompts(presetSettings, runtimeContent);
   const schema = schemaFields ? buildJsonSchema(schemaFields) : undefined;
   return buildGenerateRawMessagesRequest(orderedPrompts, buildCustomApi(settings), schema);
 }
@@ -74,17 +74,18 @@ export function buildPromptLlmRuntimeRequest(
  * @param runtimeContent 运行时替换内容
  * @returns 可发送消息数组
  */
-export function buildPromptLlmOrderedPrompts(
+export async function buildPromptLlmOrderedPrompts(
   presetSettings: PromptLlmMessagePresetSettings,
   runtimeContent: PromptLlmRuntimeContent,
-): TavernHelperRolePrompt[] {
-  return getActivePromptLlmPreset(presetSettings)
-    .messages.filter(message => message.enabled !== false)
-    .map(message => ({
+): Promise<TavernHelperRolePrompt[]> {
+  const messages = getActivePromptLlmPreset(presetSettings).messages.filter(message => message.enabled !== false);
+  const prompts = await Promise.all(
+    messages.map(async message => ({
       role: message.role,
-      content: resolvePromptLlmMessageContent(message, runtimeContent),
-    }))
-    .filter(prompt => prompt.content.trim());
+      content: await resolvePromptLlmMessageContent(message, runtimeContent),
+    })),
+  );
+  return prompts.filter(prompt => prompt.content.trim());
 }
 
 /**

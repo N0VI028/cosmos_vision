@@ -16,6 +16,7 @@ import {
   PROMPT_LLM_SPECIAL_REQUEST_TOKEN,
 } from '@/constants/default-settings';
 import type { PromptLlmMessage, PromptLlmMessagePreset, PromptLlmMessagePresetSettings } from '@/constants/novelai';
+import { resolvePromptLlmSourceMessage } from '@/services/prompt-llm/message-source';
 
 /** LLM 运行时替换内容 */
 export interface PromptLlmRuntimeContent {
@@ -164,12 +165,14 @@ export function ensurePromptLlmReservedMessages(
  * @param runtimeContent 运行时内容
  * @returns 实际发送文本
  */
-export function resolvePromptLlmMessageContent(
-  message: Pick<PromptLlmMessage, 'id' | 'content'>,
+export async function resolvePromptLlmMessageContent(
+  message: Pick<PromptLlmMessage, 'id' | 'title' | 'content' | 'reference'>,
   runtimeContent: PromptLlmRuntimeContent,
-): string {
+): Promise<string> {
   if (isPromptLlmHistoryMessage(message)) return runtimeContent.historyContent;
   if (isPromptLlmParticipantMessage(message)) return runtimeContent.participantContent;
+  const sourceMessage = await resolvePromptLlmSourceMessage(message);
+  if (sourceMessage) return replacePromptLlmContentTokens(readPromptLlmSourceText(sourceMessage), runtimeContent);
   return replacePromptLlmContentTokens(message.content, runtimeContent);
 }
 
@@ -183,6 +186,18 @@ function replacePromptLlmContentTokens(content: string, runtimeContent: PromptLl
   return content
     .replaceAll(PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN, runtimeContent.focusParagraphContent)
     .replaceAll(PROMPT_LLM_SPECIAL_REQUEST_TOKEN, runtimeContent.specialRequestContent);
+}
+
+/**
+ * 读取来源条目的可发送文本
+ * @param sourceMessage 来源条目解析结果
+ * @returns 可发送内容
+ */
+function readPromptLlmSourceText(
+  sourceMessage: Awaited<ReturnType<typeof resolvePromptLlmSourceMessage>>,
+): string {
+  if (!sourceMessage || sourceMessage.status !== 'ready') return '';
+  return sourceMessage.content;
 }
 
 /**

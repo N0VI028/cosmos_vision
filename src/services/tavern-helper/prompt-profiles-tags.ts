@@ -59,7 +59,7 @@ async function requestPromptPersonTags(
 ): Promise<string> {
   const tavernHelper = getTavernHelper();
   if (!tavernHelper) throw new Error('TavernHelper 不可用，无法解析人物 tag');
-  const request = buildPromptLlmRuntimeRequest(settings, presetSettings, buildPromptPersonRuntimeContent(contextText));
+  const request = await buildPromptLlmRuntimeRequest(settings, presetSettings, buildPromptPersonRuntimeContent(contextText));
   try {
     return requestTavernHelperGenerateRaw(tavernHelper, { ...request, should_silence: true });
   } catch (error) {

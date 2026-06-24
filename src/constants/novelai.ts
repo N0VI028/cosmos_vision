@@ -263,6 +263,18 @@ export const PROMPT_PERSON_TEMPLATE_ENTRY_KIND_LABELS: Record<PromptPersonTempla
   user_persona: '用户人设',
 };
 
+/** LLM 普通条目类型 */
+export const PROMPT_LLM_MESSAGE_ENTRY_KINDS = ['custom', 'worldbook_entry'] as const;
+
+/** LLM 普通条目类型 */
+export type PromptLlmMessageEntryKind = (typeof PROMPT_LLM_MESSAGE_ENTRY_KINDS)[number];
+
+/** LLM 普通条目类型 → 中文显示标签 */
+export const PROMPT_LLM_MESSAGE_ENTRY_KIND_LABELS: Record<PromptLlmMessageEntryKind, string> = {
+  custom: '自定义',
+  worldbook_entry: '世界书',
+};
+
 const PROMPT_PERSON_TEMPLATE_ENTRY_ID_PREFIXES: Record<
   Exclude<PromptPersonTemplateEntryKind, 'custom'>,
   string
@@ -272,13 +284,21 @@ const PROMPT_PERSON_TEMPLATE_ENTRY_ID_PREFIXES: Record<
   user_persona: 'user-persona',
 };
 
+const PROMPT_LLM_MESSAGE_ENTRY_ID_PREFIXES: Record<Exclude<PromptLlmMessageEntryKind, 'custom'>, string> = {
+  worldbook_entry: 'worldbook-entry',
+};
+
+/** 世界书来源引用 */
+export interface PromptWorldbookSourceReference {
+  worldbookName?: string;
+  entryUid?: number;
+}
+
 /** 人物模板条目来源引用 */
-export interface PromptPersonSourceReference {
+export interface PromptPersonSourceReference extends PromptWorldbookSourceReference {
   characterName?: string;
   personaId?: string;
   personaName?: string;
-  worldbookName?: string;
-  entryUid?: number;
 }
 
 /** 人物模板条目 */
@@ -316,6 +336,8 @@ export interface PromptLlmMessage {
   content: string;
   /** 是否启用该条目 */
   enabled?: boolean;
+  /** 外部来源引用,仅来源型条目使用 */
+  reference?: PromptWorldbookSourceReference;
 }
 
 /** 提示词 LLM 消息预设 */
@@ -344,6 +366,16 @@ export function getPromptPersonTemplateEntryKind(
 }
 
 /**
+ * 读取 LLM 普通条目类型
+ * 外部来源条目使用固定英文 id 前缀，自定义条目使用裸 uuid
+ * @param message LLM 条目
+ * @returns 条目类型
+ */
+export function getPromptLlmMessageEntryKind(message: Pick<PromptLlmMessage, 'id'>): PromptLlmMessageEntryKind {
+  return readPromptLlmMessageEntryKindFromId(message.id) ?? 'custom';
+}
+
+/**
  * 规范化人物模板条目 id
  * 自定义条目保留裸 id，外部条目统一写成固定英文前缀
  * @param id 原始条目 id
@@ -354,6 +386,19 @@ export function normalizePromptPersonTemplateEntryId(id: string, kind: PromptPer
   const baseId = stripPromptPersonTemplateEntryIdPrefix(id);
   if (kind === 'custom') return baseId;
   return `${PROMPT_PERSON_TEMPLATE_ENTRY_ID_PREFIXES[kind]}:${baseId}`;
+}
+
+/**
+ * 规范化 LLM 条目 id
+ * 自定义条目保留裸 id，世界书条目统一写成固定英文前缀
+ * @param id 原始条目 id
+ * @param kind 条目类型
+ * @returns 新结构下的条目 id
+ */
+export function normalizePromptLlmMessageId(id: string, kind: PromptLlmMessageEntryKind): string {
+  const baseId = stripPromptLlmMessageIdPrefix(id);
+  if (kind === 'custom') return baseId;
+  return `${PROMPT_LLM_MESSAGE_ENTRY_ID_PREFIXES[kind]}:${baseId}`;
 }
 
 /**
@@ -373,6 +418,20 @@ function readPromptPersonTemplateEntryKindFromId(
 }
 
 /**
+ * 按条目 id 前缀读取 LLM 条目类型
+ * @param id 条目 id
+ * @returns 外部条目类型或 null
+ */
+function readPromptLlmMessageEntryKindFromId(id: string): Exclude<PromptLlmMessageEntryKind, 'custom'> | null {
+  for (const [kind, prefix] of Object.entries(PROMPT_LLM_MESSAGE_ENTRY_ID_PREFIXES)) {
+    if (id === prefix || id.startsWith(`${prefix}:`)) {
+      return kind as Exclude<PromptLlmMessageEntryKind, 'custom'>;
+    }
+  }
+  return null;
+}
+
+/**
  * 去掉人物模板条目 id 上的固定前缀
  * @param id 条目 id
  * @returns 不带类型前缀的基础 id
@@ -381,6 +440,18 @@ function stripPromptPersonTemplateEntryIdPrefix(id: string): string {
   const kind = readPromptPersonTemplateEntryKindFromId(id);
   if (!kind) return id;
   const prefix = `${PROMPT_PERSON_TEMPLATE_ENTRY_ID_PREFIXES[kind]}:`;
+  return id.startsWith(prefix) ? id.slice(prefix.length) || id : id;
+}
+
+/**
+ * 去掉 LLM 条目 id 上的固定前缀
+ * @param id 条目 id
+ * @returns 不带类型前缀的基础 id
+ */
+function stripPromptLlmMessageIdPrefix(id: string): string {
+  const kind = readPromptLlmMessageEntryKindFromId(id);
+  if (!kind) return id;
+  const prefix = `${PROMPT_LLM_MESSAGE_ENTRY_ID_PREFIXES[kind]}:`;
   return id.startsWith(prefix) ? id.slice(prefix.length) || id : id;
 }
 
