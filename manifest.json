@@ -6,7 +6,7 @@
   "js": "dist/index.js",
   "css": "dist/index.css",
   "author": "KAKAA",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "homePage": "",
   "auto_update": true,
   "minimum_client_version": "1.12.13"
