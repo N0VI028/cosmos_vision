@@ -174,6 +174,7 @@
             </template>
           </div>
           <h1 class="cv-header-title">{{ currentTabLabel }}</h1>
+          <SubTabNav v-if="activeTab === 'main'" v-model="mainSubTab" :tabs="MAIN_SUB_TABS" />
           <SubTabNav v-if="activeTab === 'novelai'" v-model="novelaiSubTab" :tabs="NOVELAI_SUB_TABS" />
           <SubTabNav v-if="activeTab === 'comfyui'" v-model="comfyuiSubTab" :tabs="COMFYUI_SUB_TABS" />
           <SubTabNav v-if="activeTab === 'prompt-llm'" v-model="promptLlmSubTab" :tabs="PROMPT_LLM_SUB_TABS" />
@@ -187,7 +188,7 @@
         <!-- 滚动内容区 -->
         <div ref="scrollContainer" class="cv-content custom-scrollbar">
           <Fluid class="cv-content-inner">
-            <MainTab v-if="activeTab === 'main'" />
+            <MainTab v-if="activeTab === 'main'" :sub-tab="mainSubTab" />
             <NovelAITab v-else-if="activeTab === 'novelai'" :sub-tab="novelaiSubTab" />
             <ComfyUITab v-else-if="activeTab === 'comfyui'" :sub-tab="comfyuiSubTab" />
             <PromptLlmTab v-else-if="activeTab === 'prompt-llm'" :sub-tab="promptLlmSubTab" />
@@ -361,6 +362,12 @@ type NovelAISubTab = 'api' | 'config' | 'preset' | 'test';
 type ComfyUISubTab = 'api' | 'config' | 'test';
 type PromptLlmSubTab = 'settings' | 'builder' | 'test';
 type PromptProfilesSubTab = 'user' | 'character';
+type MainSubTab = 'general' | 'data';
+
+const MAIN_SUB_TABS = [
+  { value: 'general', label: '通用' },
+  { value: 'data', label: '数据' },
+] as const;
 
 const NOVELAI_SUB_TABS = [
   { value: 'api', label: 'API' },
@@ -390,6 +397,7 @@ const novelaiSubTab = ref<NovelAISubTab>('api');
 const comfyuiSubTab = ref<ComfyUISubTab>('api');
 const promptLlmSubTab = ref<PromptLlmSubTab>('settings');
 const promptProfilesSubTab = ref<PromptProfilesSubTab>('character');
+const mainSubTab = ref<MainSubTab>('general');
 
 const sections = ref<SectionInfo[]>([]);
 const currentSection = ref<string>('');

@@ -30,6 +30,16 @@
         :disabled="!vibe.enabled"
         @toggle="toggleVibe(vibe.id)"
       >
+        <template #title-extra>
+          <Tag
+            v-if="isVibeMissing(vibe)"
+            value="失效"
+            severity="danger"
+            rounded
+            class="cv-vibe-missing-tag"
+          />
+        </template>
+
         <template #actions>
           <div
             v-if="showParseButton(vibe)"
@@ -110,6 +120,7 @@ import {
   saveNovelAIVibeThumbnailData,
   summarizeNovelAIVibeCache,
 } from '@/services/novelai/vibe-cache';
+import { getNovelAIVibeDisplayFileName } from '@/services/novelai/vibe-display';
 import { parseNovelAIVibeFile, parseNovelAIVibeThumbnailFile } from '@/services/novelai/vibe-file';
 import { resolveNovelAIVibeParameters } from '@/services/novelai/vibe-parameters';
 import type { NovelAIVibeCacheSummary, ParsedNovelAIVibeFile } from '@/services/novelai/vibe-types';
@@ -247,6 +258,7 @@ function createVibeRef(payload: ParsedNovelAIVibeFile): ImagePromptVibeRef {
     enabled: true,
     referenceStrength: DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH,
     informationExtracted: DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
+    temporary: payload.sourceType === 'image',
   };
 }
 
@@ -340,8 +352,17 @@ async function loadSummaryEntry(vibe: ImagePromptVibeRef): Promise<[string, Nove
  */
 function getDisplayFileName(vibe: ImagePromptVibeRef): string {
   const summary = summaries.value[vibe.id];
-  const fileName = summary?.fileName ?? vibe.sourceHash.slice(0, 8);
-  return shouldUseVibeExtension(summary) ? replaceFileExtension(fileName, 'vibe') : fileName;
+  if (isMissingSummary(summary)) return getNovelAIVibeDisplayFileName({ fileName: getFallbackFileName(vibe), hasEncoded: true });
+  return getNovelAIVibeDisplayFileName(summary ?? { fileName: vibe.sourceHash.slice(0, 8), hasEncoded: false });
+}
+
+/**
+ * 读取失效 vibe 的兜底文件名
+ * @param vibe vibe 引用
+ * @returns 兜底文件名
+ */
+function getFallbackFileName(vibe: ImagePromptVibeRef): string {
+  return `${vibe.sourceHash.slice(0, 8)}.vibe`;
 }
 
 /**
@@ -360,6 +381,24 @@ function getThumbnailData(vibe: ImagePromptVibeRef): string | undefined {
  */
 function getEnabledLabel(vibe: ImagePromptVibeRef): string {
   return vibe.enabled ? '禁用 vibe' : '启用 vibe';
+}
+
+/**
+ * 判断 vibe 缓存是否已经丢失
+ * @param vibe vibe 引用
+ * @returns 是否失效
+ */
+function isVibeMissing(vibe: ImagePromptVibeRef): boolean {
+  return isMissingSummary(summaries.value[vibe.id]);
+}
+
+/**
+ * 判断缓存摘要是否代表失效 vibe
+ * @param summary 缓存摘要
+ * @returns 是否失效
+ */
+function isMissingSummary(summary: NovelAIVibeCacheSummary | undefined): boolean {
+  return Boolean(summary && !summary.hasImage && !summary.hasEncoded);
 }
 
 /**
@@ -393,26 +432,6 @@ function isParsing(id: string): boolean {
  */
 function setParsing(id: string, active: boolean): void {
   parsingIds.value = active ? [...parsingIds.value, id] : parsingIds.value.filter(item => item !== id);
-}
-
-/**
- * 判断是否使用 vibe 扩展名展示
- * @param summary 缓存摘要
- * @returns 是否使用 vibe 扩展名
- */
-function shouldUseVibeExtension(summary: NovelAIVibeCacheSummary | undefined): boolean {
-  return Boolean(summary?.sourceType === 'image' && summary.hasEncoded);
-}
-
-/**
- * 替换文件扩展名
- * @param fileName 原文件名
- * @param extension 新扩展名
- * @returns 替换后的文件名
- */
-function replaceFileExtension(fileName: string, extension: string): string {
-  const baseName = fileName.replace(/\.[^.\\/]+$/, '');
-  return `${baseName}.${extension}`;
 }
 
 /**
@@ -477,6 +496,13 @@ function handleVibeError(error: unknown, fallback: string): void {
 .cv-vibe-parse-busy {
   @apply pointer-events-none;
   opacity: 0.6;
+}
+
+.cv-vibe-missing-tag {
+  flex: 0 0 auto;
+  font-size: calc(var(--mainFontSize) * 0.72) !important;
+  line-height: 1 !important;
+  padding: 0.08rem 0.32rem !important;
 }
 
 .cv-vibe-editor {

@@ -424,7 +424,7 @@ function resolveFinalPrompts(
       overrides?.negativeLLMPrompt ?? '',
       overrides?.negativePromptMode ?? 'extract',
     ),
-    vibeReferences: cloneVibeReferences(getNovelAIPositivePresetVibes(settings, imagePromptPresets)),
+    vibeReferences: getNovelAIPositivePresetVibes(settings, imagePromptPresets),
   };
 }
 
@@ -462,15 +462,6 @@ async function resolveRequestPrompts(
     options,
   );
   return vibeParameters ? { ...request.prompts, vibeParameters } : request.prompts;
-}
-
-/**
- * 克隆 vibe 引用用于本次请求快照
- * @param vibes 预设绑定的 vibe 引用
- * @returns 独立 vibe 引用
- */
-function cloneVibeReferences(vibes: readonly ImagePromptVibeRef[]): ImagePromptVibeRef[] {
-  return vibes.map(vibe => ({ ...vibe }));
 }
 
 /**
@@ -513,7 +504,7 @@ function ensureRequestAccounts(accounts: NovelAIAccount[]): void {
 }
 
 /**
- * 使用指定账号请求 NovelAI 图片
+ * 使用指定账号请求 NovelAI 图片，兼容 JSON（新格式）与 ZIP（旧格式）
  * @param settings NovelAI 设置页参数
  * @param prompts 最终提示词
  * @param account 本次尝试账号
@@ -527,6 +518,10 @@ async function requestNovelAIAccountImage(
 ): Promise<Blob> {
   const response = await requestNovelAIResponse(settings, prompts, account, options);
   throwIfNovelAIAborted(options.signal);
+  const contentType = response.headers.get('content-type') ?? '';
+  if (contentType.includes('application/json')) {
+    return extractNovelAIImageFromJson(response);
+  }
   const zipBlob = await readNovelAIResponseBlob(response);
   throwIfNovelAIAborted(options.signal);
   return extractNovelAIImage(zipBlob);
@@ -569,6 +564,25 @@ async function readNovelAIResponseBlob(response: Response): Promise<Blob> {
     return await response.blob();
   } catch (error) {
     throw new Error(`[读取响应体] ${(error as Error).message}`);
+  }
+}
+
+/**
+ * 从 NovelAI JSON 响应中提取首图（新格式：images[0].image 为 base64）
+ * @param response 官方 JSON 响应
+ * @returns 第一张图片 Blob
+ */
+async function extractNovelAIImageFromJson(response: Response): Promise<Blob> {
+  try {
+    const json = await response.json() as { images?: Array<{ image?: string }> };
+    const base64 = json.images?.[0]?.image;
+    if (!base64) throw new Error('JSON 响应中没有找到图片数据');
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: 'image/png' });
+  } catch (error) {
+    throw new Error(`[JSON 解析] ${(error as Error).message}`);
   }
 }
 

@@ -2,6 +2,7 @@ import type { ImagePromptPresetSettings, ImagePromptVibeRef } from '@/constants/
 import { isNovelAIV3Model, type NovelAIAccount, type NovelAISettings } from '@/constants/novelai';
 import { getImagePromptPreset } from '@/services/image-prompt/presets';
 import {
+  getNovelAIVibeFileName,
   getNovelAIVibeAnyEncodedData,
   getNovelAIVibeEncodedData,
   getNovelAIVibeImageData,
@@ -114,7 +115,7 @@ async function resolveV4VibeImage(
   options: NovelAIVibeResolveOptions,
 ): Promise<string> {
   const cached = await getNovelAIVibeEncodedData(vibe.sourceHash, settings.model, vibe.informationExtracted);
-  if (cached) return cached;
+  if (cached) return markVibePersistent(vibe, cached);
   const imageData = await getNovelAIVibeImageData(vibe.sourceHash);
   if (!imageData) return getEncodedOnlyVibeData(vibe);
   return encodeAndCacheVibe(settings, vibe, imageData, accounts, options);
@@ -127,7 +128,7 @@ async function resolveV4VibeImage(
  */
 async function getEncodedOnlyVibeData(vibe: ImagePromptVibeRef): Promise<string> {
   const encodedData = await getNovelAIVibeAnyEncodedData(vibe.sourceHash);
-  if (encodedData) return encodedData;
+  if (encodedData) return markVibePersistent(vibe, encodedData);
   throw new Error('当前 vibe 缓存已丢失，请重新上传图片或 .vibe 文件');
 }
 
@@ -148,8 +149,8 @@ async function encodeAndCacheVibe(
   options: NovelAIVibeResolveOptions,
 ): Promise<string> {
   const encodedData = await encodeNovelAIVibeWithAccounts(accounts, stripDataUrlBase64(imageData), settings.model, vibe.informationExtracted, options);
-  await saveNovelAIVibeEncodedData(createCachePayload(vibe), settings.model, vibe.informationExtracted, encodedData);
-  return encodedData;
+  await saveNovelAIVibeEncodedData(await createCachePayload(vibe), settings.model, vibe.informationExtracted, encodedData);
+  return markVibePersistent(vibe, encodedData);
 }
 
 /**
@@ -157,6 +158,20 @@ async function encodeAndCacheVibe(
  * @param vibe vibe 引用
  * @returns 最小缓存载荷
  */
-function createCachePayload(vibe: ImagePromptVibeRef): Pick<ParsedNovelAIVibeFile, 'sourceHash' | 'fileName'> {
-  return { sourceHash: vibe.sourceHash, fileName: vibe.sourceHash.slice(0, 8) };
+async function createCachePayload(vibe: ImagePromptVibeRef): Promise<Pick<ParsedNovelAIVibeFile, 'sourceHash' | 'fileName'>> {
+  return {
+    sourceHash: vibe.sourceHash,
+    fileName: (await getNovelAIVibeFileName(vibe.sourceHash)) ?? vibe.sourceHash.slice(0, 8),
+  };
+}
+
+/**
+ * 将临时 vibe 标记为已持久化
+ * @param vibe vibe 引用
+ * @param value 已解析的 encodedData
+ * @returns 原样返回 encodedData
+ */
+function markVibePersistent(vibe: ImagePromptVibeRef, value: string): string {
+  if (vibe.temporary) vibe.temporary = false;
+  return value;
 }

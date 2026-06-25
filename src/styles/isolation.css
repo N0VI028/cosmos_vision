@@ -730,7 +730,7 @@
 }
 
 .cv-dialog-mask {
-  @apply flex items-center justify-center w-dvw h-dvh;
+  @apply flex items-center justify-center w-dvw h-dvh absolute!;
 }
 
 /**

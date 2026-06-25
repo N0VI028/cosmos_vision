@@ -104,6 +104,7 @@ const imagePromptVibeRefSchema = z.object({
   enabled: z.boolean().default(true),
   referenceStrength: z.number().min(0).max(1).default(DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH),
   informationExtracted: z.number().min(0).max(1).default(DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED),
+  temporary: z.boolean().optional().default(false),
 });
 const imagePromptPresetSchema = z.object({
   id: z.string().min(1),
@@ -629,8 +630,51 @@ function loadFromExtensionSettings(): CosmosVisionSettings {
  * @param settings 当前运行设置
  */
 function persist(settings: CosmosVisionSettings): void {
-  (extension_settings as Record<string, unknown>)[SETTINGS_KEY] = _.cloneDeep(settings);
+  (extension_settings as Record<string, unknown>)[SETTINGS_KEY] = sanitizeSettingsForPersist(settings);
   saveSettingsDebounced();
+}
+
+/**
+ * 清理不应进入持久化的数据
+ * @param settings 当前运行设置
+ * @returns 可写入 ST 的设置快照
+ */
+function sanitizeSettingsForPersist(settings: CosmosVisionSettings): CosmosVisionSettings {
+  const snapshot = _.cloneDeep(settings);
+  return {
+    ...snapshot,
+    imagePromptPresets: {
+      positive: snapshot.imagePromptPresets.positive.map(sanitizeImagePromptPreset),
+      negative: snapshot.imagePromptPresets.negative.map(sanitizeImagePromptPreset),
+    },
+  };
+}
+
+/**
+ * 清理单个生图提示词预设中的临时 vibe
+ * @param preset 原始预设
+ * @returns 可持久化预设
+ */
+function sanitizeImagePromptPreset(preset: ImagePromptPreset): ImagePromptPreset {
+  return {
+    ...preset,
+    vibes: preset.vibes.filter(vibe => !vibe.temporary).map(sanitizeImagePromptVibe),
+  };
+}
+
+/**
+ * 清理单个生图 vibe 引用
+ * @param vibe 原始 vibe 引用
+ * @returns 可持久化引用
+ */
+function sanitizeImagePromptVibe(vibe: ImagePromptVibeRef): ImagePromptVibeRef {
+  return {
+    id: vibe.id,
+    sourceHash: vibe.sourceHash,
+    enabled: vibe.enabled,
+    referenceStrength: vibe.referenceStrength,
+    informationExtracted: vibe.informationExtracted,
+  };
 }
 
 /**
@@ -707,5 +751,22 @@ export const useSettingsStore = defineStore('cosmos_vision_settings', () => {
     persist(savedSettings);
   }
 
-  return { settings, savedSettings, darkMode, isDirty, applySettings, discardSettings, resetDraftSettings, resetToDefaults };
+  /**
+   * 将当前运行配置重新写回 ST 持久化
+   */
+  function persistSavedSettings(): void {
+    persist(savedSettings);
+  }
+
+  return {
+    settings,
+    savedSettings,
+    darkMode,
+    isDirty,
+    applySettings,
+    discardSettings,
+    resetDraftSettings,
+    resetToDefaults,
+    persistSavedSettings,
+  };
 });

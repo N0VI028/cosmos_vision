@@ -37,6 +37,25 @@ export interface NovelAIVibeCacheSummary {
   thumbnailData?: string;
 }
 
+/** NovelAI vibe 列表行 */
+export interface NovelAIVibeCacheListItem {
+  sourceHash: string;
+  fileName: string;
+  sourceType: NovelAIVibeSourceType;
+  hasImage: boolean;
+  hasEncoded: boolean;
+  thumbnailData?: string;
+  createdAt: number;
+}
+
+/** NovelAI vibe 下载载荷 */
+export interface NovelAIVibeDownloadPayload {
+  sourceHash: string;
+  fileName: string;
+  encodedData: string;
+  thumbnailData?: string;
+}
+
 /** NovelAI 官方请求中的 vibe 三组数组 */
 export interface NovelAIVibeParameters {
   reference_image_multiple: string[];

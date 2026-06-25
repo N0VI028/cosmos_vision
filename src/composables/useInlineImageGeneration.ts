@@ -23,6 +23,8 @@ import {
   generatePromptTextFromRuntimeContext,
 } from '@/services/prompt-llm/runtime-request';
 import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
+import type { ImagePromptVibeRef } from '@/constants/image-prompt';
+import { useSettingsStore } from '@/store/settings';
 import Button from 'primevue/button';
 import { getCurrentInstance, h, render } from 'vue';
 
@@ -72,6 +74,7 @@ export function useInlineImageGeneration(
 ) {
   const isRuntimeEnabled = options.isRuntimeEnabled ?? (() => true);
   const requestTextInput = options.requestTextInput;
+  const settingsStore = useSettingsStore();
 
   /** 当前组件实例上下文,用于把 PrimeVue Button 渲染到聊天内联 DOM */
   const appContext = getCurrentInstance()?.appContext;
@@ -631,18 +634,45 @@ export function useInlineImageGeneration(
       settings.promptLlm,
       overrides,
     );
+    const temporarySourceHashes = collectTemporaryVibeSourceHashes(request.prompts.vibeReferences);
     return runImageStep(
       session,
       request.prompts,
       async () => {
-        const result = await generateNovelAIImageFromResolvedRequest(request, { signal: session.controller.signal });
-        return {
-          promptSnapshot: result.prompts,
-          imageBlob: result.imageBlob,
-        };
+        try {
+          const result = await generateNovelAIImageFromResolvedRequest(request, { signal: session.controller.signal });
+          return {
+            promptSnapshot: result.prompts,
+            imageBlob: result.imageBlob,
+          };
+        } finally {
+          if (hasPromotedTemporaryVibes(request.prompts.vibeReferences, temporarySourceHashes)) {
+            settingsStore.persistSavedSettings();
+          }
+        }
       },
       onSnapshotResolved,
     );
+  }
+
+  /**
+   * 收集当前仍为临时态的 vibe 来源 hash
+   * @param vibes 本次请求绑定的 vibe 引用
+   * @returns 临时 vibe hash 列表
+   */
+  function collectTemporaryVibeSourceHashes(vibes?: readonly ImagePromptVibeRef[]): string[] {
+    return (vibes ?? []).filter(vibe => vibe.temporary).map(vibe => vibe.sourceHash);
+  }
+
+  /**
+   * 判断本次请求是否将临时 vibe 升级为持久条目
+   * @param vibes 当前 vibe 引用
+   * @param sourceHashes 请求开始前的临时 vibe hash
+   * @returns 是否发生升级
+   */
+  function hasPromotedTemporaryVibes(vibes: readonly ImagePromptVibeRef[] | undefined, sourceHashes: readonly string[]): boolean {
+    if (!sourceHashes.length || !vibes?.length) return false;
+    return sourceHashes.some(sourceHash => !vibes.find(vibe => vibe.sourceHash === sourceHash)?.temporary);
   }
 
   /**

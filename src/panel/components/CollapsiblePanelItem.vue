@@ -3,7 +3,8 @@
     <template #header>
       <div class="cv-collapsible-panel-header" @click="$emit('toggle')">
         <div class="cv-collapsible-panel-title">
-          <span>{{ title }}</span>
+          <span class="cv-collapsible-panel-title-text">{{ title }}</span>
+          <slot name="title-extra" />
         </div>
         <div class="cv-collapsible-panel-actions-wrapper">
           <div v-if="$slots.actions" class="cv-collapsible-panel-actions" @click.stop @keydown.stop>
@@ -61,12 +62,14 @@ defineEmits<{
 }
 
 .cv-collapsible-panel-title {
-  @apply min-w-0 overflow-hidden;
+  @apply flex min-w-0 items-center overflow-hidden;
   flex: 1 1 auto;
+  gap: var(--cv-space-sm);
 }
 
-.cv-collapsible-panel-title > span {
-  @apply block overflow-hidden text-ellipsis whitespace-nowrap;
+.cv-collapsible-panel-title-text {
+  @apply block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
+  flex: 0 1 auto;
   color: var(--cv-on-surface);
   font-weight: 600;
 }

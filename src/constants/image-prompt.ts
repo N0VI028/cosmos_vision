@@ -13,6 +13,7 @@ export interface ImagePromptVibeRef {
   enabled: boolean;
   referenceStrength: number;
   informationExtracted: number;
+  temporary?: boolean;
 }
 
 /** 生图固定提示词预设 */
