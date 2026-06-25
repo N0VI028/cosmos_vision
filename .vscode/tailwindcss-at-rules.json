@@ -1,0 +1,41 @@
+{
+  "version": 1.1,
+  "atDirectives": [
+    {
+      "name": "@apply",
+      "description": "Tailwind CSS 工具类内联指令。"
+    },
+    {
+      "name": "@reference",
+      "description": "Tailwind CSS v4 样式上下文引用指令。"
+    },
+    {
+      "name": "@theme",
+      "description": "Tailwind CSS v4 主题变量定义指令。"
+    },
+    {
+      "name": "@utility",
+      "description": "Tailwind CSS v4 自定义 utility 指令。"
+    },
+    {
+      "name": "@variant",
+      "description": "Tailwind CSS v4 自定义 variant 指令。"
+    },
+    {
+      "name": "@custom-variant",
+      "description": "Tailwind CSS v4 自定义命名 variant 指令。"
+    },
+    {
+      "name": "@source",
+      "description": "Tailwind CSS v4 内容源声明指令。"
+    },
+    {
+      "name": "@plugin",
+      "description": "Tailwind CSS 插件声明指令。"
+    },
+    {
+      "name": "@config",
+      "description": "Tailwind CSS 配置文件声明指令。"
+    }
+  ]
+}
