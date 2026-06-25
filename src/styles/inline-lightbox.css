@@ -1,15 +1,14 @@
+@reference '../global.css';
+
 /**
  * 内联生图大图预览与提示词详情
  */
 
 .cv-lightbox-overlay {
-  position: fixed;
+  @apply fixed left-0 top-0 z-[99999] flex h-screen w-screen items-center justify-center;
   top: 0;
   left: 0;
   z-index: 99999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 100vw;
   height: 100vh;
   height: 100dvh;
@@ -26,17 +25,13 @@
 }
 
 .cv-lightbox-close {
-  position: absolute;
+  @apply absolute z-[100001] flex items-center justify-center rounded-full;
   top: max(1.5rem, env(safe-area-inset-top));
   right: max(1.5rem, env(safe-area-inset-right));
   z-index: 100001;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 2.5rem;
   height: 2.5rem;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 50%;
   background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
   font-size: 1.25rem;
@@ -50,10 +45,7 @@
 }
 
 .cv-lightbox-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  @apply flex flex-col items-center justify-center;
   width: 90%;
   max-width: 900px;
   height: 90%;
@@ -67,12 +59,8 @@
 }
 
 .cv-lightbox-img-box {
-  display: flex;
+  @apply flex w-full min-h-0 items-center justify-center;
   flex: 1;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 0;
 }
 
 .cv-lightbox-img-box img {
@@ -85,13 +73,10 @@
 }
 
 .cv-lightbox-info {
-  display: flex;
-  flex-direction: column;
+  @apply flex w-full flex-col overflow-hidden;
   gap: 1rem;
-  width: 100%;
   max-height: 25rem;
   padding: 1.25rem;
-  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   background: rgba(20, 20, 25, 0.7);
@@ -108,10 +93,7 @@
 }
 
 .cv-lightbox-info-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
+  @apply flex w-full items-center justify-between;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   transition: border-bottom-color 0.2s ease;
@@ -128,16 +110,12 @@
 }
 
 .cv-lightbox-toggle-btn {
-  display: inline-flex;
-  align-items: center;
+  @apply inline-flex cursor-pointer items-center border-0 bg-transparent;
   gap: 0.35rem;
   padding: 0.25rem 0.5rem;
-  border: none;
   border-radius: 4px;
-  background: transparent;
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.8rem;
-  cursor: pointer;
   transition: all 0.2s ease;
 }
 
@@ -147,8 +125,7 @@
 }
 
 .cv-lightbox-info-body {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
   gap: 1rem;
   opacity: 1;
   transition: opacity 0.2s ease;
@@ -160,15 +137,12 @@
 }
 
 .cv-lightbox-prompt-group {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
   gap: 0.5rem;
 }
 
 .cv-lightbox-prompt-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  @apply flex items-center justify-between;
 }
 
 .cv-lightbox-prompt-title {

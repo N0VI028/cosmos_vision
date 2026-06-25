@@ -114,9 +114,10 @@ async function handleDeleteActiveClick(): Promise<void> {
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-preset-selector {
-  display: flex;
-  align-items: center;
+  @apply flex items-center;
   gap: var(--cv-space-md);
 }
 
@@ -126,33 +127,22 @@ async function handleDeleteActiveClick(): Promise<void> {
   --p-select-focus-ring-shadow: none;
   --p-select-focus-ring-style: none;
   --p-select-focus-ring-width: 0;
-  display: inline-flex;
-  align-items: center;
+  @apply inline-flex items-center min-w-0 cursor-pointer border-0 bg-transparent p-0 shadow-none;
   flex: 0 1 9em;
   width: 9em !important;
   height: auto !important;
-  min-width: 0;
-  padding: 0 !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
   color: var(--p-primary-color) !important;
-  cursor: pointer;
   font-size: calc(var(--mainFontSize) * 0.85) !important;
   font-weight: 600;
 }
 
 .cv-preset-actions {
-  display: flex;
-  align-items: center;
+  @apply ml-auto flex items-center;
   gap: var(--cv-space-sm);
-  margin-left: auto;
 }
 
 .cv-preset-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  @apply inline-flex cursor-pointer items-center justify-center;
   width: 2em;
   height: 2em;
   padding: 0;
@@ -160,7 +150,6 @@ async function handleDeleteActiveClick(): Promise<void> {
   border: var(--cv-border-width) solid transparent;
   border-radius: var(--cv-radius-sm);
   color: var(--cv-on-surface-variant);
-  cursor: pointer;
   font-size: calc(var(--mainFontSize) * 0.75);
   transition: all 0.15s ease;
 }
@@ -179,17 +168,17 @@ async function handleDeleteActiveClick(): Promise<void> {
 
 @media (max-width: 48rem) {
   .cv-preset-selector {
-    flex-wrap: nowrap;
+    @apply flex-nowrap;
   }
 
   .cv-preset-select {
     flex: 1 1 auto;
     width: auto !important;
-    min-width: 0;
+    @apply min-w-0;
   }
 
   .cv-preset-actions {
-    flex-shrink: 0;
+    @apply shrink-0;
   }
 }
 </style>

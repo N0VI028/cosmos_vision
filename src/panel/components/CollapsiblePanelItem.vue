@@ -40,8 +40,10 @@ defineEmits<{
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-collapsible-panel {
-  overflow: hidden;
+  @apply overflow-hidden;
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   border-radius: var(--cv-radius-sm);
   background: var(--cv-surface-container-low);
@@ -53,41 +55,31 @@ defineEmits<{
 }
 
 .cv-collapsible-panel-header {
-  display: flex;
+  @apply flex w-full min-w-0 cursor-pointer items-center justify-between;
   flex: 1 1 auto;
-  align-items: center;
-  justify-content: space-between;
   gap: var(--cv-space-lg);
-  width: 100%;
-  min-width: 0;
-  cursor: pointer;
 }
 
 .cv-collapsible-panel-title {
+  @apply min-w-0 overflow-hidden;
   flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
 }
 
 .cv-collapsible-panel-title > span {
-  display: block;
-  overflow: hidden;
+  @apply block overflow-hidden text-ellipsis whitespace-nowrap;
   color: var(--cv-on-surface);
   font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .cv-collapsible-panel-actions-wrapper,
 .cv-collapsible-panel-actions {
-  display: flex;
-  align-items: center;
+  @apply flex items-center;
   gap: var(--cv-space-sm);
 }
 
 .cv-collapsible-panel-actions-wrapper {
+  @apply min-w-0;
   flex: 0 0 auto;
-  min-width: 0;
 }
 
 .cv-collapsible-panel-toggle-icon {
@@ -97,8 +89,7 @@ defineEmits<{
 
 @media (max-width: 38rem) {
   .cv-collapsible-panel-actions {
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    @apply flex-wrap justify-end;
   }
 }
 </style>

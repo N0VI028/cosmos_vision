@@ -6,6 +6,7 @@ const icon = { class: 'cv-prime-icon' } as const;
 const iconButton = { class: 'cv-prime-icon-button' } as const;
 const option = { class: 'cv-select-option' } as const;
 const overlay = { class: 'cosmos-vision-root' } as const;
+const dialogMask = { class: 'cv-dialog-mask' } as const;
 const fieldOverlay = { class: 'cosmos-vision-root cv-prime-field-overlay' } as const;
 const checkInputClass = 'cv-prime-check-input' as const;
 const checkbox = {
@@ -50,8 +51,18 @@ const selectButtonToggle = {
 const sliderHandle = {
   class: 'cv-prime-slider-handle',
 } as const;
+const tag = {
+  root: { class: 'cv-prime-tag' },
+  icon: { class: 'cv-prime-tag-icon' },
+  label: { class: 'cv-prime-tag-label' },
+} as const;
 const imagePreviewMask = {
   style: { borderRadius: 'var(--cv-radius)' },
+} as const;
+const progressSpinner = {
+  root: { class: 'cv-prime-progress-spinner' },
+  spin: { class: 'cv-prime-progress-spinner-spin' },
+  circle: { class: 'cv-prime-progress-spinner-circle' },
 } as const;
 const panelHeader = {
   class: 'cv-prime-panel-header',
@@ -78,10 +89,8 @@ const panelContent = {
  */
 export const cosmosPrimePt = {
   dialog: {
-    mask: {
-      style: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100dvw', height: '100dvh' },
-    },
-    root: { class: 'cosmos-vision-root cv-dialog', style: { overflow: 'hidden' } },
+    mask: dialogMask,
+    root: { class: 'cosmos-vision-root cv-dialog' },
   },
   image: { previewMask: imagePreviewMask },
   inputtext: { root: fieldRoot },
@@ -108,21 +117,46 @@ export const cosmosPrimePt = {
   autocomplete: { overlay: fieldOverlay },
   checkbox,
   datepicker: { panel: overlay },
+  fluid: { root: { class: 'cv-prime-fluid' } },
   popover: { root: overlay },
   confirmpopup: { root: overlay },
-  password: { pcInputText: { root: fieldRoot }, maskIcon: icon, unmaskIcon: icon, overlay },
-  inputnumber: {
+  tag,
+  password: {
+    root: { class: 'cv-prime-password' },
     pcInputText: { root: fieldRoot },
+    maskIcon: icon,
+    unmaskIcon: icon,
+    clearIcon: icon,
+    overlay,
+  },
+  inputnumber: {
+    root: { class: 'cv-prime-inputnumber' },
+    pcInputText: { root: fieldRoot },
+    buttonGroup: { class: 'cv-prime-inputnumber-button-group' },
     incrementButton: iconButton,
+    incrementIcon: icon,
     decrementButton: iconButton,
+    decrementIcon: icon,
+    clearIcon: icon,
   },
   button: { root: buttonRoot, icon, loadingIcon: icon, label: { class: 'cv-prime-button-label' } },
-  panel: { header: panelHeader, content: panelContent },
-  message: { root: { class: 'cv-prime-message' }, text: { class: 'cv-prime-message-text' }, closeButton: iconButton },
+  panel: { root: { class: 'cv-prime-panel' }, header: panelHeader, content: panelContent },
+  message: {
+    root: { class: 'cv-prime-message' },
+    contentWrapper: { class: 'cv-prime-message-content-wrapper' },
+    content: { class: 'cv-prime-message-content' },
+    icon: { class: 'cv-prime-message-icon' },
+    text: { class: 'cv-prime-message-text' },
+    closeButton: { class: 'cv-prime-icon-button cv-prime-message-close-button' },
+    closeIcon: icon,
+  },
+  progressspinner: progressSpinner,
   selectbutton: { root: selectButtonRoot, pcToggleButton: selectButtonToggle },
   togglebutton: {
     root: { class: 'cv-prime-togglebutton' },
     content: { class: 'cv-prime-togglebutton-content' },
+    icon,
+    label: { class: 'cv-prime-togglebutton-label' },
   },
   slider: {
     root: { class: 'cv-prime-slider', style: { border: 'none' } },

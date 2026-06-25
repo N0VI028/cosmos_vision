@@ -199,36 +199,35 @@ async function fetchModels(): Promise<void> {
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-tab-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  @apply flex flex-col gap-0;
 }
 
 /* 滑块数值显示 */
 .cv-slider-value {
+  @apply mt-[var(--cv-space-lg)] text-center;
   text-align: center;
   font-size: calc(var(--mainFontSize) * 0.9333);
   color: var(--cv-on-surface-variant);
-  margin-top: var(--cv-space-lg);
   font-weight: 500;
 }
 
 /* 模型选择行 */
 .cv-model-row {
-  display: flex;
+  @apply flex items-center;
   gap: var(--cv-space-3xl);
-  align-items: center;
 }
 
 .cv-model-row > .cv-model-input {
+  @apply min-w-0;
   flex: 1;
-  min-width: 0;
 }
 
 /* 非 rounded 变体统一圆角;rounded 按钮交还 PrimeVue 自身规则 */
-.cv-model-row > .cv-prime-button:not(.p-button-rounded) {
-  flex-shrink: 0;
+.cv-model-row > .cv-prime-button:not([data-p~='rounded']) {
+  @apply shrink-0;
   border-radius: var(--cv-radius);
 }
 </style>

@@ -193,10 +193,10 @@ function applyTestResponse(rawResult: string): void {
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-test-tab {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  @apply flex flex-col gap-0;
 }
 
 .cv-action-row {
@@ -205,23 +205,20 @@ function applyTestResponse(rawResult: string): void {
 }
 
 .cv-log-container {
+  @apply overflow-hidden;
   background: var(--cv-surface-container);
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   border-radius: var(--cv-radius);
   padding: var(--cv-space-2xl);
-  overflow: hidden;
 }
 
 .cv-log-param-grid {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
   gap: var(--cv-space-xl);
 }
 
 .cv-log-param-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  @apply flex items-center justify-between;
   border-bottom: 1px solid var(--cv-surface-variant);
   padding-bottom: var(--cv-space-md);
 }
@@ -237,9 +234,8 @@ function applyTestResponse(rawResult: string): void {
 }
 
 .param-value {
+  @apply break-all text-right;
   color: var(--cv-on-surface);
-  text-align: right;
-  word-break: break-all;
 }
 
 .code-font {
@@ -255,6 +251,7 @@ function applyTestResponse(rawResult: string): void {
 }
 
 .preview-content {
+  @apply m-0 overflow-y-auto whitespace-pre-wrap break-all;
   background: var(--cv-surface-variant);
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   color: var(--cv-on-surface);
@@ -262,25 +259,18 @@ function applyTestResponse(rawResult: string): void {
   font-size: calc(var(--mainFontSize) * 0.85);
   padding: var(--cv-space-2xl);
   border-radius: var(--cv-radius-sm);
-  white-space: pre-wrap;
-  word-break: break-all;
-  margin: 0;
   max-height: 300px;
-  overflow-y: auto;
 }
 
 .cv-test-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @apply flex items-center justify-center;
   padding: var(--cv-space-3xl) 0;
   color: var(--cv-on-surface-variant);
   font-size: calc(var(--mainFontSize) * 0.95);
 }
 
 .cv-test-state-success {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
   gap: var(--cv-space-xl);
 }
 
@@ -299,8 +289,7 @@ function applyTestResponse(rawResult: string): void {
 }
 
 .cv-test-state-error {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
   gap: var(--cv-space-xl);
 }
 

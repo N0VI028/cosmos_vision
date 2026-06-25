@@ -316,66 +316,54 @@ const proxyPreview = computed(() => {
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-tab-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  @apply flex flex-col gap-0;
 }
 
 .cv-nai-option-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  @apply flex flex-wrap items-center;
   gap: var(--cv-space-xl);
 }
 
 .cv-nai-field-title-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
+  @apply flex flex-wrap items-end justify-between;
   gap: var(--cv-space-lg);
   font-weight: 600;
   color: var(--cv-on-surface);
 }
 
 .cv-nai-title-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: flex-end;
+  @apply ml-auto flex flex-wrap items-end justify-end;
   gap: var(--cv-space-xs);
-  margin-left: auto;
 }
 
 .cv-nai-sampler-field {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
   gap: var(--cv-space-lg);
 }
 
 .cv-nai-advanced-block {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
   gap: var(--cv-space-xl);
 }
 
 .cv-nai-mini-toggle {
-  min-width: 0;
+  @apply min-w-0;
   --p-togglebutton-sm-padding: var(--cv-space-xs) var(--cv-space-md);
   --p-togglebutton-content-sm-padding: var(--cv-space-xs) var(--cv-space-md);
   --p-togglebutton-sm-font-size: calc(var(--mainFontSize) * 0.75);
 }
 
-.cv-nai-mini-toggle:deep(.p-togglebutton-content) {
+.cv-nai-mini-toggle:deep(.cv-prime-togglebutton-content) {
   gap: var(--cv-space-xs);
   border-radius: var(--cv-radius-sm);
   line-height: 1;
 }
 
 .cv-nai-check-option {
-  display: inline-flex;
-  align-items: center;
+  @apply inline-flex items-center;
   gap: var(--cv-space-lg);
   min-height: 1.75rem;
   color: var(--cv-on-surface);
@@ -383,7 +371,7 @@ const proxyPreview = computed(() => {
 }
 
 .cv-nai-check-option > span {
-  min-width: 0;
+  @apply min-w-0;
   line-height: 1.35;
 }
 
@@ -393,6 +381,6 @@ const proxyPreview = computed(() => {
 }
 
 .cv-nai-legacy-option {
-  align-self: flex-start;
+  @apply self-start;
 }
 </style>

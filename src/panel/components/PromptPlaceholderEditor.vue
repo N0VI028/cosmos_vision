@@ -318,11 +318,14 @@ function getBeforeLength(): number {
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-placeholder-editor-wrap {
-  display: block;
+  @apply block;
 }
 
 .cv-placeholder-editor {
+  @apply whitespace-pre-wrap break-words outline-none;
   min-height: 6rem;
   padding: var(--cv-space-3xl);
   border: var(--cv-border-width) solid var(--p-content-border-color);
@@ -330,9 +333,6 @@ function getBeforeLength(): number {
   background: var(--p-inputtext-background);
   color: var(--p-inputtext-color);
   line-height: 1.5;
-  outline: none;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 
 .cv-placeholder-editor:focus-within {
@@ -342,12 +342,11 @@ function getBeforeLength(): number {
 
 .cv-placeholder-text {
   min-width: 0.5em;
-  outline: none;
+  @apply outline-none;
 }
 
 .cv-placeholder-token {
-  display: inline-flex;
-  align-items: center;
+  @apply inline-flex cursor-grab select-none items-center;
   gap: var(--cv-space-sm);
   min-height: 2rem;
   margin: 0 var(--cv-space-sm);
@@ -356,8 +355,6 @@ function getBeforeLength(): number {
   border-radius: var(--cv-radius-sm);
   background: color-mix(in srgb, var(--p-primary-color) 14%, transparent);
   color: var(--p-primary-color);
-  cursor: grab;
-  user-select: none;
   touch-action: none;
 }
 
@@ -366,8 +363,8 @@ function getBeforeLength(): number {
 }
 
 .cv-placeholder-editor.is-dragging .cv-placeholder-token {
+  @apply pointer-events-none;
   opacity: 0.75;
-  pointer-events: none;
 }
 
 @media (max-width: 40rem) {

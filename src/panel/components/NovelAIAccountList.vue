@@ -106,30 +106,26 @@ function removeAccount(index: number): void {
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-account-list {
-  display: flex;
-  flex-direction: column;
+  @apply flex w-full flex-col;
   gap: var(--cv-space-4xl);
-  width: 100%;
 }
 
 .cv-account-list__header {
-  display: flex;
-  flex-direction: column;
+  @apply flex w-full flex-col;
   gap: var(--cv-space-md);
-  width: 100%;
 }
 
 .cv-account-list__title {
+  @apply shrink-0 whitespace-nowrap;
   color: var(--cv-on-surface);
   font-weight: 600;
-  white-space: nowrap;
-  flex-shrink: 0;
 }
 
 .cv-account-list__actions {
-  display: flex;
-  justify-content: flex-start;
+  @apply flex justify-start;
   margin-top: var(--cv-space-sm);
 }
 
@@ -140,14 +136,12 @@ function removeAccount(index: number): void {
 }
 
 .cv-account-list__items {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
   gap: var(--cv-space-4xl);
 }
 
 .cv-account-row {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
   gap: var(--cv-space-4xl);
   padding: var(--cv-space-5xl);
   border: var(--cv-border-width) solid var(--cv-surface-variant);
@@ -156,9 +150,7 @@ function removeAccount(index: number): void {
 }
 
 .cv-account-row__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  @apply flex items-center justify-between;
   gap: var(--cv-space-3xl);
 }
 
@@ -168,22 +160,19 @@ function removeAccount(index: number): void {
 }
 
 .cv-account-row__actions {
-  display: inline-flex;
-  align-items: center;
+  @apply inline-flex items-center;
   gap: var(--cv-space-sm);
 }
 
 .cv-account-row__fields {
-  display: grid;
+  @apply grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--cv-space-4xl);
 }
 
 .cv-account-field {
-  display: flex;
-  flex-direction: column;
+  @apply mb-0 flex flex-col;
   gap: var(--cv-space-3xl);
-  margin-bottom: 0;
 }
 
 .cv-account-field > span {
@@ -194,17 +183,13 @@ function removeAccount(index: number): void {
 }
 
 .cv-account-list__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  @apply flex flex-col items-center justify-center text-center;
   gap: var(--cv-space-3xl);
   min-height: 9rem;
   padding: var(--cv-space-6xl);
   border: var(--cv-border-width) dashed var(--cv-surface-variant);
   border-radius: var(--cv-radius);
   color: var(--cv-on-surface-variant);
-  text-align: center;
 }
 
 .cv-account-list__empty > i {
@@ -213,12 +198,11 @@ function removeAccount(index: number): void {
 
 @media (max-width: 48rem) {
   .cv-account-row__head {
-    flex-direction: column;
-    align-items: stretch;
+    @apply flex-col items-stretch;
   }
 
   .cv-account-row__actions {
-    justify-content: flex-end;
+    @apply justify-end;
   }
 
   .cv-account-row__fields {

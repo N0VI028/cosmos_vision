@@ -30,18 +30,18 @@ defineEmits<{
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 /* 子标签导航 - 分段控制器样式 */
 .cv-subtab-nav {
-  display: flex;
-  gap: 0;
-  justify-content: flex-start;
+  @apply flex w-fit justify-start gap-0;
   padding: var(--cv-space-sm);
   background: var(--cv-surface-container-low);
   border-radius: var(--cv-radius-full);
-  width: fit-content;
 }
 
 .cv-subtab-item {
+  @apply cursor-pointer border-0 bg-transparent;
   min-width: 6em;
   padding: var(--cv-space-md) var(--cv-space-5xl);
   border-radius: var(--cv-radius-full);
@@ -49,9 +49,6 @@ defineEmits<{
   font-size: calc(var(--mainFontSize) * 0.8667);
   font-weight: 400;
   color: var(--cv-on-surface-variant);
-  cursor: pointer;
-  background: transparent;
-  border: none;
   transition: all 0.15s ease;
   text-transform: none;
 }
@@ -68,10 +65,10 @@ defineEmits<{
 
 @media (max-width: 66.6667em) {
   .cv-subtab-nav {
-    width: 100%;
-    overflow-x: auto;
+    @apply w-full overflow-x-auto;
   }
   .cv-subtab-item {
+    @apply flex-auto;
     flex: 1 1 auto;
     min-width: unset;
     padding: var(--cv-space-md) var(--cv-space-xl);

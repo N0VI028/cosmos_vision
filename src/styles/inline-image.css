@@ -1,3 +1,5 @@
+@reference '../global.css';
+
 /**
  * 段落生图临时 UI 样式
  * PrimeVue 操作按钮 + 临时图片卡片
@@ -5,33 +7,24 @@
 
 /* Speed Dial 容器 */
 .cv-speed-dial-container {
-  position: fixed;
+  @apply fixed z-[30000] flex flex-col items-center;
   z-index: 30000;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: 0.5em;
 }
 
 /* Speed Dial 菜单（出现在主按钮下方） */
 .cv-speed-dial-menu {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  @apply flex flex-col items-center;
   gap: 0.5em;
   order: 2;
 }
 
 .cv-speed-dial-menu > button {
+  @apply inline-flex cursor-pointer items-center justify-center p-0;
   width: 2.6em;
   height: 2.6em;
   border: none;
   border-radius: var(--cv-radius-full);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  cursor: pointer;
   box-shadow: var(--cv-floating-shadow);
   transition:
     background 0.2s ease,
@@ -50,17 +43,13 @@
 
 /* 主悬浮按钮 */
 .cv-inline-mode-fab {
+  @apply inline-flex cursor-pointer items-center justify-center p-0;
   width: 3.2em;
   height: 3.2em;
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   border-radius: var(--cv-radius-full);
   background: var(--cv-surface-container-high);
   color: var(--cv-on-surface);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  cursor: pointer;
   box-shadow: var(--cv-floating-shadow);
   transition:
     background 0.2s ease,
@@ -116,7 +105,7 @@
 
 /* 被选中的段落: 覆盖整个段落的清透毛玻璃 (高度自适应) */
 .cv-inline-selected {
-  position: relative;
+  @apply relative block w-full;
   border-radius: var(--cv-radius-sm);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: none !important;
@@ -161,7 +150,7 @@
 
 /* 段落工具栏: 居中定位的透明包装器 */
 .cv-inline-toolbar {
-  position: absolute;
+  @apply absolute flex items-center justify-center;
   top: 50%;
   left: 50%;
   z-index: 3;
@@ -194,9 +183,7 @@ body.dark .cv-inline-toolbar {
 
 /* 上方白色圆角胶囊区域 */
 .cv-inline-trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
+  @apply inline-flex items-center justify-between;
   gap: 1em; /* 适当拉近间距使整体更精致 */
   
   /* 白色胶囊盒 */
@@ -285,7 +272,7 @@ body.dark .cv-inline-toolbar {
   font-size: calc(var(--mainFontSize) * 0.8) !important;
 }
 
-.cv-inline-action-button:not(.p-button-rounded) {
+.cv-inline-action-button:not([data-p~='rounded']) {
   border-radius: var(--cv-radius, 0.2667em) !important;
 }
 
@@ -310,24 +297,24 @@ body.dark .cv-inline-toolbar {
 }
 
 /* secondary 按钮与默认样式保持一致 */
-.cv-inline-img-actions .cv-inline-action-button.p-button-secondary {
+.cv-inline-img-actions .cv-inline-action-button[data-p-severity='secondary'] {
   color: var(--p-text-color, #000000) !important;
   background-color: color-mix(in srgb, var(--p-surface-0, #ffffff) 50%, transparent) !important;
   border: 1px solid color-mix(in srgb, var(--p-surface-200, #e5e7eb) 50%, transparent) !important;
 }
 
-.cv-inline-img-actions .cv-inline-action-button.p-button-secondary:not([data-p-disabled='true']):hover {
+.cv-inline-img-actions .cv-inline-action-button[data-p-severity='secondary']:not([data-p-disabled='true']):hover {
   color: var(--p-text-color, #000000) !important;
 }
 
 /* 危险按钮（danger）覆盖：保持危险红色，但采用与整体一致的半透明毛玻璃加不透明文字的设计 */
-.cv-inline-img-actions .cv-inline-action-button.p-button-danger {
+.cv-inline-img-actions .cv-inline-action-button[data-p-severity='danger'] {
   color: #ef4444 !important;
   background-color: color-mix(in srgb, #ef4444 18%, transparent) !important;
   border: 1px solid color-mix(in srgb, #ef4444 30%, transparent) !important;
 }
 
-.cv-inline-img-actions .cv-inline-action-button.p-button-danger:not([data-p-disabled='true']):hover {
+.cv-inline-img-actions .cv-inline-action-button[data-p-severity='danger']:not([data-p-disabled='true']):hover {
   background-color: color-mix(in srgb, #ef4444 30%, transparent) !important;
   border-color: color-mix(in srgb, #ef4444 50%, transparent) !important;
   color: #ef4444 !important;
@@ -402,13 +389,13 @@ body.dark .cv-inline-toolbar {
 }
 
 /* Message 内容紧凑排列:缩小 icon 与文本间距,让文本撑开把关闭按钮推到右侧 */
-.cv-inline-generation-status .p-message-content {
+.cv-inline-generation-status .cv-prime-message-content {
   gap: 0.4em;
   padding: 0.35em 0.5em;
   width: 100%;
 }
 
-.cv-inline-generation-status .p-message-text {
+.cv-inline-generation-status .cv-prime-message-text {
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -421,7 +408,7 @@ body.dark .cv-inline-toolbar {
 }
 
 /* 关闭按钮重置为文字按钮 */
-.cv-inline-generation-status .p-message-close-button {
+.cv-inline-generation-status .cv-prime-message-close-button {
   flex: 0 0 auto;
   width: auto !important;
   height: auto !important;
@@ -435,7 +422,7 @@ body.dark .cv-inline-toolbar {
   transition: background-color 0.15s ease;
 }
 
-.cv-inline-generation-status .p-message-close-button:hover {
+.cv-inline-generation-status .cv-prime-message-close-button:hover {
   background: color-mix(in srgb, currentColor 14%, transparent) !important;
 }
 

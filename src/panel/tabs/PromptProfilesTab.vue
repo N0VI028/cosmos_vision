@@ -484,18 +484,16 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-profiles-tab,
 .cv-person-editor {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  @apply flex flex-col gap-0;
 }
 
 .cv-profiles-layout {
-  display: flex;
-  flex-direction: column;
+  @apply mt-[var(--cv-space-5xl)] flex flex-col;
   gap: var(--cv-space-4xl);
-  margin-top: var(--cv-space-5xl);
 }
 
 .cv-person-empty-panel {
@@ -506,8 +504,7 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 }
 
 .cv-person-panel-list {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
   gap: var(--cv-space-xl);
 }
 
@@ -531,15 +528,12 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 }
 
 .cv-person-section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  @apply flex items-center justify-between;
   margin: var(--cv-space-5xl) 0 var(--cv-space-xl);
 }
 
 .cv-person-section-header > .cv-person-section-title {
-  margin: 0;
-  flex-shrink: 0;
+  @apply m-0 shrink-0;
 }
 
 .cv-person-section-title {
@@ -555,8 +549,7 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 
 .cv-token-input-row,
 .cv-chip-row {
-  display: flex;
-  align-items: center;
+  @apply flex items-center;
   gap: var(--cv-space-sm);
 }
 
@@ -581,8 +574,7 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 }
 
 .cv-token-input-row > .p-inputtext {
-  flex: 1 1 auto;
-  min-width: 0;
+  @apply min-w-0 flex-auto;
 }
 
 .cv-chip-row {
@@ -600,42 +592,34 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 }
 
 .cv-chip-remove {
-  border: none;
-  background: transparent;
+  @apply cursor-pointer border-0 bg-transparent p-0;
   color: inherit;
-  cursor: pointer;
-  padding: 0;
   font-size: 0.85em;
 }
 
 .cv-full-textarea {
-  width: 100%;
+  @apply w-full;
   font-family: Consolas, Monaco, monospace;
 }
 
 .cv-tag-parse-panel {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
   gap: var(--cv-space-md);
 }
 
 .cv-tag-parse-custom-block {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
 }
 
 .cv-tag-parse-option {
-  display: grid;
+  @apply grid w-full cursor-pointer text-left;
   grid-template-columns: auto minmax(0, 1fr);
   gap: var(--cv-space-md);
-  width: 100%;
   padding: var(--cv-space-lg);
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   border-radius: var(--cv-radius-sm);
   background: var(--cv-surface-container-low);
   color: var(--cv-on-surface);
-  cursor: pointer;
-  text-align: left;
 }
 
 .cv-tag-parse-option:hover,
@@ -654,9 +638,7 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 }
 
 .cv-tag-parse-option-content {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
+  @apply flex min-w-0 flex-col;
   gap: var(--cv-space-xs);
 }
 
@@ -676,28 +658,23 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 }
 
 .cv-tag-parse-textarea {
-  width: 100%;
+  @apply w-full resize-y;
   min-height: 9rem;
-  resize: vertical;
 }
 
 .cv-tag-parse-actions {
-  display: flex;
-  justify-content: flex-end;
+  @apply flex justify-end;
   gap: var(--cv-space-sm);
 }
 
 .cv-profiles-empty,
 .cv-person-empty-panel {
+  @apply p-[var(--cv-space-6xl)] text-center;
   color: var(--cv-on-surface-variant);
-  text-align: center;
-  padding: var(--cv-space-6xl);
 }
 
 .cv-person-empty-panel {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  @apply flex flex-col justify-center;
   gap: var(--cv-space-lg);
   min-height: 16rem;
 }

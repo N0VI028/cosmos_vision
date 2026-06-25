@@ -104,21 +104,19 @@ function openUrl(url: string): void {
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-tab-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  @apply flex flex-col gap-0;
 }
 
 .cv-about-title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  @apply flex items-center justify-between;
   margin: var(--cv-space-10xl) 0 var(--cv-space-3xl) 0;
 }
 
 .cv-about-title-row > .cv-section-title {
-  margin: 0;
+  @apply m-0;
 }
 
 .cv-version-tag {
@@ -133,15 +131,13 @@ function openUrl(url: string): void {
 }
 
 .cv-about-text {
-  text-align: right;
+  @apply text-right;
   color: var(--cv-on-surface-variant);
   color: var(--p-button-secondary-color);
 }
 
 .cv-links-container {
-  display: inline-flex;
-  justify-content: flex-end;
-  align-items: center;
+  @apply inline-flex items-center justify-end;
   gap: var(--cv-space-xs);
 }
 </style>

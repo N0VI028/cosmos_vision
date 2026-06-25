@@ -365,10 +365,10 @@ function copyPresetMessage(message: PromptLlmMessage): PromptLlmMessage {
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-tab-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  @apply flex flex-col gap-0;
 }
 
 .cv-prompt-builder-preset-selector {
@@ -376,28 +376,23 @@ function copyPresetMessage(message: PromptLlmMessage): PromptLlmMessage {
 }
 
 .cv-message-section-head {
-  display: flex;
-  align-items: center;
+  @apply flex items-center;
   gap: var(--cv-space-sm);
   margin-bottom: var(--cv-space-5xl);
 }
 
 .cv-prompt-builder-title {
-  display: inline-flex;
-  align-items: center;
+  @apply inline-flex items-center;
   gap: var(--cv-space-sm);
 }
 
 .cv-reset-default-preset-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  @apply inline-flex cursor-pointer items-center justify-center;
   flex: 0 0 auto;
   width: 1.65em;
   height: 1.65em;
   border-radius: var(--cv-radius-sm);
   color: var(--cv-on-surface-variant);
-  cursor: pointer;
   font-size: calc(var(--mainFontSize) * 0.72);
   transition: all 0.15s ease;
 }

@@ -437,42 +437,37 @@ function handleVibeError(error: unknown, fallback: string): void {
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-vibe-panel {
   gap: var(--cv-space-2xl);
 }
 
 .cv-vibe-toolbar {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
+  @apply flex flex-col items-start justify-start;
   gap: var(--cv-space-xl);
   font-weight: 600;
 }
 
 .cv-vibe-empty {
+  @apply text-center;
   padding: var(--cv-space-2xl);
   border: var(--cv-border-width) dashed var(--cv-surface-variant);
   border-radius: var(--cv-radius-sm);
   color: var(--cv-on-surface-variant);
-  text-align: center;
 }
 
 .cv-vibe-list {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
   gap: var(--cv-space-xl);
 }
 
 .cv-vibe-parse {
-  display: inline-flex;
-  align-items: center;
+  @apply inline-flex cursor-pointer select-none items-center;
   gap: var(--cv-space-sm);
   padding: 0 var(--cv-space-sm);
   color: var(--cv-on-surface-variant);
   font-size: calc(var(--mainFontSize) * 0.82);
-  cursor: pointer;
-  user-select: none;
 }
 
 .cv-vibe-parse:hover {
@@ -480,12 +475,12 @@ function handleVibeError(error: unknown, fallback: string): void {
 }
 
 .cv-vibe-parse-busy {
+  @apply pointer-events-none;
   opacity: 0.6;
-  pointer-events: none;
 }
 
 .cv-vibe-editor {
-  display: grid;
+  @apply grid;
   grid-template-columns: minmax(7.5rem, 10rem) minmax(0, 1fr);
   gap: var(--cv-space-2xl);
   padding: var(--cv-space-2xl);
@@ -493,61 +488,44 @@ function handleVibeError(error: unknown, fallback: string): void {
 }
 
 .cv-vibe-thumbnail {
-  position: relative;
-  overflow: hidden;
-  width: 100%;
+  @apply relative w-full cursor-pointer overflow-hidden p-0;
   aspect-ratio: 1 / 1;
-  padding: 0;
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   border-radius: var(--cv-radius-sm);
   background: var(--cv-surface-container-high);
   color: var(--cv-on-surface-variant);
-  cursor: pointer;
 }
 
 .cv-vibe-thumbnail > img,
 .cv-vibe-thumbnail-placeholder {
-  width: 100%;
-  height: 100%;
+  @apply size-full;
 }
 
 .cv-vibe-thumbnail > img {
-  display: block;
-  object-fit: cover;
+  @apply block object-cover;
 }
 
 .cv-vibe-thumbnail-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @apply flex items-center justify-center;
   font-size: calc(var(--mainFontSize) * 1.4);
 }
 
 .cv-vibe-thumbnail-action {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  @apply absolute right-0 bottom-0 left-0 text-center;
   padding: var(--cv-space-sm);
   background: color-mix(in srgb, var(--cv-surface-container-high) 86%, transparent);
   color: var(--cv-on-surface);
   font-size: calc(var(--mainFontSize) * 0.78);
-  text-align: center;
 }
 
 .cv-vibe-controls {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  @apply flex min-w-0 flex-col justify-center;
   gap: var(--cv-space-xl);
-  min-width: 0;
 }
 
 .cv-vibe-control {
-  display: flex;
-  flex-direction: column;
+  @apply flex min-w-0 flex-col;
   gap: var(--cv-space-md);
-  min-width: 0;
   color: var(--cv-on-surface);
   font-size: calc(var(--mainFontSize) * 0.9);
 }

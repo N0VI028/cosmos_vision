@@ -1,3 +1,5 @@
+@reference '../../global.css';
+
 .cosmos-vision-root {
   --cv-surface: #ffffff;
   --cv-surface-container-lowest: #ffffff;
@@ -42,7 +44,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 }
 
 .cosmos-vision-root .cv-shell {
-  display: flex;
+  @apply flex;
   height: 100%;
   background: var(--cv-background);
   color: var(--cv-on-surface);
@@ -52,39 +54,31 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 }
 
 .cosmos-vision-root .cv-sidebar {
+  @apply flex flex-col p-0;
   flex: 0 0 var(--cv-sidebar-width);
   width: var(--cv-sidebar-width);
-  display: flex;
-  flex-direction: column;
   background: var(--cv-surface-container-low);
   border-right: var(--cv-border-width) solid var(--cv-surface-variant);
-  padding: 0;
 }
 
 .cosmos-vision-root .cv-brand {
+  @apply flex items-center;
   height: 6.4em;
-  display: flex;
-  align-items: center;
   gap: var(--cv-space-3xl);
   padding: 0 var(--cv-space-9xl);
 }
 
 .cosmos-vision-root .cv-brand-icon {
+  @apply flex shrink-0 items-center justify-center rounded-full;
   width: 2.1333em;
   height: 2.1333em;
-  border-radius: 50%;
   background: var(--cv-surface-container-low);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
   color: var(--cv-on-surface);
   font-size: calc(var(--mainFontSize) * 1.0667);
 }
 
 .cosmos-vision-root .cv-brand-text {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
 }
 
 .cosmos-vision-root .cv-brand-title {
@@ -95,26 +89,19 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 }
 
 .cosmos-vision-root .cv-nav {
+  @apply flex flex-1 flex-col overflow-y-auto;
   flex: 1;
-  display: flex;
-  flex-direction: column;
   gap: var(--cv-space-lg);
   padding: var(--cv-space-5xl);
-  overflow-y: auto;
 }
 
 .cosmos-vision-root .cv-nav-item {
-  display: flex;
-  align-items: center;
+  @apply flex cursor-pointer items-center border-0 bg-transparent text-left;
   gap: var(--cv-space-3xl);
   padding: var(--cv-space-3xl) var(--cv-space-5xl);
   border-radius: var(--cv-radius-full);
   color: var(--cv-on-surface-variant);
-  cursor: pointer;
   transition: all 0.15s;
-  border: none;
-  background: transparent;
-  text-align: left;
 }
 
 .cosmos-vision-root .cv-nav-item:hover {
@@ -130,11 +117,10 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 }
 
 .cosmos-vision-root .cv-nav-icon {
+  @apply shrink-0 text-center;
   font-size: calc(var(--mainFontSize) * 1.1);
   width: 1.1em;
   height: 1.1em;
-  text-align: center;
-  flex-shrink: 0;
 }
 
 .cosmos-vision-root .cv-nav-label {
@@ -145,8 +131,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 }
 
 .cosmos-vision-root .cv-sidebar-footer {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
   gap: var(--cv-space-lg);
   padding: var(--cv-space-9xl);
 }
@@ -182,18 +167,18 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
   color: inherit !important;
 }
 
-.cosmos-vision-root .cv-theme-toggle .cv-prime-togglebutton:not(.p-togglebutton-checked):hover {
+.cosmos-vision-root .cv-theme-toggle .cv-prime-togglebutton:not([data-p-checked='true']):hover {
   background: color-mix(in srgb, var(--cv-surface-variant) 70%, transparent) !important;
   color: var(--cv-on-surface) !important;
 }
 
-.cosmos-vision-root .cv-theme-toggle .cv-prime-togglebutton.p-togglebutton-checked {
+.cosmos-vision-root .cv-theme-toggle .cv-prime-togglebutton[data-p-checked='true'] {
   background: var(--cv-surface-variant) !important;
   border-color: transparent !important;
   color: var(--cv-on-surface) !important;
 }
 
-.cosmos-vision-root .cv-theme-toggle .cv-prime-togglebutton.p-togglebutton-checked .cv-prime-togglebutton-content {
+.cosmos-vision-root .cv-theme-toggle .cv-prime-togglebutton[data-p-checked='true'] .cv-prime-togglebutton-content {
   background: transparent !important;
   box-shadow: none !important;
 }
@@ -204,11 +189,8 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 }
 
 .cosmos-vision-root .cv-main {
+  @apply relative flex flex-1 flex-col overflow-hidden;
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
   background: var(--cv-background);
 }
 

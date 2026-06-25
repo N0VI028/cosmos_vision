@@ -350,6 +350,8 @@ function getFallbackPromptPresetId(presets: ImagePromptPreset[], preferredId: st
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-image-preset-field {
   gap: var(--cv-space-3xl);
 }

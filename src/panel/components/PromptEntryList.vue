@@ -52,18 +52,17 @@ const entries = defineModel<PromptEntryListItem[]>({ required: true });
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-message-list {
-  display: flex;
-  flex-direction: column;
+  @apply mb-[var(--cv-space-5xl)] flex flex-col;
   gap: var(--cv-space-sm);
-  margin-bottom: var(--cv-space-5xl);
 }
 
 .cv-message-row {
-  display: grid;
+  @apply grid overflow-hidden;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: stretch;
-  overflow: hidden;
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   border-radius: var(--cv-radius-sm);
   background: var(--cv-surface-container-low);
@@ -92,18 +91,14 @@ const entries = defineModel<PromptEntryListItem[]>({ required: true });
 }
 
 .cv-message-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @apply flex cursor-grab select-none items-center justify-center;
   width: 2rem;
   padding: 0;
   border: none;
   border-right: var(--cv-border-width) solid var(--cv-surface-variant);
   background: transparent;
   color: color-mix(in srgb, var(--cv-on-surface) 25%, transparent);
-  cursor: grab;
   font-size: 0.8rem;
-  user-select: none;
   transition: all 0.15s ease;
 }
 
@@ -125,25 +120,20 @@ const entries = defineModel<PromptEntryListItem[]>({ required: true });
 }
 
 .cv-message-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  @apply flex min-w-0 items-center justify-between;
   gap: var(--cv-space-xl);
   min-width: 0;
   padding: var(--cv-space-md) var(--cv-space-xl);
 }
 
 .cv-message-main {
-  display: flex;
+  @apply flex min-w-0 items-center;
   flex: 1 1 auto;
-  align-items: center;
   gap: var(--cv-space-xl);
-  min-width: 0;
 }
 
 .cv-message-actions {
-  display: flex;
-  align-items: center;
+  @apply flex items-center;
   gap: var(--cv-space-xs);
   opacity: 0.35;
   transition: opacity 0.2s ease;
@@ -153,22 +143,16 @@ const entries = defineModel<PromptEntryListItem[]>({ required: true });
   opacity: 1;
 }
 
-.cv-message-actions :deep(.p-button) {
+.cv-message-actions :deep(.cv-prime-button) {
+  @apply min-w-0 p-0;
   width: 1.8rem !important;
-  min-width: 0 !important;
   height: 1.8rem !important;
-  padding: 0 !important;
 }
 
 .cv-empty-hint {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  @apply mb-[var(--cv-space-5xl)] flex flex-col items-center justify-center text-center;
   gap: var(--cv-space-3xl);
-  margin-bottom: var(--cv-space-5xl);
   padding: var(--cv-space-9xl);
   color: var(--p-text-muted-color);
-  text-align: center;
 }
 </style>

@@ -654,18 +654,16 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-add-entry-btn-flat-wide {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @apply flex w-full cursor-pointer items-center justify-center;
   gap: var(--cv-space-sm);
   padding: var(--cv-space-md) 0;
   background: color-mix(in srgb, var(--cv-surface-container-low) 42%, transparent);
   border: var(--cv-border-width) dashed var(--cv-surface-variant);
   border-radius: var(--cv-radius-sm);
   color: var(--cv-on-surface-variant);
-  cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: calc(var(--mainFontSize) * 0.85);
 }
@@ -678,10 +676,7 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
 }
 
 .cv-field-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
+  @apply flex w-full items-center justify-between;
 }
 
 .cv-field-header > span {
@@ -692,8 +687,7 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
 }
 
 .cv-source-tokens {
-  display: flex;
-  align-items: center;
+  @apply flex items-center;
   gap: var(--cv-space-xs);
   font-size: calc(var(--mainFontSize) * 0.75);
 }
@@ -704,12 +698,11 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
 }
 
 .cv-token-btn {
+  @apply cursor-pointer border-0;
   background: none;
-  border: none;
   padding: 2px 6px;
   border-radius: 4px;
   color: var(--p-primary-color);
-  cursor: pointer;
   font-size: inherit;
   transition: all 0.2s;
 }
@@ -720,21 +713,18 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
 }
 
 .cv-source-title {
-  min-width: 0;
-  overflow: hidden;
+  @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
   color: var(--cv-on-surface);
   font-weight: 500;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .cv-source-kind {
+  @apply whitespace-nowrap;
   color: var(--cv-on-surface-variant);
   font-size: calc(var(--mainFontSize) * 0.75);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0;
-  white-space: nowrap;
 }
 
 .cv-source-toggle {
@@ -753,10 +743,9 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
 }
 
 .cv-source-indicator {
+  @apply shrink-0 rounded-full;
   width: 6px;
   height: 6px;
-  flex-shrink: 0;
-  border-radius: 50%;
   background: var(--p-primary-color);
   box-shadow: 0 0 6px var(--p-primary-color);
 }
@@ -769,33 +758,30 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
 }
 
 .cv-message-editor {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
   gap: var(--cv-space-3xl);
 }
 
 .cv-message-editor-dialog {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
 }
 
 .cv-source-select {
-  width: 100%;
+  @apply w-full;
 }
 
 .cv-source-pair-row {
-  display: grid;
+  @apply grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--cv-space-md);
 }
 
 .cv-source-pair-field {
-  min-width: 0;
+  @apply min-w-0;
 }
 
 .cv-message-editor-content-field {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
 }
 
 @media (max-width: 520px) {
@@ -805,16 +791,13 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
 }
 
 .cv-message-editor-textarea {
-  width: 100%;
+  @apply w-full resize-y overflow-y-auto;
   height: 12rem;
   min-height: 6rem;
-  overflow-y: auto;
-  resize: vertical;
 }
 
 .cv-message-editor-actions {
-  display: flex;
-  justify-content: flex-end;
+  @apply flex justify-end;
   gap: var(--cv-space-sm);
 }
 </style>

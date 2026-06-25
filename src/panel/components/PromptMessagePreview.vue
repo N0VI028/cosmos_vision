@@ -93,13 +93,13 @@ async function readSourcePreview(message: PromptLlmMessage): Promise<string> {
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-preview-list {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col overflow-y-auto;
   gap: var(--cv-space-4xl);
   height: 16rem;
   min-height: 6rem;
-  overflow-y: auto;
   resize: vertical;
   padding: var(--cv-space-5xl);
   background: var(--p-content-background);
@@ -109,14 +109,12 @@ async function readSourcePreview(message: PromptLlmMessage): Promise<string> {
 }
 
 .cv-preview-body {
-  display: flex;
-  align-items: flex-start;
+  @apply flex items-start;
   min-height: 1.5rem;
 }
 
 .cv-preview-token {
-  display: inline-flex;
-  align-items: center;
+  @apply inline-flex select-none items-center;
   gap: var(--cv-space-sm);
   min-height: 2rem;
   padding: 0 var(--cv-space-lg);
@@ -124,28 +122,21 @@ async function readSourcePreview(message: PromptLlmMessage): Promise<string> {
   border-radius: var(--cv-radius-sm);
   background: color-mix(in srgb, var(--p-primary-color) 14%, transparent);
   color: var(--p-primary-color);
-  user-select: none;
 }
 
 .cv-preview-text {
-  margin: 0;
-  width: 100%;
+  @apply m-0 w-full whitespace-pre-wrap break-words;
   min-height: 1.5rem;
   font-size: calc(var(--mainFontSize) * 0.9);
   line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
   color: var(--cv-on-surface);
 }
 
 .cv-preview-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @apply flex items-center justify-center text-center;
   min-height: 16rem;
   padding: var(--cv-space-9xl);
   color: var(--p-text-muted-color);
-  text-align: center;
   background: var(--p-content-background);
   border: var(--cv-border-width) solid var(--p-content-border-color);
   border-radius: var(--cv-radius);

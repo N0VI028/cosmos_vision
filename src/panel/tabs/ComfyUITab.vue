@@ -254,10 +254,10 @@ const { settings } = useSettingsStore();
 const workflowFileInput = ref<HTMLInputElement | null>(null);
 const maxSeed = COMFYUI_MAX_SEED;
 const LORA_SELECT_PT = {
-  root: { class: 'cv-prime-field', style: { width: '100%', maxWidth: '100%' } },
+  root: { class: 'cv-prime-field w-full max-w-full' },
 } as const;
 const LORA_STRENGTH_PT = {
-  pcInputText: { root: { class: 'cv-prime-field', style: { width: '100%', textAlign: 'center' } } },
+  pcInputText: { root: { class: 'cv-prime-field w-full text-center' } },
 } as const;
 
 const props = defineProps<{ subTab: ComfyUISubTab }>();
@@ -478,58 +478,53 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-tab-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  @apply flex flex-col gap-0;
 }
 
 .cv-field-inline.cv-workflow-actions {
-  display: flex;
-  width: 100%;
+  @apply mb-0 flex w-full;
   gap: var(--cv-space-lg);
-  margin-bottom: 0;
 }
 
-.cv-workflow-actions :deep(.p-button) {
-  flex: 1;
+.cv-workflow-actions :deep(.cv-prime-button) {
+  @apply flex-1;
 }
 
 @media (max-width: 48rem) {
   .cv-field-inline.cv-workflow-actions {
-    flex-direction: column;
+    @apply flex-col;
   }
-  .cv-workflow-actions :deep(.p-button) {
-    width: 100%;
+  .cv-workflow-actions :deep(.cv-prime-button) {
+    @apply w-full;
   }
 }
 
 .cv-model-row {
-  display: flex;
+  @apply flex items-center;
   gap: var(--cv-space-3xl);
-  align-items: center;
 }
 
 .cv-model-row > .cv-model-input {
+  @apply min-w-0;
   flex: 1;
-  min-width: 0;
 }
 
 /* 非 rounded 变体统一圆角;rounded 按钮交还 PrimeVue 自身规则 */
-.cv-model-row > .cv-prime-button:not(.p-button-rounded) {
-  flex-shrink: 0;
+.cv-model-row > .cv-prime-button:not([data-p~='rounded']) {
+  @apply shrink-0;
   border-radius: var(--cv-radius);
 }
 
 .cv-lora-title-row {
-  display: flex;
-  align-items: end;
+  @apply mb-[var(--cv-space-3xl)] flex items-end;
   gap: var(--cv-space-md);
-  margin-bottom: var(--cv-space-3xl);
 }
 
 .cv-lora-title-row > .cv-section-title {
-  margin-bottom: 0;
+  @apply mb-0;
 }
 
 .cv-lora-refresh-icon {
@@ -554,18 +549,13 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
 }
 
 .cv-lora-add-button {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @apply mb-[var(--cv-space-lg)] flex w-full cursor-pointer items-center justify-center;
   gap: var(--cv-space-sm);
   padding: var(--cv-space-md) 0;
-  margin-bottom: var(--cv-space-lg);
   background: color-mix(in srgb, var(--cv-surface-container-low) 42%, transparent);
   border: var(--cv-border-width) dashed var(--cv-surface-variant);
   border-radius: var(--cv-radius-sm);
   color: var(--cv-on-surface-variant);
-  cursor: pointer;
   transition: all 0.2s ease;
   font-size: calc(var(--mainFontSize) * 0.85);
 }
@@ -577,16 +567,14 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
 }
 
 .cv-lora-list {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
   gap: var(--cv-space-xl);
 }
 
 .cv-lora-row {
-  display: grid;
+  @apply grid items-center;
   grid-template-columns: auto minmax(0, 1fr) 5.75rem auto;
   gap: var(--cv-space-md);
-  align-items: center;
   padding-bottom: var(--cv-space-lg);
   border-bottom: 1px solid var(--cv-surface-variant);
 }
@@ -598,27 +586,27 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
 
 .cv-lora-toggle,
 .cv-lora-delete {
-  align-self: center;
+  @apply self-center;
 }
 
 .cv-lora-select {
-  min-width: 0;
+  @apply min-w-0;
 }
 
 .cv-lora-strength {
-  width: 100%;
-  min-width: 0;
+  @apply min-w-0 w-full;
 }
 
 .cv-empty-lora-state {
+  @apply text-center;
   color: var(--cv-on-surface-variant);
   padding: var(--cv-space-xl);
   border: var(--cv-border-width) dashed var(--cv-surface-variant);
   border-radius: var(--cv-radius);
-  text-align: center;
 }
 
 .cv-workflow-textarea {
+  @apply resize-y overflow-y-auto;
   background: var(--cv-surface-variant);
   border: var(--cv-border-width) solid var(--cv-outline);
   color: var(--cv-on-surface);
@@ -626,8 +614,6 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
   padding: var(--cv-space-xl);
   font-family: Consolas, Monaco, monospace;
   font-size: calc(var(--mainFontSize) * 0.88);
-  resize: vertical;
-  overflow-y: auto;
 }
 
 @media (max-width: 32rem) {

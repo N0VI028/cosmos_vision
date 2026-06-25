@@ -32,7 +32,10 @@ const model = defineModel<string>({ required: true });
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .cv-focused-paragraph-textarea {
+  @apply resize-y;
   background: var(--cv-surface-variant);
   border: var(--cv-border-width) solid var(--cv-outline);
   color: var(--cv-on-surface);
@@ -40,6 +43,5 @@ const model = defineModel<string>({ required: true });
   padding: var(--cv-space-xl);
   font-family: inherit;
   font-size: calc(var(--mainFontSize) * 0.95);
-  resize: vertical;
 }
 </style>

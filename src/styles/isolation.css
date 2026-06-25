@@ -130,13 +130,11 @@
   background: var(--p-inputtext-background) !important;
   border-color: var(--p-inputtext-border-color) !important;
   color: var(--p-inputtext-color) !important;
-  padding-block: var(--p-inputtext-padding-y, var(--p-form-field-padding-y)) !important;
-  padding-inline: var(--p-inputtext-padding-x, var(--p-form-field-padding-x)) !important;
 }
 
 /* 密码输入框需要给右侧眼睛/切显按钮预留单独占位空间，防止长文本被遮挡 */
-.cosmos-vision-root .p-password > input.cv-prime-field,
-#cosmos_vision .p-password > input.cv-prime-field {
+.cosmos-vision-root .cv-prime-password > input.cv-prime-field,
+#cosmos_vision .cv-prime-password > input.cv-prime-field {
   padding-inline-end: 2.5rem !important;
 }
 
@@ -160,20 +158,28 @@
 
 /* Placeholder 提示文本可见度优化 */
 .cosmos-vision-root input.cv-prime-field::placeholder,
-#cosmos_vision input.cv-prime-field::placeholder,
+#cosmos_vision input.cv-prime-field::placeholder {
+  color: var(--p-inputtext-placeholder-color, var(--cv-on-surface-variant)) !important;
+  opacity: 0.65 !important;
+}
+
 .cosmos-vision-root textarea.cv-prime-textarea::placeholder,
 #cosmos_vision textarea.cv-prime-textarea::placeholder {
-  color: var(--cv-on-surface-variant) !important;
+  color: var(--p-textarea-placeholder-color, var(--cv-on-surface-variant)) !important;
   opacity: 0.65 !important;
 }
 
 /* focus 状态:还原 PrimeVue focus token,避免被 ST `:focus` 规则覆盖 */
 .cosmos-vision-root input.cv-prime-field:focus,
-.cosmos-vision-root textarea.cv-prime-textarea:focus,
-#cosmos_vision input.cv-prime-field:focus,
-#cosmos_vision textarea.cv-prime-textarea:focus {
-  border-color: var(--p-inputtext-focus-border-color) !important;
+#cosmos_vision input.cv-prime-field:focus {
+  border-color: var(--p-inputtext-focus-border-color, var(--p-form-field-focus-border-color)) !important;
   box-shadow: var(--p-inputtext-focus-ring-shadow) !important;
+}
+
+.cosmos-vision-root textarea.cv-prime-textarea:focus,
+#cosmos_vision textarea.cv-prime-textarea:focus {
+  border-color: var(--p-textarea-focus-border-color, var(--p-form-field-focus-border-color)) !important;
+  box-shadow: var(--p-textarea-focus-ring-shadow, var(--p-inputtext-focus-ring-shadow)) !important;
 }
 
 /**
@@ -192,12 +198,11 @@
  */
 .cosmos-vision-root :is(.cv-prime-button, .cv-prime-icon-button),
 #cosmos_vision :is(.cv-prime-button, .cv-prime-icon-button) {
+  @apply shrink-0 whitespace-nowrap;
   background-image: none !important;
   box-shadow: none !important;
-  flex-shrink: 0;
   text-transform: none !important;
   letter-spacing: normal !important;
-  white-space: nowrap !important;
 }
 
 /* InputNumber 步进按钮 / Message 关闭按钮:扁平方块,跟随 input 边框 token */
@@ -209,16 +214,16 @@
 }
 
 /* Button 默认圆角钉死,PrimeVue 的 --p-button-border-radius 在 :root 已展开为字面值,子元素重写桥接 token 不回传。
-   注意:排除 .p-button-rounded —— rounded 变体交还 PrimeVue 自身的 .p-button-rounded 规则
-   (border-radius: var(--p-button-rounded-border-radius)),否则 !important 会压过它导致 rounded 失效。 */
-.cosmos-vision-root .cv-prime-button:not(.p-button-rounded),
-#cosmos_vision .cv-prime-button:not(.p-button-rounded) {
+   注意:排除 data-p 含 rounded 的按钮 —— rounded 变体交还 PrimeVue 自身规则,
+   否则 !important 会压过它导致 rounded 失效。 */
+.cosmos-vision-root .cv-prime-button:not([data-p~='rounded']),
+#cosmos_vision .cv-prime-button:not([data-p~='rounded']) {
   border-radius: var(--cv-radius, 0.1333em) !important;
 }
 
 /* Outlined secondary 按钮在 hover 时的边框颜色补偿，因主题类型限制在 CSS 重写 */
-.cosmos-vision-root .p-button-outlined.p-button-secondary:not([data-p-disabled='true']):hover,
-#cosmos_vision .p-button-outlined.p-button-secondary:not([data-p-disabled='true']):hover {
+.cosmos-vision-root .cv-prime-button[data-p~='outlined'][data-p-severity='secondary']:not([data-p-disabled='true']):hover,
+#cosmos_vision .cv-prime-button[data-p~='outlined'][data-p-severity='secondary']:not([data-p-disabled='true']):hover {
   border-color: var(--cv-outline) !important;
 }
 
@@ -255,22 +260,22 @@
 }
 
 /* SelectButton / ToggleButton checked 状态:反压 ST 全局 button 色值 */
-.cosmos-vision-root .cv-prime-togglebutton.p-togglebutton-checked,
-#cosmos_vision .cv-prime-togglebutton.p-togglebutton-checked {
+.cosmos-vision-root .cv-prime-togglebutton[data-p-checked='true'],
+#cosmos_vision .cv-prime-togglebutton[data-p-checked='true'] {
   background: var(--cv-primary-container) !important;
   border-color: var(--cv-primary-container) !important;
   color: var(--cv-on-primary-container) !important;
 }
 
-.cosmos-vision-root .cv-prime-togglebutton.p-togglebutton-checked .cv-prime-togglebutton-content,
-#cosmos_vision .cv-prime-togglebutton.p-togglebutton-checked .cv-prime-togglebutton-content {
+.cosmos-vision-root .cv-prime-togglebutton[data-p-checked='true'] .cv-prime-togglebutton-content,
+#cosmos_vision .cv-prime-togglebutton[data-p-checked='true'] .cv-prime-togglebutton-content {
   background: transparent !important;
   box-shadow: none !important;
   color: inherit !important;
 }
 
-.cosmos-vision-root .cv-prime-togglebutton.p-togglebutton-checked .cv-prime-togglebutton-content > *,
-#cosmos_vision .cv-prime-togglebutton.p-togglebutton-checked .cv-prime-togglebutton-content > * {
+.cosmos-vision-root .cv-prime-togglebutton[data-p-checked='true'] .cv-prime-togglebutton-content > *,
+#cosmos_vision .cv-prime-togglebutton[data-p-checked='true'] .cv-prime-togglebutton-content > * {
   color: inherit !important;
 }
 
@@ -644,7 +649,7 @@
 
 .cosmos-vision-root .cv-prime-button-label,
 #cosmos_vision .cv-prime-button-label {
-  white-space: nowrap !important;
+  @apply whitespace-nowrap;
 }
 
 .cosmos-vision-root .cv-select-option[data-p-selected='true'] {
@@ -716,11 +721,16 @@
  * 因此直接给 Dialog 根类设置 border-radius,使用 --cv-radius-lg。
  */
 .cosmos-vision-root.cv-dialog {
+  @apply overflow-hidden;
   background: var(--p-dialog-background, var(--cv-surface-container-lowest)) !important;
   border: none !important;
   border-radius: var(--cv-radius-lg) !important;
   box-shadow: var(--p-dialog-shadow, var(--cv-floating-shadow)) !important;
   color: var(--p-dialog-color, var(--cv-on-surface)) !important;
+}
+
+.cv-dialog-mask {
+  @apply flex items-center justify-center w-dvw h-dvh;
 }
 
 /**

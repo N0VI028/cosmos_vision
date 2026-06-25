@@ -154,37 +154,34 @@ function formatFetchedAt(ts: number): string {
 </script>
 
 <style scoped>
+@reference '../../global.css';
+
 .nai-sub-card {
+  @apply my-[var(--cv-space-10xl)] overflow-hidden;
   background: var(--cv-surface-container);
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   border-top-color: var(--cv-surface-bright);
   border-radius: var(--cv-radius-lg);
-  overflow: hidden;
-  margin: var(--cv-space-10xl) 0;
 }
 
 .nai-sub-title {
+  @apply flex items-center justify-between;
   padding: var(--cv-space-5xl) var(--cv-space-9xl);
   font-family: var(--cv-font-headline);
   font-size: calc(var(--mainFontSize) * 1.0667);
   font-weight: 600;
   color: var(--cv-on-surface);
   border-bottom: var(--cv-border-width) solid var(--cv-surface-variant);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
 .nai-sub-title-right {
-  display: inline-flex;
-  align-items: center;
+  @apply inline-flex items-center;
   gap: var(--cv-space-lg);
 }
 
 /* 标题左侧：账号下拉或静态标题 */
 .nai-sub-title-left {
-  display: inline-flex;
-  align-items: center;
+  @apply inline-flex items-center;
   gap: var(--cv-space-sm);
 }
 
@@ -192,14 +189,12 @@ function formatFetchedAt(ts: number): string {
 .nai-sub-account-select {
   --p-select-focus-ring-width: 0;
   --p-select-focus-ring-shadow: none;
-  display: inline-flex;
-  align-items: center;
+  @apply inline-flex items-center h-auto cursor-pointer border-0 bg-transparent p-0 shadow-none;
   height: auto !important;
   padding: 0 !important;
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  cursor: pointer;
   font-family: var(--cv-font-headline);
   font-size: calc(var(--mainFontSize) * 1.0667);
   font-weight: 600;
@@ -207,10 +202,7 @@ function formatFetchedAt(ts: number): string {
 }
 
 .nai-sub-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  @apply flex flex-col items-center justify-center;
   gap: var(--cv-space-5xl);
   min-height: 8em;
   padding: var(--cv-space-10xl);
@@ -224,8 +216,8 @@ function formatFetchedAt(ts: number): string {
 }
 
 .nai-sub-content {
+  @apply grid;
   padding: var(--cv-space-9xl) var(--cv-space-10xl);
-  display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--cv-space-9xl);
 }
@@ -235,8 +227,7 @@ function formatFetchedAt(ts: number): string {
 }
 
 .nai-sub-stat-box {
-  display: flex;
-  flex-direction: column;
+  @apply flex flex-col;
   gap: var(--cv-space-lg);
 }
 
@@ -262,9 +253,7 @@ function formatFetchedAt(ts: number): string {
 }
 
 .nai-sub-expires {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
+  @apply flex flex-wrap items-baseline;
   gap: var(--cv-space-lg);
 }
 
@@ -308,8 +297,7 @@ function formatFetchedAt(ts: number): string {
 }
 
 .nai-sub-error {
-  display: flex;
-  align-items: center;
+  @apply flex items-center;
   gap: var(--cv-space-3xl);
   padding: var(--cv-space-3xl) var(--cv-space-10xl);
   background: rgba(239, 68, 68, 0.08);
@@ -319,14 +307,10 @@ function formatFetchedAt(ts: number): string {
 }
 
 .nai-sub-mask {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  @apply flex flex-col items-center justify-center text-center;
   gap: var(--cv-space-5xl);
   min-height: 9.3333em;
   padding: var(--cv-space-10xl);
-  text-align: center;
   color: var(--cv-on-surface-variant);
 }
 
