@@ -7,9 +7,10 @@ const iconButton = { class: 'cv-prime-icon-button' } as const;
 const option = { class: 'cv-select-option' } as const;
 const overlay = { class: 'cosmos-vision-root' } as const;
 const fieldOverlay = { class: 'cosmos-vision-root cv-prime-field-overlay' } as const;
+const checkInputClass = 'cv-prime-check-input' as const;
 const checkbox = {
   root: { class: 'cv-prime-checkbox' },
-  input: { class: 'cv-prime-checkbox-input' },
+  input: { class: `${checkInputClass} cv-prime-checkbox-input` },
   box: { class: 'cv-prime-checkbox-box' },
   icon: { class: 'cv-prime-checkbox-icon' },
 } as const;
@@ -132,7 +133,7 @@ export const cosmosPrimePt = {
   },
   toggleswitch: {
     root: { class: 'cv-prime-toggleswitch' },
-    input: { class: 'cv-prime-toggleswitch-input' },
+    input: { class: `${checkInputClass} cv-prime-toggleswitch-input` },
     slider: { class: 'cv-prime-toggleswitch-slider' },
     handle: { class: 'cv-prime-toggleswitch-handle' },
   },

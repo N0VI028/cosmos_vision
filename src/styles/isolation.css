@@ -11,51 +11,34 @@
  *       PrimeVue input 经 PT 注入 `.cv-prime-field`  (0,1,0) 无 !important
  *       ST 内联 `input[type='text']`...          (0,0,1) + !important —— ST 赢
  *
- * 两类情况都用更高特异性 `.cosmos-vision-root .xxx` (0,2,0) + 必要时 !important
- * 反压,并显式列出 PrimeVue 期望的关键属性(只覆盖部分会让 ST 未覆盖的属性继续
- * 生效,导致 ToggleSwitch handle 错位 / 输入框背景错色)。
+ * 两类情况都用带作用域锚点的 `:is(#cosmos_vision, .cosmos-vision-root) .xxx`
+ * 局部纠偏,只覆盖会破坏 PrimeVue 结构 / 主题的宿主属性。
  *
  * 作用域锚点:
  *   - `.cosmos-vision-root` —— Dialog 经 Teleport 后由 :pt 注入的根类
  *   - `#cosmos_vision`       —— 扩展挂载容器(覆盖抽屉内 UI)
  */
 
-.cosmos-vision-root .cv-prime-toggleswitch-input,
-#cosmos_vision .cv-prime-toggleswitch-input {
-  /* 定位 / 尺寸:与 PrimeVue @primeuix/styles/toggleswitch 内置完全一致 */
-  position: absolute;
-  top: 0;
-  inset-inline-start: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  z-index: 1;
-  /* 外观抹平:对抗 ST `input[type='checkbox']` 的 grid / transform / 边框 / 背景 */
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background: transparent;
-  background-image: none;
-  border: 0;
-  outline: 0 none;
-  box-shadow: none;
+/**
+ * 共享原生 checkbox 输入层几何纠偏
+ *
+ * 原生 input 在 PrimeVue Checkbox / ToggleSwitch 中只是透明命中层。
+ * ST 已有的视觉属性不重复反压,这里只清掉会偏移命中层的 margin / transform。
+ */
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-check-input {
+  @apply m-0;
   transform: none;
-  filter: none;
-  display: block;
-  overflow: hidden;
-  border-radius: inherit;
-  padding: 0;
-  margin: 0;
-  place-content: initial;
-  flex-shrink: initial;
-  cursor: pointer;
 }
 
 /* 干掉 ST 给 checkbox 加的 ✓ 伪元素,避免覆盖在 ToggleSwitch handle 上 */
-.cosmos-vision-root .cv-prime-toggleswitch-input::before,
-#cosmos_vision .cv-prime-toggleswitch-input::before {
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-check-input::before {
   content: none;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-toggleswitch-input {
+  @apply absolute inset-0 size-full opacity-0 overflow-hidden;
+  z-index: 1;
+  border-radius: inherit;
 }
 
 /**
@@ -65,96 +48,58 @@
  * ST 的 `input[type='checkbox']` 会把它挤压成异常尺寸并带入浅色背景。
  * 这里按 PrimeVue Checkbox 结构重置 input / box / icon,只作用于扩展作用域。
  */
-.cosmos-vision-root .cv-prime-checkbox,
-#cosmos_vision .cv-prime-checkbox {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox {
+  @apply relative inline-flex items-center justify-center;
   width: var(--p-checkbox-width, 1.25rem);
   height: var(--p-checkbox-height, 1.25rem);
   flex: 0 0 auto;
 }
 
-.cosmos-vision-root .cv-prime-checkbox-input,
-#cosmos_vision .cv-prime-checkbox-input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox-input {
+  @apply absolute inset-0 size-full opacity-0;
   z-index: 1;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  display: block;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  outline: 0 none;
-  background: transparent;
-  background-image: none;
-  box-shadow: none;
-  transform: none;
-  filter: none;
-  place-content: initial;
-  cursor: pointer;
 }
 
-.cosmos-vision-root .cv-prime-checkbox-input::before,
-#cosmos_vision .cv-prime-checkbox-input::before {
-  content: none;
-}
-
-.cosmos-vision-root .cv-prime-checkbox-box,
-#cosmos_vision .cv-prime-checkbox-box {
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox-box {
+  @apply inline-flex items-center justify-center shadow-none;
   width: 100%;
   height: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   flex: 0 0 auto;
   border: var(--cv-border-width) solid var(--p-checkbox-border-color, var(--cv-surface-variant));
   border-radius: var(--p-checkbox-border-radius, var(--cv-radius-sm));
   background: var(--p-checkbox-background, var(--cv-surface-container-high));
   color: var(--p-checkbox-icon-color, var(--cv-on-surface));
-  box-shadow: none;
   transition:
     background var(--p-checkbox-transition-duration, 0.2s),
     border-color var(--p-checkbox-transition-duration, 0.2s),
     color var(--p-checkbox-transition-duration, 0.2s);
 }
 
-.cosmos-vision-root .cv-prime-checkbox-icon,
-#cosmos_vision .cv-prime-checkbox-icon {
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox-icon {
   width: var(--p-checkbox-icon-size, 0.875rem);
   height: var(--p-checkbox-icon-size, 0.875rem);
   color: inherit;
 }
 
-.cosmos-vision-root .cv-prime-checkbox[data-p-checked='true'] .cv-prime-checkbox-box,
-#cosmos_vision .cv-prime-checkbox[data-p-checked='true'] .cv-prime-checkbox-box {
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox[data-p-checked='true'] .cv-prime-checkbox-box {
   background: var(--p-checkbox-checked-background, var(--cv-primary-container));
   border-color: var(--p-checkbox-checked-border-color, var(--cv-primary-container));
   color: var(--p-checkbox-icon-checked-color, var(--cv-on-primary-container));
 }
 
-.cosmos-vision-root .cv-prime-checkbox:not([data-p-disabled='true']):hover .cv-prime-checkbox-box,
-#cosmos_vision .cv-prime-checkbox:not([data-p-disabled='true']):hover .cv-prime-checkbox-box {
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox:not([data-p-disabled='true']):hover .cv-prime-checkbox-box {
   border-color: var(--p-checkbox-hover-border-color, var(--cv-outline));
 }
 
-.cosmos-vision-root
+:is(#cosmos_vision, .cosmos-vision-root)
   .cv-prime-checkbox[data-p-checked='true']:not([data-p-disabled='true']):hover
-  .cv-prime-checkbox-box,
-#cosmos_vision .cv-prime-checkbox[data-p-checked='true']:not([data-p-disabled='true']):hover .cv-prime-checkbox-box {
+  .cv-prime-checkbox-box {
   background: var(--p-checkbox-checked-hover-background, var(--cv-primary-container));
   border-color: var(--p-checkbox-checked-hover-border-color, var(--cv-primary-container));
   color: var(--p-checkbox-icon-checked-hover-color, var(--cv-on-primary-container));
 }
 
-.cosmos-vision-root .cv-prime-checkbox[data-p-disabled='true'] .cv-prime-checkbox-box,
-#cosmos_vision .cv-prime-checkbox[data-p-disabled='true'] .cv-prime-checkbox-box {
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox[data-p-disabled='true'] .cv-prime-checkbox-box {
   background: var(
     --p-checkbox-disabled-background,
     color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent)
