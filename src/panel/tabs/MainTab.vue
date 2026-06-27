@@ -341,7 +341,7 @@ function openUrl(url: string): void {
 
 .cv-version-tag {
   font-family: var(--cv-font-headline) !important;
-  font-size: calc(var(--mainFontSize) * 0.8) !important;
+  font-size: var(--cv-font-size-xs) !important;
   font-weight: 700 !important;
   background: var(--p-primary-color) !important;
   color: var(--p-primary-contrast-color) !important;
@@ -384,7 +384,7 @@ function openUrl(url: string): void {
   border-radius: var(--cv-radius-sm);
   background: var(--cv-surface-container-high);
   color: var(--cv-on-surface-variant);
-  font-size: calc(var(--mainFontSize) * 1.2);
+  font-size: var(--cv-font-size-2xl);
 }
 
 .cv-vibe-thumb > img {

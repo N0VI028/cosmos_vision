@@ -486,7 +486,7 @@ function handleVibeError(error: unknown, fallback: string): void {
   gap: var(--cv-space-sm);
   padding: 0 var(--cv-space-sm);
   color: var(--cv-on-surface-variant);
-  font-size: calc(var(--mainFontSize) * 0.82);
+  font-size: var(--cv-font-size-xs);
 }
 
 .cv-vibe-parse:hover {
@@ -500,7 +500,7 @@ function handleVibeError(error: unknown, fallback: string): void {
 
 .cv-vibe-missing-tag {
   flex: 0 0 auto;
-  font-size: calc(var(--mainFontSize) * 0.72) !important;
+  font-size: var(--cv-font-size-2xs) !important;
   line-height: 1 !important;
   padding: 0.08rem 0.32rem !important;
 }
@@ -533,7 +533,7 @@ function handleVibeError(error: unknown, fallback: string): void {
 
 .cv-vibe-thumbnail-placeholder {
   @apply flex items-center justify-center;
-  font-size: calc(var(--mainFontSize) * 1.4);
+  font-size: var(--cv-font-size-3xl);
 }
 
 .cv-vibe-thumbnail-action {
@@ -541,7 +541,7 @@ function handleVibeError(error: unknown, fallback: string): void {
   padding: var(--cv-space-sm);
   background: color-mix(in srgb, var(--cv-surface-container-high) 86%, transparent);
   color: var(--cv-on-surface);
-  font-size: calc(var(--mainFontSize) * 0.78);
+  font-size: var(--cv-font-size-xs);
 }
 
 .cv-vibe-controls {
@@ -553,7 +553,7 @@ function handleVibeError(error: unknown, fallback: string): void {
   @apply flex min-w-0 flex-col;
   gap: var(--cv-space-md);
   color: var(--cv-on-surface);
-  font-size: calc(var(--mainFontSize) * 0.9);
+  font-size: var(--cv-font-size-md);
 }
 
 @media (max-width: 38rem) {

@@ -166,9 +166,9 @@ function formatFetchedAt(ts: number): string {
 
 .nai-sub-title {
   @apply flex items-center justify-between;
-  padding: var(--cv-space-5xl) var(--cv-space-9xl);
+  padding: var(--cv-space-5xl) var(--cv-space-8xl);
   font-family: var(--cv-font-headline);
-  font-size: calc(var(--mainFontSize) * 1.0667);
+  font-size: var(--cv-font-size-xl);
   font-weight: 600;
   color: var(--cv-on-surface);
   border-bottom: var(--cv-border-width) solid var(--cv-surface-variant);
@@ -196,7 +196,7 @@ function formatFetchedAt(ts: number): string {
   border: none !important;
   box-shadow: none !important;
   font-family: var(--cv-font-headline);
-  font-size: calc(var(--mainFontSize) * 1.0667);
+  font-size: var(--cv-font-size-xl);
   font-weight: 600;
   color: var(--cv-on-surface) !important;
 }
@@ -207,19 +207,19 @@ function formatFetchedAt(ts: number): string {
   min-height: 8em;
   padding: var(--cv-space-10xl);
   color: var(--cv-on-surface-variant);
-  font-size: calc(var(--mainFontSize) * 0.9333);
+  font-size: var(--cv-font-size-md);
 }
 
 .nai-sub-empty i {
-  font-size: calc(var(--mainFontSize) * 2.1333);
+  font-size: var(--cv-font-size-4xl);
   opacity: 0.5;
 }
 
 .nai-sub-content {
   @apply grid;
-  padding: var(--cv-space-9xl) var(--cv-space-10xl);
+  padding: var(--cv-space-8xl) var(--cv-space-10xl);
   grid-template-columns: 1fr 1fr;
-  gap: var(--cv-space-9xl);
+  gap: var(--cv-space-8xl);
 }
 
 .nai-sub-content--loading {
@@ -237,7 +237,7 @@ function formatFetchedAt(ts: number): string {
 
 .nai-sub-stat-title {
   font-family: var(--cv-font-label);
-  font-size: calc(var(--mainFontSize) * 0.8);
+  font-size: var(--cv-font-size-xs);
   font-weight: 500;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -245,7 +245,7 @@ function formatFetchedAt(ts: number): string {
 }
 
 .nai-sub-anlas-main {
-  font-size: calc(var(--mainFontSize) * 2.1333);
+  font-size: var(--cv-font-size-4xl);
   font-weight: 800;
   color: var(--cv-primary-container);
   font-variant-numeric: tabular-nums;
@@ -258,7 +258,7 @@ function formatFetchedAt(ts: number): string {
 }
 
 .nai-sub-expires-main {
-  font-size: calc(var(--mainFontSize) * 1.6);
+  font-size: var(--cv-font-size-3xl);
   font-weight: 700;
   color: var(--cv-on-surface);
   font-variant-numeric: tabular-nums;
@@ -266,14 +266,14 @@ function formatFetchedAt(ts: number): string {
 
 .nai-sub-expires-days {
   font-family: var(--cv-font-label);
-  font-size: calc(var(--mainFontSize) * 0.8);
+  font-size: var(--cv-font-size-xs);
   font-weight: 500;
   color: var(--cv-on-surface-variant);
 }
 
 .nai-sub-fetched {
   font-family: var(--cv-font-label);
-  font-size: calc(var(--mainFontSize) * 0.8);
+  font-size: var(--cv-font-size-xs);
   color: var(--cv-on-surface-variant);
   font-variant-numeric: tabular-nums;
 }
@@ -303,7 +303,7 @@ function formatFetchedAt(ts: number): string {
   background: rgba(239, 68, 68, 0.08);
   border-top: var(--cv-border-width) solid rgba(239, 68, 68, 0.2);
   color: #dc2626;
-  font-size: calc(var(--mainFontSize) * 0.9333);
+  font-size: var(--cv-font-size-md);
 }
 
 .nai-sub-mask {
@@ -315,18 +315,18 @@ function formatFetchedAt(ts: number): string {
 }
 
 .nai-sub-mask i {
-  font-size: calc(var(--mainFontSize) * 2.1333);
+  font-size: var(--cv-font-size-4xl);
   opacity: 0.5;
 }
 
 .nai-sub-mask-title {
-  font-size: calc(var(--mainFontSize) * 1.0667);
+  font-size: var(--cv-font-size-xl);
   font-weight: 600;
   color: var(--cv-on-surface);
 }
 
 .nai-sub-mask-desc {
-  font-size: calc(var(--mainFontSize) * 0.9333);
+  font-size: var(--cv-font-size-md);
   line-height: 1.5;
   max-width: 24em;
 }
@@ -334,7 +334,7 @@ function formatFetchedAt(ts: number): string {
 @media (max-width: 48rem) {
   .nai-sub-content {
     grid-template-columns: 1fr;
-    padding: var(--cv-space-6xl) var(--cv-space-7xl);
+    padding: var(--cv-space-5xl) var(--cv-space-7xl);
     gap: var(--cv-space-7xl);
   }
   .nai-sub-title {

@@ -279,12 +279,12 @@
 }
 
 /**
- * 字号 / 间距桥接到 ST --mainFontSize
+ * 字号 / 间距桥接到 CosmosVision 全局 token
  *
  * - font-size:让作用域内 em 单位与 ST 字号一致
  * - --spacing:Tailwind 4 spacing 系统的基准变量
- *   覆写为 calc(--mainFontSize * 0.25) 后,`p-N / m-N / gap-N` 全部基于
- *   ST 字号重算(如 p-4 = mainFontSize),不再依赖根字号
+ *   覆写为 --cv-spacing-unit 后,`p-N / m-N / gap-N` 全部基于
+ *   CosmosVision 字号重算,不再依赖根字号
  *
  * 仅作用于扩展容器与 PrimeVue Teleport 根类,不污染 ST 全局
  */
@@ -292,8 +292,8 @@
 .cosmos-vision-root,
 .cv-inline-selected,
 .cv-inline-img-wrap {
-  font-size: var(--mainFontSize, 1em);
-  --spacing: calc(var(--mainFontSize) * 0.25);
+  font-size: var(--cv-font-size-base);
+  --spacing: var(--cv-spacing-unit);
 }
 
 /**
@@ -302,32 +302,37 @@
  * 挂到 :root 供面板、Teleport overlay、聊天内联 UI 全局复用
  */
 :root {
-  --cv-space-xxs: 0.1333em;
+  --cv-font-size-base: var(--mainFontSize, var(--mainFontsSize, var(--mainfontsize, 1em)));
+  --cv-font-size-2xs: calc(var(--cv-font-size-base) * 0.75);
+  --cv-font-size-xs: calc(var(--cv-font-size-base) * 0.8);
+  --cv-font-size-sm: calc(var(--cv-font-size-base) * 0.85);
+  --cv-font-size-md: calc(var(--cv-font-size-base) * 0.9);
+  --cv-font-size-lg: calc(var(--cv-font-size-base) * 0.95);
+  --cv-font-size-xl: calc(var(--cv-font-size-base) * 1.0667);
+  --cv-font-size-2xl: calc(var(--cv-font-size-base) * 1.2);
+  --cv-font-size-3xl: calc(var(--cv-font-size-base) * 1.4);
+  --cv-font-size-4xl: calc(var(--cv-font-size-base) * 2.1333);
+  --cv-spacing-unit: calc(var(--cv-font-size-base) * 0.25);
   --cv-space-xs: 0.2em;
   --cv-space-sm: 0.2667em;
   --cv-space-md: 0.4em;
   --cv-space-lg: 0.5333em;
-  --cv-space-lg-plus: 0.6em;
   --cv-space-xl: 0.6667em;
   --cv-space-2xl: 0.7333em;
   --cv-space-3xl: 0.8em;
   --cv-space-4xl: 0.9333em;
   --cv-space-5xl: 1.0667em;
-  --cv-space-6xl: 1.2em;
   --cv-space-7xl: 1.3333em;
   --cv-space-8xl: 1.5em;
-  --cv-space-9xl: 1.6em;
   --cv-space-10xl: 2.1333em;
-  --cv-space-11xl: 2.4em;
   --cv-space-12xl: 3.6em;
-  --cv-space-13xl: 8em;
   --cv-border-width: 0.0667em;
 }
 
 /**
  * PrimeVue 间距 / 尺寸 token 桥接到 em
  *
- * 容器 font-size 已 = mainFontSize,em 自动跟随,无需 calc。
+ * 容器 font-size 已 = --cv-font-size-base,em 自动跟随,无需 calc。
  * 覆盖:padding / margin / gap / 控件尺寸 / 图标尺寸
  * borderRadius 在下方独立 block 集中收敛(扁平方块设计语言);
  * 不覆盖:像素级精度(anchorGutter / focusRing offset / activeBar height)
@@ -363,7 +368,7 @@
   --p-dialog-shadow: var(--cv-floating-shadow);
   --p-dialog-header-gap: 0.5em;
   --p-dialog-footer-gap: 0.5em;
-  --p-dialog-title-font-size: calc(var(--mainFontSize) * 1.25);
+  --p-dialog-title-font-size: var(--cv-font-size-2xl);
   --p-dialog-border: none;
   --p-dialog-border-radius: var(--cv-radius-lg);
 
@@ -385,9 +390,9 @@
   --p-password-meter-height: 0.75em;
 
   /* component: message */
-  --p-message-text-font-size: calc(var(--mainFontSize) * 0.85);
-  --p-message-text-sm-font-size: calc(var(--mainFontSize) * 0.8);
-  --p-message-text-lg-font-size: calc(var(--mainFontSize) * 0.9);
+  --p-message-text-font-size: var(--cv-font-size-sm);
+  --p-message-text-sm-font-size: var(--cv-font-size-xs);
+  --p-message-text-lg-font-size: var(--cv-font-size-md);
 
   /* component: select */
   --p-select-dropdown-width: 2.5em;
@@ -552,13 +557,13 @@
  * Overlay 字号对齐触发器
  *
  * Select / MultiSelect / AutoComplete 等下拉面板由 PrimeVue 通过 Teleport 挂到 body,
- * 经全局 :pt 注入 .cosmos-vision-root 锚点后能拿到 ST mainFontSize,
+ * 经全局 :pt 注入 .cosmos-vision-root 锚点后能拿到 --cv-font-size-base,
  * 这里与触发器同档处理,避免下拉项字号视觉跳跃。
  *
- * 这里把 overlay 字号显式压到 .cv-field 同档(0.85em),保持触发器 → 下拉项视觉连续。
+ * 这里把 overlay 字号显式压到 .cv-field 同档,保持触发器 → 下拉项视觉连续。
  */
 .cosmos-vision-root.cv-prime-field-overlay {
-  font-size: calc(var(--mainFontSize) * 0.85);
+  font-size: var(--cv-font-size-sm);
 }
 
 /**
@@ -568,7 +573,7 @@
  * 固定根字号会打断 .cv-field(0.85em) → 子级的继承链,
  * 导致输入框 / 下拉触发器 / 按钮字号比卡片正文大一倍。
  *
- * 统一强制 inherit,让 ST --mainFontSize 桥接 + .cv-field 的相对字号继续生效。
+ * 统一强制 inherit,让 --cv-font-size-base 桥接 + .cv-field 的相对字号继续生效。
  */
 .cosmos-vision-root
   :is(

@@ -31,7 +31,7 @@ export const cosmosPrimePreset = definePreset(Aura, {
         paddingY: 'var(--cv-space-sm)',
       },
       lg: {
-        paddingX: 'var(--cv-space-6xl)',
+        paddingX: 'var(--cv-space-5xl)',
         paddingY: 'var(--cv-space-lg)',
       },
       borderRadius: 'var(--cv-radius-full)',

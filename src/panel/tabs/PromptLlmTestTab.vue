@@ -230,7 +230,7 @@ function applyTestResponse(rawResult: string): void {
 
 .param-label {
   color: var(--cv-on-surface-variant);
-  font-size: calc(var(--mainFontSize) * 0.9);
+  font-size: var(--cv-font-size-md);
 }
 
 .param-value {
@@ -240,11 +240,11 @@ function applyTestResponse(rawResult: string): void {
 
 .code-font {
   font-family: Consolas, Monaco, monospace;
-  font-size: calc(var(--mainFontSize) * 0.85);
+  font-size: var(--cv-font-size-sm);
 }
 
 .preview-header {
-  font-size: calc(var(--mainFontSize) * 0.9);
+  font-size: var(--cv-font-size-md);
   color: var(--cv-on-surface-variant);
   margin-bottom: var(--cv-space-md);
   font-weight: 600;
@@ -256,7 +256,7 @@ function applyTestResponse(rawResult: string): void {
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   color: var(--cv-on-surface);
   font-family: Consolas, Monaco, monospace;
-  font-size: calc(var(--mainFontSize) * 0.85);
+  font-size: var(--cv-font-size-sm);
   padding: var(--cv-space-2xl);
   border-radius: var(--cv-radius-sm);
   max-height: 300px;
@@ -266,7 +266,7 @@ function applyTestResponse(rawResult: string): void {
   @apply flex items-center justify-center;
   padding: var(--cv-space-3xl) 0;
   color: var(--cv-on-surface-variant);
-  font-size: calc(var(--mainFontSize) * 0.95);
+  font-size: var(--cv-font-size-lg);
 }
 
 .cv-test-state-success {
@@ -281,7 +281,7 @@ function applyTestResponse(rawResult: string): void {
   padding: var(--cv-space-xl);
   border-radius: var(--cv-radius-sm);
   font-weight: 600;
-  font-size: calc(var(--mainFontSize) * 0.95);
+  font-size: var(--cv-font-size-lg);
 }
 
 .response-raw {
@@ -300,7 +300,7 @@ function applyTestResponse(rawResult: string): void {
   padding: var(--cv-space-xl);
   border-radius: var(--cv-radius-sm);
   font-weight: 600;
-  font-size: calc(var(--mainFontSize) * 0.95);
+  font-size: var(--cv-font-size-lg);
 }
 
 .error-text {

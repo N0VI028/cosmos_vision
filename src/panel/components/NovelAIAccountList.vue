@@ -131,7 +131,7 @@ function removeAccount(index: number): void {
 
 .cv-account-list__hint {
   color: var(--cv-on-surface-variant);
-  font-size: calc(var(--mainFontSize) * 0.9);
+  font-size: var(--cv-font-size-md);
   line-height: 1.5;
 }
 
@@ -177,7 +177,7 @@ function removeAccount(index: number): void {
 
 .cv-account-field > span {
   font-family: var(--cv-font-body);
-  font-size: calc(var(--mainFontSize) * 0.9);
+  font-size: var(--cv-font-size-md);
   font-weight: 500;
   color: var(--cv-on-surface-variant);
 }
@@ -186,7 +186,7 @@ function removeAccount(index: number): void {
   @apply flex flex-col items-center justify-center text-center;
   gap: var(--cv-space-3xl);
   min-height: 9rem;
-  padding: var(--cv-space-6xl);
+  padding: var(--cv-space-5xl);
   border: var(--cv-border-width) dashed var(--cv-surface-variant);
   border-radius: var(--cv-radius);
   color: var(--cv-on-surface-variant);

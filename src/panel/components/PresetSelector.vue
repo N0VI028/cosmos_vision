@@ -132,7 +132,7 @@ async function handleDeleteActiveClick(): Promise<void> {
   width: 9em !important;
   height: auto !important;
   color: var(--p-primary-color) !important;
-  font-size: calc(var(--mainFontSize) * 0.85) !important;
+  font-size: var(--cv-font-size-sm) !important;
   font-weight: 600;
 }
 
@@ -150,7 +150,7 @@ async function handleDeleteActiveClick(): Promise<void> {
   border: var(--cv-border-width) solid transparent;
   border-radius: var(--cv-radius-sm);
   color: var(--cv-on-surface-variant);
-  font-size: calc(var(--mainFontSize) * 0.75);
+  font-size: var(--cv-font-size-2xs);
   transition: all 0.15s ease;
 }
 

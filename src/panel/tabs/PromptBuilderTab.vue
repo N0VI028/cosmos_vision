@@ -372,7 +372,7 @@ function copyPresetMessage(message: PromptLlmMessage): PromptLlmMessage {
 }
 
 .cv-prompt-builder-preset-selector {
-  margin-bottom: var(--cv-space-6xl);
+  margin-bottom: var(--cv-space-5xl);
 }
 
 .cv-message-section-head {
@@ -393,7 +393,7 @@ function copyPresetMessage(message: PromptLlmMessage): PromptLlmMessage {
   height: 1.65em;
   border-radius: var(--cv-radius-sm);
   color: var(--cv-on-surface-variant);
-  font-size: calc(var(--mainFontSize) * 0.72);
+  font-size: var(--cv-font-size-2xs);
   transition: all 0.15s ease;
 }
 

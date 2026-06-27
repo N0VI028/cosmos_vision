@@ -127,7 +127,7 @@ async function readSourcePreview(message: PromptLlmMessage): Promise<string> {
 .cv-preview-text {
   @apply m-0 w-full whitespace-pre-wrap break-words;
   min-height: 1.5rem;
-  font-size: calc(var(--mainFontSize) * 0.9);
+  font-size: var(--cv-font-size-md);
   line-height: 1.5;
   color: var(--cv-on-surface);
 }
@@ -135,7 +135,7 @@ async function readSourcePreview(message: PromptLlmMessage): Promise<string> {
 .cv-preview-empty {
   @apply flex items-center justify-center text-center;
   min-height: 16rem;
-  padding: var(--cv-space-9xl);
+  padding: var(--cv-space-8xl);
   color: var(--p-text-muted-color);
   background: var(--p-content-background);
   border: var(--cv-border-width) solid var(--p-content-border-color);

@@ -27,7 +27,7 @@ const selectButtonToggle = {
       flex: '1 1 0',
       minWidth: '0',
       fontFamily: 'var(--cv-font-label)',
-      fontSize: 'calc(var(--mainFontSize) * 0.8)',
+      fontSize: 'var(--cv-font-size-xs)',
       whiteSpace: 'nowrap',
       boxShadow: 'none',
     },

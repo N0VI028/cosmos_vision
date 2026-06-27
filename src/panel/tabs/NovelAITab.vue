@@ -353,7 +353,7 @@ const proxyPreview = computed(() => {
   @apply min-w-0;
   --p-togglebutton-sm-padding: var(--cv-space-xs) var(--cv-space-md);
   --p-togglebutton-content-sm-padding: var(--cv-space-xs) var(--cv-space-md);
-  --p-togglebutton-sm-font-size: calc(var(--mainFontSize) * 0.75);
+  --p-togglebutton-sm-font-size: var(--cv-font-size-2xs);
 }
 
 .cv-nai-mini-toggle:deep(.cv-prime-togglebutton-content) {
@@ -367,7 +367,7 @@ const proxyPreview = computed(() => {
   gap: var(--cv-space-lg);
   min-height: 1.75rem;
   color: var(--cv-on-surface);
-  font-size: calc(var(--mainFontSize) * 0.9);
+  font-size: var(--cv-font-size-md);
 }
 
 .cv-nai-check-option > span {

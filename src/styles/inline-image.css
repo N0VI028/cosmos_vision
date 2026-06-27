@@ -190,7 +190,7 @@ body.dark .cv-inline-toolbar {
   background: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.9) !important;
   border-radius: 9999px !important;
-  /* 极致缩减上下 Padding，保证高度完美缩进在 calc(var(--mainFontSize) + .5rem) 空间内 */
+  /* 极致缩减上下 Padding，保证高度完美缩进在 calc(var(--cv-font-size-base) + .5rem) 空间内 */
   padding: 0.15em 0.15em 0.15em 1em !important;
   
   box-shadow: 
@@ -216,7 +216,7 @@ body.dark .cv-inline-toolbar {
 
 /* 内部左侧黑色文字 */
 .cv-inline-trigger-text {
-  font-size: var(--mainFontSize, var(--mainFontsSize, var(--mainfontsize, 1rem))) !important;
+  font-size: var(--cv-font-size-base) !important;
   color: #121217 !important;
   letter-spacing: 0.02em !important;
   line-height: 1 !important;
@@ -243,7 +243,7 @@ body.dark .cv-inline-toolbar {
 
 /* 内部 icon，缩小为 --mainfontsize 的 0.75 倍，在圆形包裹层中更显精致，强制为白色防止覆盖 */
 .cv-inline-trigger-icon {
-  font-size: calc(var(--mainFontSize, var(--mainFontsSize, var(--mainfontsize, 1rem))) * 0.6) !important;
+  font-size: var(--cv-font-size-2xs) !important;
   line-height: 1 !important;
   font-style: normal !important;
   color: #ffffff !important;
@@ -269,7 +269,7 @@ body.dark .cv-inline-toolbar {
   text-transform: none !important;
   letter-spacing: normal !important;
   white-space: nowrap !important;
-  font-size: calc(var(--mainFontSize) * 0.8) !important;
+  font-size: var(--cv-font-size-xs) !important;
 }
 
 .cv-inline-action-button:not([data-p~='rounded']) {
@@ -417,7 +417,7 @@ body.dark .cv-inline-toolbar {
   border-radius: var(--cv-radius, 0.2667em) !important;
   background: transparent !important;
   color: inherit !important;
-  font-size: calc(var(--mainFontSize) * 0.8);
+  font-size: var(--cv-font-size-xs);
   cursor: pointer;
   transition: background-color 0.15s ease;
 }
@@ -439,7 +439,7 @@ body.dark .cv-inline-toolbar {
 }
 
 .cv-inline-generation-text {
-  font-size: calc(var(--mainFontSize) * 0.85);
+  font-size: var(--cv-font-size-sm);
   line-height: 1.35;
   overflow-wrap: anywhere;
 }

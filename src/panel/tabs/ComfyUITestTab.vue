@@ -371,7 +371,7 @@ onBeforeUnmount(revokePreviewUrl);
   border-radius: var(--cv-radius);
   padding: var(--cv-space-xl);
   font-family: inherit;
-  font-size: calc(var(--mainFontSize) * 0.95);
+  font-size: var(--cv-font-size-lg);
 }
 
 .cv-action-row {
@@ -473,7 +473,7 @@ onBeforeUnmount(revokePreviewUrl);
 
 .param-label {
   color: var(--cv-on-surface-variant);
-  font-size: calc(var(--mainFontSize) * 0.9);
+  font-size: var(--cv-font-size-md);
 }
 
 .param-value {
@@ -483,11 +483,11 @@ onBeforeUnmount(revokePreviewUrl);
 
 .code-font {
   font-family: Consolas, Monaco, monospace;
-  font-size: calc(var(--mainFontSize) * 0.85);
+  font-size: var(--cv-font-size-sm);
 }
 
 .preview-header {
-  font-size: calc(var(--mainFontSize) * 0.9);
+  font-size: var(--cv-font-size-md);
   color: var(--cv-on-surface-variant);
   font-weight: 600;
 }
@@ -498,7 +498,7 @@ onBeforeUnmount(revokePreviewUrl);
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   color: var(--cv-on-surface);
   font-family: Consolas, Monaco, monospace;
-  font-size: calc(var(--mainFontSize) * 0.85);
+  font-size: var(--cv-font-size-sm);
   padding: var(--cv-space-2xl);
   border-radius: var(--cv-radius-sm);
   max-height: 20rem;

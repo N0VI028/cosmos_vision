@@ -46,7 +46,7 @@ defineEmits<{
   padding: var(--cv-space-md) var(--cv-space-5xl);
   border-radius: var(--cv-radius-full);
   font-family: var(--cv-font-body);
-  font-size: calc(var(--mainFontSize) * 0.8667);
+  font-size: var(--cv-font-size-sm);
   font-weight: 400;
   color: var(--cv-on-surface-variant);
   transition: all 0.15s ease;

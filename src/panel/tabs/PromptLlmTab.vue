@@ -209,7 +209,7 @@ async function fetchModels(): Promise<void> {
 .cv-slider-value {
   @apply mt-[var(--cv-space-lg)] text-center;
   text-align: center;
-  font-size: calc(var(--mainFontSize) * 0.9333);
+  font-size: var(--cv-font-size-md);
   color: var(--cv-on-surface-variant);
   font-weight: 500;
 }

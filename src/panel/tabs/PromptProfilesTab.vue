@@ -510,7 +510,7 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 
 .cv-muted {
   color: var(--cv-on-surface-variant);
-  font-size: calc(var(--mainFontSize) * 0.78);
+  font-size: var(--cv-font-size-xs);
 }
 
 .cv-person-editor {
@@ -539,7 +539,7 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 .cv-person-section-title {
   margin: var(--cv-space-5xl) 0 var(--cv-space-xl);
   color: var(--cv-on-surface);
-  font-size: calc(var(--mainFontSize) * 0.95);
+  font-size: var(--cv-font-size-lg);
   font-weight: 700;
 }
 
@@ -557,7 +557,7 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
   flex: 0 0 auto;
   width: auto;
   color: var(--cv-on-surface-variant) !important;
-  font-size: calc(var(--mainFontSize) * 0.82);
+  font-size: var(--cv-font-size-xs);
   opacity: 0.78;
 }
 
@@ -585,7 +585,7 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 
 .cv-keyword-tag {
   padding: 0.125rem 0.35rem !important;
-  font-size: calc(var(--mainFontSize) * 0.72) !important;
+  font-size: var(--cv-font-size-2xs) !important;
   background: color-mix(in srgb, var(--p-primary-color) 12%, transparent) !important;
   border: 1px solid var(--p-primary-color) !important;
   color: var(--p-primary-color) !important;
@@ -643,13 +643,13 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 }
 
 .cv-tag-parse-option-title {
-  font-size: calc(var(--mainFontSize) * 0.92);
+  font-size: var(--cv-font-size-md);
   font-weight: 600;
 }
 
 .cv-tag-parse-option-desc {
   color: var(--cv-on-surface-variant);
-  font-size: calc(var(--mainFontSize) * 0.78);
+  font-size: var(--cv-font-size-xs);
   line-height: 1.35;
 }
 
@@ -669,7 +669,7 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 
 .cv-profiles-empty,
 .cv-person-empty-panel {
-  @apply p-[var(--cv-space-6xl)] text-center;
+  @apply p-[var(--cv-space-5xl)] text-center;
   color: var(--cv-on-surface-variant);
 }
 

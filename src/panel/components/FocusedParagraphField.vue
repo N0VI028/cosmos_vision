@@ -42,6 +42,6 @@ const model = defineModel<string>({ required: true });
   border-radius: var(--cv-radius);
   padding: var(--cv-space-xl);
   font-family: inherit;
-  font-size: calc(var(--mainFontSize) * 0.95);
+  font-size: var(--cv-font-size-lg);
 }
 </style>

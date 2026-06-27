@@ -17,7 +17,7 @@
   --cv-font-headline: inherit;
   --cv-font-body: inherit;
   --cv-font-label: inherit;
-  --cv-gutter: var(--cv-space-9xl);
+  --cv-gutter: var(--cv-space-8xl);
   --cv-sidebar-width: 12.5333em;
   --cv-popover-shadow: 0 0.4em 0.8em color-mix(in srgb, var(--cv-on-surface) 12%, transparent);
   --cv-floating-shadow:
@@ -65,7 +65,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
   @apply flex items-center;
   height: 6.4em;
   gap: var(--cv-space-3xl);
-  padding: 0 var(--cv-space-9xl);
+  padding: 0 var(--cv-space-8xl);
 }
 
 .cosmos-vision-root .cv-brand-icon {
@@ -74,7 +74,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
   height: 2.1333em;
   background: var(--cv-surface-container-low);
   color: var(--cv-on-surface);
-  font-size: calc(var(--mainFontSize) * 1.0667);
+  font-size: var(--cv-font-size-xl);
 }
 
 .cosmos-vision-root .cv-brand-text {
@@ -83,7 +83,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 
 .cosmos-vision-root .cv-brand-title {
   font-family: var(--cv-font-headline);
-  font-size: calc(var(--mainFontSize) * 1.2);
+  font-size: var(--cv-font-size-2xl);
   font-weight: 600;
   color: var(--cv-on-surface);
 }
@@ -118,14 +118,14 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 
 .cosmos-vision-root .cv-nav-icon {
   @apply shrink-0 text-center;
-  font-size: calc(var(--mainFontSize) * 1.1);
+  font-size: var(--cv-font-size-xl);
   width: 1.1em;
   height: 1.1em;
 }
 
 .cosmos-vision-root .cv-nav-label {
   font-family: var(--cv-font-label);
-  font-size: calc(var(--mainFontSize) * 0.8);
+  font-size: var(--cv-font-size-xs);
   font-weight: 500;
   letter-spacing: 0.05em;
 }
@@ -133,7 +133,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 .cosmos-vision-root .cv-sidebar-footer {
   @apply flex flex-col;
   gap: var(--cv-space-lg);
-  padding: var(--cv-space-9xl);
+  padding: var(--cv-space-8xl);
 }
 
 .cosmos-vision-root .cv-theme-toggle {
@@ -184,7 +184,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 }
 
 .cosmos-vision-root .cv-theme-toggle .cv-prime-togglebutton i {
-  font-size: calc(var(--mainFontSize) * 1.0667);
+  font-size: var(--cv-font-size-xl);
   flex-shrink: 0;
 }
 
@@ -232,7 +232,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
   align-items: center;
   gap: var(--cv-space-lg);
   font-family: var(--cv-font-label);
-  font-size: calc(var(--mainFontSize) * 0.8);
+  font-size: var(--cv-font-size-xs);
   font-weight: 500;
   letter-spacing: 0.05em;
 }
@@ -271,7 +271,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 }
 
 .cosmos-vision-root .cv-breadcrumb-dropdown-icon {
-  font-size: calc(var(--mainFontSize) * 0.7);
+  font-size: var(--cv-font-size-2xs);
   transition: transform 0.15s;
 }
 
@@ -301,7 +301,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
   cursor: pointer;
   transition: background 0.15s;
   font-family: var(--cv-font-label);
-  font-size: calc(var(--mainFontSize) * 0.8);
+  font-size: var(--cv-font-size-xs);
   font-weight: 500;
   letter-spacing: 0.03em;
   white-space: nowrap;
@@ -318,14 +318,14 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 }
 
 .cosmos-vision-root .cv-breadcrumb-sep {
-  font-size: calc(var(--mainFontSize) * 0.9333);
+  font-size: var(--cv-font-size-md);
   color: var(--cv-on-surface-variant);
   opacity: 0.4;
 }
 
 .cosmos-vision-root .cv-header-title {
   font-family: var(--cv-font-headline);
-  font-size: calc(var(--mainFontSize) * 1.8667);
+  font-size: var(--cv-font-size-4xl);
   font-weight: 600;
   line-height: 1.3;
   color: var(--cv-on-surface);
@@ -341,7 +341,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 .cosmos-vision-root .cv-content-inner {
   max-width: 53.3333em;
   margin: 0 auto;
-  padding-bottom: var(--cv-space-13xl);
+  padding-bottom: var(--cv-space-12xl);
 }
 
 .cosmos-vision-root .custom-scrollbar::-webkit-scrollbar {
@@ -388,7 +388,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
   padding: var(--cv-space-lg) var(--cv-space-7xl);
   border-radius: var(--cv-radius-full);
   font-family: var(--cv-font-label);
-  font-size: calc(var(--mainFontSize) * 0.7333);
+  font-size: var(--cv-font-size-2xs);
   font-weight: 500;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -421,7 +421,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 }
 
 .cosmos-vision-root .cv-action-btn i {
-  font-size: calc(var(--mainFontSize) * 1.2);
+  font-size: var(--cv-font-size-2xl);
 }
 
 .cosmos-vision-root.cv-confirm-dialog .p-dialog-header {
@@ -438,7 +438,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 
 .cosmos-vision-root .cv-confirm-message {
   color: var(--cv-on-surface);
-  font-size: calc(var(--mainFontSize) * 0.95);
+  font-size: var(--cv-font-size-lg);
   line-height: 1.6;
 }
 
@@ -450,14 +450,14 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 
 .cosmos-vision-root .cv-section-title {
   font-family: var(--cv-font-headline);
-  font-size: calc(var(--mainFontSize) * 0.8);
+  font-size: var(--cv-font-size-xs);
   font-weight: 700;
   color: var(--cv-on-surface-variant);
   margin: var(--cv-space-10xl) 0 var(--cv-space-3xl) 0;
 }
 
 .cosmos-vision-root .cv-section-desc {
-  font-size: calc(var(--mainFontSize) * 0.9333);
+  font-size: var(--cv-font-size-md);
   color: var(--cv-on-surface-variant);
   margin-top: var(--cv-space-lg);
   line-height: 1.5;
@@ -496,7 +496,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 
 .cosmos-vision-root .cv-field > span {
   font-family: var(--cv-font-body);
-  font-size: calc(var(--mainFontSize) * 1);
+  font-size: var(--cv-font-size-base);
   font-weight: 500;
   color: var(--cv-on-surface);
 }
@@ -511,7 +511,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 
 .cosmos-vision-root .cv-field-inline > span {
   font-family: var(--cv-font-body);
-  font-size: calc(var(--mainFontSize) * 1);
+  font-size: var(--cv-font-size-base);
   font-weight: 500;
   color: var(--cv-on-surface);
   flex: 1;
@@ -519,7 +519,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 
 .cosmos-vision-root .cv-field-hint {
   font-family: var(--cv-font-label);
-  font-size: calc(var(--mainFontSize) * 0.8);
+  font-size: var(--cv-font-size-xs);
   font-weight: 500;
   letter-spacing: 0.05em;
   color: var(--cv-on-surface-variant);
@@ -528,7 +528,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 }
 
 .cosmos-vision-root .cv-field-warn {
-  font-size: calc(var(--mainFontSize) * 0.8);
+  font-size: var(--cv-font-size-xs);
   color: var(--p-red-500);
   margin-top: calc(var(--cv-space-lg) * -1);
   line-height: 1.4;
@@ -537,7 +537,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 .cosmos-vision-root .cv-field-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--cv-space-9xl);
+  gap: var(--cv-space-8xl);
 }
 
 @media (max-width: 66.6667em) {
@@ -603,7 +603,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
   }
 
   .cosmos-vision-root .cv-mobile-theme-btn i {
-    font-size: calc(var(--mainFontSize) * 1.2);
+    font-size: var(--cv-font-size-2xl);
   }
 
   .cosmos-vision-root .cv-header {
@@ -626,7 +626,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
   }
 
   .cosmos-vision-root .cv-content-inner {
-    padding-bottom: var(--cv-space-11xl);
+    padding-bottom: var(--cv-space-10xl);
   }
 
   .cosmos-vision-root .cv-action-bar {
@@ -646,7 +646,7 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
 
   .cosmos-vision-root .cv-action-btn {
     padding: var(--cv-space-md) var(--cv-space-xl);
-    font-size: calc(var(--mainFontSize) * 0.7);
+    font-size: var(--cv-font-size-2xs);
     flex: 1;
     justify-content: center;
   }

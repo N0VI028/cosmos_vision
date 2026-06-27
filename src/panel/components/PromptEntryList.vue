@@ -152,7 +152,7 @@ const entries = defineModel<PromptEntryListItem[]>({ required: true });
 .cv-empty-hint {
   @apply mb-[var(--cv-space-5xl)] flex flex-col items-center justify-center text-center;
   gap: var(--cv-space-3xl);
-  padding: var(--cv-space-9xl);
+  padding: var(--cv-space-8xl);
   color: var(--p-text-muted-color);
 }
 </style>

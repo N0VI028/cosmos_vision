@@ -588,14 +588,14 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
 @reference '../../global.css';
 
 .cv-add-message-btn-flat-wide {
-  @apply mb-[var(--cv-space-6xl)] flex w-full cursor-pointer items-center justify-center;
+  @apply mb-[var(--cv-space-5xl)] flex w-full cursor-pointer items-center justify-center;
   gap: var(--cv-space-sm);
   padding: var(--cv-space-md) 0;
   border: var(--cv-border-width) dashed var(--cv-surface-variant);
   border-radius: var(--cv-radius-sm);
   background: color-mix(in srgb, var(--cv-surface-container-low) 42%, transparent);
   color: var(--cv-on-surface-variant);
-  font-size: calc(var(--mainFontSize) * 0.85);
+  font-size: var(--cv-font-size-sm);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -618,7 +618,7 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
 .cv-message-source-kind {
   flex: 0 0 auto;
   color: color-mix(in srgb, var(--cv-on-surface) 55%, transparent);
-  font-size: calc(var(--mainFontSize) * 0.75);
+  font-size: var(--cv-font-size-2xs);
   font-weight: 600;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -631,7 +631,7 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
 .cv-message-title {
   @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
   color: var(--cv-on-surface);
-  font-size: calc(var(--mainFontSize) * 0.9);
+  font-size: var(--cv-font-size-md);
   font-weight: 500;
 }
 
@@ -691,14 +691,14 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
 .cv-field-header > span {
   color: var(--cv-on-surface);
   font-family: var(--cv-font-body);
-  font-size: calc(var(--mainFontSize) * 1);
+  font-size: var(--cv-font-size-base);
   font-weight: 500;
 }
 
 .cv-source-tokens {
   @apply flex items-center;
   gap: var(--cv-space-xs);
-  font-size: calc(var(--mainFontSize) * 0.75);
+  font-size: var(--cv-font-size-2xs);
 }
 
 .cv-token-label {

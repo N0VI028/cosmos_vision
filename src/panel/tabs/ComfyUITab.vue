@@ -528,7 +528,7 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
 }
 
 .cv-lora-refresh-icon {
-  font-size: calc(var(--mainFontSize) * 0.8);
+  font-size: var(--cv-font-size-xs);
   color: var(--cv-on-surface-variant);
   cursor: pointer;
   transition: color 0.2s ease;
@@ -557,7 +557,7 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
   border-radius: var(--cv-radius-sm);
   color: var(--cv-on-surface-variant);
   transition: all 0.2s ease;
-  font-size: calc(var(--mainFontSize) * 0.85);
+  font-size: var(--cv-font-size-sm);
 }
 
 .cv-lora-add-button:hover {
@@ -613,7 +613,7 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
   border-radius: var(--cv-radius);
   padding: var(--cv-space-xl);
   font-family: Consolas, Monaco, monospace;
-  font-size: calc(var(--mainFontSize) * 0.88);
+  font-size: var(--cv-font-size-sm);
 }
 
 @media (max-width: 32rem) {
