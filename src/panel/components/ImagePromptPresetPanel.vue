@@ -1,21 +1,36 @@
 <template>
   <template v-for="section in promptPresetSections" :key="section.kind">
     <h2 v-if="showVibeSection" class="cv-section-title">{{ section.sectionLabel }}</h2>
-    <div class="cv-field cv-image-preset-field">
-      <template v-if="showVibeSection">
-        <PresetSelector
-          :presets="section.presets"
-          :active-preset-id="section.activePresetId"
-          :default-preset-id="section.defaultPresetId"
-          @update:active-preset-id="updatePromptPresetId(section.kind, $event)"
-          @create="createPromptPreset(section.kind)"
-          @clone="clonePromptPreset(section.kind)"
-          @rename="renamePromptPreset(section.kind)"
-          @delete-preset="deletePromptPreset(section.kind, $event, section.defaultPresetId)"
+    <template v-if="showVibeSection">
+      <div class="cv-section-body">
+        <div class="cv-field cv-image-preset-field">
+          <PresetSelector
+            :presets="section.presets"
+            :active-preset-id="section.activePresetId"
+            :default-preset-id="section.defaultPresetId"
+            @update:active-preset-id="updatePromptPresetId(section.kind, $event)"
+            @create="createPromptPreset(section.kind)"
+            @clone="clonePromptPreset(section.kind)"
+            @rename="renamePromptPreset(section.kind)"
+            @delete-preset="deletePromptPreset(section.kind, $event, section.defaultPresetId)"
+          />
+          <span>{{ section.promptLabel }}</span>
+          <PromptPlaceholderEditor
+            v-if="section.activePreset"
+            :model-value="section.activePreset"
+            @update:model-value="updateActivePromptPreset(section.kind, $event)"
+          />
+        </div>
+        <NovelAIVibePanel
+          v-if="section.kind === 'positive' && section.activePreset && novelaiSettings"
+          :vibes="section.activePreset.vibes"
+          :settings="novelaiSettings"
+          @update:vibes="updateActiveVibes"
         />
-        <span>{{ section.promptLabel }}</span>
-      </template>
-      <template v-else>
+      </div>
+    </template>
+    <template v-else>
+      <div class="cv-field cv-image-preset-field">
         <span>{{ section.label }}</span>
         <PresetSelector
           :presets="section.presets"
@@ -27,20 +42,12 @@
           @rename="renamePromptPreset(section.kind)"
           @delete-preset="deletePromptPreset(section.kind, $event, section.defaultPresetId)"
         />
-      </template>
-      <PromptPlaceholderEditor
-        v-if="section.activePreset"
-        :model-value="section.activePreset"
-        @update:model-value="updateActivePromptPreset(section.kind, $event)"
-      />
-    </div>
-    <template v-if="showVibeSection && section.kind === 'positive'">
-      <NovelAIVibePanel
-        v-if="section.activePreset && novelaiSettings"
-        :vibes="section.activePreset.vibes"
-        :settings="novelaiSettings"
-        @update:vibes="updateActiveVibes"
-      />
+        <PromptPlaceholderEditor
+          v-if="section.activePreset"
+          :model-value="section.activePreset"
+          @update:model-value="updateActivePromptPreset(section.kind, $event)"
+        />
+      </div>
     </template>
   </template>
 </template>

@@ -1,10 +1,12 @@
 <template>
   <div class="cv-tab-content cv-test-tab">
     <h2 class="cv-section-title">连接测试控制</h2>
-    <FocusedParagraphField
-      v-model="testParagraph"
-      :has-focused-paragraph="hasFocusedParagraph"
-    />
+    <div class="cv-section-body">
+      <FocusedParagraphField
+        v-model="testParagraph"
+        :has-focused-paragraph="hasFocusedParagraph"
+      />
+    </div>
 
     <div class="cv-action-row">
       <Button
@@ -18,73 +20,79 @@
 
     <!-- 1. 响应内容日志 -->
     <h2 class="cv-section-title">1. 响应内容日志</h2>
-    <div class="cv-log-container">
-      <div v-if="testStatus === 'idle'" class="cv-test-state idle">
-        <i class="fa-solid fa-hourglass-start mr-2"></i>等待测试运行...
-      </div>
-      <div v-else-if="testStatus === 'running'" class="cv-test-state loading">
-        <i class="fa-solid fa-spinner fa-spin mr-2"></i>正在向模型请求接口，请稍候...
-      </div>
-      <div v-else-if="testStatus === 'success'" class="cv-test-state-success">
-        <div class="success-banner"><i class="fa-solid fa-circle-check mr-2"></i>测试成功！接口响应正常</div>
-        <div class="preview-header">原始响应文本</div>
-        <pre class="preview-content response-raw">{{ testResponseRaw }}</pre>
-      </div>
-      <div v-else-if="testStatus === 'error'" class="cv-test-state-error">
-        <div class="error-banner"><i class="fa-solid fa-circle-exclamation mr-2"></i>测试失败</div>
-        <div class="preview-header">错误详情</div>
-        <pre class="preview-content error-text">{{ testError }}</pre>
+    <div class="cv-section-body">
+      <div class="cv-log-container">
+        <div v-if="testStatus === 'idle'" class="cv-test-state idle">
+          <i class="fa-solid fa-hourglass-start mr-2"></i>等待测试运行...
+        </div>
+        <div v-else-if="testStatus === 'running'" class="cv-test-state loading">
+          <i class="fa-solid fa-spinner fa-spin mr-2"></i>正在向模型请求接口，请稍候...
+        </div>
+        <div v-else-if="testStatus === 'success'" class="cv-test-state-success">
+          <div class="success-banner"><i class="fa-solid fa-circle-check mr-2"></i>测试成功！接口响应正常</div>
+          <div class="preview-header">原始响应文本</div>
+          <pre class="preview-content response-raw">{{ testResponseRaw }}</pre>
+        </div>
+        <div v-else-if="testStatus === 'error'" class="cv-test-state-error">
+          <div class="error-banner"><i class="fa-solid fa-circle-exclamation mr-2"></i>测试失败</div>
+          <div class="preview-header">错误详情</div>
+          <pre class="preview-content error-text">{{ testError }}</pre>
+        </div>
       </div>
     </div>
 
     <!-- 2. 参数配置日志 -->
     <h2 class="cv-section-title">2. 参数配置日志</h2>
-    <div class="cv-log-container">
-      <div class="cv-log-param-grid">
-        <div class="cv-log-param-row">
-          <span class="param-label">连接方式</span>
-          <span class="param-value font-medium">{{ logParams.connectionType }}</span>
-        </div>
-        <div class="cv-log-param-row">
-          <span class="param-label">接口地址</span>
-          <span class="param-value code-font">{{ logParams.apiUrl }}</span>
-        </div>
-        <div class="cv-log-param-row">
-          <span class="param-label">接口密钥</span>
-          <span class="param-value code-font">{{ logParams.apiKey }}</span>
-        </div>
-        <div class="cv-log-param-row">
-          <span class="param-label">来源标识</span>
-          <span class="param-value font-medium">{{ logParams.source }}</span>
-        </div>
-        <div class="cv-log-param-row">
-          <span class="param-label">使用模型</span>
-          <span class="param-value code-font">{{ logParams.model }}</span>
-        </div>
-        <div class="cv-log-param-row">
-          <span class="param-label">温度</span>
-          <span class="param-value">{{ logParams.temperature }}</span>
-        </div>
-        <div class="cv-log-param-row">
-          <span class="param-label">最大令牌数</span>
-          <span class="param-value">{{ logParams.maxTokens }}</span>
-        </div>
-        <div class="cv-log-param-row">
-          <span class="param-label">Top P</span>
-          <span class="param-value">{{ logParams.topP }}</span>
-        </div>
-        <div class="cv-log-param-row">
-          <span class="param-label">Top K</span>
-          <span class="param-value">{{ logParams.topK }}</span>
+    <div class="cv-section-body">
+      <div class="cv-log-container">
+        <div class="cv-log-param-grid">
+          <div class="cv-log-param-row">
+            <span class="param-label">连接方式</span>
+            <span class="param-value font-medium">{{ logParams.connectionType }}</span>
+          </div>
+          <div class="cv-log-param-row">
+            <span class="param-label">接口地址</span>
+            <span class="param-value code-font">{{ logParams.apiUrl }}</span>
+          </div>
+          <div class="cv-log-param-row">
+            <span class="param-label">接口密钥</span>
+            <span class="param-value code-font">{{ logParams.apiKey }}</span>
+          </div>
+          <div class="cv-log-param-row">
+            <span class="param-label">来源标识</span>
+            <span class="param-value font-medium">{{ logParams.source }}</span>
+          </div>
+          <div class="cv-log-param-row">
+            <span class="param-label">使用模型</span>
+            <span class="param-value code-font">{{ logParams.model }}</span>
+          </div>
+          <div class="cv-log-param-row">
+            <span class="param-label">温度</span>
+            <span class="param-value">{{ logParams.temperature }}</span>
+          </div>
+          <div class="cv-log-param-row">
+            <span class="param-label">最大令牌数</span>
+            <span class="param-value">{{ logParams.maxTokens }}</span>
+          </div>
+          <div class="cv-log-param-row">
+            <span class="param-label">Top P</span>
+            <span class="param-value">{{ logParams.topP }}</span>
+          </div>
+          <div class="cv-log-param-row">
+            <span class="param-label">Top K</span>
+            <span class="param-value">{{ logParams.topK }}</span>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- 3. 发送请求日志 -->
     <h2 class="cv-section-title">3. 发送请求日志 (发送前快照)</h2>
-    <div class="cv-log-container">
-      <div class="cv-prompt-preview">
-        <pre class="preview-content">{{ sentPromptText || '尚未发送测试请求' }}</pre>
+    <div class="cv-section-body">
+      <div class="cv-log-container">
+        <div class="cv-prompt-preview">
+          <pre class="preview-content">{{ sentPromptText || '尚未发送测试请求' }}</pre>
+        </div>
       </div>
     </div>
   </div>

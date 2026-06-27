@@ -1,30 +1,32 @@
 <template>
   <div class="cv-tab-content cv-test-tab">
     <h2 class="cv-section-title">测试模式</h2>
-    <div class="cv-field">
-      <div class="cv-field-inline cv-mode-switch">
-        <span>{{ modeTitle }}</span>
-        <ToggleSwitch v-model="useLlmMode" />
+    <div class="cv-section-body">
+      <div class="cv-field">
+        <div class="cv-field-inline cv-mode-switch">
+          <span>{{ modeTitle }}</span>
+          <ToggleSwitch v-model="useLlmMode" />
+        </div>
+        <div class="cv-field-hint">{{ modeHint }}</div>
       </div>
-      <div class="cv-field-hint">{{ modeHint }}</div>
+
+      <FocusedParagraphField
+        v-if="useLlmMode"
+        v-model="llmParagraphText"
+        :has-focused-paragraph="hasFocusedParagraph"
+      />
+
+      <template v-else>
+        <div class="cv-field">
+          <span>正面提示词</span>
+          <Textarea v-model="directPositivePrompt" rows="3" auto-resize class="cv-test-textarea w-full" />
+        </div>
+        <div class="cv-field">
+          <span>负面提示词</span>
+          <Textarea v-model="directNegativePrompt" rows="3" auto-resize class="cv-test-textarea w-full" />
+        </div>
+      </template>
     </div>
-
-    <FocusedParagraphField
-      v-if="useLlmMode"
-      v-model="llmParagraphText"
-      :has-focused-paragraph="hasFocusedParagraph"
-    />
-
-    <template v-else>
-      <div class="cv-field">
-        <span>正面提示词</span>
-        <Textarea v-model="directPositivePrompt" rows="3" auto-resize class="cv-test-textarea w-full" />
-      </div>
-      <div class="cv-field">
-        <span>负面提示词</span>
-        <Textarea v-model="directNegativePrompt" rows="3" auto-resize class="cv-test-textarea w-full" />
-      </div>
-    </template>
 
     <div class="cv-action-row">
       <Button
@@ -37,75 +39,87 @@
     </div>
 
     <h2 class="cv-section-title">测试结果</h2>
-    <div class="cv-log-container">
-      <div v-if="testStatus === 'running'" class="cv-status-banner cv-status-banner--pending">
-        <i class="fa-solid fa-spinner fa-spin" />
-        <span>{{ runningStateText }}</span>
-      </div>
-      <div v-else-if="testStatus === 'success'" class="cv-status-banner cv-status-banner--success">
-        <i class="fa-solid fa-circle-check" />
-        <span>{{ successStateText }}</span>
-      </div>
-      <div v-else-if="testStatus === 'error'" class="cv-status-banner cv-status-banner--error">
-        <i class="fa-solid fa-circle-exclamation" />
-        <span>{{ errorMessage }}</span>
-      </div>
-      <div class="cv-preview-stage" :class="{ 'has-image': Boolean(previewUrl) }">
-        <img
-          v-if="previewUrl"
-          :src="previewUrl"
-          :alt="previewAltText"
-          class="cv-preview-viewer cv-preview-img"
-          :style="PREVIEW_IMAGE_STYLE"
-        />
-        <div v-else class="cv-preview-placeholder">
-          <i class="fa-regular fa-image" />
-          <span>{{ previewPlaceholderText }}</span>
+    <div class="cv-section-body">
+      <div class="cv-log-container">
+        <div v-if="testStatus === 'running'" class="cv-status-banner cv-status-banner--pending">
+          <i class="fa-solid fa-spinner fa-spin" />
+          <span>{{ runningStateText }}</span>
+        </div>
+        <div v-else-if="testStatus === 'success'" class="cv-status-banner cv-status-banner--success">
+          <i class="fa-solid fa-circle-check" />
+          <span>{{ successStateText }}</span>
+        </div>
+        <div v-else-if="testStatus === 'error'" class="cv-status-banner cv-status-banner--error">
+          <i class="fa-solid fa-circle-exclamation" />
+          <span>{{ errorMessage }}</span>
+        </div>
+        <div class="cv-preview-stage" :class="{ 'has-image': Boolean(previewUrl) }">
+          <img
+            v-if="previewUrl"
+            :src="previewUrl"
+            :alt="previewAltText"
+            class="cv-preview-viewer cv-preview-img"
+            :style="PREVIEW_IMAGE_STYLE"
+          />
+          <div v-else class="cv-preview-placeholder">
+            <i class="fa-regular fa-image" />
+            <span>{{ previewPlaceholderText }}</span>
+          </div>
         </div>
       </div>
     </div>
 
     <h2 class="cv-section-title">{{ promptTitle }}</h2>
-    <div class="cv-log-container">
-      <div v-if="novelaiSnapshot" class="cv-prompt-log">
-        <div class="preview-header">正面提示词</div>
-        <pre class="preview-content">{{ novelaiSnapshot.positivePrompt || '(空)' }}</pre>
-        <div class="preview-header">负面提示词</div>
-        <pre class="preview-content">{{ novelaiSnapshot.negativePrompt || '(空)' }}</pre>
+    <div class="cv-section-body">
+      <div class="cv-log-container">
+        <div v-if="novelaiSnapshot" class="cv-prompt-log">
+          <div class="preview-header">正面提示词</div>
+          <pre class="preview-content">{{ novelaiSnapshot.positivePrompt || '(空)' }}</pre>
+          <div class="preview-header">负面提示词</div>
+          <pre class="preview-content">{{ novelaiSnapshot.negativePrompt || '(空)' }}</pre>
+        </div>
+        <div v-else class="cv-empty-state">尚未生成最终提示词</div>
       </div>
-      <div v-else class="cv-empty-state">尚未生成最终提示词</div>
     </div>
 
     <h2 class="cv-section-title">{{ paramTitle }}</h2>
-    <div class="cv-log-container">
-      <div v-if="novelaiSnapshot" class="cv-log-param-grid">
-        <div v-for="row in novelaiParamRows" :key="row.label" class="cv-log-param-row">
-          <span class="param-label">{{ row.label }}</span>
-          <span class="param-value" :class="{ 'code-font': row.code }">{{ row.value }}</span>
+    <div class="cv-section-body">
+      <div class="cv-log-container">
+        <div v-if="novelaiSnapshot" class="cv-log-param-grid">
+          <div v-for="row in novelaiParamRows" :key="row.label" class="cv-log-param-row">
+            <span class="param-label">{{ row.label }}</span>
+            <span class="param-value" :class="{ 'code-font': row.code }">{{ row.value }}</span>
+          </div>
         </div>
+        <div v-else class="cv-empty-state">{{ emptyParamText }}</div>
       </div>
-      <div v-else class="cv-empty-state">{{ emptyParamText }}</div>
     </div>
 
     <template v-if="showLlmLogs">
       <h2 class="cv-section-title">LLM 原始返回</h2>
-      <div class="cv-log-container">
-        <pre class="preview-content">{{ llmRawResponse || '尚未收到 LLM 返回结果' }}</pre>
+      <div class="cv-section-body">
+        <div class="cv-log-container">
+          <pre class="preview-content">{{ llmRawResponse || '尚未收到 LLM 返回结果' }}</pre>
+        </div>
       </div>
 
       <h2 class="cv-section-title">LLM 参数配置</h2>
-      <div class="cv-log-container">
-        <div class="cv-log-param-grid">
-          <div v-for="row in llmParamRows" :key="row.label" class="cv-log-param-row">
-            <span class="param-label">{{ row.label }}</span>
-            <span class="param-value" :class="{ 'code-font': row.code }">{{ row.value }}</span>
+      <div class="cv-section-body">
+        <div class="cv-log-container">
+          <div class="cv-log-param-grid">
+            <div v-for="row in llmParamRows" :key="row.label" class="cv-log-param-row">
+              <span class="param-label">{{ row.label }}</span>
+              <span class="param-value" :class="{ 'code-font': row.code }">{{ row.value }}</span>
+            </div>
           </div>
         </div>
       </div>
 
       <h2 class="cv-section-title">LLM 发送请求日志</h2>
-      <div class="cv-log-container">
-        <pre class="preview-content">{{ llmSentPromptLog || '尚未发送 LLM 测试请求' }}</pre>
+      <div class="cv-section-body">
+        <div class="cv-log-container">
+          <pre class="preview-content">{{ llmSentPromptLog || '尚未发送 LLM 测试请求' }}</pre>
+        </div>
       </div>
     </template>
   </div>

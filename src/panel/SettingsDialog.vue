@@ -221,7 +221,7 @@
     <div class="cv-confirm-message">{{ confirmMessage }}</div>
     <template #footer>
       <div class="cv-confirm-actions">
-        <Button :label="confirmCancelLabel" text @click="closeConfirmDialog" />
+        <Button :label="confirmCancelLabel" text @click="handleConfirmCancel" />
         <Button :label="confirmAcceptLabel" :severity="confirmAcceptSeverity" @click="handleConfirmAccept" />
       </div>
     </template>
@@ -535,7 +535,7 @@ const confirmMessage = computed(() =>
     : '有未应用的设置更改，是否应用并保存后关闭？',
 );
 const confirmAcceptLabel = computed(() => (confirmAction.value === 'discard' ? '确认放弃' : '保存并关闭'));
-const confirmCancelLabel = computed(() => (confirmAction.value === 'discard' ? '继续编辑' : '继续编辑'));
+const confirmCancelLabel = computed(() => (confirmAction.value === 'discard' ? '继续编辑' : '放弃更改'));
 const confirmAcceptSeverity = computed(() => (confirmAction.value === 'discard' ? 'danger' : undefined));
 
 onClickOutside(breadcrumbRef, () => {
@@ -596,18 +596,47 @@ function closeConfirmDialog(): void {
 }
 
 /**
+ * 读取确认动作并关闭确认弹窗
+ */
+function consumeConfirmAction(): ConfirmAction {
+  const action = confirmAction.value;
+  closeConfirmDialog();
+  return action;
+}
+
+/**
+ * 应用设置并关闭设置弹窗
+ */
+function applySettingsAndClose(): void {
+  applySettings();
+  closeDialog();
+}
+
+/**
+ * 放弃未保存更改并关闭设置弹窗
+ */
+function discardSettingsAndClose(): void {
+  settingsStore.discardSettings();
+  closeDialog();
+}
+
+/**
+ * 处理确认弹窗的副操作
+ */
+function handleConfirmCancel(): void {
+  if (consumeConfirmAction() !== 'close') return;
+  discardSettingsAndClose();
+}
+
+/**
  * 处理确认弹窗的主操作
  */
 function handleConfirmAccept(): void {
-  const action = confirmAction.value;
-  closeConfirmDialog();
-  if (action === 'discard') {
+  if (consumeConfirmAction() === 'discard') {
     settingsStore.discardSettings();
-    toastr.info('已放弃未保存更改');
     return;
   }
-  applySettings();
-  closeDialog();
+  applySettingsAndClose();
 }
 
 /**
@@ -630,56 +659,7 @@ function scanSections(): void {
     element: el as HTMLElement,
   }));
 
-  markSectionEdges(sectionElements);
   updateCurrentSection();
-}
-
-/**
- * 标记 section 首尾内容块
- */
-function markSectionEdges(sectionElements: NodeListOf<Element>): void {
-  scrollContainer.value?.querySelectorAll('.cv-section-first, .cv-section-last').forEach(el => {
-    el.classList.remove('cv-section-first', 'cv-section-last');
-  });
-
-  sectionElements.forEach(sectionEl => {
-    const edge = findSectionEdge(sectionEl);
-    edge.first?.classList.add('cv-section-first');
-    edge.last?.classList.add('cv-section-last');
-  });
-}
-
-/**
- * 查找 section 首尾内容元素
- */
-function findSectionEdge(sectionEl: Element): { first: Element | null; last: Element | null } {
-  let nextEl = sectionEl.nextElementSibling;
-  let first: Element | null = null;
-  let last: Element | null = null;
-
-  while (nextEl && !nextEl.classList.contains('cv-section-title')) {
-    if (isSectionContent(nextEl)) {
-      first ??= nextEl;
-      last = nextEl;
-    }
-    nextEl = nextEl.nextElementSibling;
-  }
-
-  return { first, last };
-}
-
-/**
- * 判断元素是否为 section 内容
- */
-function isSectionContent(el: Element): boolean {
-  return [
-    'cv-field',
-    'cv-field-inline',
-    'cv-field-grid',
-    'cv-section-desc',
-    'cv-account-list',
-    'cv-nai-advanced-block',
-  ].some(className => el.classList.contains(className));
 }
 
 /**
@@ -721,12 +701,18 @@ function scrollToSection(section: SectionInfo): void {
   showSectionMenu.value = false;
 }
 
-watch(activeTab, () => {
+/**
+ * 渲染后刷新 section 列表
+ */
+function refreshSectionsAfterRender(): void {
   nextTick(() => {
     showSectionMenu.value = false;
     scanSections();
   });
-});
+}
+
+watch(activeTab, refreshSectionsAfterRender);
+watch([mainSubTab, novelaiSubTab, comfyuiSubTab, promptLlmSubTab, promptProfilesSubTab], refreshSectionsAfterRender);
 
 onMounted(() => {
   nextTick(() => {

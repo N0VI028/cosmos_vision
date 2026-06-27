@@ -3,42 +3,46 @@
     <!-- 通用子 tab -->
     <template v-if="subTab === 'general'">
       <h2 class="cv-section-title">基础设置</h2>
-      <div class="cv-field-inline">
-        <span>启用图像扩展</span>
-        <ToggleSwitch v-model="settings.enabled" />
+      <div class="cv-section-body">
+        <div class="cv-field-inline">
+          <span>启用图像扩展</span>
+          <ToggleSwitch v-model="settings.enabled" />
+        </div>
+        <label class="cv-field">
+          <span>图像来源</span>
+          <Select v-model="settings.imageSource" :options="imageSourceOptions" option-label="label" option-value="value" />
+        </label>
       </div>
-      <label class="cv-field">
-        <span>图像来源</span>
-        <Select v-model="settings.imageSource" :options="imageSourceOptions" option-label="label" option-value="value" />
-      </label>
 
       <div class="cv-about-title-row">
         <h2 class="cv-section-title">关于插件</h2>
         <Tag :value="'v' + manifest.version" class="cv-version-tag" rounded/>
       </div>
-      <div class="cv-field-inline">
-        <span>作者</span>
-        <span class="cv-about-text">{{ manifest.author }}</span>
-      </div>
-      <div class="cv-field-inline">
-        <span>相关链接</span>
-        <div class="cv-links-container">
-          <Button
-            icon="fa-brands fa-github"
-            severity="secondary"
-            text
-            rounded
-            aria-label="GitHub"
-            @click="openUrl('https://github.com/N0VI028/cosmos_vision')"
-          />
-          <Button
-            icon="fa-brands fa-discord"
-            severity="secondary"
-            text
-            rounded
-            aria-label="Discord"
-            @click="openUrl('https://discord.gg/sillytavern')"
-          />
+      <div class="cv-section-body">
+        <div class="cv-field-inline">
+          <span>作者</span>
+          <span class="cv-about-text">{{ manifest.author }}</span>
+        </div>
+        <div class="cv-field-inline">
+          <span>相关链接</span>
+          <div class="cv-links-container">
+            <Button
+              icon="fa-brands fa-github"
+              severity="secondary"
+              text
+              rounded
+              aria-label="GitHub"
+              @click="openUrl('https://github.com/N0VI028/cosmos_vision')"
+            />
+            <Button
+              icon="fa-brands fa-discord"
+              severity="secondary"
+              text
+              rounded
+              aria-label="Discord"
+              @click="openUrl('https://discord.gg/sillytavern')"
+            />
+          </div>
         </div>
       </div>
     </template>
@@ -71,61 +75,65 @@
           />
         </div>
       </div>
-      <DataTable :value="vibeRows" :loading="isVibeRowsLoading" data-key="sourceHash" class="cv-vibe-table" scrollable scroll-height="18rem">
-        <Column header="预览" style="width: 4rem; min-width: 4rem">
-          <template #body="{ data }">
-            <div class="cv-vibe-thumb">
-              <img v-if="data.thumbnailData" :src="data.thumbnailData" alt="" />
-              <i v-else class="fa-solid fa-image" />
-            </div>
-          </template>
-        </Column>
-        <Column field="fileName" header="名称" style="min-width: 0">
-          <template #body="{ data }">
-            <div class="cv-vibe-name">{{ getDisplayFileName(data) }}</div>
-          </template>
-        </Column>
-        <Column header="操作" style="width: 6rem; min-width: 6rem">
-          <template #body="{ data }">
-            <div class="cv-vibe-actions">
-              <Button
-                icon="fa-solid fa-download"
-                severity="secondary"
-                text
-                rounded
-                size="small"
-                aria-label="下载"
-                :fluid="false"
-                :disabled="isVibeActionBusy"
-                @click="downloadVibe(data)"
-              />
-              <Button
-                icon="fa-solid fa-trash"
-                severity="danger"
-                text
-                rounded
-                size="small"
-                aria-label="删除"
-                :fluid="false"
-                :disabled="isVibeActionBusy"
-                @click="deleteVibe(data)"
-              />
-            </div>
-          </template>
-        </Column>
-        <template #empty>暂无 vibe 数据</template>
-      </DataTable>
+      <div class="cv-section-body">
+        <DataTable :value="vibeRows" :loading="isVibeRowsLoading" data-key="sourceHash" class="cv-vibe-table" scrollable scroll-height="18rem">
+          <Column header="预览" style="width: 4rem; min-width: 4rem">
+            <template #body="{ data }">
+              <div class="cv-vibe-thumb">
+                <img v-if="data.thumbnailData" :src="data.thumbnailData" alt="" />
+                <i v-else class="fa-solid fa-image" />
+              </div>
+            </template>
+          </Column>
+          <Column field="fileName" header="名称" style="min-width: 0">
+            <template #body="{ data }">
+              <div class="cv-vibe-name">{{ getDisplayFileName(data) }}</div>
+            </template>
+          </Column>
+          <Column header="操作" style="width: 6rem; min-width: 6rem">
+            <template #body="{ data }">
+              <div class="cv-vibe-actions">
+                <Button
+                  icon="fa-solid fa-download"
+                  severity="secondary"
+                  text
+                  rounded
+                  size="small"
+                  aria-label="下载"
+                  :fluid="false"
+                  :disabled="isVibeActionBusy"
+                  @click="downloadVibe(data)"
+                />
+                <Button
+                  icon="fa-solid fa-trash"
+                  severity="danger"
+                  text
+                  rounded
+                  size="small"
+                  aria-label="删除"
+                  :fluid="false"
+                  :disabled="isVibeActionBusy"
+                  @click="deleteVibe(data)"
+                />
+              </div>
+            </template>
+          </Column>
+          <template #empty>暂无 vibe 数据</template>
+        </DataTable>
+      </div>
 
       <h2 class="cv-section-title">重置设置</h2>
-      <div class="cv-field">
-        <Button
-          label="重置为默认设置"
-          icon="fa-solid fa-rotate-left"
-          severity="danger"
-          size="small"
-          @click="handleReset"
-        />
-        <div class="cv-field-hint">将所有设置恢复为默认值，此操作不可撤销</div>
+      <div class="cv-section-body">
+        <div class="cv-field">
+          <Button
+            label="重置为默认设置"
+            icon="fa-solid fa-rotate-left"
+            severity="danger"
+            size="small"
+            @click="handleReset"
+          />
+          <div class="cv-field-hint">将所有设置恢复为默认值，此操作不可撤销</div>
+        </div>
       </div>
     </template>
   </div>

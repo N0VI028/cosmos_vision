@@ -3,94 +3,98 @@
     <!-- 语言模型设置页 -->
     <template v-if="subTab === 'settings'">
       <h2 class="cv-section-title">连接信息</h2>
-      <label class="cv-field-inline">
-        <span>使用酒馆代理预设</span>
-        <ToggleSwitch v-model="useTavernProxy" />
-      </label>
-
-      <label v-if="useTavernProxy" class="cv-field">
-        <span>代理预设</span>
-        <Select
-          v-model="settings.promptLlm.proxyPreset"
-          :options="proxyPresetOptions"
-          option-label="name"
-          option-value="name"
-          placeholder="选择酒馆中已配置的代理预设"
-        />
-      </label>
-
-      <template v-else>
-        <label class="cv-field">
-          <span>接口地址</span>
-          <InputText v-model="settings.promptLlm.apiUrl" placeholder="https://api.openai.com/v1" />
+      <div class="cv-section-body">
+        <label class="cv-field-inline">
+          <span>使用酒馆代理预设</span>
+          <ToggleSwitch v-model="useTavernProxy" />
         </label>
-        <label class="cv-field">
-          <span>接口密钥</span>
-          <Password v-model="settings.promptLlm.apiKey" :feedback="false" toggle-mask :input-class="'w-full'" />
-        </label>
-      </template>
 
-      <label class="cv-field">
-        <span>来源标识</span>
-        <Select
-          v-model="settings.promptLlm.source"
-          :options="CHAT_COMPLETION_SOURCE_OPTIONS"
-          option-label="label"
-          option-value="value"
-          placeholder="选择聊天补全来源"
-        />
-      </label>
-
-      <div class="cv-field">
-        <span>模型名</span>
-        <div class="cv-model-row">
+        <label v-if="useTavernProxy" class="cv-field">
+          <span>代理预设</span>
           <Select
-            v-model="settings.promptLlm.model"
-            :options="modelOptions"
-            placeholder="选择模型"
-            :loading="isLoadingModels"
-            class="cv-model-input"
+            v-model="settings.promptLlm.proxyPreset"
+            :options="proxyPresetOptions"
+            option-label="name"
+            option-value="name"
+            placeholder="选择酒馆中已配置的代理预设"
           />
-          <Button
-            icon="fa-solid fa-rotate"
-            severity="secondary"
-            outlined
-            rounded
-            :loading="isLoadingModels"
-            aria-label="刷新模型列表"
-            @click="fetchModels"
+        </label>
+
+        <template v-else>
+          <label class="cv-field">
+            <span>接口地址</span>
+            <InputText v-model="settings.promptLlm.apiUrl" placeholder="https://api.openai.com/v1" />
+          </label>
+          <label class="cv-field">
+            <span>接口密钥</span>
+            <Password v-model="settings.promptLlm.apiKey" :feedback="false" toggle-mask :input-class="'w-full'" />
+          </label>
+        </template>
+
+        <label class="cv-field">
+          <span>来源标识</span>
+          <Select
+            v-model="settings.promptLlm.source"
+            :options="CHAT_COMPLETION_SOURCE_OPTIONS"
+            option-label="label"
+            option-value="value"
+            placeholder="选择聊天补全来源"
           />
+        </label>
+
+        <div class="cv-field">
+          <span>模型名</span>
+          <div class="cv-model-row">
+            <Select
+              v-model="settings.promptLlm.model"
+              :options="modelOptions"
+              placeholder="选择模型"
+              :loading="isLoadingModels"
+              class="cv-model-input"
+            />
+            <Button
+              icon="fa-solid fa-rotate"
+              severity="secondary"
+              outlined
+              rounded
+              :loading="isLoadingModels"
+              aria-label="刷新模型列表"
+              @click="fetchModels"
+            />
+          </div>
         </div>
       </div>
 
       <h2 class="cv-section-title">生成参数</h2>
-      <div class="cv-field-grid">
-        <label class="cv-field">
-          <span>温度</span>
-          <InputNumber
-            v-model="settings.promptLlm.temperature"
-            :min="0"
-            :max="2"
-            :step="0.1"
-            :min-fraction-digits="1"
-          />
-        </label>
-        <label class="cv-field">
-          <span>最大令牌数</span>
-          <InputNumber v-model="settings.promptLlm.maxTokens" :min="1" :max="4000" show-buttons />
-        </label>
-      </div>
-      <div class="cv-field-grid">
-        <label class="cv-field">
-          <span>Top P</span>
-          <Slider v-model="settings.promptLlm.topP" :min="0" :max="1" :step="0.01" />
-          <div class="cv-slider-value">{{ settings.promptLlm.topP.toFixed(2) }}</div>
-        </label>
-        <label class="cv-field">
-          <span>Top K</span>
-          <Slider v-model="settings.promptLlm.topK" :min="0" :max="100" :step="1" />
-          <div class="cv-slider-value">{{ settings.promptLlm.topK }}</div>
-        </label>
+      <div class="cv-section-body">
+        <div class="cv-field-grid">
+          <label class="cv-field">
+            <span>温度</span>
+            <InputNumber
+              v-model="settings.promptLlm.temperature"
+              :min="0"
+              :max="2"
+              :step="0.1"
+              :min-fraction-digits="1"
+            />
+          </label>
+          <label class="cv-field">
+            <span>最大令牌数</span>
+            <InputNumber v-model="settings.promptLlm.maxTokens" :min="1" :max="4000" show-buttons />
+          </label>
+        </div>
+        <div class="cv-field-grid">
+          <label class="cv-field">
+            <span>Top P</span>
+            <Slider v-model="settings.promptLlm.topP" :min="0" :max="1" :step="0.01" />
+            <div class="cv-slider-value">{{ settings.promptLlm.topP.toFixed(2) }}</div>
+          </label>
+          <label class="cv-field">
+            <span>Top K</span>
+            <Slider v-model="settings.promptLlm.topK" :min="0" :max="100" :step="1" />
+            <div class="cv-slider-value">{{ settings.promptLlm.topK }}</div>
+          </label>
+        </div>
       </div>
     </template>
 

@@ -38,42 +38,44 @@
     <PromptMessagePreview v-else :messages="messages" />
 
     <h2 class="cv-section-title">Tag提取规则</h2>
-    <div class="cv-field">
-      <label class="cv-field-inline" style="margin-bottom: 0">
-        <ToggleSwitch v-model="settings.promptLlm.preferJsonSchemaExtraction" />
-        <span>优先 JSON Schema 解析</span>
-      </label>
-      <div class="cv-field-hint" style="margin-top: 0">
-        开启后请求 LLM 时会附带 JSON Schema，并按字段名读取对应侧提示词；某侧字段名留空时该侧不参与 JSON
-        提取，交给固定预设。渠道不支持或返回非 JSON 时回退到下方的正则提取规则。
+    <div class="cv-section-body">
+      <div class="cv-field">
+        <label class="cv-field-inline" style="margin-bottom: 0">
+          <ToggleSwitch v-model="settings.promptLlm.preferJsonSchemaExtraction" />
+          <span>优先 JSON Schema 解析</span>
+        </label>
+        <div class="cv-field-hint" style="margin-top: 0">
+          开启后请求 LLM 时会附带 JSON Schema，并按字段名读取对应侧提示词；某侧字段名留空时该侧不参与 JSON
+          提取，交给固定预设。渠道不支持或返回非 JSON 时回退到下方的正则提取规则。
+        </div>
       </div>
-    </div>
-    <div v-if="settings.promptLlm.preferJsonSchemaExtraction" class="cv-field-grid">
-      <label class="cv-field">
-        <span>正面 JSON 字段名</span>
-        <InputText
-          v-model="settings.promptLlm.positivePromptJsonField"
-          :placeholder="DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.positive"
-        />
-      </label>
-      <label class="cv-field">
-        <span>负面 JSON 字段名</span>
-        <InputText
-          v-model="settings.promptLlm.negativePromptJsonField"
-          :placeholder="DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.negative"
-        />
-      </label>
-    </div>
+      <div v-if="settings.promptLlm.preferJsonSchemaExtraction" class="cv-field-grid">
+        <label class="cv-field">
+          <span>正面 JSON 字段名</span>
+          <InputText
+            v-model="settings.promptLlm.positivePromptJsonField"
+            :placeholder="DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.positive"
+          />
+        </label>
+        <label class="cv-field">
+          <span>负面 JSON 字段名</span>
+          <InputText
+            v-model="settings.promptLlm.negativePromptJsonField"
+            :placeholder="DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.negative"
+          />
+        </label>
+      </div>
 
-    <div v-for="field in promptExtractRuleFields" :key="field.label" class="cv-field-grid">
-      <label class="cv-field">
-        <span>{{ field.patternLabel }}</span>
-        <InputText v-model="settings.promptLlm[field.patternKey]" :placeholder="field.patternPlaceholder" />
-      </label>
-      <label class="cv-field">
-        <span>{{ field.replacementLabel }}</span>
-        <InputText v-model="settings.promptLlm[field.replacementKey]" :placeholder="field.replacementPlaceholder" />
-      </label>
+      <div v-for="field in promptExtractRuleFields" :key="field.label" class="cv-field-grid">
+        <label class="cv-field">
+          <span>{{ field.patternLabel }}</span>
+          <InputText v-model="settings.promptLlm[field.patternKey]" :placeholder="field.patternPlaceholder" />
+        </label>
+        <label class="cv-field">
+          <span>{{ field.replacementLabel }}</span>
+          <InputText v-model="settings.promptLlm[field.replacementKey]" :placeholder="field.replacementPlaceholder" />
+        </label>
+      </div>
     </div>
   </div>
 </template>

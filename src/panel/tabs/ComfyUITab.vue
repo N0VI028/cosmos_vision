@@ -3,151 +3,157 @@
     <!-- API Tab -->
     <template v-if="subTab === 'api'">
       <h2 class="cv-section-title">连接信息</h2>
-      <label class="cv-field">
-        <span>ComfyUI URL</span>
-        <InputText v-model="settings.comfyui.url" placeholder="http://127.0.0.1:8188" />
-        <div class="cv-field-hint">浏览器直连本地 ComfyUI 时，请确认已允许当前来源的 CORS</div>
-      </label>
+      <div class="cv-section-body">
+        <label class="cv-field">
+          <span>ComfyUI URL</span>
+          <InputText v-model="settings.comfyui.url" placeholder="http://127.0.0.1:8188" />
+          <div class="cv-field-hint">浏览器直连本地 ComfyUI 时，请确认已允许当前来源的 CORS</div>
+        </label>
+      </div>
     </template>
 
     <!-- 配置 Tab -->
     <template v-else-if="subTab === 'config'">
       <h2 class="cv-section-title">工作流</h2>
-      <div class="cv-field">
-        <div class="cv-field-inline cv-workflow-actions">
-          <Button label="导入 JSON" icon="fa-solid fa-file-import" size="small" @click="triggerWorkflowImport" />
-          <Button
-            label="恢复默认"
-            icon="fa-solid fa-rotate-left"
-            severity="secondary"
-            size="small"
-            variant="outlined"
-            @click="restoreDefaultWorkflow"
-          />
-          <Button
-            label="清空工作流"
-            icon="fa-solid fa-trash"
-            severity="danger"
-            size="small"
-            variant="outlined"
-            @click="clearWorkflow"
+      <div class="cv-section-body">
+        <div class="cv-field">
+          <div class="cv-field-inline cv-workflow-actions">
+            <Button label="导入 JSON" icon="fa-solid fa-file-import" size="small" @click="triggerWorkflowImport" />
+            <Button
+              label="恢复默认"
+              icon="fa-solid fa-rotate-left"
+              severity="secondary"
+              size="small"
+              variant="outlined"
+              @click="restoreDefaultWorkflow"
+            />
+            <Button
+              label="清空工作流"
+              icon="fa-solid fa-trash"
+              severity="danger"
+              size="small"
+              variant="outlined"
+              @click="clearWorkflow"
+            />
+          </div>
+          <input
+            ref="workflowFileInput"
+            type="file"
+            accept="application/json,.json"
+            class="hidden"
+            @change="handleWorkflowFileChange"
           />
         </div>
-        <input
-          ref="workflowFileInput"
-          type="file"
-          accept="application/json,.json"
-          class="hidden"
-          @change="handleWorkflowFileChange"
-        />
+        <label class="cv-field">
+          <span>API 格式工作流 JSON</span>
+          <Textarea
+            v-model="settings.comfyui.workflowJson"
+            rows="4"
+            class="cv-workflow-textarea w-full"
+            :invalid="Boolean(workflowValidationError)"
+          />
+          <div class="cv-field-hint">请使用 ComfyUI 的 Save (API Format) 导出，再粘贴到这里</div>
+          <div v-if="workflowValidationError" class="cv-field-warn">{{ workflowValidationError }}</div>
+        </label>
       </div>
-      <label class="cv-field">
-        <span>API 格式工作流 JSON</span>
-        <Textarea
-          v-model="settings.comfyui.workflowJson"
-          rows="4"
-          class="cv-workflow-textarea w-full"
-          :invalid="Boolean(workflowValidationError)"
-        />
-        <div class="cv-field-hint">请使用 ComfyUI 的 Save (API Format) 导出，再粘贴到这里</div>
-        <div v-if="workflowValidationError" class="cv-field-warn">{{ workflowValidationError }}</div>
-      </label>
 
       <h2 class="cv-section-title">参数覆盖</h2>
-      <div class="cv-field">
-        <span>Checkpoint 覆盖</span>
-        <div class="cv-model-row">
-          <Select
-            v-model="checkpointOverride"
-            :options="checkpointOptions"
-            option-label="label"
-            option-value="value"
-            placeholder="留空则沿用工作流内模型"
-            :loading="isLoadingCheckpoints"
-            show-clear
-            class="cv-model-input"
-          />
-          <Button
-            icon="fa-solid fa-rotate"
-            severity="secondary"
-            outlined
-            rounded
-            :loading="isLoadingCheckpoints"
-            aria-label="刷新 checkpoint 列表"
-            @click="fetchCheckpointOptions"
-          />
+      <div class="cv-section-body">
+        <div class="cv-field">
+          <span>Checkpoint 覆盖</span>
+          <div class="cv-model-row">
+            <Select
+              v-model="checkpointOverride"
+              :options="checkpointOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="留空则沿用工作流内模型"
+              :loading="isLoadingCheckpoints"
+              show-clear
+              class="cv-model-input"
+            />
+            <Button
+              icon="fa-solid fa-rotate"
+              severity="secondary"
+              outlined
+              rounded
+              :loading="isLoadingCheckpoints"
+              aria-label="刷新 checkpoint 列表"
+              @click="fetchCheckpointOptions"
+            />
+          </div>
+          <div class="cv-field-hint">点击右侧按钮从 ComfyUI 拉取 checkpoint 列表，留空则不覆盖工作流</div>
         </div>
-        <div class="cv-field-hint">点击右侧按钮从 ComfyUI 拉取 checkpoint 列表，留空则不覆盖工作流</div>
-      </div>
-      <label class="cv-field">
-        <span>尺寸预设</span>
-        <Select
-          v-model="settings.comfyui.resolutionPreset"
-          :options="resolutionPresetOptions"
-          option-label="label"
-          option-value="value"
-        />
-      </label>
-      <div v-if="isCustomResolution" class="cv-field-grid">
         <label class="cv-field">
-          <span>宽度</span>
-          <InputNumber
-            v-model="settings.comfyui.width"
-            :min="imageSizeLimits.min"
-            :max="imageSizeLimits.max"
-            :step="imageSizeLimits.step"
-            :use-grouping="false"
-            show-buttons
-            @update:model-value="markCustomResolution"
-          />
-        </label>
-        <label class="cv-field">
-          <span>高度</span>
-          <InputNumber
-            v-model="settings.comfyui.height"
-            :min="imageSizeLimits.min"
-            :max="imageSizeLimits.max"
-            :step="imageSizeLimits.step"
-            :use-grouping="false"
-            show-buttons
-            @update:model-value="markCustomResolution"
-          />
-        </label>
-      </div>
-      <div class="cv-field-grid">
-        <label class="cv-field">
-          <span>步数</span>
-          <InputNumber v-model="settings.comfyui.steps" :min="1" :max="150" show-buttons />
-        </label>
-        <label class="cv-field">
-          <span>CFG</span>
-          <InputNumber v-model="settings.comfyui.cfgScale" :min="0.1" :max="30" :step="0.5" show-buttons />
-        </label>
-      </div>
-      <div class="cv-field-grid">
-        <label class="cv-field">
-          <span>采样器类型</span>
+          <span>尺寸预设</span>
           <Select
-            v-model="settings.comfyui.sampler"
-            :options="samplerOptions"
+            v-model="settings.comfyui.resolutionPreset"
+            :options="resolutionPresetOptions"
             option-label="label"
             option-value="value"
           />
         </label>
-        <label class="cv-field">
-          <span>Seed 模式</span>
-          <Select
-            v-model="settings.comfyui.seedMode"
-            :options="seedModeOptions"
-            option-label="label"
-            option-value="value"
-          />
+        <div v-if="isCustomResolution" class="cv-field-grid">
+          <label class="cv-field">
+            <span>宽度</span>
+            <InputNumber
+              v-model="settings.comfyui.width"
+              :min="imageSizeLimits.min"
+              :max="imageSizeLimits.max"
+              :step="imageSizeLimits.step"
+              :use-grouping="false"
+              show-buttons
+              @update:model-value="markCustomResolution"
+            />
+          </label>
+          <label class="cv-field">
+            <span>高度</span>
+            <InputNumber
+              v-model="settings.comfyui.height"
+              :min="imageSizeLimits.min"
+              :max="imageSizeLimits.max"
+              :step="imageSizeLimits.step"
+              :use-grouping="false"
+              show-buttons
+              @update:model-value="markCustomResolution"
+            />
+          </label>
+        </div>
+        <div class="cv-field-grid">
+          <label class="cv-field">
+            <span>步数</span>
+            <InputNumber v-model="settings.comfyui.steps" :min="1" :max="150" show-buttons />
+          </label>
+          <label class="cv-field">
+            <span>CFG</span>
+            <InputNumber v-model="settings.comfyui.cfgScale" :min="0.1" :max="30" :step="0.5" show-buttons />
+          </label>
+        </div>
+        <div class="cv-field-grid">
+          <label class="cv-field">
+            <span>采样器类型</span>
+            <Select
+              v-model="settings.comfyui.sampler"
+              :options="samplerOptions"
+              option-label="label"
+              option-value="value"
+            />
+          </label>
+          <label class="cv-field">
+            <span>Seed 模式</span>
+            <Select
+              v-model="settings.comfyui.seedMode"
+              :options="seedModeOptions"
+              option-label="label"
+              option-value="value"
+            />
+          </label>
+        </div>
+        <label v-if="settings.comfyui.seedMode === 'fixed'" class="cv-field">
+          <span>固定 Seed</span>
+          <InputNumber v-model="settings.comfyui.seed" :min="0" :max="maxSeed" :use-grouping="false" show-buttons />
         </label>
       </div>
-      <label v-if="settings.comfyui.seedMode === 'fixed'" class="cv-field">
-        <span>固定 Seed</span>
-        <InputNumber v-model="settings.comfyui.seed" :min="0" :max="maxSeed" :use-grouping="false" show-buttons />
-      </label>
 
       <div class="cv-lora-title-row">
         <h2 class="cv-section-title">LoRA 库</h2>
@@ -161,66 +167,70 @@
           @keydown.enter="fetchLoraOptions"
         />
       </div>
-      <div class="cv-field">
-        <Fluid v-if="settings.comfyui.loras.length" class="cv-lora-list">
-          <div v-for="lora in settings.comfyui.loras" :key="lora.id" class="cv-lora-row">
-            <ToggleSwitch
-              v-model="lora.enabled"
-              class="cv-lora-toggle"
-              :aria-label="`${lora.name || '未命名 LoRA'} 启用状态`"
-            />
-            <Select
-              v-model="lora.name"
-              :options="loraOptions"
-              option-label="label"
-              option-value="value"
-              placeholder="选择 ComfyUI LoRA"
-              class="cv-lora-select"
-              :loading="isLoadingLoras"
-              aria-label="LoRA 文件"
-              filter
-              :pt="LORA_SELECT_PT"
-            />
-            <InputNumber
-              v-model="lora.strength"
-              :min="-5"
-              :max="5"
-              :step="0.05"
-              :min-fraction-digits="0"
-              :max-fraction-digits="3"
-              :use-grouping="false"
-              placeholder="强度"
-              class="cv-lora-strength"
-              aria-label="LoRA 强度"
-              :pt="LORA_STRENGTH_PT"
-            />
-            <Button
-              icon="fa-solid fa-trash"
-              severity="danger"
-              variant="outlined"
-              rounded
-              class="cv-lora-delete"
-              aria-label="删除 LoRA"
-              @click="removeLora(lora.id)"
-            />
-          </div>
-        </Fluid>
-        <div v-else class="cv-empty-lora-state">暂无 LoRA 覆盖</div>
-        <button type="button" class="cv-lora-add-button" @click="addLora">
-          <i class="fa-solid fa-plus" />
-          添加 LoRA
-        </button>
+      <div class="cv-section-body">
+        <div class="cv-field">
+          <Fluid v-if="settings.comfyui.loras.length" class="cv-lora-list">
+            <div v-for="lora in settings.comfyui.loras" :key="lora.id" class="cv-lora-row">
+              <ToggleSwitch
+                v-model="lora.enabled"
+                class="cv-lora-toggle"
+                :aria-label="`${lora.name || '未命名 LoRA'} 启用状态`"
+              />
+              <Select
+                v-model="lora.name"
+                :options="loraOptions"
+                option-label="label"
+                option-value="value"
+                placeholder="选择 ComfyUI LoRA"
+                class="cv-lora-select"
+                :loading="isLoadingLoras"
+                aria-label="LoRA 文件"
+                filter
+                :pt="LORA_SELECT_PT"
+              />
+              <InputNumber
+                v-model="lora.strength"
+                :min="-5"
+                :max="5"
+                :step="0.05"
+                :min-fraction-digits="0"
+                :max-fraction-digits="3"
+                :use-grouping="false"
+                placeholder="强度"
+                class="cv-lora-strength"
+                aria-label="LoRA 强度"
+                :pt="LORA_STRENGTH_PT"
+              />
+              <Button
+                icon="fa-solid fa-trash"
+                severity="danger"
+                variant="outlined"
+                rounded
+                class="cv-lora-delete"
+                aria-label="删除 LoRA"
+                @click="removeLora(lora.id)"
+              />
+            </div>
+          </Fluid>
+          <div v-else class="cv-empty-lora-state">暂无 LoRA 覆盖</div>
+          <button type="button" class="cv-lora-add-button" @click="addLora">
+            <i class="fa-solid fa-plus" />
+            添加 LoRA
+          </button>
+        </div>
       </div>
 
       <h2 class="cv-section-title">生图提示词</h2>
-      <ImagePromptPresetPanel
-        :preset-settings="settings.imagePromptPresets"
-        :positive-preset-id="settings.comfyui.positivePromptPresetId"
-        :negative-preset-id="settings.comfyui.negativePromptPresetId"
-        @update:preset-settings="settings.imagePromptPresets = $event"
-        @update:positive-preset-id="settings.comfyui.positivePromptPresetId = $event"
-        @update:negative-preset-id="settings.comfyui.negativePromptPresetId = $event"
-      />
+      <div class="cv-section-body">
+        <ImagePromptPresetPanel
+          :preset-settings="settings.imagePromptPresets"
+          :positive-preset-id="settings.comfyui.positivePromptPresetId"
+          :negative-preset-id="settings.comfyui.negativePromptPresetId"
+          @update:preset-settings="settings.imagePromptPresets = $event"
+          @update:positive-preset-id="settings.comfyui.positivePromptPresetId = $event"
+          @update:negative-preset-id="settings.comfyui.negativePromptPresetId = $event"
+        />
+      </div>
     </template>
 
     <!-- 测试 Tab -->

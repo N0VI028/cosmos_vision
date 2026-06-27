@@ -463,28 +463,27 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
   line-height: 1.5;
 }
 
-.cosmos-vision-root
-  .cv-section-title
-  ~ :is(.cv-field, .cv-field-inline, .cv-field-grid, .cv-section-desc, .cv-account-list, .cv-nai-advanced-block) {
+.cosmos-vision-root .cv-section-body {
+  overflow: hidden;
   background: var(--cv-surface-container-low);
-  padding: var(--cv-space-5xl);
+  border-radius: var(--cv-radius-md);
   margin-bottom: 0;
+}
+
+.cosmos-vision-root .cv-section-body > * {
+  padding: var(--cv-space-5xl);
+  margin: 0 !important;
   border-radius: 0;
 }
 
-.cosmos-vision-root .cv-section-first {
-  border-radius: var(--cv-radius-md) var(--cv-radius-md) 0 0 !important;
+.cosmos-vision-root .cv-section-body > :first-child {
+  border-top-left-radius: var(--cv-radius-md) !important;
+  border-top-right-radius: var(--cv-radius-md) !important;
   padding-top: var(--cv-space-8xl) !important;
 }
 
-.cosmos-vision-root .cv-section-last {
-  border-radius: 0 0 var(--cv-radius-md) var(--cv-radius-md) !important;
-  margin-bottom: var(--cv-space-10xl) !important;
+.cosmos-vision-root .cv-section-body > :last-child {
   padding-bottom: var(--cv-space-8xl) !important;
-}
-
-.cosmos-vision-root .cv-section-first.cv-section-last {
-  border-radius: var(--cv-radius) !important;
 }
 
 .cosmos-vision-root .cv-field {

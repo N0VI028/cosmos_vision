@@ -3,187 +3,195 @@
     <!-- API Tab -->
     <template v-if="subTab === 'api'">
       <h2 class="cv-section-title">连接信息</h2>
-      <label class="cv-field">
-        <span>路由模式</span>
-        <Select
-          v-model="settings.novelai.routingMode"
-          :options="routingModeOptions"
-          option-label="label"
-          option-value="value"
-        />
-        <div class="cv-field-hint">{{ routingModeHint }}</div>
-      </label>
-      <NovelAIAccountList v-model="settings.novelai.accounts" />
-      <label class="cv-field">
-        <span>CORS 代理 URL</span>
-        <InputText v-model="settings.novelai.corsProxy" placeholder="https://your-worker.workers.dev" />
-        <div class="cv-field-hint">{{ proxyPreview }}</div>
-        <div class="cv-field-warn">⚠ 代理需为"主机重写"型反向代理;第三方代理会看到你的 API Key,推荐自建。</div>
-      </label>
+      <div class="cv-section-body">
+        <label class="cv-field">
+          <span>路由模式</span>
+          <Select
+            v-model="settings.novelai.routingMode"
+            :options="routingModeOptions"
+            option-label="label"
+            option-value="value"
+          />
+          <div class="cv-field-hint">{{ routingModeHint }}</div>
+        </label>
+        <NovelAIAccountList v-model="settings.novelai.accounts" />
+        <label class="cv-field">
+          <span>CORS 代理 URL</span>
+          <InputText v-model="settings.novelai.corsProxy" placeholder="https://your-worker.workers.dev" />
+          <div class="cv-field-hint">{{ proxyPreview }}</div>
+          <div class="cv-field-warn">⚠ 代理需为"主机重写"型反向代理;第三方代理会看到你的 API Key,推荐自建。</div>
+        </label>
 
-      <SubscriptionCard />
+        <SubscriptionCard />
+      </div>
     </template>
 
     <!-- 配置 Tab -->
     <template v-else-if="subTab === 'config'">
       <h2 class="cv-section-title">模型与尺寸</h2>
-      <label class="cv-field">
-        <span>模型</span>
-        <Select v-model="settings.novelai.model" :options="modelOptions" option-label="label" option-value="value" />
-      </label>
-      <label class="cv-field">
-        <span>尺寸预设</span>
-        <Select
-          v-model="settings.novelai.resolutionPreset"
-          :options="resolutionPresetOptions"
-          option-label="label"
-          option-value="value"
-        />
-      </label>
-      <div v-if="isCustomResolution" class="cv-field-grid">
+      <div class="cv-section-body">
         <label class="cv-field">
-          <span>宽度</span>
-          <InputNumber
-            v-model="settings.novelai.width"
-            :min="imageSizeLimits.min"
-            :max="imageSizeLimits.max"
-            :step="imageSizeLimits.step"
-            :use-grouping="false"
-            show-buttons
-            @update:model-value="markCustomResolution"
-          />
+          <span>模型</span>
+          <Select v-model="settings.novelai.model" :options="modelOptions" option-label="label" option-value="value" />
         </label>
         <label class="cv-field">
-          <span>高度</span>
-          <InputNumber
-            v-model="settings.novelai.height"
-            :min="imageSizeLimits.min"
-            :max="imageSizeLimits.max"
-            :step="imageSizeLimits.step"
-            :use-grouping="false"
-            show-buttons
-            @update:model-value="markCustomResolution"
+          <span>尺寸预设</span>
+          <Select
+            v-model="settings.novelai.resolutionPreset"
+            :options="resolutionPresetOptions"
+            option-label="label"
+            option-value="value"
           />
         </label>
+        <div v-if="isCustomResolution" class="cv-field-grid">
+          <label class="cv-field">
+            <span>宽度</span>
+            <InputNumber
+              v-model="settings.novelai.width"
+              :min="imageSizeLimits.min"
+              :max="imageSizeLimits.max"
+              :step="imageSizeLimits.step"
+              :use-grouping="false"
+              show-buttons
+              @update:model-value="markCustomResolution"
+            />
+          </label>
+          <label class="cv-field">
+            <span>高度</span>
+            <InputNumber
+              v-model="settings.novelai.height"
+              :min="imageSizeLimits.min"
+              :max="imageSizeLimits.max"
+              :step="imageSizeLimits.step"
+              :use-grouping="false"
+              show-buttons
+              @update:model-value="markCustomResolution"
+            />
+          </label>
+        </div>
       </div>
 
       <h2 class="cv-section-title">采样参数</h2>
-      <div class="cv-field-grid">
-        <label class="cv-field">
-          <span>步数</span>
-          <InputNumber v-model="settings.novelai.steps" :min="1" :max="50" show-buttons />
-        </label>
-        <div class="cv-field">
-          <div class="cv-nai-field-title-row">
-            <span>提示词引导</span>
-            <div v-if="supportsVarietyPlus || isV3Model" class="cv-nai-title-actions">
-              <ToggleButton
-                v-if="supportsVarietyPlus"
-                v-model="settings.novelai.varietyPlus"
-                class="cv-nai-mini-toggle"
-                on-label="Var+"
-                off-label="Var+"
-                on-icon="fa-solid fa-check"
-                off-icon="fa-solid fa-xmark"
-                aria-label="切换 Variety+"
-                size="small"
-              />
-              <ToggleButton
-                v-if="isV3Model"
-                v-model="settings.novelai.decrisp"
-                class="cv-nai-mini-toggle"
-                on-label="Dec"
-                off-label="Dec"
-                on-icon="fa-solid fa-check"
-                off-icon="fa-solid fa-xmark"
-                aria-label="切换 Dec"
-                size="small"
-              />
-            </div>
-          </div>
-          <InputNumber
-            v-model="settings.novelai.guidance"
-            :min="0"
-            :max="10"
-            :step="0.1"
-            :min-fraction-digits="1"
-          />
-        </div>
-      </div>
-      <div class="cv-field cv-nai-sampler-field">
-        <div class="cv-nai-field-title-row">
-          <span>采样器</span>
-          <ToggleButton
-            v-if="isV3Model"
-            v-model="settings.novelai.autoSampler"
-            class="cv-nai-mini-toggle"
-            on-label="Auto"
-            off-label="Auto"
-            on-icon="fa-solid fa-check"
-            off-icon="fa-solid fa-xmark"
-            aria-label="切换 Auto 采样器"
-            size="small"
-          />
-        </div>
-        <Select
-          v-model="settings.novelai.sampler"
-          :options="samplerOptions"
-          option-label="label"
-          option-value="value"
-          :disabled="settings.novelai.autoSampler && isV3Model"
-        />
-        <div v-if="isV3Model" class="cv-nai-option-row">
-          <label class="cv-nai-check-option">
-            <Checkbox v-model="settings.novelai.smea" binary />
-            <span>SMEA</span>
-          </label>
-          <label class="cv-nai-check-option" :class="{ 'cv-nai-check-option--disabled': !settings.novelai.smea }">
-            <Checkbox v-model="settings.novelai.smeaDyn" binary :disabled="!settings.novelai.smea" />
-            <span>DYN</span>
-          </label>
-        </div>
-      </div>
-      <label class="cv-field">
-        <span>负向提示词程度</span>
-        <Select
-          v-model="settings.novelai.ucPreset"
-          :options="ucPresetOptions"
-          option-label="label"
-          option-value="value"
-        />
-      </label>
-      <label class="cv-field-inline">
-        <ToggleSwitch v-model="settings.novelai.addQualityTags" />
-        <span>使用官方质量词</span>
-      </label>
-
-      <h2 class="cv-section-title">高级设置</h2>
-      <div class="cv-nai-advanced-block">
+      <div class="cv-section-body">
         <div class="cv-field-grid">
           <label class="cv-field">
-            <span>提示词引导重缩放</span>
-            <InputNumber
-              v-model="settings.novelai.promptGuidanceRescale"
-              :min="0"
-              :max="1"
-              :step="0.01"
-              :min-fraction-digits="2"
-            />
+            <span>步数</span>
+            <InputNumber v-model="settings.novelai.steps" :min="1" :max="50" show-buttons />
           </label>
-          <label class="cv-field">
-            <span>噪声调度</span>
-            <Select
-              v-model="settings.novelai.noiseSchedule"
-              :options="noiseScheduleOptions"
-              option-label="label"
-              option-value="value"
+          <div class="cv-field">
+            <div class="cv-nai-field-title-row">
+              <span>提示词引导</span>
+              <div v-if="supportsVarietyPlus || isV3Model" class="cv-nai-title-actions">
+                <ToggleButton
+                  v-if="supportsVarietyPlus"
+                  v-model="settings.novelai.varietyPlus"
+                  class="cv-nai-mini-toggle"
+                  on-label="Var+"
+                  off-label="Var+"
+                  on-icon="fa-solid fa-check"
+                  off-icon="fa-solid fa-xmark"
+                  aria-label="切换 Variety+"
+                  size="small"
+                />
+                <ToggleButton
+                  v-if="isV3Model"
+                  v-model="settings.novelai.decrisp"
+                  class="cv-nai-mini-toggle"
+                  on-label="Dec"
+                  off-label="Dec"
+                  on-icon="fa-solid fa-check"
+                  off-icon="fa-solid fa-xmark"
+                  aria-label="切换 Dec"
+                  size="small"
+                />
+              </div>
+            </div>
+            <InputNumber
+              v-model="settings.novelai.guidance"
+              :min="0"
+              :max="10"
+              :step="0.1"
+              :min-fraction-digits="1"
             />
+          </div>
+        </div>
+        <div class="cv-field cv-nai-sampler-field">
+          <div class="cv-nai-field-title-row">
+            <span>采样器</span>
+            <ToggleButton
+              v-if="isV3Model"
+              v-model="settings.novelai.autoSampler"
+              class="cv-nai-mini-toggle"
+              on-label="Auto"
+              off-label="Auto"
+              on-icon="fa-solid fa-check"
+              off-icon="fa-solid fa-xmark"
+              aria-label="切换 Auto 采样器"
+              size="small"
+            />
+          </div>
+          <Select
+            v-model="settings.novelai.sampler"
+            :options="samplerOptions"
+            option-label="label"
+            option-value="value"
+            :disabled="settings.novelai.autoSampler && isV3Model"
+          />
+          <div v-if="isV3Model" class="cv-nai-option-row">
+            <label class="cv-nai-check-option">
+              <Checkbox v-model="settings.novelai.smea" binary />
+              <span>SMEA</span>
+            </label>
+            <label class="cv-nai-check-option" :class="{ 'cv-nai-check-option--disabled': !settings.novelai.smea }">
+              <Checkbox v-model="settings.novelai.smeaDyn" binary :disabled="!settings.novelai.smea" />
+              <span>DYN</span>
+            </label>
+          </div>
+        </div>
+        <label class="cv-field">
+          <span>负向提示词程度</span>
+          <Select
+            v-model="settings.novelai.ucPreset"
+            :options="ucPresetOptions"
+            option-label="label"
+            option-value="value"
+          />
+        </label>
+        <label class="cv-field-inline">
+          <ToggleSwitch v-model="settings.novelai.addQualityTags" />
+          <span>使用官方质量词</span>
+        </label>
+      </div>
+
+      <h2 class="cv-section-title">高级设置</h2>
+      <div class="cv-section-body">
+        <div class="cv-nai-advanced-block">
+          <div class="cv-field-grid">
+            <label class="cv-field">
+              <span>提示词引导重缩放</span>
+              <InputNumber
+                v-model="settings.novelai.promptGuidanceRescale"
+                :min="0"
+                :max="1"
+                :step="0.01"
+                :min-fraction-digits="2"
+              />
+            </label>
+            <label class="cv-field">
+              <span>噪声调度</span>
+              <Select
+                v-model="settings.novelai.noiseSchedule"
+                :options="noiseScheduleOptions"
+                option-label="label"
+                option-value="value"
+              />
+            </label>
+          </div>
+          <label v-if="isV4OnlyModel" class="cv-nai-check-option cv-nai-legacy-option">
+            <Checkbox v-model="settings.novelai.legacyPromptMode" binary />
+            <span>旧版提示词条件模式（不推荐）</span>
           </label>
         </div>
-        <label v-if="isV4OnlyModel" class="cv-nai-check-option cv-nai-legacy-option">
-          <Checkbox v-model="settings.novelai.legacyPromptMode" binary />
-          <span>旧版提示词条件模式（不推荐）</span>
-        </label>
       </div>
 
     </template>
