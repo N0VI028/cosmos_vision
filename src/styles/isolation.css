@@ -350,14 +350,6 @@
  */
 #cosmos_vision,
 .cosmos-vision-root {
-  /* semantic: form field */
-  --p-form-field-padding-x: var(--cv-space-5xl);
-  --p-form-field-padding-y: var(--cv-space-md);
-  --p-form-field-sm-padding-x: var(--cv-space-4xl);
-  --p-form-field-sm-padding-y: var(--cv-space-sm);
-  --p-form-field-lg-padding-x: var(--cv-space-6xl);
-  --p-form-field-lg-padding-y: var(--cv-space-lg);
-
   /* semantic: list */
   --p-list-padding: 0.25em 0.25em;
   --p-list-header-padding: 0.5em 1em 0.25em 1em;
@@ -444,19 +436,6 @@
   --p-text-muted-color: var(--cv-on-surface-variant);
   --p-text-hover-color: var(--cv-on-surface);
   --p-text-hover-muted-color: var(--cv-on-surface);
-  --p-form-field-background: var(--cv-surface-container-high);
-  --p-form-field-disabled-background: color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent);
-  --p-form-field-filled-background: var(--cv-surface-container-high);
-  --p-form-field-filled-hover-background: var(--cv-surface-container);
-  --p-form-field-filled-focus-background: var(--cv-surface-container-high);
-  --p-form-field-border-color: var(--cv-surface-variant);
-  --p-form-field-hover-border-color: var(--cv-outline);
-  --p-form-field-focus-border-color: var(--cv-primary-container);
-  --p-form-field-invalid-border-color: var(--p-red-500);
-  --p-form-field-color: var(--cv-on-surface);
-  --p-form-field-disabled-color: var(--cv-on-surface-variant);
-  --p-form-field-placeholder-color: var(--cv-on-surface-variant);
-  --p-form-field-invalid-placeholder-color: color-mix(in srgb, var(--p-red-500) 75%, var(--cv-on-surface-variant));
   --p-inputtext-background: var(--cv-surface-container-high);
   --p-inputtext-border-color: var(--cv-surface-variant);
   --p-inputtext-hover-border-color: var(--cv-outline);

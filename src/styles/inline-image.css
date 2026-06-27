@@ -7,7 +7,7 @@
 
 /* Speed Dial 容器 */
 .cv-speed-dial-container {
-  @apply fixed z-[30000] flex flex-col items-center;
+  @apply fixed z-30000 flex flex-col items-center;
   z-index: 30000;
   gap: 0.5em;
 }

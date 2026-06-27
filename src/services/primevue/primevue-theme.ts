@@ -1,19 +1,38 @@
 import Aura from '@primeuix/themes/aura';
 import { definePreset } from '@primeuix/themes';
 
+const formFieldColor = {
+  background: 'var(--cv-surface-container-high)',
+  disabledBackground: 'color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent)',
+  filledBackground: 'var(--cv-surface-container-high)',
+  filledHoverBackground: 'var(--cv-surface-container)',
+  filledFocusBackground: 'var(--cv-surface-container-high)',
+  borderColor: 'var(--cv-surface-variant)',
+  hoverBorderColor: 'var(--cv-outline)',
+  focusBorderColor: 'var(--cv-primary-container)',
+  invalidBorderColor: 'var(--p-red-500)',
+  color: 'var(--cv-on-surface)',
+  disabledColor: 'var(--cv-on-surface-variant)',
+  placeholderColor: 'var(--cv-on-surface-variant)',
+  invalidPlaceholderColor: 'color-mix(in srgb, var(--p-red-500) 75%, var(--cv-on-surface-variant))',
+} as const;
+
 /**
  * PrimeVue 主题 preset
  */
 export const cosmosPrimePreset = definePreset(Aura, {
   semantic: {
     formField: {
-      background: 'var(--cv-surface-container-high)',
-      borderColor: 'var(--cv-surface-variant)',
-      hoverBorderColor: 'var(--cv-surface-variant)',
-      focusBorderColor: 'var(--cv-primary-container)',
-      color: 'var(--cv-on-surface)',
-      paddingX: 'var(--cv-space-3xl)',
-      paddingY: 'var(--cv-space-xl)',
+      paddingX: 'var(--cv-space-5xl)',
+      paddingY: 'var(--cv-space-lg)',
+      sm: {
+        paddingX: 'var(--cv-space-4xl)',
+        paddingY: 'var(--cv-space-sm)',
+      },
+      lg: {
+        paddingX: 'var(--cv-space-6xl)',
+        paddingY: 'var(--cv-space-lg)',
+      },
       borderRadius: 'var(--cv-radius-full)',
       focusRing: {
         width: '0.1333em',
@@ -22,6 +41,10 @@ export const cosmosPrimePreset = definePreset(Aura, {
         offset: '0',
         shadow: 'none',
       },
+    },
+    colorScheme: {
+      light: { formField: formFieldColor },
+      dark: { formField: formFieldColor },
     },
   },
   components: {
