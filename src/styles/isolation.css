@@ -36,7 +36,7 @@
 }
 
 :is(#cosmos_vision, .cosmos-vision-root) .cv-prime-toggleswitch-input {
-  @apply absolute inset-0 size-full opacity-0 overflow-hidden;
+  @apply absolute inset-0 size-full overflow-hidden opacity-0;
   z-index: 1;
   border-radius: inherit;
 }
@@ -222,7 +222,8 @@
 }
 
 /* Outlined secondary 按钮在 hover 时的边框颜色补偿，因主题类型限制在 CSS 重写 */
-.cosmos-vision-root .cv-prime-button[data-p~='outlined'][data-p-severity='secondary']:not([data-p-disabled='true']):hover,
+.cosmos-vision-root
+  .cv-prime-button[data-p~='outlined'][data-p-severity='secondary']:not([data-p-disabled='true']):hover,
 #cosmos_vision .cv-prime-button[data-p~='outlined'][data-p-severity='secondary']:not([data-p-disabled='true']):hover {
   border-color: var(--cv-outline) !important;
 }
@@ -230,33 +231,20 @@
 /* Slider:紧凑轨道与可见手柄,避免 ST 全局样式和大阴影污染 */
 .cosmos-vision-root .cv-prime-slider,
 #cosmos_vision .cv-prime-slider {
-  background: var(--cv-surface-variant) !important;
   border: 0 !important;
   box-shadow: none !important;
   margin: var(--cv-space-xl) var(--cv-space-lg) var(--cv-space-md);
 }
 
-.cosmos-vision-root .cv-prime-slider-range,
-#cosmos_vision .cv-prime-slider-range {
-  background: var(--cv-outline) !important;
-}
-
 .cosmos-vision-root .cv-prime-slider-handle,
 #cosmos_vision .cv-prime-slider-handle {
-  background: var(--cv-surface-container) !important;
   border: var(--cv-border-width) solid var(--cv-outline) !important;
   box-shadow: none !important;
 }
 
 .cosmos-vision-root .cv-prime-slider-handle::before,
 #cosmos_vision .cv-prime-slider-handle::before {
-  background: var(--cv-on-surface) !important;
   box-shadow: none !important;
-}
-
-.cosmos-vision-root .cv-prime-slider:not(.p-disabled) .cv-prime-slider-handle:hover,
-#cosmos_vision .cv-prime-slider:not(.p-disabled) .cv-prime-slider-handle:hover {
-  background: var(--cv-surface-container-high) !important;
 }
 
 /* SelectButton / ToggleButton checked 状态:反压 ST 全局 button 色值 */
@@ -269,8 +257,6 @@
 
 .cosmos-vision-root .cv-prime-togglebutton[data-p-checked='true'] .cv-prime-togglebutton-content,
 #cosmos_vision .cv-prime-togglebutton[data-p-checked='true'] .cv-prime-togglebutton-content {
-  background: transparent !important;
-  box-shadow: none !important;
   color: inherit !important;
 }
 
@@ -709,7 +695,7 @@
 }
 
 .cv-dialog-mask {
-  @apply flex items-center justify-center w-dvw h-dvh absolute!;
+  @apply absolute! flex h-dvh w-dvw items-center justify-center;
 }
 
 /**

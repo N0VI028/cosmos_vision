@@ -1,5 +1,6 @@
 import Aura from '@primeuix/themes/aura';
 import { definePreset } from '@primeuix/themes';
+import { sliderToken } from './primevue-tokens';
 
 const formFieldColor = {
   background: 'var(--cv-surface-container-high)',
@@ -104,22 +105,27 @@ export const cosmosPrimePreset = definePreset(Aura, {
       },
     },
     textarea: { root: { borderRadius: 'var(--cv-radius-md)' } },
-    slider: {
-      track: { background: 'var(--cv-surface-variant)', borderRadius: 'var(--cv-radius-full)', size: '0.2667em' },
-      range: { background: 'var(--cv-outline)' },
-      handle: {
-        width: '1.0667em',
-        height: '1.0667em',
-        borderRadius: '50%',
-        background: 'var(--cv-surface-container)',
-        hoverBackground: 'var(--cv-surface-container-high)',
-        content: {
-          width: '0.4em',
-          height: '0.4em',
-          background: 'var(--cv-on-surface)',
-          hoverBackground: 'var(--cv-on-surface)',
-          shadow: 'none',
-        },
+    slider: sliderToken,
+    panel: {
+      root: {
+        background: 'transparent',
+        borderColor: 'transparent',
+        color: 'var(--cv-on-surface)',
+        borderRadius: 'var(--cv-radius)',
+      },
+      header: {
+        background: 'transparent',
+        color: 'var(--cv-on-surface)',
+        padding: 'var(--cv-space-xl) var(--cv-space-2xl)',
+        borderColor: 'transparent',
+        borderWidth: '0',
+        borderRadius: '0',
+      },
+      content: {
+        padding: '0',
+      },
+      footer: {
+        padding: '0',
       },
     },
     toggleswitch: {
@@ -131,16 +137,25 @@ export const cosmosPrimePreset = definePreset(Aura, {
     },
     togglebutton: {
       root: {
+        padding: '0',
         background: 'var(--cv-surface-container-high)',
         hoverBackground: 'var(--cv-surface-variant)',
         checkedBackground: 'var(--cv-primary-container)',
         borderColor: 'var(--cv-surface-variant)',
         checkedBorderColor: 'var(--cv-primary-container)',
+        borderRadius: 'var(--cv-radius-full)',
         color: 'var(--cv-on-surface-variant)',
         hoverColor: 'var(--cv-on-surface)',
         checkedColor: 'var(--cv-on-primary-container)',
+        fontWeight: '500',
+        transitionDuration: '0.15s',
       },
-      content: { checkedBackground: 'transparent', checkedShadow: 'none' },
+      content: {
+        padding: 'var(--cv-space-3xl) var(--cv-space-lg)',
+        borderRadius: 'var(--cv-radius-full)',
+        checkedBackground: 'transparent',
+        checkedShadow: 'none',
+      },
     },
   },
 });

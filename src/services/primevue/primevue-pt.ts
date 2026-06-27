@@ -1,4 +1,5 @@
 import type { PrimeVuePTOptions } from 'primevue/config';
+import { sliderToken } from './primevue-tokens';
 
 const fieldRoot = { class: 'cv-prime-field' } as const;
 const buttonRoot = { class: 'cv-prime-button' } as const;
@@ -25,11 +26,8 @@ const selectButtonToggle = {
     style: {
       flex: '1 1 0',
       minWidth: '0',
-      padding: '0',
       fontFamily: 'var(--cv-font-label)',
       fontSize: 'calc(var(--mainFontSize) * 0.8)',
-      fontWeight: '500',
-      transition: 'all 0.15s',
       whiteSpace: 'nowrap',
       boxShadow: 'none',
     },
@@ -42,7 +40,6 @@ const selectButtonToggle = {
       justifyContent: 'center',
       gap: 'var(--cv-space-lg)',
       width: '100%',
-      padding: 'var(--cv-space-3xl) var(--cv-space-lg)',
       whiteSpace: 'nowrap',
       boxShadow: 'none',
     },
@@ -50,6 +47,29 @@ const selectButtonToggle = {
 } as const;
 const sliderHandle = {
   class: 'cv-prime-slider-handle',
+} as const;
+const sliderRootStyle = {
+  '--p-slider-transition-duration': sliderToken.root.transitionDuration,
+  '--p-slider-track-background': sliderToken.track.background,
+  '--p-slider-track-border-radius': sliderToken.track.borderRadius,
+  '--p-slider-track-size': sliderToken.track.size,
+  '--p-slider-range-background': sliderToken.range.background,
+  '--p-slider-handle-width': sliderToken.handle.width,
+  '--p-slider-handle-height': sliderToken.handle.height,
+  '--p-slider-handle-border-radius': sliderToken.handle.borderRadius,
+  '--p-slider-handle-background': sliderToken.handle.background,
+  '--p-slider-handle-hover-background': sliderToken.handle.hoverBackground,
+  '--p-slider-handle-content-border-radius': sliderToken.handle.content.borderRadius,
+  '--p-slider-handle-content-background': sliderToken.handle.content.background,
+  '--p-slider-handle-content-hover-background': sliderToken.handle.content.hoverBackground,
+  '--p-slider-handle-content-width': sliderToken.handle.content.width,
+  '--p-slider-handle-content-height': sliderToken.handle.content.height,
+  '--p-slider-handle-content-shadow': sliderToken.handle.content.shadow,
+  '--p-slider-handle-focus-ring-width': sliderToken.handle.focusRing.width,
+  '--p-slider-handle-focus-ring-style': sliderToken.handle.focusRing.style,
+  '--p-slider-handle-focus-ring-color': sliderToken.handle.focusRing.color,
+  '--p-slider-handle-focus-ring-offset': sliderToken.handle.focusRing.offset,
+  '--p-slider-handle-focus-ring-shadow': sliderToken.handle.focusRing.shadow,
 } as const;
 const tag = {
   root: { class: 'cv-prime-tag' },
@@ -70,18 +90,10 @@ const panelHeader = {
     display: 'flex',
     gap: 'var(--cv-space-lg)',
     alignItems: 'center',
-    padding: 'var(--cv-space-xl) var(--cv-space-2xl)',
-    border: 'none',
-    background: 'transparent',
   },
 } as const;
 const panelContent = {
   class: 'cv-prime-panel-content',
-  style: {
-    padding: '0',
-    border: 'none',
-    background: 'transparent',
-  },
 } as const;
 
 /**
@@ -159,7 +171,7 @@ export const cosmosPrimePt = {
     label: { class: 'cv-prime-togglebutton-label' },
   },
   slider: {
-    root: { class: 'cv-prime-slider', style: { border: 'none' } },
+    root: { class: 'cv-prime-slider', style: sliderRootStyle },
     range: { class: 'cv-prime-slider-range' },
     handle: sliderHandle,
     startHandler: sliderHandle,
