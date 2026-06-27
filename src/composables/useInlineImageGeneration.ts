@@ -1,16 +1,17 @@
 import type { CosmosVisionSettings, PromptLlmContext } from '@/constants/novelai';
-import { DARK_CLASS } from '@/constants/theme';
 import {
   createInlineGenerationSessionController,
   type InlineGenerationSession,
 } from '@/composables/inlineGenerationSession';
-import { createInlineImageCleanupObserver } from '@/composables/inlineImageCleanupObserver';
-import { handleInlineImageClick, type InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
+import { preventInlineEventBubbling, removeInlineVueHost } from '@/composables/inlineImageDom';
+import { createInlineImageGalleryRenderer } from '@/composables/inlineImageGalleryRenderer';
+import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { generateComfyUIImageFromPrompts, generateComfyUIImageFromResolvedRequest } from '@/services/comfyui/api';
-import { buildComfyUIResolvedRequest, getComfyUIRequestError } from '@/services/comfyui/workflow';
+import { buildComfyUIResolvedRequest, getComfyUIRequestError, type ComfyUIRequestSnapshot } from '@/services/comfyui/workflow';
 import {
   buildNovelAIResolvedRequest,
   buildNovelAILlmPromptOverrides,
+  type NovelAIFinalPrompts,
   generateNovelAIImageFromPrompts,
   generateNovelAIImageFromResolvedRequest,
 } from '@/services/novelai/api';
@@ -25,8 +26,7 @@ import {
 import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
 import type { ImagePromptVibeRef } from '@/constants/image-prompt';
 import { useSettingsStore } from '@/store/settings';
-import Button from 'primevue/button';
-import { getCurrentInstance, h, render } from 'vue';
+import { getCurrentInstance } from 'vue';
 
 type RuntimeEnabledGetter = () => boolean;
 type PromptLlmSchemaFields = ReturnType<typeof buildPromptLlmSchemaFields>;
@@ -51,18 +51,11 @@ interface InlineGenerationResult {
   promptSnapshot: InlinePromptSnapshot;
 }
 
-interface InlineActionButtonSpec {
-  label?: string;
-  icon: string;
-  severity?: 'secondary' | 'danger';
-  variant?: 'outlined';
-  onClick: () => void;
-}
-
 type InlineGenerationTask = (
   session: InlineGenerationSession,
   onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
 ) => Promise<InlineGenerationResult>;
+
 
 /**
  * 段落生图运行时控制器
@@ -91,22 +84,13 @@ export function useInlineImageGeneration(
   /** 是否处于段落生图选择模式 */
   const isSelectionMode = ref(false);
 
-  /** 段落到临时图片容器的映射 */
-  const imageContainers = new Map<HTMLElement, HTMLElement>();
-
-  /** 段落到 Object URL 的映射 */
-  const imageObjectUrls = new Map<HTMLElement, string>();
-
-  /** 段落到上次提示词快照的映射 */
-  const promptSnapshots = new Map<HTMLElement, InlinePromptSnapshot>();
-
-  /** Object URL 清理表 */
-  const objectUrls = new Set<string>();
-
-  /** 聊天 DOM 变化清理器 */
-  const imageCleanupObserver = createInlineImageCleanupObserver({
-    getEntries: () => imageContainers.entries(),
-    removeImageCard,
+  /** 段落图片画廊渲染器 */
+  const imageGallery = createInlineImageGalleryRenderer({
+    appContext,
+    getDarkMode: options.getDarkMode,
+    isRuntimeEnabled,
+    onGenerateWithSnapshot: handleGenerateWithFavoriteSnapshot,
+    onGenerateWithFreshPrompt: handleGenerateWithFreshPrompt,
   });
 
   /** 记录 pointerdown 的位置,用于区分点击和拖拽 */
@@ -246,20 +230,11 @@ export function useInlineImageGeneration(
     if (!selectedParagraph.value) return;
 
     const toolbar = selectedParagraph.value.querySelector(':scope > .cv-inline-toolbar') as HTMLElement | null;
-    removeActionHost(toolbar);
+    removeInlineVueHost(toolbar);
 
     selectedParagraph.value.classList.remove('cv-inline-selected');
 
     selectedParagraph.value = null;
-  }
-
-  /**
-   * 阻止交互事件冒泡到底层
-   * @param host 宿主元素
-   */
-  function preventEventBubbling(host: HTMLElement): void {
-    const events = ['pointerdown', 'mousedown', 'touchstart', 'pointerup', 'mouseup', 'touchend', 'click'];
-    events.forEach(evt => host.addEventListener(evt, e => e.stopPropagation()));
   }
 
   /**
@@ -269,7 +244,7 @@ export function useInlineImageGeneration(
   function createSelectionToolbar(): HTMLElement {
     const host = document.createElement('div');
     host.className = 'cv-inline-toolbar';
-    preventEventBubbling(host);
+    preventInlineEventBubbling(host);
 
     const trigger = document.createElement('div');
     trigger.className = 'cv-inline-trigger';
@@ -301,98 +276,6 @@ export function useInlineImageGeneration(
   }
 
   /**
-   * 创建图片卡片操作条
-   * @param paragraph 目标段落
-   * @returns PrimeVue 按钮容器
-   */
-  function createImageActionBar(paragraph: HTMLElement): HTMLElement {
-    return createActionHost('cv-inline-img-actions', [
-      {
-        label: '重新生成图片',
-        icon: 'fa-solid fa-repeat',
-        severity: 'secondary',
-        variant: 'outlined',
-        onClick: () => void handleGenerateWithLastPrompt(paragraph),
-      },
-      {
-        label: '重新生成TAG和图片',
-        icon: 'fa-solid fa-robot',
-        severity: 'secondary',
-        variant: 'outlined',
-        onClick: () => void handleGenerateWithFreshPrompt(paragraph),
-      },
-      {
-        label: '移除',
-        icon: 'fa-solid fa-trash',
-        severity: 'danger',
-        variant: 'outlined',
-        onClick: () => removeImageCardWhenEnabled(paragraph),
-      },
-    ]);
-  }
-
-  /**
-   * 渲染 PrimeVue 按钮容器
-   * @param hostClass 容器 class
-   * @param actions 按钮配置
-   * @returns 按钮宿主元素
-   */
-  function createActionHost(hostClass: string, actions: InlineActionButtonSpec[]): HTMLElement {
-    const host = document.createElement('div');
-    host.className = buildActionHostClass(hostClass);
-    preventEventBubbling(host);
-
-    const vnode = h(
-      'div',
-      { class: 'cv-inline-button-row' },
-      actions.map(action => h(Button, buildActionButtonProps(action))),
-    );
-
-    if (appContext) {
-      vnode.appContext = appContext;
-    }
-
-    render(vnode, host);
-    return host;
-  }
-
-  /**
-   * 组装按钮宿主的主题 class
-   * @param hostClass 宿主原始 class
-   * @returns 带 PrimeVue 主题作用域的 class 字符串
-   */
-  function buildActionHostClass(hostClass: string): string {
-    return options.getDarkMode() ? `${hostClass} cosmos-vision-root ${DARK_CLASS}` : `${hostClass} cosmos-vision-root`;
-  }
-
-  /**
-   * 构建 PrimeVue 按钮属性
-   * @param action 按钮配置
-   * @returns Button props
-   */
-  function buildActionButtonProps(action: InlineActionButtonSpec): Record<string, unknown> {
-    return {
-      class: 'cv-inline-action-button',
-      icon: action.icon,
-      label: action.label,
-      severity: action.severity,
-      size: 'small',
-      variant: action.variant,
-      onClick: action.onClick,
-    };
-  }
-
-  /**
-   * 卸载并移除按钮容器
-   * @param host 按钮宿主元素
-   */
-  function removeActionHost(host: HTMLElement | null): void {
-    if (!host) return;
-    render(null, host);
-    host.remove();
-  }
-
-  /**
    * 重新让 LLM 生成提示词后生图
    * @param paragraph 目标段落
    */
@@ -409,15 +292,14 @@ export function useInlineImageGeneration(
   }
 
   /**
-   * 沿用上次提示词快照直接重新请求生图
+   * 基于收藏图保存的提示词快照重新生成图片
    * @param paragraph 目标段落
+   * @param snapshot 收藏图提示词快照
    */
-  async function handleGenerateWithLastPrompt(paragraph: HTMLElement): Promise<void> {
-    const snapshot = promptSnapshots.get(paragraph);
-    if (!snapshot) {
-      toastr.warning('当前图片还没有可复用的上次标签');
-      return;
-    }
+  async function handleGenerateWithFavoriteSnapshot(
+    paragraph: HTMLElement,
+    snapshot: InlinePromptSnapshot,
+  ): Promise<void> {
     await runImageGeneration(paragraph, false, session => generateImageResultFromSnapshot(snapshot, session));
   }
 
@@ -467,7 +349,7 @@ export function useInlineImageGeneration(
    */
   function startGenerationSession(paragraph: HTMLElement, requiresPromptLlm: boolean): InlineGenerationSession {
     exitSelectionMode();
-    const imageContainer = imageContainers.get(paragraph);
+    const imageContainer = imageGallery.getHost(paragraph);
     const target = imageContainer ?? paragraph;
     const placement = imageContainer ? 'overlay' : 'after';
     return generationSession.start(paragraph, target, getInitialStatusText(requiresPromptLlm), placement);
@@ -485,11 +367,8 @@ export function useInlineImageGeneration(
     session: InlineGenerationSession,
   ): void {
     generationSession.ensureActive(session);
-    const objectUrl = URL.createObjectURL(result.imageBlob);
-    objectUrls.add(objectUrl);
     session.status.remove();
-    insertImageCard(paragraph, objectUrl);
-    promptSnapshots.set(paragraph, result.promptSnapshot);
+    imageGallery.showGenerated(paragraph, result);
   }
 
   /**
@@ -578,10 +457,11 @@ export function useInlineImageGeneration(
     session: InlineGenerationSession,
   ): Promise<InlineGenerationResult> {
     session.status.setStatus('正在生成图片...');
-    if (settings.imageSource === 'comfyui') {
+    const imageSource = snapshot.imageSource ?? settings.imageSource;
+    if (imageSource === 'comfyui') {
       return {
         promptSnapshot: snapshot,
-        imageBlob: await generateComfyUIImageFromPrompts(settings.comfyui, snapshot, {
+        imageBlob: await generateComfyUIImageFromPrompts(settings.comfyui, snapshot.comfyui ?? snapshot, {
           signal: session.controller.signal,
         }),
       };
@@ -589,7 +469,7 @@ export function useInlineImageGeneration(
 
     return {
       promptSnapshot: snapshot,
-      imageBlob: await generateNovelAIImageFromPrompts(settings.novelai, snapshot, {
+      imageBlob: await generateNovelAIImageFromPrompts(settings.novelai, snapshot.novelai ?? snapshot, {
         signal: session.controller.signal,
       }),
     };
@@ -637,12 +517,12 @@ export function useInlineImageGeneration(
     const temporarySourceHashes = collectTemporaryVibeSourceHashes(request.prompts.vibeReferences);
     return runImageStep(
       session,
-      request.prompts,
+      createNovelAISnapshot(request.prompts),
       async () => {
         try {
           const result = await generateNovelAIImageFromResolvedRequest(request, { signal: session.controller.signal });
           return {
-            promptSnapshot: result.prompts,
+            promptSnapshot: createNovelAISnapshot(result.prompts),
             imageBlob: result.imageBlob,
           };
         } finally {
@@ -701,9 +581,9 @@ export function useInlineImageGeneration(
     const request = buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, prompts);
     return runImageStep(
       session,
-      request.snapshot,
+      createComfyUISnapshot(request.snapshot),
       async () => ({
-        promptSnapshot: request.snapshot,
+        promptSnapshot: createComfyUISnapshot(request.snapshot),
         imageBlob: await generateComfyUIImageFromResolvedRequest(settings.comfyui, request, {
           signal: session.controller.signal,
         }),
@@ -713,100 +593,40 @@ export function useInlineImageGeneration(
   }
 
   /**
-   * 在段落后插入临时图片(纯净展示,hover/点击浮现操作图标)
+   * 创建 NovelAI 内联提示词快照
+   * @param prompts NovelAI 最终提示词
+   * @returns 内联提示词快照
    */
-  function insertImageCard(p: HTMLElement, objectUrl: string): void {
-    removeImageCard(p);
-
-    const wrap = document.createElement('div');
-    wrap.className = 'cv-inline-img-wrap';
-    preventEventBubbling(wrap);
-
-    const img = document.createElement('img');
-    img.src = objectUrl;
-    img.alt = '生成的图片';
-    img.draggable = false;
-
-    img.addEventListener('click', (e: MouseEvent) => {
-      handleInlineImageClick(e, img, wrap, isRuntimeEnabled, promptSnapshots.get(p));
-    });
-
-    wrap.append(img, createImageActionBar(p));
-
-    // 移动端无 hover 能力:点击图片区域切换操作图标显隐(点按钮本身不切换)
-    wrap.addEventListener('click', (e: MouseEvent) => {
-      if (!isRuntimeEnabled()) return;
-      if ((e.target as HTMLElement).closest('button')) return;
-      wrap.classList.toggle('cv-inline-img-active');
-    });
-
-    p.after(wrap);
-    imageContainers.set(p, wrap);
-    imageObjectUrls.set(p, objectUrl);
-    imageCleanupObserver.notifyImageAdded();
+  function createNovelAISnapshot(prompts: NovelAIFinalPrompts): InlinePromptSnapshot {
+    return {
+      positivePrompt: prompts.positivePrompt,
+      negativePrompt: prompts.negativePrompt,
+      imageSource: 'novelai',
+      novelai: prompts,
+    };
   }
 
   /**
-   * 移除段落的临时图片卡片
+   * 创建 ComfyUI 内联提示词快照
+   * @param snapshot ComfyUI 请求快照
+   * @returns 内联提示词快照
    */
-  function removeImageCard(p: HTMLElement): void {
-    const container = imageContainers.get(p);
-    const objectUrl = imageObjectUrls.get(p);
-
-    removeImageContainer(container);
-    imageContainers.delete(p);
-    imageObjectUrls.delete(p);
-    promptSnapshots.delete(p);
-    releaseObjectUrl(objectUrl);
-  }
-
-  /**
-   * 卸载并移除图片容器
-   * @param container 图片容器元素
-   */
-  function removeImageContainer(container: HTMLElement | null | undefined): void {
-    if (!container) return;
-    const actions = container.querySelector(':scope > .cv-inline-img-actions') as HTMLElement | null;
-    removeActionHost(actions);
-    container.remove();
-  }
-
-  /**
-   * 仅在扩展开启时响应移除图片操作
-   * @param p 目标聊天段落
-   */
-  function removeImageCardWhenEnabled(p: HTMLElement): void {
-    if (!isRuntimeEnabled()) return;
-    removeImageCard(p);
-  }
-
-  /**
-   * 释放指定 Object URL
-   * @param url 待释放的 Object URL
-   */
-  function releaseObjectUrl(url?: string): void {
-    if (!url || !objectUrls.delete(url)) return;
-    URL.revokeObjectURL(url);
+  function createComfyUISnapshot(snapshot: ComfyUIRequestSnapshot): InlinePromptSnapshot {
+    return {
+      positivePrompt: snapshot.positivePrompt,
+      negativePrompt: snapshot.negativePrompt,
+      imageSource: 'comfyui',
+      comfyui: snapshot,
+    };
   }
 
   /**
    * 清理所有临时图片与 Object URL
    */
   function cleanup(): void {
-    imageCleanupObserver.disconnect();
+    imageGallery.cleanup();
     exitSelectionMode();
     generationSession.cleanup();
-
-    // 移除所有图片容器
-    imageContainers.forEach(container => removeImageContainer(container));
-    imageContainers.clear();
-    imageObjectUrls.clear();
-    promptSnapshots.clear();
-
-    // 释放所有 Object URL
-    objectUrls.forEach(url => URL.revokeObjectURL(url));
-    objectUrls.clear();
-
   }
   return {
     isSelectionMode,

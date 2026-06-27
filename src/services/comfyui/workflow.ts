@@ -2,7 +2,6 @@ import {
   COMFYUI_MAX_SEED,
   type ComfyUILoraSetting,
   type ComfyUISampler,
-  type ComfyUISeedMode,
   type ComfyUISettings,
 } from '@/constants/comfyui';
 import type { ImagePromptPresetSettings } from '@/constants/image-prompt';
@@ -57,7 +56,6 @@ export interface ComfyUIRequestSnapshot {
   cfgScale: number;
   sampler: ComfyUISampler;
   seed: number;
-  seedMode: ComfyUISeedMode;
   loras: ComfyUILoraSnapshot[];
 }
 
@@ -234,11 +232,12 @@ function buildWorkflowContext(settings: ComfyUISettings, prompts: ImagePromptPai
 
 /**
  * 解析本次请求使用的 seed
+ * seed 为 null 时随机,否则使用固定值
  * @param settings ComfyUI 设置
  * @returns 最终 seed
  */
 function resolveRequestSeed(settings: ComfyUISettings): number {
-  if (settings.seedMode === 'random') {
+  if (settings.seed === null) {
     return Math.floor(Math.random() * (COMFYUI_MAX_SEED + 1));
   }
   if (!Number.isSafeInteger(settings.seed) || settings.seed < 0 || settings.seed > COMFYUI_MAX_SEED) {
@@ -596,7 +595,6 @@ function buildRequestSnapshot(
     cfgScale: context.cfgScale,
     sampler: context.sampler,
     seed: context.seed,
-    seedMode: settings.seedMode,
     loras,
   };
 }

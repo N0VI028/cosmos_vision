@@ -95,6 +95,15 @@ const panelHeader = {
 const panelContent = {
   class: 'cv-prime-panel-content',
 } as const;
+const galleria = {
+  root: { class: 'cv-prime-galleria' },
+  content: { class: 'cv-prime-galleria-content' },
+  itemsContainer: { class: 'cv-prime-galleria-items-container' },
+  item: { class: 'cv-prime-galleria-item' },
+  thumbnails: { class: 'cv-prime-galleria-thumbnails' },
+  thumbnail: { class: 'cv-prime-galleria-thumbnail' },
+  thumbnailItem: { class: 'cv-prime-galleria-thumbnail-item' },
+} as const;
 
 /**
  * PrimeVue Pass Through 集中配置
@@ -106,6 +115,7 @@ export const cosmosPrimePt = {
   },
   image: { previewMask: imagePreviewMask },
   inputtext: { root: fieldRoot },
+  galleria,
   textarea: { root: { class: 'cv-prime-field cv-prime-textarea' } },
   select: {
     root: fieldRoot,

@@ -223,7 +223,6 @@ const snapshotRows = computed<ParamRow[]>(() => {
     { label: 'CFG', value: String(requestSnapshot.value.cfgScale) },
     { label: '采样器类型', value: requestSnapshot.value.sampler, code: true },
     { label: 'Seed', value: String(requestSnapshot.value.seed) },
-    { label: 'Seed 模式', value: requestSnapshot.value.seedMode === 'random' ? '随机' : '固定' },
     { label: '启用 LoRA', value: formatSnapshotLoras(requestSnapshot.value.loras), code: true },
   ];
 });

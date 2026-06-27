@@ -140,19 +140,16 @@
             />
           </label>
           <label class="cv-field">
-            <span>Seed 模式</span>
-            <Select
-              v-model="settings.comfyui.seedMode"
-              :options="seedModeOptions"
-              option-label="label"
-              option-value="value"
+            <span>种子</span>
+            <InputNumber
+              v-model="settings.comfyui.seed"
+              :min="0"
+              :max="maxSeed"
+              :use-grouping="false"
+              placeholder="留空随机"
             />
           </label>
         </div>
-        <label v-if="settings.comfyui.seedMode === 'fixed'" class="cv-field">
-          <span>固定 Seed</span>
-          <InputNumber v-model="settings.comfyui.seed" :min="0" :max="maxSeed" :use-grouping="false" show-buttons />
-        </label>
       </div>
 
       <div class="cv-lora-title-row">
@@ -245,7 +242,6 @@ import {
   COMFYUI_MAX_SEED,
   COMFYUI_RESOLUTION_PRESETS,
   COMFYUI_SAMPLERS,
-  COMFYUI_SEED_MODES,
   createComfyUILoraSetting,
   type ComfyUILoraSetting,
 } from '@/constants/comfyui';
@@ -297,7 +293,6 @@ const resolutionPresetOptions = [
   { value: COMFYUI_CUSTOM_RESOLUTION_PRESET, label: 'Custom' },
 ];
 const samplerOptions = [...COMFYUI_SAMPLERS];
-const seedModeOptions = [...COMFYUI_SEED_MODES];
 const checkpointOverride = computed<string | null>({
   get: () => settings.comfyui.checkpointName || null,
   set: value => {

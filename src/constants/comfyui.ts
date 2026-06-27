@@ -47,12 +47,6 @@ export const COMFYUI_SAMPLERS = [
 /** ComfyUI 默认采样器 */
 export const COMFYUI_DEFAULT_SAMPLER = 'euler_ancestral';
 
-/** ComfyUI seed 模式 */
-export const COMFYUI_SEED_MODES = [
-  { value: 'random', label: '随机' },
-  { value: 'fixed', label: '固定' },
-] as const;
-
 /** ComfyUI 可用的最大安全 seed */
 export const COMFYUI_MAX_SEED = Number.MAX_SAFE_INTEGER;
 
@@ -61,9 +55,6 @@ export type ImageSource = (typeof IMAGE_SOURCES)[number]['value'];
 
 /** ComfyUI 采样器类型 */
 export type ComfyUISampler = (typeof COMFYUI_SAMPLERS)[number]['value'];
-
-/** ComfyUI seed 模式类型 */
-export type ComfyUISeedMode = (typeof COMFYUI_SEED_MODES)[number]['value'];
 
 /** ComfyUI 尺寸预设类型 */
 export type ComfyUIResolutionPreset =
@@ -109,6 +100,5 @@ export interface ComfyUISettings extends ImagePromptPresetReferences {
   steps: number;
   cfgScale: number;
   sampler: ComfyUISampler;
-  seedMode: ComfyUISeedMode;
-  seed: number;
+  seed: number | null;
 }

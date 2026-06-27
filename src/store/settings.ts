@@ -9,7 +9,6 @@ import {
   COMFYUI_MAX_SEED,
   COMFYUI_RESOLUTION_PRESETS,
   COMFYUI_SAMPLERS,
-  COMFYUI_SEED_MODES,
   IMAGE_SOURCES,
   createComfyUILoraSetting,
   type ComfyUILoraSetting,
@@ -84,14 +83,13 @@ const novelAIAccountSchema = z.object({
   url: z.string(),
   apiKey: z.string(),
 });
-const comfyUISeedModeSchema = z.enum(optionValues(COMFYUI_SEED_MODES));
 const comfyUISamplerSchema = z.enum(optionValues(COMFYUI_SAMPLERS));
 const comfyUIResolutionPresetSchema = z.union([
   z.enum(optionValues(COMFYUI_RESOLUTION_PRESETS)),
   z.literal(COMFYUI_CUSTOM_RESOLUTION_PRESET),
 ]);
 const comfyUIImageSizeSchema = z.number().int().min(COMFYUI_IMAGE_SIZE_LIMITS.min).max(COMFYUI_IMAGE_SIZE_LIMITS.max);
-const comfyUISeedSchema = z.number().int().min(0).max(COMFYUI_MAX_SEED);
+const comfyUISeedSchema = z.number().int().min(0).max(COMFYUI_MAX_SEED).nullable();
 const comfyUILoraSchema = z.object({
   id: z.string().min(1),
   name: z.string(),
@@ -160,7 +158,6 @@ const comfyUISettingsSchema = z.object({
   steps: z.number(),
   cfgScale: z.number(),
   sampler: comfyUISamplerSchema,
-  seedMode: comfyUISeedModeSchema,
   seed: comfyUISeedSchema,
 });
 
@@ -515,7 +512,6 @@ function recoverComfyUISettings(value: unknown): ComfyUISettings {
     steps: read('steps', z.number()),
     cfgScale: read('cfgScale', z.number()),
     sampler: read('sampler', comfyUISamplerSchema),
-    seedMode: read('seedMode', comfyUISeedModeSchema),
     seed: read('seed', comfyUISeedSchema),
   };
 }

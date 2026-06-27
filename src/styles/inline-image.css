@@ -332,7 +332,6 @@ body.dark .cv-inline-toolbar {
   display: block;
   width: 100%;
   height: auto;
-  border-radius: 0.2667em;
   user-select: none;
   -webkit-user-drag: none;
 }
@@ -355,6 +354,131 @@ body.dark .cv-inline-toolbar {
 .cv-inline-img-actions:focus-within {
   opacity: 1;
   pointer-events: auto;
+}
+
+.cv-inline-favorite-content {
+  width: 100%;
+}
+
+.cv-inline-favorite-stage {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+/* 角落悬浮按钮(收藏/移除): 与图片操作按钮统一的毛玻璃方钮, 全程 !important 反压 ST 聊天区样式 */
+.cv-inline-corner-button {
+  position: absolute;
+  bottom: 0.6667em;
+  z-index: 3;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 2.4em;
+  height: 2.4em;
+  padding: 0 !important;
+  border: 1px solid color-mix(in srgb, var(--p-surface-200, #e5e7eb) 50%, transparent) !important;
+  border-radius: var(--cv-radius, 0.2667em) !important;
+  /* 反压 ST 聊天区给原生 button 注入的渐变背景图, 否则会盖住下方半透明毛玻璃底 */
+  background-image: none !important;
+  background-color: color-mix(in srgb, var(--p-surface-0, #ffffff) 80%, transparent) !important;
+  color: var(--p-text-color, #000000) !important;
+  font-size: var(--cv-font-size-xs) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  backdrop-filter: blur(8px) !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+/* 桌面 hover / 移动端点击激活整张图片时, 角钮随操作条一起浮现 */
+.cv-inline-img-wrap:hover .cv-inline-corner-button,
+.cv-inline-img-wrap.cv-inline-img-active .cv-inline-corner-button,
+.cv-inline-favorite-stage:hover .cv-inline-corner-button,
+.cv-inline-corner-button:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cv-inline-corner-button:hover,
+.cv-inline-corner-button:focus-visible {
+  transform: translateY(-1px);
+  background-color: color-mix(in srgb, var(--p-surface-0, #ffffff) 92%, transparent) !important;
+  border-color: color-mix(in srgb, var(--p-surface-300, #d1d5db) 60%, transparent) !important;
+}
+
+/* 收藏星标 SVG: 默认灰色实心, 已收藏由内联 fill 切换金色 */
+.cv-inline-favorite-star {
+  width: 1.4em;
+  height: 1.4em;
+  display: block;
+}
+
+/* 收藏星标: 右下角 */
+.cv-inline-favorite-toggle {
+  right: 0.6667em;
+}
+
+/* 移除按钮: 左下角, 与危险操作按钮一致的警告红色 */
+.cv-inline-remove-toggle {
+  left: 0.6667em;
+  color: #ef4444 !important;
+  border-color: color-mix(in srgb, #ef4444 30%, transparent) !important;
+  background-color: color-mix(in srgb, #ef4444 18%, transparent) !important;
+}
+
+.cv-inline-remove-toggle:hover,
+.cv-inline-remove-toggle:focus-visible {
+  color: #ef4444 !important;
+  border-color: color-mix(in srgb, #ef4444 50%, transparent) !important;
+  background-color: color-mix(in srgb, #ef4444 30%, transparent) !important;
+}
+
+.cv-inline-favorite-galleria {
+  width: 100%;
+}
+
+.cv-inline-favorite-galleria .cv-prime-galleria-content,
+.cv-inline-favorite-galleria .cv-prime-galleria-items-container {
+  width: 100%;
+}
+
+.cv-inline-favorite-galleria .cv-prime-galleria-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cv-inline-img-wrap .cv-inline-favorite-thumb {
+  display: block;
+  width: 4.2em;
+  height: 4.2em;
+  object-fit: cover;
+  border-radius: var(--cv-radius-sm);
+}
+
+.cv-inline-favorite-galleria .cv-prime-galleria-thumbnails {
+  padding-block: 0.5em;
+  background: transparent;
+}
+
+.cv-inline-favorite-galleria .cv-prime-galleria-thumbnail-item {
+  opacity: 0.72;
+}
+
+.cv-inline-favorite-galleria .cv-prime-galleria-thumbnail-item[data-p-active='true'] {
+  opacity: 1;
+}
+
+.cv-inline-favorite-galleria button {
+  box-shadow: none !important;
 }
 
 /* 段落下方生成状态条容器 */

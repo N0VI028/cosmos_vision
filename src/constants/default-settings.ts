@@ -109,8 +109,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     steps: 23,
     cfgScale: 5,
     sampler: COMFYUI_DEFAULT_SAMPLER,
-    seedMode: 'random',
-    seed: 0,
+    seed: null,
   },
   promptLlm: {
     proxyPreset: '',

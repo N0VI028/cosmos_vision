@@ -1,7 +1,86 @@
+import type { ImagePromptVibeRef } from '@/constants/image-prompt';
+import type { ImageSource } from '@/constants/comfyui';
+import type { ComfyUIRequestSnapshot } from '@/services/comfyui/workflow';
+import type { NovelAIFinalPrompts } from '@/services/novelai/api';
+import type { NovelAIVibeParameters } from '@/services/novelai/vibe-types';
+
 /** 内联生图提示词快照 */
 export interface InlinePromptSnapshot {
   positivePrompt: string;
   negativePrompt: string;
+  imageSource?: ImageSource;
+  novelai?: NovelAIFinalPrompts;
+  comfyui?: ComfyUIRequestSnapshot;
+}
+
+/**
+ * 克隆为 IndexedDB 可结构化保存的纯提示词快照
+ * @param snapshot 原始提示词快照
+ * @returns 去除响应式代理引用后的快照
+ */
+export function cloneInlinePromptSnapshot(snapshot: InlinePromptSnapshot): InlinePromptSnapshot {
+  return {
+    positivePrompt: snapshot.positivePrompt,
+    negativePrompt: snapshot.negativePrompt,
+    imageSource: snapshot.imageSource,
+    novelai: snapshot.novelai ? cloneNovelAIFinalPrompts(snapshot.novelai) : undefined,
+    comfyui: snapshot.comfyui ? cloneComfyUIRequestSnapshot(snapshot.comfyui) : undefined,
+  };
+}
+
+/**
+ * 克隆 NovelAI 最终提示词
+ * @param prompts 原始 NovelAI 提示词
+ * @returns 纯对象提示词
+ */
+function cloneNovelAIFinalPrompts(prompts: NovelAIFinalPrompts): NovelAIFinalPrompts {
+  return {
+    positivePrompt: prompts.positivePrompt,
+    negativePrompt: prompts.negativePrompt,
+    vibeReferences: prompts.vibeReferences?.map(cloneImagePromptVibeRef),
+    vibeParameters: prompts.vibeParameters ? cloneNovelAIVibeParameters(prompts.vibeParameters) : undefined,
+  };
+}
+
+/**
+ * 克隆 NovelAI vibe 引用
+ * @param vibe 原始 vibe 引用
+ * @returns 纯对象 vibe 引用
+ */
+function cloneImagePromptVibeRef(vibe: ImagePromptVibeRef): ImagePromptVibeRef {
+  return {
+    id: vibe.id,
+    sourceHash: vibe.sourceHash,
+    enabled: vibe.enabled,
+    referenceStrength: vibe.referenceStrength,
+    informationExtracted: vibe.informationExtracted,
+    temporary: vibe.temporary,
+  };
+}
+
+/**
+ * 克隆 NovelAI 官方 vibe 参数数组
+ * @param parameters 原始 vibe 参数
+ * @returns 纯数组 vibe 参数
+ */
+function cloneNovelAIVibeParameters(parameters: NovelAIVibeParameters): NovelAIVibeParameters {
+  return {
+    reference_image_multiple: [...parameters.reference_image_multiple],
+    reference_strength_multiple: [...parameters.reference_strength_multiple],
+    reference_information_extracted_multiple: [...parameters.reference_information_extracted_multiple],
+  };
+}
+
+/**
+ * 克隆 ComfyUI 请求快照
+ * @param snapshot 原始 ComfyUI 快照
+ * @returns 纯对象 ComfyUI 快照
+ */
+function cloneComfyUIRequestSnapshot(snapshot: ComfyUIRequestSnapshot): ComfyUIRequestSnapshot {
+  return {
+    ...snapshot,
+    loras: snapshot.loras.map(lora => ({ name: lora.name, strength: lora.strength })),
+  };
 }
 
 /**
