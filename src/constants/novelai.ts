@@ -64,6 +64,8 @@ export const NOVELAI_RESOLUTION_PRESETS = [
 
 export const NOVELAI_CUSTOM_RESOLUTION_PRESET = 'custom';
 export const NOVELAI_IMAGE_SIZE_LIMITS = { min: 64, max: 2048, step: 64 } as const;
+/** NovelAI seed 最大值，按 32 位无符号整数处理 */
+export const NOVELAI_MAX_SEED = 4294967295;
 export const NOVELAI_DEFAULT_URL = 'https://image.novelai.net';
 export const NOVELAI_DEFAULT_ACCOUNT_ID = 'novelai-account-1';
 
@@ -162,6 +164,7 @@ export interface NovelAISettings extends ImagePromptPresetReferences {
   steps: number;
   guidance: number;
   sampler: NovelAISampler;
+  seed: number | null;
   autoSampler: boolean;
   varietyPlus: boolean;
   smea: boolean;

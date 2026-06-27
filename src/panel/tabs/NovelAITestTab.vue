@@ -231,6 +231,7 @@ const novelaiParamRows = computed<ParamRow[]>(() => {
     { label: '模型', value: novelaiSnapshot.value.model, code: true },
     { label: '图像尺寸', value: `${novelaiSnapshot.value.width}x${novelaiSnapshot.value.height}` },
     { label: '采样器', value: novelaiSnapshot.value.sampler, code: true },
+    { label: 'Seed', value: String(novelaiSnapshot.value.seed) },
     { label: '步数', value: String(novelaiSnapshot.value.steps) },
     { label: '提示词引导', value: String(novelaiSnapshot.value.guidance) },
     { label: 'Auto 采样器', value: novelaiSnapshot.value.autoSampler ? '开启' : '关闭' },

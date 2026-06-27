@@ -115,38 +115,50 @@
             />
           </div>
         </div>
-        <div class="cv-field cv-nai-sampler-field">
-          <div class="cv-nai-field-title-row">
-            <span>采样器</span>
-            <ToggleButton
-              v-if="isV3Model"
-              v-model="settings.novelai.autoSampler"
-              class="cv-nai-mini-toggle"
-              on-label="Auto"
-              off-label="Auto"
-              on-icon="fa-solid fa-check"
-              off-icon="fa-solid fa-xmark"
-              aria-label="切换 Auto 采样器"
-              size="small"
+        <div class="cv-field-grid">
+          <div class="cv-field cv-nai-sampler-field">
+            <div class="cv-nai-field-title-row">
+              <span>采样器</span>
+              <ToggleButton
+                v-if="isV3Model"
+                v-model="settings.novelai.autoSampler"
+                class="cv-nai-mini-toggle"
+                on-label="Auto"
+                off-label="Auto"
+                on-icon="fa-solid fa-check"
+                off-icon="fa-solid fa-xmark"
+                aria-label="切换 Auto 采样器"
+                size="small"
+              />
+            </div>
+            <Select
+              v-model="settings.novelai.sampler"
+              :options="samplerOptions"
+              option-label="label"
+              option-value="value"
+              :disabled="settings.novelai.autoSampler && isV3Model"
             />
+            <div v-if="isV3Model" class="cv-nai-option-row">
+              <label class="cv-nai-check-option">
+                <Checkbox v-model="settings.novelai.smea" binary />
+                <span>SMEA</span>
+              </label>
+              <label class="cv-nai-check-option" :class="{ 'cv-nai-check-option--disabled': !settings.novelai.smea }">
+                <Checkbox v-model="settings.novelai.smeaDyn" binary :disabled="!settings.novelai.smea" />
+                <span>DYN</span>
+              </label>
+            </div>
           </div>
-          <Select
-            v-model="settings.novelai.sampler"
-            :options="samplerOptions"
-            option-label="label"
-            option-value="value"
-            :disabled="settings.novelai.autoSampler && isV3Model"
-          />
-          <div v-if="isV3Model" class="cv-nai-option-row">
-            <label class="cv-nai-check-option">
-              <Checkbox v-model="settings.novelai.smea" binary />
-              <span>SMEA</span>
-            </label>
-            <label class="cv-nai-check-option" :class="{ 'cv-nai-check-option--disabled': !settings.novelai.smea }">
-              <Checkbox v-model="settings.novelai.smeaDyn" binary :disabled="!settings.novelai.smea" />
-              <span>DYN</span>
-            </label>
-          </div>
+          <label class="cv-field">
+            <span>种子</span>
+            <InputNumber
+              v-model="settings.novelai.seed"
+              :min="0"
+              :max="maxSeed"
+              :use-grouping="false"
+              placeholder="留空随机"
+            />
+          </label>
         </div>
         <label class="cv-field">
           <span>负向提示词程度</span>
@@ -220,6 +232,7 @@ import { useResolutionPreset } from '@/composables/useResolutionPreset';
 import {
   NOVELAI_CUSTOM_RESOLUTION_PRESET,
   NOVELAI_IMAGE_SIZE_LIMITS,
+  NOVELAI_MAX_SEED,
   NOVELAI_ROUTING_MODES,
   NOVELAI_MODELS,
   NOVELAI_NOISE_SCHEDULES,
@@ -264,6 +277,7 @@ const resolutionPresetOptions = [
 const samplerOptions = [...NOVELAI_SAMPLERS];
 const ucPresetOptions = [...NOVELAI_UC_PRESETS];
 const imageSizeLimits = NOVELAI_IMAGE_SIZE_LIMITS;
+const maxSeed = NOVELAI_MAX_SEED;
 const isV3Model = computed(() => isNovelAIV3Model(settings.novelai.model));
 const isV45Model = computed(() => isNovelAIV45Model(settings.novelai.model));
 const isV4OnlyModel = computed(() => isNovelAIV4OnlyModel(settings.novelai.model));

@@ -9,6 +9,7 @@ import type {
   PromptLlmSettings,
 } from '@/constants/novelai';
 import {
+  NOVELAI_MAX_SEED,
   isNovelAIV3Model,
   isNovelAIV4Model,
   isNovelAIV45Model,
@@ -63,6 +64,7 @@ export interface NovelAIRequestSnapshot {
   width: number;
   height: number;
   sampler: NovelAISampler;
+  seed: number;
   steps: number;
   guidance: number;
   autoSampler: boolean;
@@ -82,6 +84,7 @@ export interface NovelAIResolvedRequest {
   settings: NovelAISettings;
   prompts: NovelAIFinalPrompts;
   accounts: NovelAIAccount[];
+  seed: number;
   snapshot: NovelAIRequestSnapshot;
 }
 
@@ -130,8 +133,8 @@ export async function generateNovelAIImageFromResolvedRequest(
   for (const [index, account] of request.accounts.entries()) {
     try {
       return {
-        imageBlob: await requestNovelAIAccountImage(request.settings, prompts, account, options),
-        snapshot: buildRequestSnapshot(request.settings, prompts, account),
+        imageBlob: await requestNovelAIAccountImage(request.settings, prompts, account, options, request.seed),
+        snapshot: buildRequestSnapshot(request.settings, prompts, account, request.seed),
         prompts,
       };
     } catch (error) {
@@ -179,12 +182,15 @@ export function buildNovelAILlmPromptOverrides(
  * 构建 NovelAI 测试日志快照
  * @param settings NovelAI 设置页参数
  * @param prompts 最终提示词
+ * @param account 快照展示使用的账号
+ * @param seed 本次请求使用的 seed
  * @returns 展示给测试面板的关键请求信息
  */
 function buildRequestSnapshot(
   settings: NovelAISettings,
   prompts: NovelAIFinalPrompts,
   account: NovelAIAccount | null,
+  seed: number,
 ): NovelAIRequestSnapshot {
   return {
     endpoint: account ? buildEndpoint(account.url) : '未选择可用账号',
@@ -194,6 +200,7 @@ function buildRequestSnapshot(
     width: settings.width,
     height: settings.height,
     sampler: getEffectiveSampler(settings),
+    seed,
     steps: settings.steps,
     guidance: settings.guidance,
     autoSampler: settings.autoSampler,
@@ -251,14 +258,15 @@ function validatePrompts(prompts: NovelAIFinalPrompts): void {
  * 构建 NovelAI 官方请求体
  * @param settings NovelAI 设置页参数
  * @param prompts 最终提示词
+ * @param seed 本次请求使用的 seed
  * @returns 官方 API payload
  */
-function buildPayload(settings: NovelAISettings, prompts: NovelAIFinalPrompts): NovelAIPayload {
+function buildPayload(settings: NovelAISettings, prompts: NovelAIFinalPrompts, seed: number): NovelAIPayload {
   return {
     action: 'generate',
     input: prompts.positivePrompt,
     model: settings.model,
-    parameters: buildParameters(settings, prompts),
+    parameters: buildParameters(settings, prompts, seed),
     use_new_shared_trial: true,
   };
 }
@@ -267,10 +275,11 @@ function buildPayload(settings: NovelAISettings, prompts: NovelAIFinalPrompts): 
  * 构建 NovelAI parameters 字段(对齐 nai-webui 文生图实现)
  * @param settings NovelAI 设置页参数
  * @param prompts 最终提示词
+ * @param seed 本次请求使用的 seed
  * @returns 官方 parameters
  */
-function buildParameters(settings: NovelAISettings, prompts: NovelAIFinalPrompts): Record<string, unknown> {
-  const parameters = createBaseParameters(settings, prompts);
+function buildParameters(settings: NovelAISettings, prompts: NovelAIFinalPrompts, seed: number): Record<string, unknown> {
+  const parameters = createBaseParameters(settings, prompts, seed);
   if (isNovelAIV3Model(settings.model)) applyV3Parameters(parameters, settings);
   if (isNovelAIV4Model(settings.model)) applyV4Prompts(parameters, prompts);
   if (prompts.vibeParameters) Object.assign(parameters, prompts.vibeParameters);
@@ -281,9 +290,10 @@ function buildParameters(settings: NovelAISettings, prompts: NovelAIFinalPrompts
  * 构建 NovelAI parameters 基础字段
  * @param settings NovelAI 设置页参数
  * @param prompts 最终提示词
+ * @param seed 本次请求使用的 seed
  * @returns 官方 parameters 基础对象
  */
-function createBaseParameters(settings: NovelAISettings, prompts: NovelAIFinalPrompts): Record<string, unknown> {
+function createBaseParameters(settings: NovelAISettings, prompts: NovelAIFinalPrompts, seed: number): Record<string, unknown> {
   return {
     params_version: 3,
     width: settings.width,
@@ -304,7 +314,7 @@ function createBaseParameters(settings: NovelAISettings, prompts: NovelAIFinalPr
     legacy_uc: false,
     normalize_reference_strength_multiple: true,
     inpaintImg2ImgStrength: 1,
-    seed: Math.floor(Math.random() * 4294967295),
+    seed,
     characterPrompts: [],
     negative_prompt: prompts.negativePrompt,
     prefer_brownian: true,
@@ -364,6 +374,24 @@ function applyV4Prompts(parameters: Record<string, unknown>, prompts: NovelAIFin
  */
 function getEffectiveSampler(settings: NovelAISettings): NovelAISampler {
   return isNovelAIV3Model(settings.model) && settings.autoSampler ? 'k_euler_ancestral' : settings.sampler;
+}
+
+/**
+ * 解析本次 NovelAI 请求使用的 seed
+ * 设置页留空时为本次请求生成随机 seed
+ * @param settings NovelAI 设置页参数
+ * @returns 最终发送给 NovelAI 的 seed
+ */
+function resolveNovelAISeed(settings: NovelAISettings): number {
+  return settings.seed ?? createRandomSeed();
+}
+
+/**
+ * 创建 NovelAI 随机 seed
+ * @returns 32 位无符号整数范围内的 seed
+ */
+function createRandomSeed(): number {
+  return Math.floor(Math.random() * (NOVELAI_MAX_SEED + 1));
 }
 
 /**
@@ -436,11 +464,13 @@ function resolveFinalPrompts(
  */
 function createResolvedRequest(settings: NovelAISettings, prompts: NovelAIFinalPrompts): NovelAIResolvedRequest {
   const accounts = getNovelAIRequestAccounts(settings);
+  const seed = resolveNovelAISeed(settings);
   return {
     settings,
     prompts,
     accounts,
-    snapshot: buildRequestSnapshot(settings, prompts, accounts[0] ?? null),
+    seed,
+    snapshot: buildRequestSnapshot(settings, prompts, accounts[0] ?? null, seed),
   };
 }
 
@@ -508,6 +538,8 @@ function ensureRequestAccounts(accounts: NovelAIAccount[]): void {
  * @param settings NovelAI 设置页参数
  * @param prompts 最终提示词
  * @param account 本次尝试账号
+ * @param options 请求控制选项
+ * @param seed 本次请求使用的 seed
  * @returns 第一张图片 Blob
  */
 async function requestNovelAIAccountImage(
@@ -515,8 +547,9 @@ async function requestNovelAIAccountImage(
   prompts: NovelAIFinalPrompts,
   account: NovelAIAccount,
   options: NovelAIRequestOptions,
+  seed: number,
 ): Promise<Blob> {
-  const response = await requestNovelAIResponse(settings, prompts, account, options);
+  const response = await requestNovelAIResponse(settings, prompts, account, options, seed);
   throwIfNovelAIAborted(options.signal);
   const contentType = response.headers.get('content-type') ?? '';
   if (contentType.includes('application/json')) {
@@ -532,6 +565,8 @@ async function requestNovelAIAccountImage(
  * @param settings NovelAI 设置页参数
  * @param prompts 最终提示词
  * @param account 本次尝试账号
+ * @param options 请求控制选项
+ * @param seed 本次请求使用的 seed
  * @returns 官方响应对象
  */
 async function requestNovelAIResponse(
@@ -539,12 +574,13 @@ async function requestNovelAIResponse(
   prompts: NovelAIFinalPrompts,
   account: NovelAIAccount,
   options: NovelAIRequestOptions,
+  seed: number,
 ): Promise<Response> {
   try {
     const response = await fetch(buildEndpoint(account.url), {
       method: 'POST',
       headers: buildHeaders(account.apiKey),
-      body: JSON.stringify(buildPayload(settings, prompts)),
+      body: JSON.stringify(buildPayload(settings, prompts, seed)),
       signal: options.signal,
     });
     await ensureSuccess(response);

@@ -82,6 +82,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     steps: 28,
     guidance: 5.5,
     sampler: 'k_euler_ancestral',
+    seed: null,
     autoSampler: false,
     varietyPlus: false,
     smea: false,

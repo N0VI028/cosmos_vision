@@ -32,6 +32,7 @@ import {
 import {
   NOVELAI_CUSTOM_RESOLUTION_PRESET,
   NOVELAI_IMAGE_SIZE_LIMITS,
+  NOVELAI_MAX_SEED,
   NOVELAI_MODELS,
   NOVELAI_RESOLUTION_PRESETS,
   NOVELAI_ROUTING_MODES,
@@ -77,6 +78,7 @@ const novelAIResolutionPresetSchema = z.union([
   z.literal(NOVELAI_CUSTOM_RESOLUTION_PRESET),
 ]);
 const novelAIImageSizeSchema = z.number().int().min(NOVELAI_IMAGE_SIZE_LIMITS.min).max(NOVELAI_IMAGE_SIZE_LIMITS.max);
+const novelAISeedSchema = z.number().int().min(0).max(NOVELAI_MAX_SEED).nullable();
 const novelAIAccountSchema = z.object({
   id: z.string().min(1),
   url: z.string(),
@@ -130,6 +132,7 @@ const novelAISettingsSchema = z.object({
   steps: z.number(),
   guidance: z.number(),
   sampler: novelAISamplerSchema,
+  seed: novelAISeedSchema,
   autoSampler: z.boolean(),
   varietyPlus: z.boolean(),
   smea: z.boolean(),
@@ -439,6 +442,7 @@ function recoverNovelAISettings(value: unknown): NovelAISettings {
     steps: read('steps', z.number()),
     guidance: readNovelAIGuidance(record, fallback.guidance),
     sampler: read('sampler', novelAISamplerSchema),
+    seed: read('seed', novelAISeedSchema),
     autoSampler: read('autoSampler', z.boolean()),
     varietyPlus: read('varietyPlus', z.boolean()),
     smea: read('smea', z.boolean()),
