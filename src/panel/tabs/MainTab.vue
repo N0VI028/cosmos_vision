@@ -52,23 +52,17 @@
       <div class="cv-vibe-title-row">
         <h2 class="cv-section-title">Vibe 数据</h2>
         <div class="cv-vibe-title-actions">
-          <Button
+          <CvMiniButton
             label="下载全部"
             icon="fa-solid fa-download"
-            size="small"
-            text
-            :fluid="false"
             :disabled="isVibeActionDisabled"
             :loading="isVibeActionBusy"
             @click="downloadAllVibes"
           />
-          <Button
+          <CvMiniButton
             label="删除全部"
             icon="fa-solid fa-trash"
-            severity="danger"
-            size="small"
-            text
-            :fluid="false"
+            tone="error"
             :disabled="isVibeActionDisabled"
             :loading="isVibeActionBusy"
             @click="deleteAllVibes"
@@ -142,6 +136,7 @@
 <script setup lang="ts">
 import { computed, inject, ref, watch } from 'vue';
 import { IMAGE_SOURCES } from '@/constants/comfyui';
+import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import { useSettingsStore } from '@/store/settings';
 import {
   clearNovelAIVibeCache,
@@ -335,7 +330,7 @@ function openUrl(url: string): void {
 
 .cv-vibe-title-row {
   @apply flex items-center justify-between;
-  margin: 0 0 0 0;
+  margin: var(--cv-space-10xl) 0 var(--cv-space-3xl) 0;
 }
 
 .cv-vibe-title-row > .cv-section-title {
@@ -344,7 +339,7 @@ function openUrl(url: string): void {
 
 .cv-vibe-title-actions {
   @apply flex items-center;
-  gap: var(--cv-space-xs);
+  gap: var(--cv-space-lg);
 }
 
 .cv-version-tag {
