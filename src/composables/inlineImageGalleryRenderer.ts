@@ -26,6 +26,7 @@ import {
   getParagraphTextHash,
   type InlineFavoriteAnchor,
 } from '@/services/sillytavern/chat-dom';
+import { event_types, eventSource } from '@sillytavern/script';
 import type { AppContext } from 'vue';
 import { h, render } from 'vue';
 
@@ -61,10 +62,14 @@ interface InlineGalleryState extends InlineGalleryRendererOptions {
   groups: Map<number, InlineGalleryGroup>;
   objectUrls: Set<string>;
   messageRestorer: InlineImageMessageRenderRestorer | null;
+  chatRestoreTimer: number | null;
+  scheduleChatRestore: () => void;
   restoreToken: number;
   nextTemporaryId: number;
   disposed: boolean;
 }
+
+const CHAT_RESTORE_DELAY_MS = 80;
 
 /**
  * 创建聊天段落图片画廊渲染器
@@ -74,6 +79,7 @@ interface InlineGalleryState extends InlineGalleryRendererOptions {
 export function createInlineImageGalleryRenderer(options: InlineGalleryRendererOptions): InlineImageGalleryRenderer {
   const state = createGalleryState(options);
   attachMessageRenderRestorer(state);
+  registerChatChangeRestore(state);
   void restoreGallery(state);
   return {
     getHost: paragraph => getGroupByParagraph(state, paragraph)?.host ?? null,
@@ -94,10 +100,13 @@ function createGalleryState(options: InlineGalleryRendererOptions): InlineGaller
     groups: new Map(),
     objectUrls: new Set(),
     messageRestorer: null,
+    chatRestoreTimer: null,
+    scheduleChatRestore: () => undefined,
     restoreToken: 0,
     nextTemporaryId: 1,
     disposed: false,
   };
+  state.scheduleChatRestore = () => scheduleRestoreGallery(state);
   return state;
 }
 
@@ -113,6 +122,43 @@ function attachMessageRenderRestorer(state: InlineGalleryState): void {
     readRecords: () => readFavoriteRecordsForCurrentScope(),
     remountGroups: anchors => remountRenderedGroups(state, anchors),
   });
+}
+
+/**
+ * 注册聊天切换后的收藏图全量恢复
+ * @param state 画廊状态
+ */
+function registerChatChangeRestore(state: InlineGalleryState): void {
+  eventSource.makeLast(event_types.CHAT_CHANGED, state.scheduleChatRestore);
+}
+
+/**
+ * 排队执行一次聊天切换恢复
+ * @param state 画廊状态
+ */
+function scheduleRestoreGallery(state: InlineGalleryState): void {
+  if (state.disposed) return;
+  if (state.chatRestoreTimer !== null) window.clearTimeout(state.chatRestoreTimer);
+  state.chatRestoreTimer = window.setTimeout(() => flushScheduledGalleryRestore(state), CHAT_RESTORE_DELAY_MS);
+}
+
+/**
+ * 执行已排队的聊天切换恢复
+ * @param state 画廊状态
+ */
+function flushScheduledGalleryRestore(state: InlineGalleryState): void {
+  state.chatRestoreTimer = null;
+  void restoreGallery(state);
+}
+
+/**
+ * 注销聊天切换恢复监听
+ * @param state 画廊状态
+ */
+function disposeChatChangeRestore(state: InlineGalleryState): void {
+  if (state.chatRestoreTimer !== null) window.clearTimeout(state.chatRestoreTimer);
+  state.chatRestoreTimer = null;
+  eventSource.removeListener(event_types.CHAT_CHANGED, state.scheduleChatRestore);
 }
 
 /**
@@ -611,6 +657,7 @@ function getGroupByParagraph(state: InlineGalleryState, paragraph: HTMLElement):
 function cleanupGallery(state: InlineGalleryState): void {
   state.disposed = true;
   state.restoreToken += 1;
+  disposeChatChangeRestore(state);
   state.messageRestorer?.dispose();
   state.messageRestorer = null;
   cleanupGalleryHosts(state);

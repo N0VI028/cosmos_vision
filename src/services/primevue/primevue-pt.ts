@@ -95,14 +95,32 @@ const panelHeader = {
 const panelContent = {
   class: 'cv-prime-panel-content',
 } as const;
+const galleriaNavButton = {
+  class: 'cv-prime-galleria-nav-button',
+} as const;
+const galleriaNavIcon = {
+  class: 'cv-prime-galleria-nav-icon',
+} as const;
 const galleria = {
   root: { class: 'cv-prime-galleria' },
   content: { class: 'cv-prime-galleria-content' },
   itemsContainer: { class: 'cv-prime-galleria-items-container' },
+  items: { class: 'cv-prime-galleria-items' },
+  prevButton: galleriaNavButton,
+  prevIcon: galleriaNavIcon,
   item: { class: 'cv-prime-galleria-item' },
+  nextButton: galleriaNavButton,
+  nextIcon: galleriaNavIcon,
   thumbnails: { class: 'cv-prime-galleria-thumbnails' },
-  thumbnail: { class: 'cv-prime-galleria-thumbnail' },
+  thumbnailContent: { class: 'cv-prime-galleria-thumbnail-content' },
+  thumbnailPrevButton: galleriaNavButton,
+  thumbnailPrevIcon: galleriaNavIcon,
+  thumbnailsViewport: { class: 'cv-prime-galleria-thumbnails-viewport' },
+  thumbnailItems: { class: 'cv-prime-galleria-thumbnail-items' },
   thumbnailItem: { class: 'cv-prime-galleria-thumbnail-item' },
+  thumbnail: { class: 'cv-prime-galleria-thumbnail' },
+  thumbnailNextButton: galleriaNavButton,
+  thumbnailNextIcon: galleriaNavIcon,
 } as const;
 
 /**

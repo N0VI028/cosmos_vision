@@ -193,16 +193,22 @@
  * 让 PrimeVue 各 severity 变体(primary/secondary/danger)与 ToggleSwitch handle 等
  * 仍由 PrimeVue 自身类按主题色生效。
  *
- * 覆盖面:Button、InputNumber 步进按钮、Password 切显按钮、Message 关闭按钮。
+ * 覆盖面:Button、InputNumber 步进按钮、Password 切显按钮、Message 关闭按钮、
+ * Galleria 导航按钮。
  * 新增带内嵌 button 的 PrimeVue 组件出现污染时,把其按钮 class 追加到下方 :is() 列表。
  */
-.cosmos-vision-root :is(.cv-prime-button, .cv-prime-icon-button),
-#cosmos_vision :is(.cv-prime-button, .cv-prime-icon-button) {
+.cosmos-vision-root :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button),
+#cosmos_vision :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button) {
   @apply shrink-0 whitespace-nowrap;
   background-image: none !important;
   box-shadow: none !important;
   text-transform: none !important;
   letter-spacing: normal !important;
+}
+
+.cosmos-vision-root :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button):not(:disabled),
+#cosmos_vision :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button):not(:disabled) {
+  cursor: pointer !important;
 }
 
 /* InputNumber 步进按钮 / Message 关闭按钮:扁平方块,跟随 input 边框 token */
@@ -211,6 +217,12 @@
   background: transparent !important;
   border-color: var(--p-inputtext-border-color) !important;
   color: var(--p-text-muted-color) !important;
+}
+
+.cosmos-vision-root .cv-prime-galleria-nav-button,
+#cosmos_vision .cv-prime-galleria-nav-button {
+  pointer-events: auto !important;
+  touch-action: manipulation;
 }
 
 /* Button 默认圆角钉死,PrimeVue 的 --p-button-border-radius 在 :root 已展开为字面值,子元素重写桥接 token 不回传。

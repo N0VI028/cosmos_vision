@@ -416,20 +416,18 @@ body.dark .cv-inline-toolbar {
 /* 收藏星标: 默认弱化, 已收藏使用局部语义色 */
 .cv-inline-favorite-star {
   display: block;
-  color: var(--cv-inline-favorite-star-color, var(--cv-on-surface-variant));
-  font-size: 1.4em;
+  color: var(--p-gray-400, #9ca3af) !important;
+  font-size: 1.1em;
   line-height: 1;
+}
+
+.cv-inline-favorite-star.fa-solid {
+  color: var(--cv-inline-favorite-star-color, var(--p-yellow-400)) !important;
 }
 
 /* 收藏星标: 右下角 */
 .cv-inline-favorite-toggle {
   right: 0.6667em;
-  --cv-inline-favorite-star-active: var(--cv-primary-container);
-  --cv-inline-favorite-star-color: var(--cv-on-surface-variant);
-}
-
-.cv-inline-favorite-toggle--active {
-  --cv-inline-favorite-star-color: var(--cv-inline-favorite-star-active);
 }
 
 /* 移除按钮: 左下角, 与危险操作按钮一致的警告红色 */
@@ -462,14 +460,6 @@ body.dark .cv-inline-toolbar {
   justify-content: center;
 }
 
-.cv-inline-img-wrap .cv-inline-favorite-thumb {
-  display: block;
-  width: 4.2em;
-  height: 4.2em;
-  object-fit: cover;
-  border-radius: var(--cv-radius-sm);
-}
-
 .cv-inline-favorite-galleria .cv-prime-galleria-thumbnails {
   padding-block: 0.5em;
   background: transparent;
@@ -481,6 +471,18 @@ body.dark .cv-inline-toolbar {
 
 .cv-inline-favorite-galleria .cv-prime-galleria-thumbnail-item[data-p-active='true'] {
   opacity: 1;
+}
+
+.cv-inline-favorite-galleria .cv-prime-galleria-nav-button {
+  @apply inline-flex cursor-pointer items-center justify-center p-0;
+}
+
+.cv-inline-img-wrap .cv-inline-favorite-thumb {
+  display: block;
+  width: 4.2em;
+  height: 4.2em;
+  object-fit: cover;
+  border-radius: var(--cv-radius-sm);
 }
 
 .cv-inline-favorite-galleria button {

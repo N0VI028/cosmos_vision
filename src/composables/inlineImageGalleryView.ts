@@ -64,10 +64,7 @@ export const InlineGalleryGroupView = defineComponent({
  * @returns VNode
  */
 function renderGalleryGroup(props: Readonly<InlineGalleryGroupProps>): VNode {
-  const media = props.items.length > 1
-    ? renderGalleria(props)
-    : renderFocusImage(props, props.items[0]);
-  return h('div', { class: 'cv-inline-favorite-content' }, [media]);
+  return h('div', { class: 'cv-inline-favorite-content' }, [renderGalleria(props)]);
 }
 
 /**
@@ -88,14 +85,15 @@ function renderGalleria(props: Readonly<InlineGalleryGroupProps>): VNode {
  * @returns Galleria 参数
  */
 function buildGalleriaProps(props: Readonly<InlineGalleryGroupProps>): Record<string, unknown> {
+  const hasMultiple = props.items.length > 1;
   return {
     value: props.items,
     activeIndex: findActiveIndex(props.items, props.activeItemId),
     numVisible: 5,
     responsiveOptions: GALLERIA_RESPONSIVE_OPTIONS,
-    circular: true,
+    circular: hasMultiple,
     showItemNavigators: false,
-    showThumbnails: true,
+    showThumbnails: hasMultiple,
     thumbnailsPosition: 'bottom',
     class: 'cv-inline-favorite-galleria',
   };
