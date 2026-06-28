@@ -276,14 +276,14 @@ body.dark .cv-inline-toolbar {
   border-radius: var(--cv-radius, 0.2667em) !important;
 }
 
-/* 图片卡片操作按钮特异样式：白色毛玻璃底+黑色文字和图标 */
+/* 图片卡片操作按钮特异样式：固定白底黑字，不随主题切换 */
 .cv-inline-img-actions .cv-inline-action-button {
-  background-color: color-mix(in srgb, var(--p-surface-0, #ffffff) 80%, transparent) !important;
+  background-color: color-mix(in srgb, var(--p-surface-0) 80%, transparent) !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
-  border: 1px solid color-mix(in srgb, var(--p-surface-200, #e5e7eb) 50%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--p-gray-200) 50%, transparent) !important;
   box-shadow: none !important;
-  color: var(--p-text-color, #000000) !important;
+  color: var(--p-gray-950) !important;
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease,
@@ -291,20 +291,25 @@ body.dark .cv-inline-toolbar {
 }
 
 .cv-inline-img-actions .cv-inline-action-button:not([data-p-disabled='true']):hover {
-  background-color: color-mix(in srgb, var(--p-surface-0, #ffffff) 90%, transparent) !important;
-  border-color: color-mix(in srgb, var(--p-surface-300, #d1d5db) 60%, transparent) !important;
+  background-color: color-mix(in srgb, var(--p-surface-0) 90%, transparent) !important;
+  border-color: color-mix(in srgb, var(--p-gray-300) 60%, transparent) !important;
   transform: translateY(-1px);
 }
 
 /* secondary 按钮与默认样式保持一致 */
 .cv-inline-img-actions .cv-inline-action-button[data-p-severity='secondary'] {
-  color: var(--p-text-color, #000000) !important;
-  background-color: color-mix(in srgb, var(--p-surface-0, #ffffff) 50%, transparent) !important;
-  border: 1px solid color-mix(in srgb, var(--p-surface-200, #e5e7eb) 50%, transparent) !important;
+  color: var(--p-gray-950) !important;
+  background-color: color-mix(in srgb, var(--p-surface-0) 50%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--p-gray-200) 50%, transparent) !important;
 }
 
 .cv-inline-img-actions .cv-inline-action-button[data-p-severity='secondary']:not([data-p-disabled='true']):hover {
-  color: var(--p-text-color, #000000) !important;
+  color: var(--p-gray-950) !important;
+}
+
+/* secondary 按钮内图标同样固定黑色 */
+.cv-inline-img-actions .cv-inline-action-button[data-p-severity='secondary'] i {
+  color: var(--p-gray-950) !important;
 }
 
 /* 危险按钮（danger）覆盖：保持危险红色，但采用与整体一致的半透明毛玻璃加不透明文字的设计 */
@@ -348,12 +353,19 @@ body.dark .cv-inline-toolbar {
   transition: opacity 0.2s ease;
 }
 
-/* 桌面 hover / 移动端点击激活 / 按钮聚焦时浮现 */
-.cv-inline-img-wrap:hover .cv-inline-img-actions,
+/* 移动端点击激活 / 按钮聚焦时浮现 */
 .cv-inline-img-wrap.cv-inline-img-active .cv-inline-img-actions,
 .cv-inline-img-actions:focus-within {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* 桌面端 hover 时浮现（仅限真正支持 hover 的设备，避免移动端 hover 粘滞） */
+@media (hover: hover) {
+  .cv-inline-img-wrap:hover .cv-inline-img-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 /* 画廊外框：明暗模式共用同一底色变量，圆角统一裁切子元素，临时去除边框排查问题 */
@@ -377,7 +389,7 @@ body.dark .cv-inline-toolbar {
   width: 100%;
 }
 
-/* 角落悬浮按钮(收藏/移除): 与图片操作按钮统一的毛玻璃方钮, 全程 !important 反压 ST 聊天区样式 */
+/* 角落悬浮按钮(收藏/移除): 固定白底，不随主题切换，全程 !important 反压 ST 聊天区样式 */
 .cv-inline-corner-button {
   position: absolute;
   bottom: 0.6667em;
@@ -388,11 +400,11 @@ body.dark .cv-inline-toolbar {
   width: 2.4em;
   height: 2.4em;
   padding: 0 !important;
-  border: 1px solid color-mix(in srgb, var(--p-surface-200, #e5e7eb) 50%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--p-gray-200) 50%, transparent) !important;
   border-radius: var(--cv-radius, 0.2667em) !important;
   background-image: none !important;
-  background-color: color-mix(in srgb, var(--p-surface-0, #ffffff) 50%, transparent) !important;
-  color: var(--p-text-color, #000000) !important;
+  background-color: color-mix(in srgb, var(--p-surface-0) 30%, transparent) !important;
+  color: var(--p-gray-950) !important;
   font-size: var(--cv-font-size-xs) !important;
   -webkit-backdrop-filter: blur(8px) !important;
   backdrop-filter: blur(8px) !important;
@@ -408,8 +420,7 @@ body.dark .cv-inline-toolbar {
     transform 0.2s ease;
 }
 
-/* 桌面 hover / 移动端点击激活整张图片时, 角钮随操作条一起浮现 */
-.cv-inline-img-wrap:hover .cv-inline-corner-button,
+/* 移动端点击激活整张图片时，角钮随操作条一起浮现 */
 .cv-inline-img-wrap.cv-inline-img-active .cv-inline-corner-button,
 .cv-inline-favorite-stage:hover .cv-inline-corner-button,
 .cv-inline-corner-button:focus-visible {
@@ -417,11 +428,19 @@ body.dark .cv-inline-toolbar {
   pointer-events: auto;
 }
 
+/* 桌面端 hover 时浮现（仅限真正支持 hover 的设备，避免移动端 hover 粘滞） */
+@media (hover: hover) {
+  .cv-inline-img-wrap:hover .cv-inline-corner-button {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 .cv-inline-corner-button:hover,
 .cv-inline-corner-button:focus-visible {
   transform: translateY(-1px);
-  background-color: color-mix(in srgb, var(--p-surface-0, #ffffff) 92%, transparent) !important;
-  border-color: color-mix(in srgb, var(--p-surface-300, #d1d5db) 60%, transparent) !important;
+  background-color: color-mix(in srgb, var(--p-surface-0) 92%, transparent) !important;
+  border-color: color-mix(in srgb, var(--p-gray-300) 60%, transparent) !important;
 }
 
 /* 收藏星标: 默认弱化, 已收藏使用局部语义色 */
@@ -431,9 +450,8 @@ body.dark .cv-inline-toolbar {
   font-size: 1.1em;
   line-height: 1;
 }
-
 .cv-inline-favorite-star.fa-solid {
-  color: var(--cv-inline-favorite-star-color, var(--p-yellow-500)) !important;
+  color: var(--p-yellow-400) !important;
 }
 
 /* 收藏星标: 右下角 */
@@ -444,14 +462,17 @@ body.dark .cv-inline-toolbar {
 /* 移除按钮: 左下角, 与危险操作按钮一致的警告红色 */
 .cv-inline-remove-toggle {
   left: 0.6667em;
-  color: #ef4444 !important;
   border-color: color-mix(in srgb, #ef4444 30%, transparent) !important;
   background-color: color-mix(in srgb, #ef4444 18%, transparent) !important;
 }
 
+/* 直接覆盖 .mes_text i 对图标颜色的干扰 */
+.cv-inline-remove-toggle i {
+  color: #ef4444 !important;
+}
+
 .cv-inline-remove-toggle:hover,
 .cv-inline-remove-toggle:focus-visible {
-  color: #ef4444 !important;
   border-color: color-mix(in srgb, #ef4444 50%, transparent) !important;
   background-color: color-mix(in srgb, #ef4444 30%, transparent) !important;
 }
@@ -520,7 +541,7 @@ body.dark .cv-inline-toolbar {
   align-items: center !important;
   justify-content: center !important;
   padding: 0 !important;
-  border: 2px solid transparent !important;
+  border: 1px solid transparent !important;
   border-radius: 0.5em !important;
   background: #FFFFFF !important;
   box-shadow:
