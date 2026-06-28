@@ -53,7 +53,7 @@ export async function listInlineImageFavorites(
   const store = transaction.objectStore(STORE_NAME);
   const range = IDBKeyRange.only([scope.characterKey, scope.chatId]);
   const request = store.index(SCOPE_INDEX).getAll(range) as IDBRequest<InlineImageFavoriteRecord[]>;
-  return (await requestToPromise(request)).flatMap(record => toListItem(record));
+  return (await requestToPromise(request)).filter(isInlineImageFavoriteListItem);
 }
 
 /**
@@ -110,12 +110,12 @@ function createFavoriteIndexes(store: IDBObjectStore): void {
 }
 
 /**
- * 转换为带 ID 的收藏列表记录
+ * 判断记录是否带有有效 ID
  * @param record 原始 IndexedDB 记录
- * @returns 列表记录或空数组
+ * @returns 是否可作为列表记录
  */
-function toListItem(record: InlineImageFavoriteRecord): InlineImageFavoriteListItem[] {
-  return typeof record.id === 'number' ? [record as InlineImageFavoriteListItem] : [];
+function isInlineImageFavoriteListItem(record: InlineImageFavoriteRecord): record is InlineImageFavoriteListItem {
+  return typeof record.id === 'number';
 }
 
 /**

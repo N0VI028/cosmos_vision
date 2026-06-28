@@ -379,9 +379,8 @@ body.dark .cv-inline-toolbar {
   padding: 0 !important;
   border: 1px solid color-mix(in srgb, var(--p-surface-200, #e5e7eb) 50%, transparent) !important;
   border-radius: var(--cv-radius, 0.2667em) !important;
-  /* 反压 ST 聊天区给原生 button 注入的渐变背景图, 否则会盖住下方半透明毛玻璃底 */
   background-image: none !important;
-  background-color: color-mix(in srgb, var(--p-surface-0, #ffffff) 80%, transparent) !important;
+  background-color: color-mix(in srgb, var(--p-surface-0, #ffffff) 50%, transparent) !important;
   color: var(--p-text-color, #000000) !important;
   font-size: var(--cv-font-size-xs) !important;
   -webkit-backdrop-filter: blur(8px) !important;
@@ -414,16 +413,23 @@ body.dark .cv-inline-toolbar {
   border-color: color-mix(in srgb, var(--p-surface-300, #d1d5db) 60%, transparent) !important;
 }
 
-/* 收藏星标 SVG: 默认灰色实心, 已收藏由内联 fill 切换金色 */
+/* 收藏星标: 默认弱化, 已收藏使用局部语义色 */
 .cv-inline-favorite-star {
-  width: 1.4em;
-  height: 1.4em;
   display: block;
+  color: var(--cv-inline-favorite-star-color, var(--cv-on-surface-variant));
+  font-size: 1.4em;
+  line-height: 1;
 }
 
 /* 收藏星标: 右下角 */
 .cv-inline-favorite-toggle {
   right: 0.6667em;
+  --cv-inline-favorite-star-active: var(--cv-primary-container);
+  --cv-inline-favorite-star-color: var(--cv-on-surface-variant);
+}
+
+.cv-inline-favorite-toggle--active {
+  --cv-inline-favorite-star-color: var(--cv-inline-favorite-star-active);
 }
 
 /* 移除按钮: 左下角, 与危险操作按钮一致的警告红色 */

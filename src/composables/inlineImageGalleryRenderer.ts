@@ -517,15 +517,17 @@ function syncFavoriteButtons(host: HTMLElement, item: InlineGalleryItem): void {
 }
 
 /**
- * 更新单个收藏按钮视觉状态: 直接切换星标 SVG 的填充色(灰/金)
+ * 更新单个收藏按钮视觉状态
  * @param button 收藏按钮
  * @param active 是否已收藏
  */
 function updateFavoriteButton(button: HTMLButtonElement, active: boolean): void {
   button.title = active ? '取消收藏' : '收藏图片';
   button.setAttribute('aria-label', button.title);
+  button.classList.toggle('cv-inline-favorite-toggle--active', active);
   const star = button.querySelector('.cv-inline-favorite-star');
-  star?.setAttribute('fill', active ? '#f5b301' : '#9ca3af');
+  star?.classList.toggle('fa-solid', active);
+  star?.classList.toggle('fa-regular', !active);
 }
 
 /**
@@ -563,9 +565,11 @@ function groupFavoriteRecords(records: InlineImageFavoriteListItem[]): Array<{
   records: InlineImageFavoriteListItem[];
 }> {
   const groups = new Map<number, InlineImageFavoriteListItem[]>();
-  records.forEach(record =>
-    groups.set(record.globalParagraphIndex, [...(groups.get(record.globalParagraphIndex) ?? []), record]),
-  );
+  records.forEach(record => {
+    const group = groups.get(record.globalParagraphIndex);
+    if (group) group.push(record);
+    else groups.set(record.globalParagraphIndex, [record]);
+  });
   return Array.from(groups.entries()).map(([index, items]) => ({
     index,
     records: sortFavoriteRecords(items),

@@ -181,29 +181,33 @@ function renderFavoriteToggle(
   item: InlineGalleryItem,
 ): VNode {
   const active = typeof item.favoriteId === 'number';
+  const label = active ? '取消收藏' : '收藏图片';
   return h('button', {
-    class: 'cv-inline-corner-button cv-inline-favorite-toggle',
+    class: {
+      'cv-inline-corner-button': true,
+      'cv-inline-favorite-toggle': true,
+      'cv-inline-favorite-toggle--active': active,
+    },
     'data-cv-inline-item-id': item.id,
-    title: active ? '取消收藏' : '收藏图片',
-    'aria-label': active ? '取消收藏' : '收藏图片',
+    title: label,
+    'aria-label': label,
     onClick: () => props.toggleFavorite(item),
   }, [renderFavoriteStarIcon(active)]);
 }
 
 /**
- * 渲染收藏星标 SVG, 直接由 fill 切换灰/金实心星
+ * 渲染收藏星标图标
  * @param active 是否已收藏
- * @returns 星标 SVG VNode
+ * @returns 星标图标 VNode
  */
 function renderFavoriteStarIcon(active: boolean): VNode {
-  return h('svg', {
-    class: 'cv-inline-favorite-star',
-    viewBox: '0 0 24 24',
+  return h('i', {
+    class: [
+      'cv-inline-favorite-star fa-star',
+      active ? 'fa-solid' : 'fa-regular',
+    ],
     'aria-hidden': 'true',
-    fill: active ? '#f5b301' : '#9ca3af',
-  }, [h('path', {
-    d: 'M12 2.5l2.94 5.96 6.58.96-4.76 4.64 1.12 6.55L12 18.56 6.12 21.6l1.12-6.55L2.48 9.42l6.58-.96L12 2.5z',
-  })]);
+  });
 }
 
 /**
