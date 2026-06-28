@@ -197,8 +197,10 @@
  * Galleria 导航按钮。
  * 新增带内嵌 button 的 PrimeVue 组件出现污染时,把其按钮 class 追加到下方 :is() 列表。
  */
-.cosmos-vision-root :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button),
-#cosmos_vision :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button) {
+.cosmos-vision-root
+  :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button),
+#cosmos_vision
+  :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button) {
   @apply shrink-0 whitespace-nowrap;
   background-image: none !important;
   box-shadow: none !important;
@@ -206,8 +208,27 @@
   letter-spacing: normal !important;
 }
 
-.cosmos-vision-root :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button):not(:disabled),
-#cosmos_vision :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button):not(:disabled) {
+.cosmos-vision-root
+  :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button):not(
+    :disabled
+  ),
+#cosmos_vision
+  :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button):not(
+    :disabled
+  ) {
+  cursor: pointer !important;
+}
+
+/* 内联画廊缩略图 / 导航按钮：单独反压 ST 标签污染，保留自身阴影与颜色 */
+.cosmos-vision-root :is(.cv-inline-gallery-strip-item, .cv-inline-gallery-strip-nav),
+#cosmos_vision :is(.cv-inline-gallery-strip-item, .cv-inline-gallery-strip-nav) {
+  background-image: none !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+.cosmos-vision-root :is(.cv-inline-gallery-strip-item, .cv-inline-gallery-strip-nav):not(:disabled),
+#cosmos_vision :is(.cv-inline-gallery-strip-item, .cv-inline-gallery-strip-nav):not(:disabled) {
   cursor: pointer !important;
 }
 

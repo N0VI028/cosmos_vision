@@ -22,7 +22,6 @@ import {
   findMessageId,
   getGlobalParagraphIndex,
   getInlineFavoriteAnchor,
-  getMessageTextHash,
   getParagraphTextHash,
   type InlineFavoriteAnchor,
 } from '@/services/sillytavern/chat-dom';
@@ -47,6 +46,7 @@ export interface InlineImageGalleryRenderer {
   getHost: (paragraph: HTMLElement) => HTMLElement | null;
   showGenerated: (paragraph: HTMLElement, result: InlineGeneratedImageResult) => void;
   restore: () => Promise<void>;
+  refreshTheme: () => void;
   cleanup: () => void;
 }
 
@@ -85,6 +85,7 @@ export function createInlineImageGalleryRenderer(options: InlineGalleryRendererO
     getHost: paragraph => getGroupByParagraph(state, paragraph)?.host ?? null,
     showGenerated: (paragraph, result) => showGeneratedImage(state, paragraph, result),
     restore: () => restoreGallery(state),
+    refreshTheme: () => state.groups.forEach(group => renderGroup(state, group)),
     cleanup: () => cleanupGallery(state),
   };
 }
@@ -251,7 +252,6 @@ function createFavoriteItem(state: InlineGalleryState, record: InlineImageFavori
     favoriteId: record.id,
     globalParagraphIndex: record.globalParagraphIndex,
     imageBlob: record.imageBlob,
-    mimeType: record.mimeType,
     objectUrl,
     promptSnapshot: record.promptSnapshot,
     createdAt: record.createdAt,
@@ -277,7 +277,6 @@ function createTemporaryItem(
     favoriteId: null,
     globalParagraphIndex: index,
     imageBlob: result.imageBlob,
-    mimeType: result.imageBlob.type || 'image/png',
     objectUrl,
     promptSnapshot: result.promptSnapshot,
     createdAt: Date.now(),
@@ -303,7 +302,7 @@ function mergeFavoriteRecordsIntoGroup(
     .map(record => createFavoriteItem(state, record));
   if (!items.length) return;
   group.items = sortGalleryItems([...group.items, ...items]);
-  group.activeItemId = group.activeItemId || group.items[0]?.id || '';
+  group.activeItemId = resolveActiveItemId(group);
   renderGroup(state, group);
 }
 
@@ -348,6 +347,7 @@ function mountGroup(
 ): InlineGalleryGroup {
   const host = createGalleryHost(state, anchor);
   const group = { index, anchor, host, items: sortGalleryItems(items), activeItemId };
+  group.activeItemId = resolveActiveItemId(group);
   state.groups.set(index, group);
   renderGroup(state, group);
   return group;
@@ -375,6 +375,9 @@ function createGalleryHost(state: InlineGalleryState, anchor: InlineFavoriteAnch
  */
 function renderGroup(state: InlineGalleryState, group: InlineGalleryGroup): void {
   group.items = sortGalleryItems(group.items);
+  group.activeItemId = resolveActiveItemId(group);
+  // 每次渲染同步 host 暗色类，确保切换日夜模式时立即生效
+  group.host.className = buildInlineActionHostClass('cv-inline-img-wrap cv-inline-favorite-wrap', state.getDarkMode());
   const vnode = h(InlineGalleryGroupView, buildGroupProps(state, group));
   if (state.appContext) vnode.appContext = state.appContext;
   render(vnode, group.host);
@@ -424,11 +427,24 @@ function buildGroupProps(state: InlineGalleryState, group: InlineGalleryGroup): 
     darkMode: state.getDarkMode(),
     canGenerate: Boolean(group.anchor.paragraph),
     isRuntimeEnabled: state.isRuntimeEnabled,
+    selectItem: item => selectGalleryItem(state, group, item),
     toggleFavorite: item => void toggleFavorite(state, group, item),
     removeItem: item => void removeItem(state, group, item),
     generateLast: item => void generateLast(state, group, item),
     generateFresh: () => void generateFresh(state, group),
   };
+}
+
+/**
+ * 切换画廊当前焦点图片
+ * @param state 画廊状态
+ * @param group 画廊组
+ * @param item 目标画廊项
+ */
+function selectGalleryItem(state: InlineGalleryState, group: InlineGalleryGroup, item: InlineGalleryItem): void {
+  if (group.activeItemId === item.id) return;
+  group.activeItemId = item.id;
+  renderGroup(state, group);
 }
 
 /**
@@ -496,9 +512,7 @@ function buildFavoriteRecord(
     globalParagraphIndex: item.globalParagraphIndex,
     mesId: findMessageId(paragraph) ?? undefined,
     paragraphTextHash: getParagraphTextHash(paragraph),
-    messageTextHash: getMessageTextHash(paragraph),
     imageBlob: item.imageBlob,
-    mimeType: item.mimeType,
     promptSnapshot: cloneInlinePromptSnapshot(item.promptSnapshot),
     createdAt: item.createdAt,
   };
@@ -532,11 +546,15 @@ async function removeItem(
  * @param item 画廊项
  */
 function removeItemFromGroup(state: InlineGalleryState, group: InlineGalleryGroup, item: InlineGalleryItem): void {
+  const removedActiveItem = item.id === group.activeItemId;
   group.items = group.items.filter(candidate => candidate.id !== item.id);
   revokeItemObjectUrl(state, item);
-  group.activeItemId = group.items[0]?.id ?? '';
-  if (!group.items.length) removeGroup(state, group);
-  else renderGroup(state, group);
+  if (!group.items.length) {
+    removeGroup(state, group);
+    return;
+  }
+  group.activeItemId = removedActiveItem ? (group.items[0]?.id ?? '') : resolveActiveItemId(group);
+  renderGroup(state, group);
 }
 
 /**
@@ -638,6 +656,15 @@ function sortFavoriteRecords(records: InlineImageFavoriteListItem[]): InlineImag
  */
 function sortGalleryItems(items: InlineGalleryItem[]): InlineGalleryItem[] {
   return [...items].sort((left, right) => right.createdAt - left.createdAt);
+}
+
+/**
+ * 修正当前焦点图片 ID
+ * @param group 画廊组
+ * @returns 有效焦点图片 ID
+ */
+function resolveActiveItemId(group: Pick<InlineGalleryGroup, 'items' | 'activeItemId'>): string {
+  return group.items.some(item => item.id === group.activeItemId) ? group.activeItemId : (group.items[0]?.id ?? '');
 }
 
 /**

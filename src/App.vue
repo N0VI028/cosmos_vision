@@ -150,7 +150,7 @@ const textInputDialogState = ref<TextInputDialogState>({
 });
 
 /** 段落生图运行时控制器 */
-const { isSelectionMode, toggleSelectionMode, exitSelectionMode, cleanup } = useInlineImageGeneration(
+const { isSelectionMode, toggleSelectionMode, exitSelectionMode, refreshGalleryTheme, cleanup } = useInlineImageGeneration(
   savedSettings,
   {
     isRuntimeEnabled: () => savedSettings.enabled,
@@ -158,6 +158,9 @@ const { isSelectionMode, toggleSelectionMode, exitSelectionMode, cleanup } = use
     getDarkMode: () => darkMode.value,
   },
 );
+
+/** 日夜模式切换时立即刷新画廊主题 */
+watch(darkMode, () => refreshGalleryTheme());
 
 // ── 悬浮球拖动 ─────────────────────────────────────────────
 

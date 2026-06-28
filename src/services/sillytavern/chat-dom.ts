@@ -168,16 +168,6 @@ export function getParagraphTextHash(paragraph: HTMLElement): string {
 }
 
 /**
- * 读取消息正文文本 hash
- * @param paragraph 消息内任一段落
- * @returns hash 字符串
- */
-export function getMessageTextHash(paragraph: HTMLElement): string {
-  const mesText = paragraph.closest('.mes_text');
-  return createInlineTextHash(mesText?.textContent?.trim() ?? '');
-}
-
-/**
  * 创建段落收藏用的轻量文本 hash
  * @param value 原始文本
  * @returns 稳定短 hash

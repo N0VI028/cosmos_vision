@@ -37,7 +37,7 @@ function cloneNovelAIFinalPrompts(prompts: NovelAIFinalPrompts): NovelAIFinalPro
   return {
     positivePrompt: prompts.positivePrompt,
     negativePrompt: prompts.negativePrompt,
-    vibeReferences: prompts.vibeReferences?.map(cloneImagePromptVibeRef),
+    vibeReferences: prompts.vibeParameters ? undefined : prompts.vibeReferences?.map(cloneImagePromptVibeRef),
     vibeParameters: prompts.vibeParameters ? cloneNovelAIVibeParameters(prompts.vibeParameters) : undefined,
   };
 }

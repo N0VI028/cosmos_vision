@@ -4,7 +4,6 @@ const DB_NAME = 'cosmos-vision-inline-image-favorites';
 const STORE_NAME = 'favorites';
 const DB_VERSION = 1;
 const SCOPE_INDEX = 'scope';
-const PARAGRAPH_INDEX = 'paragraph';
 const CREATED_AT_INDEX = 'createdAt';
 
 export interface InlineImageFavoriteScope {
@@ -17,9 +16,7 @@ export interface InlineImageFavoriteRecord extends InlineImageFavoriteScope {
   globalParagraphIndex: number;
   mesId?: string;
   paragraphTextHash?: string;
-  messageTextHash?: string;
   imageBlob: Blob;
-  mimeType: string;
   promptSnapshot: InlinePromptSnapshot;
   createdAt: number;
 }
@@ -103,9 +100,6 @@ function prepareInlineImageFavoriteStore(db: IDBDatabase, transaction: IDBTransa
  */
 function createFavoriteIndexes(store: IDBObjectStore): void {
   if (!store.indexNames.contains(SCOPE_INDEX)) store.createIndex(SCOPE_INDEX, ['characterKey', 'chatId']);
-  if (!store.indexNames.contains(PARAGRAPH_INDEX)) {
-    store.createIndex(PARAGRAPH_INDEX, ['characterKey', 'chatId', 'globalParagraphIndex']);
-  }
   if (!store.indexNames.contains(CREATED_AT_INDEX)) store.createIndex(CREATED_AT_INDEX, 'createdAt');
 }
 

@@ -4,9 +4,9 @@ import {
   buildInlineActionHostClass,
   type InlineActionButtonSpec,
 } from '@/composables/inlineImageDom';
+import { InlineGalleryThumbnailStripView } from '@/composables/inlineImageThumbnailStripView';
 import Button from 'primevue/button';
 import Galleria from 'primevue/galleria';
-import type { GalleriaResponsiveOptions } from 'primevue/galleria';
 import type { PropType, VNode } from 'vue';
 import { defineComponent, h } from 'vue';
 
@@ -15,7 +15,6 @@ export interface InlineGalleryItem {
   favoriteId: number | null;
   globalParagraphIndex: number;
   imageBlob: Blob;
-  mimeType: string;
   objectUrl: string;
   promptSnapshot: InlinePromptSnapshot;
   createdAt: number;
@@ -27,16 +26,12 @@ export interface InlineGalleryGroupProps {
   darkMode: boolean;
   canGenerate: boolean;
   isRuntimeEnabled: () => boolean;
+  selectItem: (item: InlineGalleryItem) => void;
   toggleFavorite: (item: InlineGalleryItem) => void;
   removeItem: (item: InlineGalleryItem) => void;
   generateLast: (item: InlineGalleryItem) => void;
   generateFresh: () => void;
 }
-
-const GALLERIA_RESPONSIVE_OPTIONS: GalleriaResponsiveOptions[] = [
-  { breakpoint: '768px', numVisible: 3 },
-  { breakpoint: '480px', numVisible: 1 },
-];
 
 export const InlineGalleryGroupView = defineComponent({
   name: 'InlineGalleryGroupView',
@@ -46,15 +41,14 @@ export const InlineGalleryGroupView = defineComponent({
     darkMode: { type: Boolean, required: true },
     canGenerate: { type: Boolean, required: true },
     isRuntimeEnabled: { type: Function as PropType<() => boolean>, required: true },
+    selectItem: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
     toggleFavorite: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
     removeItem: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
     generateLast: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
     generateFresh: { type: Function as PropType<() => void>, required: true },
   },
   setup(props) {
-    return () => props.items.length
-      ? renderGalleryGroup(props as InlineGalleryGroupProps)
-      : h('div');
+    return () => (props.items.length ? renderGalleryGroup(props as InlineGalleryGroupProps) : h('div'));
   },
 });
 
@@ -75,7 +69,29 @@ function renderGalleryGroup(props: Readonly<InlineGalleryGroupProps>): VNode {
 function renderGalleria(props: Readonly<InlineGalleryGroupProps>): VNode {
   return h(Galleria, buildGalleriaProps(props), {
     item: (slot: { item: InlineGalleryItem }) => [renderFocusImage(props, slot.item)],
-    thumbnail: (slot: { item: InlineGalleryItem }) => [renderGalleryThumbnail(slot.item)],
+    footer: () => renderGalleryFooter(props),
+  });
+}
+
+/**
+ * 渲染画廊底部插槽
+ * @param props 组件参数
+ * @returns 底部插槽节点
+ */
+function renderGalleryFooter(props: Readonly<InlineGalleryGroupProps>): VNode[] {
+  return props.items.length > 1 ? [renderThumbnailStrip(props)] : [];
+}
+
+/**
+ * 渲染自定义缩略图条
+ * @param props 组件参数
+ * @returns 缩略图条 VNode
+ */
+function renderThumbnailStrip(props: Readonly<InlineGalleryGroupProps>): VNode {
+  return h(InlineGalleryThumbnailStripView, {
+    items: props.items,
+    activeItemId: props.activeItemId,
+    selectItem: props.selectItem,
   });
 }
 
@@ -89,14 +105,22 @@ function buildGalleriaProps(props: Readonly<InlineGalleryGroupProps>): Record<st
   return {
     value: props.items,
     activeIndex: findActiveIndex(props.items, props.activeItemId),
-    numVisible: 5,
-    responsiveOptions: GALLERIA_RESPONSIVE_OPTIONS,
     circular: hasMultiple,
     showItemNavigators: false,
-    showThumbnails: hasMultiple,
-    thumbnailsPosition: 'bottom',
+    showThumbnails: false,
     class: 'cv-inline-favorite-galleria',
+    'onUpdate:activeIndex': (index: number) => syncActiveItemByIndex(props, index),
   };
+}
+
+/**
+ * 同步 Galleria 焦点图片
+ * @param props 组件参数
+ * @param index 当前焦点索引
+ */
+function syncActiveItemByIndex(props: Readonly<InlineGalleryGroupProps>, index: number): void {
+  const item = props.items[index];
+  if (item) props.selectItem(item);
 }
 
 /**
@@ -105,10 +129,7 @@ function buildGalleriaProps(props: Readonly<InlineGalleryGroupProps>): Record<st
  * @param item 当前焦点图片
  * @returns 图片舞台 VNode
  */
-function renderFocusImage(
-  props: Readonly<InlineGalleryGroupProps>,
-  item: InlineGalleryItem,
-): VNode {
+function renderFocusImage(props: Readonly<InlineGalleryGroupProps>, item: InlineGalleryItem): VNode {
   return h('div', { class: 'cv-inline-favorite-stage' }, [
     renderGalleryImage(props, item),
     renderFavoriteToggle(props, item),
@@ -123,10 +144,7 @@ function renderFocusImage(
  * @param item 画廊项
  * @returns 图片 VNode
  */
-function renderGalleryImage(
-  props: Readonly<InlineGalleryGroupProps>,
-  item: InlineGalleryItem,
-): VNode {
+function renderGalleryImage(props: Readonly<InlineGalleryGroupProps>, item: InlineGalleryItem): VNode {
   return h('img', {
     class: 'cv-inline-favorite-img',
     src: item.objectUrl,
@@ -137,30 +155,12 @@ function renderGalleryImage(
 }
 
 /**
- * 渲染缩略图
- * @param item 画廊项
- * @returns 缩略图 VNode
- */
-function renderGalleryThumbnail(item: InlineGalleryItem): VNode {
-  return h('img', {
-    class: 'cv-inline-favorite-thumb',
-    src: item.objectUrl,
-    alt: '图片缩略图',
-    draggable: false,
-  });
-}
-
-/**
  * 打开图片预览
  * @param event 鼠标事件
  * @param props 组件参数
  * @param item 画廊项
  */
-function openLightbox(
-  event: MouseEvent,
-  props: Readonly<InlineGalleryGroupProps>,
-  item: InlineGalleryItem,
-): void {
+function openLightbox(event: MouseEvent, props: Readonly<InlineGalleryGroupProps>, item: InlineGalleryItem): void {
   const img = event.currentTarget as HTMLImageElement;
   const wrap = img.closest('.cv-inline-img-wrap');
   if (wrap instanceof HTMLElement) {
@@ -174,23 +174,24 @@ function openLightbox(
  * @param item 画廊项
  * @returns 按钮 VNode
  */
-function renderFavoriteToggle(
-  props: Readonly<InlineGalleryGroupProps>,
-  item: InlineGalleryItem,
-): VNode {
+function renderFavoriteToggle(props: Readonly<InlineGalleryGroupProps>, item: InlineGalleryItem): VNode {
   const active = typeof item.favoriteId === 'number';
   const label = active ? '取消收藏' : '收藏图片';
-  return h('button', {
-    class: {
-      'cv-inline-corner-button': true,
-      'cv-inline-favorite-toggle': true,
-      'cv-inline-favorite-toggle--active': active,
+  return h(
+    'button',
+    {
+      class: {
+        'cv-inline-corner-button': true,
+        'cv-inline-favorite-toggle': true,
+        'cv-inline-favorite-toggle--active': active,
+      },
+      'data-cv-inline-item-id': item.id,
+      title: label,
+      'aria-label': label,
+      onClick: () => props.toggleFavorite(item),
     },
-    'data-cv-inline-item-id': item.id,
-    title: label,
-    'aria-label': label,
-    onClick: () => props.toggleFavorite(item),
-  }, [renderFavoriteStarIcon(active)]);
+    [renderFavoriteStarIcon(active)],
+  );
 }
 
 /**
@@ -200,10 +201,7 @@ function renderFavoriteToggle(
  */
 function renderFavoriteStarIcon(active: boolean): VNode {
   return h('i', {
-    class: [
-      'cv-inline-favorite-star fa-star',
-      active ? 'fa-solid' : 'fa-regular',
-    ],
+    class: ['cv-inline-favorite-star fa-star', active ? 'fa-solid' : 'fa-regular'],
     'aria-hidden': 'true',
   });
 }
@@ -214,16 +212,17 @@ function renderFavoriteStarIcon(active: boolean): VNode {
  * @param item 画廊项
  * @returns 按钮 VNode
  */
-function renderRemoveToggle(
-  props: Readonly<InlineGalleryGroupProps>,
-  item: InlineGalleryItem,
-): VNode {
-  return h('button', {
-    class: 'cv-inline-corner-button cv-inline-remove-toggle',
-    title: '移除',
-    'aria-label': '移除',
-    onClick: () => props.removeItem(item),
-  }, [h('i', { class: 'fa-solid fa-trash' })]);
+function renderRemoveToggle(props: Readonly<InlineGalleryGroupProps>, item: InlineGalleryItem): VNode {
+  return h(
+    'button',
+    {
+      class: 'cv-inline-corner-button cv-inline-remove-toggle',
+      title: '移除',
+      'aria-label': '移除',
+      onClick: () => props.removeItem(item),
+    },
+    [h('i', { class: 'fa-solid fa-trash' })],
+  );
 }
 
 /**
@@ -232,10 +231,7 @@ function renderRemoveToggle(
  * @param item 当前焦点图片
  * @returns 操作条 VNode
  */
-function renderGalleryActions(
-  props: Readonly<InlineGalleryGroupProps>,
-  item: InlineGalleryItem,
-): VNode {
+function renderGalleryActions(props: Readonly<InlineGalleryGroupProps>, item: InlineGalleryItem): VNode {
   return h('div', { class: buildInlineActionHostClass('cv-inline-img-actions', props.darkMode) }, [
     h('div', { class: 'cv-inline-button-row' }, buildActions(props, item).map(renderActionButton)),
   ]);
@@ -247,10 +243,7 @@ function renderGalleryActions(
  * @param item 当前焦点图片
  * @returns 操作配置
  */
-function buildActions(
-  props: Readonly<InlineGalleryGroupProps>,
-  item: InlineGalleryItem,
-): InlineActionButtonSpec[] {
+function buildActions(props: Readonly<InlineGalleryGroupProps>, item: InlineGalleryItem): InlineActionButtonSpec[] {
   return props.canGenerate ? buildGenerateActions(props, item) : [];
 }
 
@@ -266,14 +259,14 @@ function buildGenerateActions(
 ): InlineActionButtonSpec[] {
   return [
     {
-      label: '重新生成图片',
+      label: '重生成图片',
       icon: 'fa-solid fa-repeat',
       severity: 'secondary',
       variant: 'outlined',
       onClick: () => props.generateLast(item),
     },
     {
-      label: '重新生成TAG和图片',
+      label: '重生成TAG+图片',
       icon: 'fa-solid fa-robot',
       severity: 'secondary',
       variant: 'outlined',

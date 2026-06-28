@@ -633,6 +633,7 @@ export function useInlineImageGeneration(
     toggleSelectionMode,
     exitSelectionMode,
     deselectParagraph,
+    refreshGalleryTheme: () => imageGallery.refreshTheme(),
     cleanup,
   };
 }
