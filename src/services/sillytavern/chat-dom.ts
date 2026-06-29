@@ -1,4 +1,5 @@
 import type { PromptLlmContext } from '@/constants/novelai';
+import { chat } from '@sillytavern/script';
 
 /**
  * ST 聊天 DOM 段落定位与上下文抽取
@@ -9,6 +10,9 @@ export interface InlineFavoriteAnchor {
   target: HTMLElement;
   placement: 'after' | 'append';
   paragraph: HTMLElement | null;
+  mesId?: string;
+  swipeId?: number;
+  paragraphTextHash?: string;
 }
 
 /**
@@ -81,7 +85,7 @@ export function findParagraphByGlobalIndex(index: number): HTMLElement | null {
  */
 export function getInlineFavoriteAnchor(index: number): InlineFavoriteAnchor | null {
   const paragraph = findParagraphByGlobalIndex(index);
-  if (paragraph) return { target: paragraph, placement: 'after', paragraph };
+  if (paragraph) return createInlineFavoriteAnchor(paragraph);
   return findInlineFavoriteFallbackTarget();
 }
 
@@ -92,7 +96,7 @@ export function getInlineFavoriteAnchor(index: number): InlineFavoriteAnchor | n
 export function findInlineFavoriteFallbackTarget(): InlineFavoriteAnchor | null {
   const paragraphs = getVisibleChatParagraphElements();
   const lastParagraph = paragraphs.at(-1);
-  if (lastParagraph) return { target: lastParagraph, placement: 'after', paragraph: lastParagraph };
+  if (lastParagraph) return createInlineFavoriteAnchor(lastParagraph);
   const mesText = findVisibleMessageText();
   return mesText ? { target: mesText, placement: 'append', paragraph: null } : null;
 }
@@ -159,6 +163,43 @@ export function findMessageId(p: HTMLElement): string | null {
 }
 
 /**
+ * 从段落 DOM 读取当前 ST swipe 版本
+ * @param p 段落元素
+ * @returns 当前 swipe_id,无 swipe 时返回 null
+ */
+export function findMessageSwipeId(p: HTMLElement): number | null {
+  return getMessageSwipeId(findMessageId(p));
+}
+
+/**
+ * 读取指定楼层当前激活的 ST swipe 版本
+ * @param messageId ST 消息楼层 ID
+ * @returns 当前 swipe_id,无效时返回 null
+ */
+export function getMessageSwipeId(messageId: string | number | null | undefined): number | null {
+  const index = normalizeMessageIndex(messageId);
+  if (index === null) return null;
+  const message = (chat as unknown[])[index];
+  return isChatSwipeMessage(message) ? normalizeSwipeId(message.swipe_id) : null;
+}
+
+/**
+ * 创建带 ST 楼层与 swipe 信息的收藏锚点
+ * @param paragraph 段落元素
+ * @returns 收藏图挂载锚点
+ */
+export function createInlineFavoriteAnchor(paragraph: HTMLElement): InlineFavoriteAnchor {
+  return {
+    target: paragraph,
+    placement: 'after',
+    paragraph,
+    mesId: findMessageId(paragraph) ?? undefined,
+    swipeId: findMessageSwipeId(paragraph) ?? undefined,
+    paragraphTextHash: getParagraphTextHash(paragraph),
+  };
+}
+
+/**
  * 读取段落文本 hash
  * @param paragraph 段落元素
  * @returns hash 字符串
@@ -199,6 +240,35 @@ function findVisibleMessageText(): HTMLElement | null {
     .filter((el): el is HTMLElement => el instanceof HTMLElement)
     .filter(isVisibleElement)
     .at(-1) ?? null;
+}
+
+/**
+ * 规范化 ST 消息楼层索引
+ * @param messageId 原始楼层 ID
+ * @returns 可用于 chat[] 的索引
+ */
+function normalizeMessageIndex(messageId: string | number | null | undefined): number | null {
+  if (typeof messageId === 'string' && !messageId.trim()) return null;
+  const index = typeof messageId === 'number' ? messageId : Number(messageId);
+  return Number.isInteger(index) && index >= 0 ? index : null;
+}
+
+/**
+ * 判断值是否为可读取 swipe_id 的消息对象
+ * @param value 原始值
+ * @returns 是否为消息对象
+ */
+function isChatSwipeMessage(value: unknown): value is { swipe_id?: unknown } {
+  return Boolean(value && typeof value === 'object');
+}
+
+/**
+ * 规范化 ST swipe_id 字段
+ * @param value 原始 swipe_id
+ * @returns 有效 swipe_id 或 null
+ */
+function normalizeSwipeId(value: unknown): number | null {
+  return Number.isInteger(value) && Number(value) >= 0 ? Number(value) : null;
 }
 
 /**

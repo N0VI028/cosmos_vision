@@ -15,6 +15,7 @@ export interface InlineImageFavoriteRecord extends InlineImageFavoriteScope {
   id?: number;
   globalParagraphIndex: number;
   mesId?: string;
+  swipeId?: number;
   paragraphTextHash?: string;
   imageBlob: Blob;
   promptSnapshot: InlinePromptSnapshot;

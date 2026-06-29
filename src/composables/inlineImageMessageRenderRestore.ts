@@ -1,7 +1,9 @@
 import type { InlineImageFavoriteListItem } from '@/services/inline-image/favorites-cache';
 import {
+  createInlineFavoriteAnchor,
   findMessageId,
   getGlobalParagraphIndex,
+  getMessageSwipeId,
   getParagraphTextHash,
   getVisibleChatParagraphElements,
   type InlineFavoriteAnchor,
@@ -61,6 +63,7 @@ function createRestoreState(options: InlineImageMessageRenderRestoreOptions): In
  */
 function registerMessageRenderEvents(state: InlineImageMessageRenderRestoreState): void {
   eventSource.makeLast(event_types.MESSAGE_UPDATED, state.schedule);
+  eventSource.makeLast(event_types.MESSAGE_SWIPED, state.schedule);
   eventSource.makeLast(event_types.CHARACTER_MESSAGE_RENDERED, state.schedule);
   eventSource.makeLast(event_types.USER_MESSAGE_RENDERED, state.schedule);
 }
@@ -74,6 +77,7 @@ function disposeMessageRenderRestorer(state: InlineImageMessageRenderRestoreStat
   state.timer = null;
   state.pendingMessageIds.clear();
   eventSource.removeListener(event_types.MESSAGE_UPDATED, state.schedule);
+  eventSource.removeListener(event_types.MESSAGE_SWIPED, state.schedule);
   eventSource.removeListener(event_types.CHARACTER_MESSAGE_RENDERED, state.schedule);
   eventSource.removeListener(event_types.USER_MESSAGE_RENDERED, state.schedule);
 }
@@ -144,7 +148,7 @@ function collectRenderedMessageAnchors(messageIds: string[]): Map<string, Map<nu
     const messageId = findMessageId(paragraph);
     if (!messageId || !targetIds.has(messageId)) return;
     const index = getGlobalParagraphIndex(paragraph);
-    if (index >= 0) getMessageAnchorMap(anchorsByMessage, messageId).set(index, createParagraphAnchor(paragraph));
+    if (index >= 0) getMessageAnchorMap(anchorsByMessage, messageId).set(index, createInlineFavoriteAnchor(paragraph));
   });
   return anchorsByMessage;
 }
@@ -164,15 +168,6 @@ function getMessageAnchorMap(
   const anchors = new Map<number, InlineFavoriteAnchor>();
   anchorsByMessage.set(messageId, anchors);
   return anchors;
-}
-
-/**
- * 创建段落图片挂载锚点
- * @param paragraph 目标段落
- * @returns 段落后的挂载锚点
- */
-function createParagraphAnchor(paragraph: HTMLElement): InlineFavoriteAnchor {
-  return { target: paragraph, placement: 'after', paragraph };
 }
 
 /**
@@ -242,7 +237,9 @@ function resolveRenderedFavoriteIndex(
   if (!isRecordForRenderedMessage(record, messageId, anchors)) return null;
   const hashIndex = findParagraphHashIndex(record.paragraphTextHash, anchors);
   if (hashIndex !== null) return hashIndex;
-  return anchors.has(record.globalParagraphIndex) ? record.globalParagraphIndex : null;
+  return canUseGlobalParagraphFallback(record, messageId) && anchors.has(record.globalParagraphIndex)
+    ? record.globalParagraphIndex
+    : null;
 }
 
 /**
@@ -257,8 +254,41 @@ function isRecordForRenderedMessage(
   messageId: string,
   anchors: Map<number, InlineFavoriteAnchor>,
 ): boolean {
-  if (record.mesId) return record.mesId === messageId;
+  if (record.mesId && record.mesId !== messageId) return false;
+  if (hasStoredSwipeId(record) && !isRecordSwipeVisible(record, messageId)) return false;
+  if (record.mesId) return true;
   return anchors.has(record.globalParagraphIndex);
+}
+
+/**
+ * 判断收藏记录是否保存了明确的 swipe 版本
+ * @param record 收藏记录
+ * @returns 是否带有 swipeId
+ */
+function hasStoredSwipeId(record: InlineImageFavoriteListItem): boolean {
+  return typeof record.swipeId === 'number';
+}
+
+/**
+ * 判断收藏记录是否属于当前消息的可见 swipe
+ * @param record 收藏记录
+ * @param messageId 当前消息楼层 ID
+ * @returns 是否属于当前 swipe
+ */
+function isRecordSwipeVisible(record: InlineImageFavoriteListItem, messageId: string): boolean {
+  const currentSwipeId = getMessageSwipeId(messageId);
+  if (hasStoredSwipeId(record)) return currentSwipeId === record.swipeId;
+  return currentSwipeId === null || currentSwipeId === 0;
+}
+
+/**
+ * 判断收藏记录能否退回全局段落索引定位
+ * @param record 收藏记录
+ * @param messageId 当前消息楼层 ID
+ * @returns 是否允许使用索引兜底
+ */
+function canUseGlobalParagraphFallback(record: InlineImageFavoriteListItem, messageId: string): boolean {
+  return isRecordSwipeVisible(record, messageId);
 }
 
 /**

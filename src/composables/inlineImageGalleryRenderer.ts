@@ -19,7 +19,10 @@ import {
 } from '@/services/inline-image/favorites-cache';
 import { getCurrentInlineFavoriteScope } from '@/services/sillytavern/chat-context';
 import {
+  createInlineFavoriteAnchor,
+  findInlineFavoriteFallbackTarget,
   findMessageId,
+  findParagraphByGlobalIndex,
   getGlobalParagraphIndex,
   getInlineFavoriteAnchor,
   getParagraphTextHash,
@@ -210,11 +213,9 @@ async function readFavoriteRecords(
  * @param records 收藏记录
  */
 function renderFavoriteRecords(state: InlineGalleryState, records: InlineImageFavoriteListItem[]): void {
-  groupFavoriteRecords(records).forEach(group => {
-    const anchor = getInlineFavoriteAnchor(group.index);
-    if (!anchor) return;
+  groupVisibleFavoriteRecords(records).forEach(group => {
     const items = group.records.map(record => createFavoriteItem(state, record));
-    mountGroup(state, group.index, anchor, items, items[0]?.id ?? '');
+    mountGroup(state, group.index, group.anchor, items, items[0]?.id ?? '');
   });
 }
 
@@ -325,7 +326,14 @@ function hasFavoriteItem(group: InlineGalleryGroup, favoriteId: number): boolean
  */
 function ensureGroup(state: InlineGalleryState, index: number, anchor: InlineFavoriteAnchor): InlineGalleryGroup {
   const existing = state.groups.get(index);
-  if (existing) return existing;
+  if (existing) {
+    if (!canReuseGroupAnchor(existing.anchor, anchor)) {
+      removeGroup(state, existing);
+      return mountGroup(state, index, anchor, [], '');
+    }
+    remountGroupIfNeeded(state, existing, anchor);
+    return existing;
+  }
   return mountGroup(state, index, anchor, [], '');
 }
 
@@ -391,8 +399,22 @@ function renderGroup(state: InlineGalleryState, group: InlineGalleryGroup): void
 function remountRenderedGroups(state: InlineGalleryState, anchors: Map<number, InlineFavoriteAnchor>): void {
   state.groups.forEach(group => {
     const anchor = anchors.get(group.index);
-    if (anchor) remountGroupIfNeeded(state, group, anchor);
+    if (anchor && canReuseGroupAnchor(group.anchor, anchor)) remountGroupIfNeeded(state, group, anchor);
   });
+}
+
+/**
+ * 判断画廊组是否可重用到当前可见锚点
+ * @param current 当前画廊锚点
+ * @param next 新锚点
+ * @returns 是否允许复用
+ */
+function canReuseGroupAnchor(current: InlineFavoriteAnchor, next: InlineFavoriteAnchor): boolean {
+  if (current.mesId && next.mesId && current.mesId !== next.mesId) return false;
+  if (typeof current.swipeId === 'number' && typeof next.swipeId === 'number') {
+    return current.swipeId === next.swipeId;
+  }
+  return true;
 }
 
 /**
@@ -511,6 +533,7 @@ function buildFavoriteRecord(
     ...scope,
     globalParagraphIndex: item.globalParagraphIndex,
     mesId: findMessageId(paragraph) ?? undefined,
+    swipeId: group.anchor.swipeId,
     paragraphTextHash: getParagraphTextHash(paragraph),
     imageBlob: item.imageBlob,
     promptSnapshot: cloneInlinePromptSnapshot(item.promptSnapshot),
@@ -620,24 +643,58 @@ async function generateFresh(state: InlineGalleryState, group: InlineGalleryGrou
 }
 
 /**
- * 按段落索引聚合收藏记录
+ * 按当前可见聊天内容聚合可恢复的收藏记录
  * @param records 收藏记录
  * @returns 聚合结果
  */
-function groupFavoriteRecords(records: InlineImageFavoriteListItem[]): Array<{
+function groupVisibleFavoriteRecords(records: InlineImageFavoriteListItem[]): Array<{
   index: number;
+  anchor: InlineFavoriteAnchor;
   records: InlineImageFavoriteListItem[];
 }> {
-  const groups = new Map<number, InlineImageFavoriteListItem[]>();
+  const groups = new Map<number, { anchor: InlineFavoriteAnchor; records: InlineImageFavoriteListItem[] }>();
   records.forEach(record => {
-    const group = groups.get(record.globalParagraphIndex);
-    if (group) group.push(record);
-    else groups.set(record.globalParagraphIndex, [record]);
+    const resolved = resolveVisibleFavoriteAnchor(record);
+    if (!resolved) return;
+    const group = groups.get(resolved.index);
+    if (group) group.records.push(record);
+    else groups.set(resolved.index, { anchor: resolved.anchor, records: [record] });
   });
   return Array.from(groups.entries()).map(([index, items]) => ({
     index,
-    records: sortFavoriteRecords(items),
+    anchor: items.anchor,
+    records: sortFavoriteRecords(items.records),
   }));
+}
+
+/**
+ * 解析收藏记录在当前可见聊天中的挂载锚点
+ * @param record 收藏记录
+ * @returns 可见锚点与索引
+ */
+function resolveVisibleFavoriteAnchor(
+  record: InlineImageFavoriteListItem,
+): { index: number; anchor: InlineFavoriteAnchor } | null {
+  const paragraph = findParagraphByGlobalIndex(record.globalParagraphIndex);
+  if (!paragraph) {
+    const fallbackAnchor = findInlineFavoriteFallbackTarget();
+    return fallbackAnchor ? { index: record.globalParagraphIndex, anchor: fallbackAnchor } : null;
+  }
+  const anchor = createInlineFavoriteAnchor(paragraph);
+  return shouldRenderRecordAtAnchor(record, anchor) ? { index: record.globalParagraphIndex, anchor } : null;
+}
+
+/**
+ * 判断收藏记录是否应显示在当前可见段落版本上
+ * @param record 收藏记录
+ * @param anchor 当前可见段落锚点
+ * @returns 是否应显示
+ */
+function shouldRenderRecordAtAnchor(record: InlineImageFavoriteListItem, anchor: InlineFavoriteAnchor): boolean {
+  if (!record.mesId || !anchor.mesId || record.mesId !== anchor.mesId) return true;
+  if (typeof record.swipeId === 'number') return anchor.swipeId === record.swipeId;
+  if (anchor.swipeId === undefined || anchor.swipeId === 0) return true;
+  return !record.paragraphTextHash || anchor.paragraphTextHash === record.paragraphTextHash;
 }
 
 /**
