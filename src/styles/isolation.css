@@ -540,6 +540,18 @@
   --p-checkbox-icon-checked-hover-color: var(--cv-on-primary-container);
   --p-checkbox-icon-disabled-color: var(--cv-on-surface-variant);
   --p-checkbox-border-radius: var(--cv-radius-sm);
+  /* component: datatable */
+  --p-datatable-background: var(--cv-surface-container-low);
+  --p-datatable-row-background: var(--cv-surface-container-low);
+  --p-datatable-row-color: var(--cv-on-surface);
+  --p-datatable-header-cell-background: var(--cv-surface-container-high);
+  --p-datatable-header-cell-border-color: var(--cv-surface-variant);
+  --p-datatable-header-cell-color: var(--cv-on-surface);
+  --p-datatable-body-cell-background: transparent;
+  --p-datatable-body-cell-border-color: var(--cv-surface-variant);
+  --p-datatable-body-cell-color: var(--cv-on-surface);
+  --p-datatable-row-hover-background: var(--cv-surface-container-highest);
+  --p-datatable-row-hover-color: var(--cv-on-surface);
 }
 
 /**
