@@ -128,6 +128,30 @@ export const cosmosPrimePreset = definePreset(Aura, {
         padding: '0',
       },
     },
+    treetable: {
+      colorScheme: {
+        light: {
+          root: { borderColor: 'var(--cv-surface-variant)' },
+          bodyCell: { selectedBorderColor: 'var(--cv-primary-container)' },
+        },
+        dark: {
+          root: { borderColor: 'var(--cv-surface-variant)' },
+          bodyCell: { selectedBorderColor: 'var(--cv-primary-container)' },
+        },
+      },
+    },
+    datatable: {
+      colorScheme: {
+        light: {
+          root: { borderColor: 'var(--cv-surface-variant)' },
+          bodyCell: { selectedBorderColor: 'var(--cv-primary-container)' },
+        },
+        dark: {
+          root: { borderColor: 'var(--cv-surface-variant)' },
+          bodyCell: { selectedBorderColor: 'var(--cv-primary-container)' },
+        },
+      },
+    },
     toggleswitch: {
       root: {
         background: 'var(--cv-surface-container-high)',

@@ -25,6 +25,8 @@
   height: 2.6em;
   border: none;
   border-radius: var(--cv-radius-full);
+  background-color: var(--cv-surface-container-high);
+  color: var(--cv-on-surface);
   box-shadow: var(--cv-floating-shadow);
   transition:
     background 0.2s ease,

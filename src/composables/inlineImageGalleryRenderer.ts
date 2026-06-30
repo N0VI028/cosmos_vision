@@ -25,6 +25,7 @@ import {
   findParagraphByGlobalIndex,
   getGlobalParagraphIndex,
   getInlineFavoriteAnchor,
+  getMessageSwipeId,
   getParagraphTextHash,
   type InlineFavoriteAnchor,
 } from '@/services/sillytavern/chat-dom';
@@ -677,6 +678,8 @@ function resolveVisibleFavoriteAnchor(
 ): { index: number; anchor: InlineFavoriteAnchor } | null {
   const paragraph = findParagraphByGlobalIndex(record.globalParagraphIndex);
   if (!paragraph) {
+    // 段落超出当前范围时,仅允许无 swipe 记录或匹配消息当前 swipe 的记录回退
+    if (!isRecordSwipeVisibleForRestore(record)) return null;
     const fallbackAnchor = findInlineFavoriteFallbackTarget();
     return fallbackAnchor ? { index: record.globalParagraphIndex, anchor: fallbackAnchor } : null;
   }
@@ -691,10 +694,25 @@ function resolveVisibleFavoriteAnchor(
  * @returns 是否应显示
  */
 function shouldRenderRecordAtAnchor(record: InlineImageFavoriteListItem, anchor: InlineFavoriteAnchor): boolean {
-  if (!record.mesId || !anchor.mesId || record.mesId !== anchor.mesId) return true;
+  // 记录与锚点都有 mesId 时,必须属于同一消息
+  if (record.mesId && anchor.mesId && record.mesId !== anchor.mesId) return false;
+  // 记录带有明确的 swipeId 时,必须与锚点当前激活 swipe 一致
   if (typeof record.swipeId === 'number') return anchor.swipeId === record.swipeId;
+  // 旧记录无 swipeId: 当锚点处于首个 swipe 或无 swipe 时允许显示,否则依赖段落 hash 匹配
   if (anchor.swipeId === undefined || anchor.swipeId === 0) return true;
   return !record.paragraphTextHash || anchor.paragraphTextHash === record.paragraphTextHash;
+}
+
+/**
+ * 判断收藏记录是否属于当前消息的可见 swipe（全量恢复时用）
+ * @param record 收藏记录
+ * @returns 记录无 swipe 或匹配当前激活 swipe 时返回 true
+ */
+function isRecordSwipeVisibleForRestore(record: InlineImageFavoriteListItem): boolean {
+  if (typeof record.swipeId !== 'number') return true;
+  if (!record.mesId) return true;
+  const currentSwipeId = getMessageSwipeId(record.mesId);
+  return currentSwipeId === record.swipeId;
 }
 
 /**

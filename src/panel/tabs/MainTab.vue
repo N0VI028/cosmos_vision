@@ -10,13 +10,18 @@
         </div>
         <label class="cv-field">
           <span>图像来源</span>
-          <Select v-model="settings.imageSource" :options="imageSourceOptions" option-label="label" option-value="value" />
+          <Select
+            v-model="settings.imageSource"
+            :options="imageSourceOptions"
+            option-label="label"
+            option-value="value"
+          />
         </label>
       </div>
 
       <div class="cv-about-title-row">
         <h2 class="cv-section-title">关于插件</h2>
-        <Tag :value="'v' + manifest.version" class="cv-version-tag" rounded/>
+        <Tag :value="'v' + manifest.version" class="cv-version-tag" rounded />
       </div>
       <div class="cv-section-body">
         <div class="cv-field-inline">
@@ -49,14 +54,20 @@
 
     <!-- 数据子 tab -->
     <template v-else-if="subTab === 'data'">
-      <div class="cv-vibe-title-row">
-        <h2 class="cv-section-title">Vibe 数据</h2>
-        <div class="cv-vibe-title-actions">
+      <h2 class="cv-section-title">数据管理</h2>
+      <div class="cv-data-management">
+        <CollapsiblePanelItem
+          title="Vibe 数据"
+          :collapsed="vibeCollapsed"
+          @toggle="vibeCollapsed = !vibeCollapsed"
+        >
+        <template #actions>
           <CvMiniButton
             label="下载全部"
             icon="fa-solid fa-download"
             :disabled="isVibeActionDisabled"
             :loading="isVibeActionBusy"
+            size="small"
             @click="downloadAllVibes"
           />
           <CvMiniButton
@@ -65,55 +76,90 @@
             tone="error"
             :disabled="isVibeActionDisabled"
             :loading="isVibeActionBusy"
+            size="small"
             @click="deleteAllVibes"
           />
-        </div>
-      </div>
-      <div class="cv-section-body">
-        <DataTable :value="vibeRows" :loading="isVibeRowsLoading" data-key="sourceHash" class="cv-vibe-table" scrollable scroll-height="18rem">
-          <Column header="预览" style="width: 4rem; min-width: 4rem">
-            <template #body="{ data }">
-              <div class="cv-vibe-thumb">
-                <img v-if="data.thumbnailData" :src="data.thumbnailData" alt="" />
-                <i v-else class="fa-solid fa-image" />
-              </div>
-            </template>
-          </Column>
-          <Column field="fileName" header="名称" style="min-width: 0">
-            <template #body="{ data }">
-              <div class="cv-vibe-name">{{ getDisplayFileName(data) }}</div>
-            </template>
-          </Column>
-          <Column header="操作" style="width: 6rem; min-width: 6rem">
-            <template #body="{ data }">
-              <div class="cv-vibe-actions">
-                <Button
-                  icon="fa-solid fa-download"
-                  severity="secondary"
-                  text
-                  rounded
+        </template>
+
+        <DataTable
+          v-model:selection="selectedVibeRows"
+          :value="vibeRows"
+          :loading="isVibeRowsLoading"
+          data-key="sourceHash"
+          class="cv-vibe-table"
+          scrollable
+          scroll-height="18rem"
+        >
+          <template #header>
+            <div class="cv-vibe-batch-bar">
+              <span class="cv-vibe-batch-count">
+                {{ selectedVibeRows.length ? `已选 ${selectedVibeRows.length} 个` : `共 ${vibeRows.length} 个` }}
+              </span>
+              <div class="cv-vibe-batch-actions">
+                <CvMiniButton
+                  label="下载选中"
+                  :disabled="!selectedVibeRows.length || isVibeActionBusy"
                   size="small"
-                  aria-label="下载"
-                  :fluid="false"
-                  :disabled="isVibeActionBusy"
-                  @click="downloadVibe(data)"
+                  @click="downloadSelectedVibes"
                 />
-                <Button
-                  icon="fa-solid fa-trash"
-                  severity="danger"
-                  text
-                  rounded
+                <CvMiniButton
+                  label="删除选中"
+                  tone="error"
+                  :disabled="!selectedVibeRows.length || isVibeActionBusy"
                   size="small"
-                  aria-label="删除"
-                  :fluid="false"
-                  :disabled="isVibeActionBusy"
-                  @click="deleteVibe(data)"
+                  @click="deleteSelectedVibes"
                 />
               </div>
-            </template>
-          </Column>
-          <template #empty>暂无 vibe 数据</template>
-        </DataTable>
+            </div>
+          </template>
+            <Column selection-mode="multiple" style="width: 2.5rem; min-width: 2.5rem" />
+            <Column header="预览" style="width: 4rem; min-width: 4rem">
+              <template #body="{ data }">
+                <div class="cv-vibe-thumb">
+                  <img v-if="data.thumbnailData" :src="data.thumbnailData" alt="" />
+                  <i v-else class="fa-solid fa-image" />
+                </div>
+              </template>
+            </Column>
+            <Column field="fileName" header="名称" style="min-width: 0">
+              <template #body="{ data }">
+                <div class="cv-vibe-name">{{ getDisplayFileName(data) }}</div>
+              </template>
+            </Column>
+            <Column header="操作" style="width: 6rem; min-width: 6rem">
+              <template #body="{ data }">
+                <div class="cv-vibe-actions">
+                  <CvMiniButton
+                    icon="fa-solid fa-download"
+                    aria-label="下载"
+                    :disabled="isVibeActionBusy"
+                    @click="downloadVibe(data)"
+                  />
+                  <CvMiniButton
+                    icon="fa-solid fa-trash"
+                    tone="error"
+                    aria-label="删除"
+                    :disabled="isVibeActionBusy"
+                    @click="deleteVibe(data)"
+                  />
+                </div>
+              </template>
+            </Column>
+            <template #empty>暂无 vibe 数据</template>
+          </DataTable>
+      </CollapsiblePanelItem>
+
+      <InlineFavoriteDataPanel
+        :groups="favoriteGroups"
+        :loading="isFavoriteGroupsLoading"
+        :busy="isFavoriteActionBusy"
+        @download-all="downloadAllFavorites"
+        @delete-all="deleteAllFavorites"
+        @download-group="downloadFavoriteGroup"
+        @delete-group="deleteFavoriteGroup"
+        @download-items="downloadFavoriteItems"
+        @delete-items="deleteFavoriteItems"
+      />
       </div>
 
       <h2 class="cv-section-title">重置设置</h2>
@@ -137,7 +183,21 @@
 import { computed, inject, ref, watch } from 'vue';
 import { IMAGE_SOURCES } from '@/constants/comfyui';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
+import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
+import InlineFavoriteDataPanel from '@/panel/components/InlineFavoriteDataPanel.vue';
 import { useSettingsStore } from '@/store/settings';
+import {
+  clearInlineImageFavorites,
+  deleteInlineImageFavorite,
+  deleteInlineImageFavoriteScope,
+  listInlineImageFavoriteGroups,
+  type InlineImageFavoriteGroup,
+} from '@/services/inline-image/favorites-cache';
+import {
+  downloadAllInlineImageFavoriteGroups,
+  downloadInlineImageFavoriteGroup,
+  downloadInlineImageFavoriteItems,
+} from '@/services/inline-image/favorites-download';
 import {
   clearNovelAIVibeCache,
   deleteNovelAIVibeSource,
@@ -154,10 +214,17 @@ const props = defineProps<{ subTab: 'general' | 'data' }>();
 
 const { settings, resetToDefaults } = useSettingsStore();
 const imageSourceOptions = [...IMAGE_SOURCES];
+const vibeCollapsed = ref(true);
 const vibeRows = ref<NovelAIVibeCacheListItem[]>([]);
+const selectedVibeRows = ref<NovelAIVibeCacheListItem[]>([]);
 const isVibeRowsLoading = ref(false);
 const isVibeActionBusy = ref(false);
-const isVibeActionDisabled = computed(() => isVibeRowsLoading.value || isVibeActionBusy.value || !vibeRows.value.length);
+const isVibeActionDisabled = computed(
+  () => isVibeRowsLoading.value || isVibeActionBusy.value || !vibeRows.value.length,
+);
+const favoriteGroups = ref<InlineImageFavoriteGroup[]>([]);
+const isFavoriteGroupsLoading = ref(false);
+const isFavoriteActionBusy = ref(false);
 
 const showConfirm =
   inject<
@@ -174,10 +241,17 @@ watch(
   () => props.subTab,
   subTab => {
     if (subTab !== 'data') return;
-    void refreshVibeRows();
+    void refreshDataRows();
   },
   { immediate: true },
 );
+
+/**
+ * 刷新数据页全部缓存数据
+ */
+async function refreshDataRows(): Promise<void> {
+  await Promise.all([refreshVibeRows(), refreshFavoriteGroups()]);
+}
 
 /**
  * 刷新表格中的 vibe 数据
@@ -192,6 +266,22 @@ async function refreshVibeRows(): Promise<void> {
     console.error('[MainTab] 读取 vibe 数据失败', error);
   } finally {
     isVibeRowsLoading.value = false;
+  }
+}
+
+/**
+ * 刷新收藏图片管理分组
+ */
+async function refreshFavoriteGroups(): Promise<void> {
+  isFavoriteGroupsLoading.value = true;
+  try {
+    favoriteGroups.value = await listInlineImageFavoriteGroups();
+  } catch (error) {
+    favoriteGroups.value = [];
+    toastr.error('读取收藏图片数据失败');
+    console.error('[MainTab] 读取收藏图片数据失败', error);
+  } finally {
+    isFavoriteGroupsLoading.value = false;
   }
 }
 
@@ -221,6 +311,43 @@ async function downloadVibe(row: NovelAIVibeCacheListItem): Promise<void> {
 }
 
 /**
+ * 批量下载选中 vibe
+ */
+async function downloadSelectedVibes(): Promise<void> {
+  if (!selectedVibeRows.value.length) return;
+  await runVibeAction(async () => {
+    const hashes = selectedVibeRows.value.map(row => row.sourceHash);
+    const payloads = (await Promise.all(hashes.map(getNovelAIVibeDownloadPayload))).filter(
+      (p): p is NonNullable<typeof p> => Boolean(p),
+    );
+    if (!payloads.length) {
+      toastr.warning('未找到可下载的 vibe 数据');
+      return;
+    }
+    await downloadAllNovelAIVibes(payloads);
+  }, '下载选中 vibe 数据失败');
+}
+
+/**
+ * 批量删除选中 vibe
+ */
+async function deleteSelectedVibes(): Promise<void> {
+  if (!selectedVibeRows.value.length) return;
+  const confirmed = await confirmDangerAction(
+    '删除选中 vibe 数据',
+    `确定要删除选中的 ${selectedVibeRows.value.length} 个 vibe 浏览器缓存吗？预设引用会保留并显示为失效。`,
+    '删除',
+  );
+  if (!confirmed) return;
+  await runVibeAction(async () => {
+    await Promise.all(selectedVibeRows.value.map(row => deleteNovelAIVibeSource(row.sourceHash)));
+    selectedVibeRows.value = [];
+    await refreshVibeRows();
+    toastr.success('已删除选中 vibe 数据');
+  }, '删除选中 vibe 数据失败');
+}
+
+/**
  * 下载全部 vibe 原始文件
  */
 async function downloadAllVibes(): Promise<void> {
@@ -241,7 +368,11 @@ async function downloadAllVibes(): Promise<void> {
  */
 async function deleteVibe(row: NovelAIVibeCacheListItem): Promise<void> {
   const fileName = getDisplayFileName(row);
-  const confirmed = await confirmDangerAction('删除 vibe 数据', `确定要删除“${fileName}”的浏览器缓存吗？预设引用会保留并显示为失效。`, '删除');
+  const confirmed = await confirmDangerAction(
+    '删除 vibe 数据',
+    `确定要删除“${fileName}”的浏览器缓存吗？预设引用会保留并显示为失效。`,
+    '删除',
+  );
   if (!confirmed) return;
   await runVibeAction(async () => {
     await deleteNovelAIVibeSource(row.sourceHash);
@@ -254,13 +385,92 @@ async function deleteVibe(row: NovelAIVibeCacheListItem): Promise<void> {
  * 删除全部 vibe 浏览器缓存
  */
 async function deleteAllVibes(): Promise<void> {
-  const confirmed = await confirmDangerAction('删除全部 vibe 数据', '确定要删除全部 vibe 浏览器缓存吗？预设引用会保留并显示为失效。', '删除全部');
+  const confirmed = await confirmDangerAction(
+    '删除全部 vibe 数据',
+    '确定要删除全部 vibe 浏览器缓存吗？预设引用会保留并显示为失效。',
+    '删除全部',
+  );
   if (!confirmed) return;
   await runVibeAction(async () => {
     await clearNovelAIVibeCache();
     await refreshVibeRows();
     toastr.success('已删除全部 vibe 数据');
   }, '删除全部 vibe 数据失败');
+}
+
+/**
+ * 下载单个收藏图片分组
+ * @param group 收藏图片分组
+ */
+async function downloadFavoriteGroup(group: InlineImageFavoriteGroup): Promise<void> {
+  await runFavoriteAction(async () => {
+    await downloadInlineImageFavoriteGroup(group);
+  }, '下载收藏图片失败');
+}
+
+/**
+ * 下载全部收藏图片分组
+ */
+async function downloadAllFavorites(): Promise<void> {
+  await runFavoriteAction(async () => {
+    if (!favoriteGroups.value.length) {
+      toastr.warning('暂无可下载的收藏图片');
+      await refreshFavoriteGroups();
+      return;
+    }
+    await downloadAllInlineImageFavoriteGroups(favoriteGroups.value);
+  }, '下载全部收藏图片失败');
+}
+
+/**
+ * 删除单个收藏图片分组
+ * @param group 收藏图片分组
+ */
+async function deleteFavoriteGroup(group: InlineImageFavoriteGroup): Promise<void> {
+  const confirmed = await confirmDangerAction('删除收藏图片', buildDeleteFavoriteGroupMessage(group), '删除');
+  if (!confirmed) return;
+  await runFavoriteAction(async () => {
+    await deleteInlineImageFavoriteScope(group);
+    await refreshFavoriteGroups();
+    toastr.success('已删除收藏图片');
+  }, '删除收藏图片失败');
+}
+
+/**
+ * 删除全部收藏图片
+ */
+async function deleteAllFavorites(): Promise<void> {
+  const confirmed = await confirmDangerAction('删除全部收藏图片', buildDeleteAllFavoritesMessage(), '删除全部');
+  if (!confirmed) return;
+  await runFavoriteAction(async () => {
+    await clearInlineImageFavorites();
+    await refreshFavoriteGroups();
+    toastr.success('已删除全部收藏图片');
+  }, '删除全部收藏图片失败');
+}
+
+/**
+ * 批量下载选中的收藏图片
+ * @param ids 选中的收藏记录 ID 列表
+ */
+async function downloadFavoriteItems(ids: number[]): Promise<void> {
+  await runFavoriteAction(async () => {
+    await downloadInlineImageFavoriteItems(ids, favoriteGroups.value);
+  }, '下载选中收藏图片失败');
+}
+
+/**
+ * 批量删除选中的收藏图片
+ * @param ids 选中的收藏记录 ID 列表
+ */
+async function deleteFavoriteItems(ids: number[]): Promise<void> {
+  const confirmed = await confirmDangerAction('删除收藏图片', `确定要删除选中的 ${ids.length} 张收藏图片吗？`, '删除');
+  if (!confirmed) return;
+  await runFavoriteAction(async () => {
+    await Promise.all(ids.map(id => deleteInlineImageFavorite(id)));
+    await refreshFavoriteGroups();
+    toastr.success(`已删除 ${ids.length} 张收藏图片`);
+  }, '删除选中收藏图片失败');
 }
 
 /**
@@ -279,6 +489,42 @@ async function runVibeAction(action: () => Promise<void>, errorMessage: string):
   } finally {
     isVibeActionBusy.value = false;
   }
+}
+
+/**
+ * 执行收藏图片操作并统一处理忙碌态
+ * @param action 要执行的异步操作
+ * @param errorMessage 失败提示
+ */
+async function runFavoriteAction(action: () => Promise<void>, errorMessage: string): Promise<void> {
+  if (isFavoriteActionBusy.value) return;
+  isFavoriteActionBusy.value = true;
+  try {
+    await action();
+  } catch (error) {
+    toastr.error(errorMessage);
+    console.error(`[MainTab] ${errorMessage}`, error);
+  } finally {
+    isFavoriteActionBusy.value = false;
+  }
+}
+
+/**
+ * 构建单组收藏删除确认文案
+ * @param group 收藏图片分组
+ * @returns 确认文案
+ */
+function buildDeleteFavoriteGroupMessage(group: InlineImageFavoriteGroup): string {
+  return `确定要删除角色“${group.characterKey}”在聊天“${group.chatId}”下的 ${group.count} 张收藏图片吗？`;
+}
+
+/**
+ * 构建全部收藏删除确认文案
+ * @returns 确认文案
+ */
+function buildDeleteAllFavoritesMessage(): string {
+  const count = favoriteGroups.value.reduce((sum, group) => sum + group.count, 0);
+  return `确定要删除全部 ${count} 张收藏图片吗？所有角色和聊天文件下的收藏图片都会被清空。`;
 }
 
 /**
@@ -328,20 +574,6 @@ function openUrl(url: string): void {
   @apply m-0;
 }
 
-.cv-vibe-title-row {
-  @apply flex items-center justify-between;
-  margin: var(--cv-space-10xl) 0 var(--cv-space-3xl) 0;
-}
-
-.cv-vibe-title-row > .cv-section-title {
-  @apply m-0;
-}
-
-.cv-vibe-title-actions {
-  @apply flex items-center;
-  gap: var(--cv-space-lg);
-}
-
 .cv-version-tag {
   font-family: var(--cv-font-headline) !important;
   font-size: var(--cv-font-size-xs) !important;
@@ -364,10 +596,31 @@ function openUrl(url: string): void {
   gap: var(--cv-space-xs);
 }
 
+.cv-data-management {
+  @apply flex flex-col;
+  gap: var(--cv-space-2xl);
+}
+
+.cv-vibe-batch-bar {
+  @apply flex flex-wrap items-center justify-between;
+  gap: var(--cv-space-md);
+}
+
+.cv-vibe-batch-count {
+  color: var(--cv-on-surface-variant);
+  font-size: var(--cv-font-size-xs);
+}
+
+.cv-vibe-batch-actions {
+  @apply flex flex-wrap items-center justify-end;
+  gap: var(--cv-space-3xl);
+}
+
 .cv-vibe-table {
   margin: 0 0 var(--cv-space-2xl) 0;
   border-radius: var(--cv-radius-sm);
   overflow: hidden;
+  padding-inline: 0!important;
 }
 
 .cv-vibe-table :deep(.p-datatable-table-container) {
@@ -380,8 +633,13 @@ function openUrl(url: string): void {
   width: 100%;
 }
 
+/* vibe 表格无表头内容，隐藏避免空白行 */
+.cv-vibe-table :deep(.p-datatable-thead) {
+  display: none;
+}
+
 .cv-vibe-thumb {
-  @apply flex items-center justify-center shrink-0;
+  @apply flex shrink-0 items-center justify-center;
   width: 3rem;
   height: 3rem;
   border-radius: var(--cv-radius-sm);
@@ -405,12 +663,17 @@ function openUrl(url: string): void {
 }
 
 .cv-vibe-name {
-  @apply overflow-hidden whitespace-nowrap text-ellipsis;
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
   max-width: 100%;
 }
 
 .cv-vibe-actions {
   @apply inline-flex items-center;
-  gap: var(--cv-space-xs);
+  gap: var(--cv-space-2xl);
+}
+
+/* 下载按钮（第一个操作按钮）使用次要前景色 */
+.cv-vibe-actions > :first-child :deep(.cv-prime-icon) {
+  color: var(--cv-on-surface-variant);
 }
 </style>

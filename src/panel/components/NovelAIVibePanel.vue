@@ -59,12 +59,9 @@
             :aria-label="getEnabledLabel(vibe)"
             @update:model-value="updateVibe(vibe.id, { enabled: Boolean($event) })"
           />
-          <Button
+          <CvMiniButton
             icon="fa-solid fa-trash"
-            severity="danger"
-            size="small"
-            text
-            rounded
+            tone="error"
             aria-label="删除 vibe"
             @click="removeVibe(vibe.id)"
           />
@@ -114,6 +111,7 @@ import {
 } from '@/constants/image-prompt';
 import { isNovelAIV3Model, type NovelAISettings } from '@/constants/novelai';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
+import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import { getNovelAIRequestAccounts } from '@/services/novelai/router';
 import {
   saveNovelAIVibeFilePayload,

@@ -542,6 +542,8 @@
   --p-checkbox-border-radius: var(--cv-radius-sm);
   /* component: datatable */
   --p-datatable-background: var(--cv-surface-container-low);
+  --p-datatable-header-background: var(--cv-surface-container-low);
+  --p-datatable-header-border-color: var(--cv-surface-variant);
   --p-datatable-row-background: var(--cv-surface-container-low);
   --p-datatable-row-color: var(--cv-on-surface);
   --p-datatable-header-cell-background: var(--cv-surface-container-high);
@@ -552,6 +554,28 @@
   --p-datatable-body-cell-color: var(--cv-on-surface);
   --p-datatable-row-hover-background: var(--cv-surface-container-highest);
   --p-datatable-row-hover-color: var(--cv-on-surface);
+  /* component: treetable */
+  --p-treetable-border-color: var(--cv-surface-variant);
+  --p-treetable-background: var(--cv-surface-container-low);
+  --p-treetable-header-background: var(--cv-surface-container-low);
+  --p-treetable-header-border-color: var(--cv-surface-variant);
+  --p-treetable-header-color: var(--cv-on-surface);
+  --p-treetable-header-cell-background: var(--cv-surface-container-high);
+  --p-treetable-header-cell-border-color: var(--cv-surface-variant);
+  --p-treetable-header-cell-color: var(--cv-on-surface);
+  --p-treetable-row-background: var(--cv-surface-container-low);
+  --p-treetable-row-color: var(--cv-on-surface);
+  --p-treetable-row-hover-background: var(--cv-surface-container-highest);
+  --p-treetable-row-hover-color: var(--cv-on-surface);
+  --p-treetable-body-cell-background: transparent;
+  --p-treetable-body-cell-border-color: var(--cv-surface-variant);
+  --p-treetable-body-cell-color: var(--cv-on-surface);
+  --p-treetable-footer-background: var(--cv-surface-container-low);
+  --p-treetable-footer-border-color: var(--cv-surface-variant);
+  --p-treetable-footer-color: var(--cv-on-surface);
+  --p-treetable-node-toggle-button-hover-background: var(--cv-surface-container-highest);
+  --p-treetable-node-toggle-button-color: var(--cv-on-surface-variant);
+  --p-treetable-node-toggle-button-hover-color: var(--cv-on-surface);
 }
 
 /**

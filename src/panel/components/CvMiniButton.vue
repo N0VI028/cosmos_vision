@@ -21,6 +21,7 @@ import type { ButtonProps } from 'primevue/button';
 defineOptions({ inheritAttrs: false });
 
 type CvMiniButtonTone = 'neutral' | 'warn' | 'warning' | 'danger' | 'error' | 'success' | 'info' | 'help';
+type CvMiniButtonSize = 'small' | 'regular';
 
 const props = withDefaults(
   defineProps<{
@@ -28,12 +29,14 @@ const props = withDefaults(
     icon?: string;
     iconPos?: ButtonProps['iconPos'];
     tone?: CvMiniButtonTone;
+    size?: CvMiniButtonSize;
   }>(),
   {
     label: undefined,
     icon: undefined,
     iconPos: 'left',
     tone: 'neutral',
+    size: 'regular',
   },
 );
 
@@ -58,23 +61,28 @@ const TONE_COLOR: Record<CvMiniButtonTone, string> = {
   help: 'var(--p-purple-500)',
 };
 const severity = computed(() => TONE_SEVERITY[props.tone]);
-const buttonTokens = computed(() => buildButtonTokens(TONE_COLOR[props.tone]));
+const buttonTokens = computed(() => buildButtonTokens(TONE_COLOR[props.tone], props.size));
+
+const minHeight = computed(() => (props.size === 'small' ? '1.6em' : '2em'));
+const fontSize = computed(() => (props.size === 'small' ? 'var(--cv-font-size-2xs)' : 'var(--cv-font-size-xs)'));
 
 /**
- * 构建超小按钮的局部 PrimeVue Button token
+ * 构建按钮的局部 PrimeVue Button token
  *
  * @param color 按钮文字与图标颜色
+ * @param size 按钮尺寸
  * @returns PrimeVue Button scoped design tokens
  */
-function buildButtonTokens(color: string): ButtonDesignTokens {
+function buildButtonTokens(color: string, size: CvMiniButtonSize): ButtonDesignTokens {
   const textTone = { color, hoverBackground: 'transparent', activeBackground: 'transparent' };
+  const sizeConfig = size === 'small' ? { iconOnlyWidth: '1.6em', gap: 'var(--cv-space-sm)' } : { iconOnlyWidth: '2em', gap: 'var(--cv-space-md)' };
   return {
     root: {
-      borderRadius: 'var(--cv-radius-sm)',
-      gap: 'var(--cv-space-sm)',
-      paddingX: 'var(--cv-space-sm)',
-      paddingY: 'var(--cv-space-xs)',
-      iconOnlyWidth: '1.6em',
+      borderRadius: '0',
+      gap: sizeConfig.gap,
+      paddingX: '0',
+      paddingY: '0',
+      iconOnlyWidth: sizeConfig.iconOnlyWidth,
       focusRing: { width: '0', style: 'none', offset: '0' },
       label: { fontWeight: '500' },
     },
@@ -94,7 +102,9 @@ function buildButtonTokens(color: string): ButtonDesignTokens {
 @reference '../../global.css';
 
 .cv-mini-button {
-  @apply inline-flex min-h-[1.6em] w-max! min-w-0 flex-none cursor-pointer items-center justify-center border-0 bg-transparent text-(length:--cv-font-size-2xs) leading-none shadow-none;
+  @apply inline-flex w-max! min-w-0 flex-none cursor-pointer items-center justify-center border-0 bg-transparent leading-none shadow-none rounded-none! overflow-visible!;
+  min-height: v-bind(minHeight);
+  font-size: v-bind(fontSize);
 }
 
 .cv-mini-button[data-p-disabled='true'] {

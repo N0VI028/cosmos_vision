@@ -77,7 +77,7 @@ defineEmits<{
 .cv-collapsible-panel-actions-wrapper,
 .cv-collapsible-panel-actions {
   @apply flex items-center;
-  gap: var(--cv-space-sm);
+  gap: var(--cv-space-3xl);
 }
 
 .cv-collapsible-panel-actions-wrapper {

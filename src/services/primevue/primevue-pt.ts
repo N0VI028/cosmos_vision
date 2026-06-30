@@ -211,4 +211,7 @@ export const cosmosPrimePt = {
     slider: { class: 'cv-prime-toggleswitch-slider' },
     handle: { class: 'cv-prime-toggleswitch-handle' },
   },
+  treetable: {
+    root: { class: 'cv-prime-treetable' },
+  },
 } satisfies PrimeVuePTOptions;
