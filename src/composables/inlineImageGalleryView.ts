@@ -31,6 +31,7 @@ export interface InlineGalleryGroupProps {
   removeItem: (item: InlineGalleryItem) => void;
   generateLast: (item: InlineGalleryItem) => void;
   generateFresh: () => void;
+  generateWithEditablePrompt: () => void;
 }
 
 export const InlineGalleryGroupView = defineComponent({
@@ -46,6 +47,7 @@ export const InlineGalleryGroupView = defineComponent({
     removeItem: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
     generateLast: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
     generateFresh: { type: Function as PropType<() => void>, required: true },
+    generateWithEditablePrompt: { type: Function as PropType<() => void>, required: true },
   },
   setup(props) {
     return () => (props.items.length ? renderGalleryGroup(props as InlineGalleryGroupProps) : h('div'));
@@ -271,6 +273,13 @@ function buildGenerateActions(
       severity: 'secondary',
       variant: 'outlined',
       onClick: () => props.generateFresh(),
+    },
+    {
+      label: '编辑后生图',
+      icon: 'fa-solid fa-pen-to-square',
+      severity: 'secondary',
+      variant: 'outlined',
+      onClick: () => props.generateWithEditablePrompt(),
     },
   ];
 }

@@ -91,6 +91,7 @@ export function useInlineImageGeneration(
     isRuntimeEnabled,
     onGenerateWithSnapshot: handleGenerateWithFavoriteSnapshot,
     onGenerateWithFreshPrompt: handleGenerateWithFreshPrompt,
+    onGenerateWithEditablePrompt: handleGenerateWithEditablePrompt,
   });
 
   /** 记录 pointerdown 的位置,用于区分点击和拖拽 */
@@ -292,6 +293,16 @@ export function useInlineImageGeneration(
   }
 
   /**
+   * LLM 生成提示词后允许用户编辑再生图
+   * @param paragraph 目标段落
+   */
+  async function handleGenerateWithEditablePrompt(paragraph = selectedParagraph.value): Promise<void> {
+    if (!paragraph) return;
+    exitSelectionMode();
+    await runImageGeneration(paragraph, true, (session, onSnapshotResolved) => generateImageResultWithEditedPrompt(paragraph, session, onSnapshotResolved));
+  }
+
+  /**
    * 基于收藏图保存的提示词快照重新生成图片
    * @param paragraph 目标段落
    * @param snapshot 收藏图提示词快照
@@ -476,6 +487,24 @@ export function useInlineImageGeneration(
   }
 
   /**
+   * LLM 生成提示词后允许用户编辑再生图
+   * @param paragraph 目标聊天段落
+   * @param session 生成会话
+   * @param onSnapshotResolved LLM 成功后回调，传出提示词快照
+   * @returns 图片与提示词快照
+   */
+  async function generateImageResultWithEditedPrompt(
+    paragraph: HTMLElement,
+    session: InlineGenerationSession,
+    onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
+  ): Promise<InlineGenerationResult> {
+    const context = buildPromptLlmContextFromParagraph(paragraph);
+    return settings.imageSource === 'comfyui'
+      ? generateComfyUIImageResultWithEdit(context, session, onSnapshotResolved)
+      : generateNovelAIImageResultWithEdit(context, session, onSnapshotResolved);
+  }
+
+  /**
    * 读取当前图像来源的前置校验错误
    * @returns 校验错误或 null
    */
@@ -579,6 +608,140 @@ export function useInlineImageGeneration(
     );
 
     const request = buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, prompts);
+    return runImageStep(
+      session,
+      createComfyUISnapshot(request.snapshot),
+      async () => ({
+        promptSnapshot: createComfyUISnapshot(request.snapshot),
+        imageBlob: await generateComfyUIImageFromResolvedRequest(settings.comfyui, request, {
+          signal: session.controller.signal,
+        }),
+      }),
+      onSnapshotResolved,
+    );
+  }
+
+  /**
+   * NovelAI 编辑提示词后生图
+   * @param context Prompt LLM 运行时上下文
+   * @param session 生成会话
+   * @param onSnapshotResolved LLM 成功后回调，传出提示词快照
+   * @returns NovelAI 返回的图片与提示词快照
+   */
+  async function generateNovelAIImageResultWithEdit(
+    context: PromptLlmContext,
+    session: InlineGenerationSession,
+    onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
+  ): Promise<InlineGenerationResult> {
+    const rawResponse = await runPromptLlmStep(session, schemaFields =>
+      generatePromptTextFromRuntimeContext(
+        context,
+        settings.promptLlm,
+        settings.promptLlmMessagePresets,
+        settings.promptProfiles,
+        schemaFields,
+        { generationId: session.promptGenerationId },
+      ),
+    );
+
+    const overrides = buildNovelAILlmPromptOverrides(settings.promptLlm, rawResponse);
+    const initialPositive = overrides.positiveLLMPrompt ?? '';
+    const initialNegative = overrides.negativeLLMPrompt ?? '';
+
+    generationSession.ensureActive(session);
+    const editedPositive = await requestTextInput({
+      title: '编辑正向提示词',
+      message: '可以编辑 LLM 生成的正向提示词，确认后生成图片',
+      defaultValue: initialPositive,
+      rows: 6,
+    });
+    if (editedPositive === null) throw new Error('用户取消编辑');
+
+    generationSession.ensureActive(session);
+    const editedNegative = await requestTextInput({
+      title: '编辑负向提示词',
+      message: '可以编辑 LLM 生成的负向提示词，确认后生成图片',
+      defaultValue: initialNegative,
+      rows: 4,
+    });
+    if (editedNegative === null) throw new Error('用户取消编辑');
+
+    const editedOverrides = {
+      positiveLLMPrompt: editedPositive,
+      negativeLLMPrompt: editedNegative,
+      positivePromptMode: 'direct' as const,
+      negativePromptMode: 'direct' as const,
+    };
+    const request = buildNovelAIResolvedRequest(
+      settings.novelai,
+      settings.imagePromptPresets,
+      settings.promptLlm,
+      editedOverrides,
+    );
+    const temporarySourceHashes = collectTemporaryVibeSourceHashes(request.prompts.vibeReferences);
+    return runImageStep(
+      session,
+      createNovelAISnapshot(request.prompts),
+      async () => {
+        try {
+          const result = await generateNovelAIImageFromResolvedRequest(request, { signal: session.controller.signal });
+          return {
+            promptSnapshot: createNovelAISnapshot(result.prompts),
+            imageBlob: result.imageBlob,
+          };
+        } finally {
+          if (hasPromotedTemporaryVibes(request.prompts.vibeReferences, temporarySourceHashes)) {
+            settingsStore.persistSavedSettings();
+          }
+        }
+      },
+      onSnapshotResolved,
+    );
+  }
+
+  /**
+   * ComfyUI 编辑提示词后生图
+   * @param context Prompt LLM 运行时上下文
+   * @param session 生成会话
+   * @param onSnapshotResolved LLM 成功后回调，传出提示词快照
+   * @returns ComfyUI 返回的图片与提示词快照
+   */
+  async function generateComfyUIImageResultWithEdit(
+    context: PromptLlmContext,
+    session: InlineGenerationSession,
+    onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
+  ): Promise<InlineGenerationResult> {
+    const prompts = await runPromptLlmStep(session, schemaFields =>
+      generatePromptFromRuntimeContext(
+        context,
+        settings.promptLlm,
+        settings.promptLlmMessagePresets,
+        settings.promptProfiles,
+        schemaFields,
+        { generationId: session.promptGenerationId },
+      ),
+    );
+
+    generationSession.ensureActive(session);
+    const editedPositive = await requestTextInput({
+      title: '编辑正向提示词',
+      message: '可以编辑 LLM 生成的正向提示词，确认后生成图片',
+      defaultValue: prompts.positivePrompt,
+      rows: 6,
+    });
+    if (editedPositive === null) throw new Error('用户取消编辑');
+
+    generationSession.ensureActive(session);
+    const editedNegative = await requestTextInput({
+      title: '编辑负向提示词',
+      message: '可以编辑 LLM 生成的负向提示词，确认后生成图片',
+      defaultValue: prompts.negativePrompt,
+      rows: 4,
+    });
+    if (editedNegative === null) throw new Error('用户取消编辑');
+
+    const editedPrompts = { positivePrompt: editedPositive, negativePrompt: editedNegative };
+    const request = buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, editedPrompts);
     return runImageStep(
       session,
       createComfyUISnapshot(request.snapshot),

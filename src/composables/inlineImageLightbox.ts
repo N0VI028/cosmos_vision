@@ -163,7 +163,7 @@ function buildLightboxMarkup(src: string, snapshot?: InlinePromptSnapshot): stri
       <div class="cv-lightbox-img-box">
         <img class="cv-lightbox-preview-img" src="${escapeHtml(src)}" alt="放大图片" draggable="false" />
       </div>
-      <div class="cv-lightbox-info">
+      <div class="cv-lightbox-info cv-info-collapsed">
         ${buildLightboxHeaderMarkup()}
         <div class="cv-lightbox-info-body">
           ${buildPromptGroupMarkup('pos', '正向提示词', snapshot?.positivePrompt || '无正向提示词')}
@@ -183,7 +183,7 @@ function buildLightboxHeaderMarkup(): string {
     <div class="cv-lightbox-info-header">
       <span class="cv-lightbox-info-title">提示词详情</span>
       <button class="cv-lightbox-toggle-btn" title="隐藏/显示提示词">
-        <i class="fa-solid fa-eye-slash"></i> <span>隐藏提示词</span>
+        <i class="fa-solid fa-eye"></i> <span>显示提示词</span>
       </button>
     </div>
   `;

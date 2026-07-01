@@ -44,6 +44,7 @@ interface InlineGalleryRendererOptions {
   isRuntimeEnabled: () => boolean;
   onGenerateWithSnapshot: (paragraph: HTMLElement, snapshot: InlinePromptSnapshot) => Promise<void>;
   onGenerateWithFreshPrompt: (paragraph: HTMLElement) => Promise<void>;
+  onGenerateWithEditablePrompt: (paragraph: HTMLElement) => Promise<void>;
 }
 
 export interface InlineImageGalleryRenderer {
@@ -455,6 +456,7 @@ function buildGroupProps(state: InlineGalleryState, group: InlineGalleryGroup): 
     removeItem: item => void removeItem(state, group, item),
     generateLast: item => void generateLast(state, group, item),
     generateFresh: () => void generateFresh(state, group),
+    generateWithEditablePrompt: () => void generateWithEditablePrompt(state, group),
   };
 }
 
@@ -641,6 +643,16 @@ async function generateLast(
 async function generateFresh(state: InlineGalleryState, group: InlineGalleryGroup): Promise<void> {
   if (!state.isRuntimeEnabled() || !group.anchor.paragraph) return;
   await state.onGenerateWithFreshPrompt(group.anchor.paragraph);
+}
+
+/**
+ * LLM 生成提示词后编辑再生图
+ * @param state 画廊状态
+ * @param group 画廊组
+ */
+async function generateWithEditablePrompt(state: InlineGalleryState, group: InlineGalleryGroup): Promise<void> {
+  if (!state.isRuntimeEnabled() || !group.anchor.paragraph) return;
+  await state.onGenerateWithEditablePrompt(group.anchor.paragraph);
 }
 
 /**
