@@ -236,7 +236,7 @@ const llmParamRows = computed<ParamRow[]>(() => {
     { label: '来源标识', value: params.source },
     { label: '使用模型', value: params.model, code: true },
     { label: '温度', value: String(params.temperature) },
-    { label: '最大令牌数', value: String(params.maxTokens) },
+    { label: '最大输出令牌数', value: String(params.maxTokens) },
     { label: 'Top P', value: String(params.topP) },
     { label: 'Top K', value: String(params.topK) },
   ];

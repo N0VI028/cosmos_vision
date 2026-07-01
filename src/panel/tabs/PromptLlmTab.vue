@@ -79,7 +79,7 @@
             />
           </label>
           <label class="cv-field">
-            <span>最大令牌数</span>
+            <span>最大输出令牌数</span>
             <InputNumber v-model="settings.promptLlm.maxTokens" :min="1" :max="4000" show-buttons />
           </label>
         </div>

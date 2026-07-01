@@ -71,7 +71,7 @@
             <span class="param-value">{{ logParams.temperature }}</span>
           </div>
           <div class="cv-log-param-row">
-            <span class="param-label">最大令牌数</span>
+            <span class="param-label">最大输出令牌数</span>
             <span class="param-value">{{ logParams.maxTokens }}</span>
           </div>
           <div class="cv-log-param-row">
