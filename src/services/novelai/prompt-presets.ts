@@ -1,3 +1,4 @@
+import type { ImagePromptPair } from '@/services/image-prompt/presets';
 import type { ImagePromptPresetSettings } from '@/constants/image-prompt';
 import type { NovelAIModel, NovelAISettings, NovelAIUcPreset } from '@/constants/novelai';
 import { resolveImagePromptPreset, getImagePromptPreset } from '@/services/image-prompt/presets';
@@ -98,6 +99,36 @@ export function buildNegativePrompt(
 }
 
 /**
+ * 读取用于编辑的 NovelAI 提示词
+ * 过滤质量标签和 UC 预设,仅保留用户可编辑部分
+ * @param settings NovelAI 设置
+ * @param prompts 最终发送给官方 API 的提示词
+ * @returns 适合回填到编辑框的提示词
+ */
+export function readNovelAIEditablePrompts(settings: NovelAISettings, prompts: ImagePromptPair): ImagePromptPair {
+  return {
+    positivePrompt: stripPromptSuffix(prompts.positivePrompt, readNovelAIQualityTags(settings)),
+    negativePrompt: stripPromptPrefix(prompts.negativePrompt, readNovelAIUcPresetPrompt(settings)),
+  };
+}
+
+/**
+ * 将编辑后的提示词重新补回 NovelAI 内置质量标签和 UC 预设
+ * @param settings NovelAI 设置
+ * @param prompts 编辑后的提示词
+ * @returns 可直接发送给官方 API 的最终提示词
+ */
+export function buildNovelAIFinalPromptsFromEditable(
+  settings: NovelAISettings,
+  prompts: ImagePromptPair,
+): ImagePromptPair {
+  return {
+    positivePrompt: appendPromptSuffix(prompts.positivePrompt, readNovelAIQualityTags(settings)),
+    negativePrompt: appendPromptPrefix(prompts.negativePrompt, readNovelAIUcPresetPrompt(settings)),
+  };
+}
+
+/**
  * 转换 NovelAI UC 预设为官方数值
  * @param preset 负向提示词程度
  * @returns NovelAI API 的 ucPreset 数值
@@ -105,4 +136,80 @@ export function buildNegativePrompt(
 export function getUcPresetValue(preset: NovelAIUcPreset): number {
   const values: Record<NovelAIUcPreset, number> = { Heavy: 0, Light: 1, None: 3 };
   return values[preset];
+}
+
+/**
+ * 读取当前模型启用的质量标签
+ * @param settings NovelAI 设置
+ * @returns 质量标签
+ */
+function readNovelAIQualityTags(settings: NovelAISettings): string {
+  return settings.addQualityTags ? QUALITY_PRESETS[settings.model] : '';
+}
+
+/**
+ * 读取当前模型启用的 UC 预设文本
+ * @param settings NovelAI 设置
+ * @returns 负面预设文本
+ */
+function readNovelAIUcPresetPrompt(settings: NovelAISettings): string {
+  return UC_PRESETS[settings.model][settings.ucPreset] ?? '';
+}
+
+/**
+ * 为提示词追加固定后缀
+ * @param prompt 原提示词
+ * @param suffix 固定后缀
+ * @returns 拼接后的提示词
+ */
+function appendPromptSuffix(prompt: string, suffix: string): string {
+  const trimmedPrompt = prompt.trim();
+  const trimmedSuffix = suffix.trim();
+  if (!trimmedSuffix) return trimmedPrompt;
+  if (!trimmedPrompt) return trimmedSuffix;
+  return trimmedPrompt.endsWith(trimmedSuffix) ? trimmedPrompt : `${trimmedPrompt}, ${trimmedSuffix}`;
+}
+
+/**
+ * 为提示词追加固定前缀
+ * @param prompt 原提示词
+ * @param prefix 固定前缀
+ * @returns 拼接后的提示词
+ */
+function appendPromptPrefix(prompt: string, prefix: string): string {
+  const trimmedPrompt = prompt.trim();
+  const trimmedPrefix = prefix.trim();
+  if (!trimmedPrefix) return trimmedPrompt;
+  if (!trimmedPrompt) return trimmedPrefix;
+  return trimmedPrompt.startsWith(trimmedPrefix) ? trimmedPrompt : `${trimmedPrefix}, ${trimmedPrompt}`;
+}
+
+/**
+ * 从提示词尾部剥离固定后缀
+ * @param prompt 原提示词
+ * @param suffix 固定后缀
+ * @returns 剥离后的提示词
+ */
+function stripPromptSuffix(prompt: string, suffix: string): string {
+  const trimmedPrompt = prompt.trim();
+  const trimmedSuffix = suffix.trim();
+  if (!trimmedSuffix) return trimmedPrompt;
+  if (trimmedPrompt === trimmedSuffix) return '';
+  const trailing = `, ${trimmedSuffix}`;
+  return trimmedPrompt.endsWith(trailing) ? trimmedPrompt.slice(0, -trailing.length).trim() : trimmedPrompt;
+}
+
+/**
+ * 从提示词头部剥离固定前缀
+ * @param prompt 原提示词
+ * @param prefix 固定前缀
+ * @returns 剥离后的提示词
+ */
+function stripPromptPrefix(prompt: string, prefix: string): string {
+  const trimmedPrompt = prompt.trim();
+  const trimmedPrefix = prefix.trim();
+  if (!trimmedPrefix) return trimmedPrompt;
+  if (trimmedPrompt === trimmedPrefix) return '';
+  const leading = `${trimmedPrefix}, `;
+  return trimmedPrompt.startsWith(leading) ? trimmedPrompt.slice(leading.length).trim() : trimmedPrompt;
 }

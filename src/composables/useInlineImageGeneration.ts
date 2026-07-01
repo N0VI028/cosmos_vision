@@ -5,7 +5,7 @@ import {
 } from '@/composables/inlineGenerationSession';
 import { preventInlineEventBubbling, removeInlineVueHost } from '@/composables/inlineImageDom';
 import { createInlineImageGalleryRenderer } from '@/composables/inlineImageGalleryRenderer';
-import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
+import { cloneInlinePromptSnapshot, type InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { generateComfyUIImageFromPrompts, generateComfyUIImageFromResolvedRequest } from '@/services/comfyui/api';
 import { buildComfyUIResolvedRequest, getComfyUIRequestError, type ComfyUIRequestSnapshot } from '@/services/comfyui/workflow';
 import {
@@ -15,6 +15,10 @@ import {
   generateNovelAIImageFromPrompts,
   generateNovelAIImageFromResolvedRequest,
 } from '@/services/novelai/api';
+import {
+  buildNovelAIFinalPromptsFromEditable,
+  readNovelAIEditablePrompts,
+} from '@/services/novelai/prompt-presets';
 import {
   buildPromptLlmContextFromParagraph,
   findChatParagraph,
@@ -40,9 +44,28 @@ export interface InlineTextInputOptions {
   cancelLabel?: string;
 }
 
+export interface InlinePromptPairInputOptions {
+  title?: string;
+  message: string;
+  positiveLabel?: string;
+  negativeLabel?: string;
+  positiveDefaultValue?: string;
+  negativeDefaultValue?: string;
+  positiveRows?: number;
+  negativeRows?: number;
+  acceptLabel?: string;
+  cancelLabel?: string;
+}
+
+export interface InlinePromptPairInputValue {
+  positive: string;
+  negative: string;
+}
+
 interface InlineImageGenerationOptions {
   isRuntimeEnabled?: RuntimeEnabledGetter;
   requestTextInput: (options: InlineTextInputOptions) => Promise<string | null>;
+  requestPromptPairInput: (options: InlinePromptPairInputOptions) => Promise<InlinePromptPairInputValue | null>;
   getDarkMode: () => boolean;
 }
 
@@ -67,6 +90,7 @@ export function useInlineImageGeneration(
 ) {
   const isRuntimeEnabled = options.isRuntimeEnabled ?? (() => true);
   const requestTextInput = options.requestTextInput;
+  const requestPromptPairInput = options.requestPromptPairInput;
   const settingsStore = useSettingsStore();
 
   /** 当前组件实例上下文,用于把 PrimeVue Button 渲染到聊天内联 DOM */
@@ -293,13 +317,19 @@ export function useInlineImageGeneration(
   }
 
   /**
-   * LLM 生成提示词后允许用户编辑再生图
+   * 编辑当前图片保存的提示词快照后生图
    * @param paragraph 目标段落
+   * @param snapshot 当前图片保存的提示词快照
    */
-  async function handleGenerateWithEditablePrompt(paragraph = selectedParagraph.value): Promise<void> {
-    if (!paragraph) return;
+  async function handleGenerateWithEditablePrompt(
+    paragraph: HTMLElement,
+    snapshot: InlinePromptSnapshot,
+  ): Promise<void> {
+    if (!isRuntimeEnabled()) return;
     exitSelectionMode();
-    await runImageGeneration(paragraph, true, (session, onSnapshotResolved) => generateImageResultWithEditedPrompt(paragraph, session, onSnapshotResolved));
+    const editedSnapshot = await requestEditedPromptSnapshot(snapshot);
+    if (!editedSnapshot) return;
+    await runImageGeneration(paragraph, false, session => generateImageResultFromSnapshot(editedSnapshot, session));
   }
 
   /**
@@ -487,24 +517,6 @@ export function useInlineImageGeneration(
   }
 
   /**
-   * LLM 生成提示词后允许用户编辑再生图
-   * @param paragraph 目标聊天段落
-   * @param session 生成会话
-   * @param onSnapshotResolved LLM 成功后回调，传出提示词快照
-   * @returns 图片与提示词快照
-   */
-  async function generateImageResultWithEditedPrompt(
-    paragraph: HTMLElement,
-    session: InlineGenerationSession,
-    onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
-  ): Promise<InlineGenerationResult> {
-    const context = buildPromptLlmContextFromParagraph(paragraph);
-    return settings.imageSource === 'comfyui'
-      ? generateComfyUIImageResultWithEdit(context, session, onSnapshotResolved)
-      : generateNovelAIImageResultWithEdit(context, session, onSnapshotResolved);
-  }
-
-  /**
    * 读取当前图像来源的前置校验错误
    * @returns 校验错误或 null
    */
@@ -622,137 +634,64 @@ export function useInlineImageGeneration(
   }
 
   /**
-   * NovelAI 编辑提示词后生图
-   * @param context Prompt LLM 运行时上下文
-   * @param session 生成会话
-   * @param onSnapshotResolved LLM 成功后回调，传出提示词快照
-   * @returns NovelAI 返回的图片与提示词快照
+   * 请求用户编辑当前图片保存的正负提示词
+   * @param snapshot 当前图片保存的提示词快照
+   * @returns 编辑后的快照,取消时返回 null
    */
-  async function generateNovelAIImageResultWithEdit(
-    context: PromptLlmContext,
-    session: InlineGenerationSession,
-    onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
-  ): Promise<InlineGenerationResult> {
-    const rawResponse = await runPromptLlmStep(session, schemaFields =>
-      generatePromptTextFromRuntimeContext(
-        context,
-        settings.promptLlm,
-        settings.promptLlmMessagePresets,
-        settings.promptProfiles,
-        schemaFields,
-        { generationId: session.promptGenerationId },
-      ),
-    );
-
-    const overrides = buildNovelAILlmPromptOverrides(settings.promptLlm, rawResponse);
-    const initialPositive = overrides.positiveLLMPrompt ?? '';
-    const initialNegative = overrides.negativeLLMPrompt ?? '';
-
-    generationSession.ensureActive(session);
-    const editedPositive = await requestTextInput({
-      title: '编辑正向提示词',
-      message: '可以编辑 LLM 生成的正向提示词，确认后生成图片',
-      defaultValue: initialPositive,
-      rows: 6,
+  async function requestEditedPromptSnapshot(snapshot: InlinePromptSnapshot): Promise<InlinePromptSnapshot | null> {
+    const initialPrompts = readEditablePromptInput(snapshot);
+    const prompts = await requestPromptPairInput({
+      title: '编辑提示词后生图',
+      message: '直接编辑当前图片保存的提示词，确认后生成图片',
+      positiveLabel: '正向提示词',
+      negativeLabel: '负向提示词',
+      positiveDefaultValue: initialPrompts.positive,
+      negativeDefaultValue: initialPrompts.negative,
+      positiveRows: 6,
+      negativeRows: 4,
     });
-    if (editedPositive === null) throw new Error('用户取消编辑');
-
-    generationSession.ensureActive(session);
-    const editedNegative = await requestTextInput({
-      title: '编辑负向提示词',
-      message: '可以编辑 LLM 生成的负向提示词，确认后生成图片',
-      defaultValue: initialNegative,
-      rows: 4,
-    });
-    if (editedNegative === null) throw new Error('用户取消编辑');
-
-    const editedOverrides = {
-      positiveLLMPrompt: editedPositive,
-      negativeLLMPrompt: editedNegative,
-      positivePromptMode: 'direct' as const,
-      negativePromptMode: 'direct' as const,
-    };
-    const request = buildNovelAIResolvedRequest(
-      settings.novelai,
-      settings.imagePromptPresets,
-      settings.promptLlm,
-      editedOverrides,
-    );
-    const temporarySourceHashes = collectTemporaryVibeSourceHashes(request.prompts.vibeReferences);
-    return runImageStep(
-      session,
-      createNovelAISnapshot(request.prompts),
-      async () => {
-        try {
-          const result = await generateNovelAIImageFromResolvedRequest(request, { signal: session.controller.signal });
-          return {
-            promptSnapshot: createNovelAISnapshot(result.prompts),
-            imageBlob: result.imageBlob,
-          };
-        } finally {
-          if (hasPromotedTemporaryVibes(request.prompts.vibeReferences, temporarySourceHashes)) {
-            settingsStore.persistSavedSettings();
-          }
-        }
-      },
-      onSnapshotResolved,
-    );
+    if (!prompts) return null;
+    return createEditedPromptSnapshot(snapshot, prompts.positive, prompts.negative);
   }
 
   /**
-   * ComfyUI 编辑提示词后生图
-   * @param context Prompt LLM 运行时上下文
-   * @param session 生成会话
-   * @param onSnapshotResolved LLM 成功后回调，传出提示词快照
-   * @returns ComfyUI 返回的图片与提示词快照
+   * 读取编辑弹窗默认展示的提示词
+   * NovelAI 会过滤内置质量标签和 UC 预设,避免把系统级提示词回填到输入框
+   * @param snapshot 当前图片保存的提示词快照
+   * @returns 可直接显示在编辑弹窗中的正负提示词
    */
-  async function generateComfyUIImageResultWithEdit(
-    context: PromptLlmContext,
-    session: InlineGenerationSession,
-    onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
-  ): Promise<InlineGenerationResult> {
-    const prompts = await runPromptLlmStep(session, schemaFields =>
-      generatePromptFromRuntimeContext(
-        context,
-        settings.promptLlm,
-        settings.promptLlmMessagePresets,
-        settings.promptProfiles,
-        schemaFields,
-        { generationId: session.promptGenerationId },
-      ),
-    );
+  function readEditablePromptInput(snapshot: InlinePromptSnapshot): InlinePromptPairInputValue {
+    if (!snapshot.novelai) {
+      return { positive: snapshot.positivePrompt, negative: snapshot.negativePrompt };
+    }
+    const prompts = readNovelAIEditablePrompts(settings.novelai, snapshot.novelai);
+    return { positive: prompts.positivePrompt, negative: prompts.negativePrompt };
+  }
 
-    generationSession.ensureActive(session);
-    const editedPositive = await requestTextInput({
-      title: '编辑正向提示词',
-      message: '可以编辑 LLM 生成的正向提示词，确认后生成图片',
-      defaultValue: prompts.positivePrompt,
-      rows: 6,
-    });
-    if (editedPositive === null) throw new Error('用户取消编辑');
-
-    generationSession.ensureActive(session);
-    const editedNegative = await requestTextInput({
-      title: '编辑负向提示词',
-      message: '可以编辑 LLM 生成的负向提示词，确认后生成图片',
-      defaultValue: prompts.negativePrompt,
-      rows: 4,
-    });
-    if (editedNegative === null) throw new Error('用户取消编辑');
-
-    const editedPrompts = { positivePrompt: editedPositive, negativePrompt: editedNegative };
-    const request = buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, editedPrompts);
-    return runImageStep(
-      session,
-      createComfyUISnapshot(request.snapshot),
-      async () => ({
-        promptSnapshot: createComfyUISnapshot(request.snapshot),
-        imageBlob: await generateComfyUIImageFromResolvedRequest(settings.comfyui, request, {
-          signal: session.controller.signal,
-        }),
-      }),
-      onSnapshotResolved,
-    );
+  /**
+   * 创建替换正负提示词后的快照
+   * @param snapshot 原提示词快照
+   * @param positivePrompt 编辑后的正向提示词
+   * @param negativePrompt 编辑后的负向提示词
+   * @returns 更新后的提示词快照
+   */
+  function createEditedPromptSnapshot(
+    snapshot: InlinePromptSnapshot,
+    positivePrompt: string,
+    negativePrompt: string,
+  ): InlinePromptSnapshot {
+    const edited = cloneInlinePromptSnapshot(snapshot);
+    if (edited.novelai) {
+      const prompts = buildNovelAIFinalPromptsFromEditable(settings.novelai, { positivePrompt, negativePrompt });
+      edited.positivePrompt = prompts.positivePrompt;
+      edited.negativePrompt = prompts.negativePrompt;
+      Object.assign(edited.novelai, prompts);
+      return edited;
+    }
+    edited.positivePrompt = positivePrompt;
+    edited.negativePrompt = negativePrompt;
+    if (edited.comfyui) Object.assign(edited.comfyui, { positivePrompt, negativePrompt });
+    return edited;
   }
 
   /**

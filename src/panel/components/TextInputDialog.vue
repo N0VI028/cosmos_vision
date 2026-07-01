@@ -8,11 +8,28 @@
     :class="dialogClass"
     :header="title"
     :style="dialogStyle"
+    :content-style="contentStyle"
     @show="focusInput"
   >
-    <div class="flex w-full flex-col gap-2">
+    <div class="cv-text-input-dialog__body">
       <div class="cv-confirm-message mb-2">{{ message }}</div>
-      <Textarea ref="inputRef" v-model="value" class="w-full custom-scrollbar" :rows="rows" auto-resize />
+      <div class="cv-text-input-dialog__field">
+        <label v-if="primaryLabel" class="cv-text-input-dialog__label">{{ primaryLabel }}</label>
+        <Textarea
+          ref="inputRef"
+          v-model="value"
+          class="cv-text-input-dialog__textarea custom-scrollbar"
+          :rows="rows"
+        />
+      </div>
+      <div v-if="hasSecondaryField" class="cv-text-input-dialog__field cv-text-input-dialog__field--secondary">
+        <label class="cv-text-input-dialog__label">{{ secondaryLabel }}</label>
+        <Textarea
+          v-model="secondaryValue"
+          class="cv-text-input-dialog__textarea custom-scrollbar"
+          :rows="secondaryRows"
+        />
+      </div>
     </div>
     <template #footer>
       <div class="cv-confirm-actions">
@@ -32,18 +49,25 @@ type TextInputRef = { $el?: HTMLElement } | HTMLElement | null;
 
 const visible = defineModel<boolean>('visible', { required: true });
 const value = defineModel<string>('value', { required: true });
+const secondaryValue = defineModel<string>('secondaryValue', { default: '' });
 
 const props = withDefaults(
   defineProps<{
     title: string;
     message: string;
+    primaryLabel?: string;
+    secondaryLabel?: string;
     rows?: number;
+    secondaryRows?: number;
     acceptLabel?: string;
     cancelLabel?: string;
     darkMode?: boolean;
   }>(),
   {
+    primaryLabel: '',
+    secondaryLabel: '',
     rows: 4,
+    secondaryRows: 4,
     acceptLabel: '确定',
     cancelLabel: '取消',
     darkMode: false,
@@ -51,18 +75,20 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  submit: [value: string | null];
+  submit: [value: { value: string; secondaryValue: string } | null];
 }>();
 
 const inputRef = ref<TextInputRef>(null);
 const isMobile = useMediaQuery('(max-width: 66.6667em)');
 
-const dialogClass = computed(() => ['cv-confirm-dialog', { [DARK_CLASS]: props.darkMode }]);
+const dialogClass = computed(() => ['cv-confirm-dialog', 'cv-text-input-dialog', { [DARK_CLASS]: props.darkMode }]);
+const hasSecondaryField = computed(() => Boolean(props.secondaryLabel));
 const dialogStyle = computed(() =>
   isMobile.value
-    ? { width: 'calc(100vw - 2rem)', maxWidth: '26rem' }
-    : { width: '24rem', maxWidth: 'calc(100vw - 2rem)' },
+    ? { width: 'calc(100vw - 2rem)', maxWidth: '32rem', maxHeight: 'calc(100vh - 2rem)' }
+    : { width: '42rem', maxWidth: 'calc(100vw - 3rem)', maxHeight: 'calc(100vh - 3rem)' },
 );
+const contentStyle = { overflow: 'hidden' } as const;
 
 /**
  * 提交文本输入弹窗结果
@@ -70,7 +96,7 @@ const dialogStyle = computed(() =>
  */
 function submit(accept: boolean): void {
   visible.value = false;
-  emit('submit', accept ? value.value.trim() : null);
+  emit('submit', accept ? { value: value.value.trim(), secondaryValue: secondaryValue.value.trim() } : null);
 }
 
 /**
@@ -94,3 +120,42 @@ function getTextInputElement(): HTMLTextAreaElement | null {
   return el instanceof HTMLTextAreaElement ? el : null;
 }
 </script>
+
+<style scoped>
+@reference '../../global.css';
+
+.cv-text-input-dialog__body {
+  @apply flex w-full flex-col overflow-hidden;
+  gap: var(--cv-space-3xl);
+  max-height: min(68vh, 34rem);
+}
+
+.cv-text-input-dialog__field {
+  @apply flex min-h-0 flex-col;
+  gap: var(--cv-space-sm);
+}
+
+.cv-text-input-dialog__label {
+  color: var(--cv-on-surface);
+  font-size: var(--cv-font-size-sm);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.cv-text-input-dialog__textarea {
+  @apply w-full overflow-y-auto;
+  min-height: 7rem;
+  max-height: min(28vh, 14rem);
+  resize: none;
+  overscroll-behavior: contain;
+}
+
+.cv-text-input-dialog__field--secondary .cv-text-input-dialog__textarea {
+  min-height: 5.5rem;
+  max-height: min(24vh, 12rem);
+}
+
+:deep(.cv-text-input-dialog .p-dialog-content) {
+  overflow: hidden;
+}
+</style>

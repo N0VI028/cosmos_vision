@@ -103,10 +103,40 @@ export function handleInlineImageClick(
   const isTouch = window.matchMedia('(hover: none)').matches;
   if (isTouch && !wrap.classList.contains('cv-inline-img-active')) {
     wrap.classList.add('cv-inline-img-active');
+    ensureInlineImageOutsideDismiss();
     return;
   }
   openLightbox(img.src, snapshot);
   if (isTouch) wrap.classList.remove('cv-inline-img-active');
+}
+
+/** 是否已绑定移动端外部点击收起监听 */
+let inlineImageOutsideDismissBound = false;
+
+/**
+ * 懒绑定全局监听: 移动端点击图片外部时收起段落图片操作 UI
+ */
+function ensureInlineImageOutsideDismiss(): void {
+  if (inlineImageOutsideDismissBound) return;
+  inlineImageOutsideDismissBound = true;
+  // 捕获阶段监听,不受内联控件 stopPropagation 影响
+  document.addEventListener('pointerdown', dismissActiveInlineImages, true);
+}
+
+/**
+ * 收起所有点击落在图片容器之外的激活态操作 UI
+ * @param event 指针按下事件
+ */
+function dismissActiveInlineImages(event: PointerEvent): void {
+  const target = event.target as Node | null;
+  document.querySelectorAll<HTMLElement>('.cv-inline-img-wrap.cv-inline-img-active').forEach(wrap => {
+    if (!target || !wrap.contains(target)) wrap.classList.remove('cv-inline-img-active');
+  });
+  // 无激活项时解绑,避免常驻监听
+  if (!document.querySelector('.cv-inline-img-wrap.cv-inline-img-active')) {
+    document.removeEventListener('pointerdown', dismissActiveInlineImages, true);
+    inlineImageOutsideDismissBound = false;
+  }
 }
 
 /**

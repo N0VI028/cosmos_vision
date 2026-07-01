@@ -31,7 +31,7 @@ export interface InlineGalleryGroupProps {
   removeItem: (item: InlineGalleryItem) => void;
   generateLast: (item: InlineGalleryItem) => void;
   generateFresh: () => void;
-  generateWithEditablePrompt: () => void;
+  generateWithEditablePrompt: (item: InlineGalleryItem) => void;
 }
 
 export const InlineGalleryGroupView = defineComponent({
@@ -47,7 +47,7 @@ export const InlineGalleryGroupView = defineComponent({
     removeItem: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
     generateLast: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
     generateFresh: { type: Function as PropType<() => void>, required: true },
-    generateWithEditablePrompt: { type: Function as PropType<() => void>, required: true },
+    generateWithEditablePrompt: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
   },
   setup(props) {
     return () => (props.items.length ? renderGalleryGroup(props as InlineGalleryGroupProps) : h('div'));
@@ -261,25 +261,25 @@ function buildGenerateActions(
 ): InlineActionButtonSpec[] {
   return [
     {
-      label: '重生成图片',
+      label: '重新生图',
       icon: 'fa-solid fa-repeat',
       severity: 'secondary',
       variant: 'outlined',
       onClick: () => props.generateLast(item),
     },
     {
-      label: '重生成TAG+图片',
+      label: '编辑TAG后重新生图',
+      icon: 'fa-solid fa-pen-to-square',
+      severity: 'secondary',
+      variant: 'outlined',
+      onClick: () => props.generateWithEditablePrompt(item),
+    },
+    {
+      label: '重新生成TAG和图片',
       icon: 'fa-solid fa-robot',
       severity: 'secondary',
       variant: 'outlined',
       onClick: () => props.generateFresh(),
-    },
-    {
-      label: '编辑后生图',
-      icon: 'fa-solid fa-pen-to-square',
-      severity: 'secondary',
-      variant: 'outlined',
-      onClick: () => props.generateWithEditablePrompt(),
     },
   ];
 }

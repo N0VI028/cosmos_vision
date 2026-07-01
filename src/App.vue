@@ -19,9 +19,13 @@
   <TextInputDialog
     v-model:visible="textInputDialogVisible"
     v-model:value="textInputDialogState.value"
+    v-model:secondary-value="textInputDialogState.secondaryValue"
     :title="textInputDialogState.title"
     :message="textInputDialogState.message"
+    :primary-label="textInputDialogState.primaryLabel"
+    :secondary-label="textInputDialogState.secondaryLabel"
     :rows="textInputDialogState.rows"
+    :secondary-rows="textInputDialogState.secondaryRows"
     :accept-label="textInputDialogState.acceptLabel"
     :cancel-label="textInputDialogState.cancelLabel"
     :dark-mode="darkMode"
@@ -112,17 +116,31 @@ import { DARK_CLASS } from '@/constants/theme';
 import SettingsDialog from '@/panel/SettingsDialog.vue';
 import TextInputDialog from '@/panel/components/TextInputDialog.vue';
 import { useSettingsStore } from '@/store/settings';
-import { useInlineImageGeneration, type InlineTextInputOptions } from '@/composables/useInlineImageGeneration';
+import {
+  useInlineImageGeneration,
+  type InlinePromptPairInputOptions,
+  type InlinePromptPairInputValue,
+  type InlineTextInputOptions,
+} from '@/composables/useInlineImageGeneration';
 import { extractCleanParagraphText, getFocusedChatParagraph } from '@/services/sillytavern/chat-dom';
+
+interface TextInputDialogSubmitValue {
+  value: string;
+  secondaryValue: string;
+}
 
 interface TextInputDialogState {
   title: string;
   message: string;
+  primaryLabel: string;
   value: string;
+  secondaryLabel: string;
+  secondaryValue: string;
   rows: number;
+  secondaryRows: number;
   acceptLabel: string;
   cancelLabel: string;
-  resolve: (value: string | null) => void;
+  resolve: (value: TextInputDialogSubmitValue | null) => void;
 }
 
 /** 设置弹窗显隐状态 */
@@ -142,8 +160,12 @@ const textInputDialogVisible = ref(false);
 const textInputDialogState = ref<TextInputDialogState>({
   title: '',
   message: '',
+  primaryLabel: '',
   value: '',
+  secondaryLabel: '',
+  secondaryValue: '',
   rows: 4,
+  secondaryRows: 4,
   acceptLabel: '确定',
   cancelLabel: '取消',
   resolve: () => {},
@@ -155,6 +177,7 @@ const { isSelectionMode, toggleSelectionMode, exitSelectionMode, refreshGalleryT
   {
     isRuntimeEnabled: () => savedSettings.enabled,
     requestTextInput: showTextInputDialog,
+    requestPromptPairInput: showPromptPairDialog,
     getDarkMode: () => darkMode.value,
   },
 );
@@ -294,11 +317,40 @@ function showTextInputDialog(options: InlineTextInputOptions): Promise<string | 
     textInputDialogState.value = {
       title: options.title ?? '输入',
       message: options.message,
+      primaryLabel: '',
       value: options.defaultValue ?? '',
+      secondaryLabel: '',
+      secondaryValue: '',
       rows: options.rows ?? 4,
+      secondaryRows: 4,
       acceptLabel: options.acceptLabel ?? '确定',
       cancelLabel: options.cancelLabel ?? '取消',
-      resolve,
+      resolve: result => resolve(result?.value ?? null),
+    };
+    textInputDialogVisible.value = true;
+  });
+}
+
+/**
+ * 显示正负提示词双输入弹窗
+ * @param options 弹窗配置
+ * @returns 用户输入的正负提示词或取消状态
+ */
+function showPromptPairDialog(options: InlinePromptPairInputOptions): Promise<InlinePromptPairInputValue | null> {
+  return new Promise(resolve => {
+    textInputDialogState.value = {
+      title: options.title ?? '编辑提示词',
+      message: options.message,
+      primaryLabel: options.positiveLabel ?? '正向提示词',
+      value: options.positiveDefaultValue ?? '',
+      secondaryLabel: options.negativeLabel ?? '负向提示词',
+      secondaryValue: options.negativeDefaultValue ?? '',
+      rows: options.positiveRows ?? 6,
+      secondaryRows: options.negativeRows ?? 4,
+      acceptLabel: options.acceptLabel ?? '确定',
+      cancelLabel: options.cancelLabel ?? '取消',
+      resolve: result =>
+        resolve(result ? { positive: result.value, negative: result.secondaryValue } : null),
     };
     textInputDialogVisible.value = true;
   });
@@ -308,7 +360,7 @@ function showTextInputDialog(options: InlineTextInputOptions): Promise<string | 
  * 处理文本输入弹窗结果
  * @param value 输入文本或取消状态
  */
-function handleTextInputDialog(value: string | null): void {
+function handleTextInputDialog(value: TextInputDialogSubmitValue | null): void {
   textInputDialogState.value.resolve(value);
 }
 
