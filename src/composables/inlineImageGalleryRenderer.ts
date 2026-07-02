@@ -489,7 +489,7 @@ async function toggleFavorite(
     if (wasFavorited) await unsetFavorite(item);
     else item.favoriteId = await saveFavoriteItem(group, item);
     syncFavoriteButtons(group.host, item);
-    toastr.success(wasFavorited ? '已取消收藏' : '已收藏图片');
+    toastr.success(wasFavorited ? '已取消收藏' : '已收藏图片，将长期存储');
   } catch (error) {
     console.error('[CosmosVision] 切换段落图片收藏失败', error);
     toastr.error('切换段落图片收藏失败');

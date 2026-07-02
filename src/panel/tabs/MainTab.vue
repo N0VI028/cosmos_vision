@@ -126,7 +126,7 @@
                 <div class="cv-vibe-name">{{ getDisplayFileName(data) }}</div>
               </template>
             </Column>
-            <Column header="操作" style="width: 6rem; min-width: 6rem">
+            <Column header="操作" style="width: 1%">
               <template #body="{ data }">
                 <div class="cv-vibe-actions">
                   <CvMiniButton
@@ -624,18 +624,32 @@ function openUrl(url: string): void {
 }
 
 .cv-vibe-table :deep(.p-datatable-table-container) {
-  overflow-x: hidden;
+  overflow-x: hidden !important;
   overflow-y: auto;
 }
 
 .cv-vibe-table :deep(.p-datatable-table) {
-  table-layout: fixed;
+  table-layout: auto;
   width: 100%;
 }
 
 /* vibe 表格无表头内容，隐藏避免空白行 */
 .cv-vibe-table :deep(.p-datatable-thead) {
   display: none;
+}
+
+/* 操作列去除内边距并自适应内容宽度 */
+.cv-vibe-table :deep(.p-datatable-tbody > tr > td:last-child) {
+  padding: 0 var(--cv-space-md) 0 0;
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* 空状态行恢复正常居中布局 */
+.cv-vibe-table :deep(.p-datatable-empty-message > td) {
+  padding: var(--cv-space-2xl) !important;
+  text-align: center;
+  width: auto !important;
 }
 
 .cv-vibe-thumb {
@@ -668,8 +682,9 @@ function openUrl(url: string): void {
 }
 
 .cv-vibe-actions {
-  @apply inline-flex items-center;
+  @apply flex items-center;
   gap: var(--cv-space-2xl);
+  white-space: nowrap;
 }
 
 /* 下载按钮（第一个操作按钮）使用次要前景色 */

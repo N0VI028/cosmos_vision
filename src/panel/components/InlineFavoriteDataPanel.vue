@@ -69,7 +69,7 @@
             </div>
           </template>
         </Column>
-        <Column style="width: 5rem">
+        <Column style="width: 1%">
           <template #body="{ node }">
             <div v-if="node.data.group" class="cv-favorite-tree-actions">
               <CvMiniButton
@@ -371,8 +371,13 @@ function stripPngExtension(name: string): string {
 }
 
 .cv-favorite-tree :deep(.p-treetable-table) {
-  table-layout: fixed;
+  table-layout: auto;
   width: 100%;
+}
+
+/* 隐藏横向滚动条 */
+.cv-favorite-tree :deep(.p-treetable-table-container) {
+  overflow-x: hidden !important;
 }
 
 /* 列表头行无内容，隐藏避免空白行 */
@@ -383,6 +388,13 @@ function stripPngExtension(name: string): string {
 /* 第一列：确保内容不溢出 */
 .cv-favorite-tree :deep(.p-treetable-tbody > tr > td:first-child) {
   overflow: hidden;
+}
+
+/* 操作列去除内边距并自适应内容宽度 */
+.cv-favorite-tree :deep(.p-treetable-tbody > tr > td:last-child) {
+  padding: 0 var(--cv-space-5xl) 0 0;
+  width: 1%;
+  white-space: nowrap;
 }
 
 .cv-favorite-tree-label {
@@ -408,8 +420,9 @@ function stripPngExtension(name: string): string {
 }
 
 .cv-favorite-tree-actions {
-  @apply inline-flex items-center;
+  @apply flex items-center;
   gap: var(--cv-space-2xl);
+  white-space: nowrap;
 }
 
 /* 下载按钮（第一个操作按钮）使用次要前景色 */
