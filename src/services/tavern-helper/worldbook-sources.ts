@@ -42,7 +42,7 @@ const worldbookRequestCache = new Map<string, Promise<TavernHelperWorldbookEntry
  * @returns 世界书名称列表
  */
 export function getPromptWorldbookNames(): string[] {
-  const tavernHelper = getTavernHelper();
+  const tavernHelper = getTavernHelper({ silent: true });
   return tavernHelper?.getWorldbookNames?.() ?? [];
 }
 
@@ -210,7 +210,7 @@ function readPromptWorldbook(worldbookName: string): Promise<TavernHelperWorldbo
  * @returns 可安全调用的 TavernHelper
  */
 function requirePromptWorldbookTavernHelper(): NonNullable<typeof TavernHelper> {
-  const tavernHelper = getTavernHelper();
+  const tavernHelper = getTavernHelper({ silent: true });
   if (!tavernHelper) {
     throw new Error('TavernHelper 不可用，无法读取世界书资料');
   }

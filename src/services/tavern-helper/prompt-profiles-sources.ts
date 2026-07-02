@@ -49,7 +49,7 @@ const TEMPLATE_ENTRY_RESOLVERS: Partial<
  * @returns 角色卡名称列表
  */
 export function getPromptPersonCharacterNames(): string[] {
-  const tavernHelper = getTavernHelper();
+  const tavernHelper = getTavernHelper({ silent: true });
   return tavernHelper?.getCharacterNames?.() ?? [];
 }
 
@@ -58,7 +58,7 @@ export function getPromptPersonCharacterNames(): string[] {
  * @returns persona 名称列表
  */
 export function getPromptPersonUserPersonaNames(): string[] {
-  const tavernHelper = getTavernHelper();
+  const tavernHelper = getTavernHelper({ silent: true });
   return readPersonaList(tavernHelper ? () => tavernHelper.getPersonaNames() : undefined);
 }
 
@@ -67,7 +67,7 @@ export function getPromptPersonUserPersonaNames(): string[] {
  * @returns persona 头像 id 列表
  */
 export function getPromptPersonUserPersonaIds(): string[] {
-  const tavernHelper = getTavernHelper();
+  const tavernHelper = getTavernHelper({ silent: true });
   return readPersonaList(tavernHelper ? () => tavernHelper.getPersonaIds() : undefined);
 }
 
@@ -313,7 +313,7 @@ function buildResolvedTemplateEntry(
  * @returns 可安全调用的 TavernHelper
  */
 function requirePromptProfilesTavernHelper(): NonNullable<typeof TavernHelper> {
-  const tavernHelper = getTavernHelper();
+  const tavernHelper = getTavernHelper({ silent: true });
   if (!tavernHelper) {
     throw new Error('TavernHelper 不可用，无法读取人物资料');
   }

@@ -105,7 +105,7 @@ export async function generatePromptTextFromRuntimeContext(
   schemaFields: PromptLlmOutputFields | null = DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
   options: PromptLlmGenerateOptions = {},
 ): Promise<string> {
-  const tavernHelper = getTavernHelper();
+  const tavernHelper = getTavernHelper({ silent: false });
   if (!tavernHelper) {
     throw new Error('TavernHelper 不可用,无法生成提示词');
   }

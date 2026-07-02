@@ -57,7 +57,7 @@ async function requestPromptPersonTags(
   settings: PromptLlmSettings,
   presetSettings: PromptLlmMessagePresetSettings,
 ): Promise<string> {
-  const tavernHelper = getTavernHelper();
+  const tavernHelper = getTavernHelper({ silent: false });
   if (!tavernHelper) throw new Error('TavernHelper 不可用，无法解析人物 tag');
   const request = await buildPromptLlmRuntimeRequest(settings, presetSettings, buildPromptPersonRuntimeContent(contextText));
   try {

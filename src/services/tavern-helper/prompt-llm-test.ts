@@ -22,7 +22,7 @@ export interface PromptLlmLogParams {
  * @returns 格式化后的原始响应文本
  */
 export async function requestPromptLlmRaw(request: TavernHelperGenerateRawConfig): Promise<string> {
-  const tavernHelper = getTavernHelper();
+  const tavernHelper = getTavernHelper({ silent: false });
   if (!tavernHelper) {
     throw new Error('TavernHelper 不可用，请确保酒馆环境正常加载');
   }

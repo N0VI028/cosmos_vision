@@ -5,7 +5,7 @@ import { getTavernHelper } from '@/services/tavern-helper/availability';
  * @returns 当前角色名或 null
  */
 export function getCurrentCharacterKey(): string | null {
-  const tavernHelper = getTavernHelper();
+  const tavernHelper = getTavernHelper({ silent: true });
   const characterName = tavernHelper?.getCurrentCharacterName?.();
   return normalizeBindingKey(characterName);
 }
@@ -15,7 +15,7 @@ export function getCurrentCharacterKey(): string | null {
  * @returns 当前 persona key 或 null
  */
 export function getCurrentUserPersonaKey(): string | null {
-  const tavernHelper = getTavernHelper();
+  const tavernHelper = getTavernHelper({ silent: true });
   if (!tavernHelper) return null;
   return (
     readPersonaGetter(() => tavernHelper.getCurrentPersonaName()) ??

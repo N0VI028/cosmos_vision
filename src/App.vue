@@ -123,6 +123,7 @@ import {
   type InlineTextInputOptions,
 } from '@/composables/useInlineImageGeneration';
 import { extractCleanParagraphText, getFocusedChatParagraph } from '@/services/sillytavern/chat-dom';
+import { ensureTavernHelper } from '@/services/tavern-helper/availability';
 
 interface TextInputDialogSubmitValue {
   value: string;
@@ -288,6 +289,7 @@ function openSettings(): void {
   settingsFocusParagraphText.value = readFocusedParagraphText();
   speedDialOpen.value = false;
   exitSelectionMode();
+  ensureTavernHelper();
   settingsVisible.value = true;
 }
 
