@@ -45,6 +45,7 @@ interface InlineGalleryRendererOptions {
   onGenerateWithSnapshot: (paragraph: HTMLElement, snapshot: InlinePromptSnapshot) => Promise<void>;
   onGenerateWithFreshPrompt: (paragraph: HTMLElement) => Promise<void>;
   onGenerateWithEditablePrompt: (paragraph: HTMLElement, snapshot: InlinePromptSnapshot) => Promise<void>;
+  onDownloadImage: (imageBlob: Blob, createdAt: number) => Promise<void>;
 }
 
 export interface InlineImageGalleryRenderer {
@@ -457,6 +458,7 @@ function buildGroupProps(state: InlineGalleryState, group: InlineGalleryGroup): 
     generateLast: item => void generateLast(state, group, item),
     generateFresh: () => void generateFresh(state, group),
     generateWithEditablePrompt: item => void generateWithEditablePrompt(state, group, item),
+    downloadImage: item => void downloadImage(state, item),
   };
 }
 
@@ -658,6 +660,16 @@ async function generateWithEditablePrompt(
 ): Promise<void> {
   if (!state.isRuntimeEnabled() || !group.anchor.paragraph) return;
   await state.onGenerateWithEditablePrompt(group.anchor.paragraph, item.promptSnapshot);
+}
+
+/**
+ * 下载当前画廊图片
+ * @param state 画廊状态
+ * @param item 当前画廊项
+ */
+async function downloadImage(state: InlineGalleryState, item: InlineGalleryItem): Promise<void> {
+  if (!state.isRuntimeEnabled()) return;
+  await state.onDownloadImage(item.imageBlob, item.createdAt);
 }
 
 /**

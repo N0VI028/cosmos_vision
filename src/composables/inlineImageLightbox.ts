@@ -13,6 +13,10 @@ export interface InlinePromptSnapshot {
   comfyui?: ComfyUIRequestSnapshot;
 }
 
+interface InlineLightboxActions {
+  onDownload?: () => void | Promise<void>;
+}
+
 /**
  * 克隆为 IndexedDB 可结构化保存的纯提示词快照
  * @param snapshot 原始提示词快照
@@ -97,6 +101,7 @@ export function handleInlineImageClick(
   wrap: HTMLElement,
   isRuntimeEnabled: () => boolean,
   snapshot?: InlinePromptSnapshot,
+  actions?: InlineLightboxActions,
 ): void {
   if (!isRuntimeEnabled()) return;
   e.stopPropagation();
@@ -106,7 +111,7 @@ export function handleInlineImageClick(
     ensureInlineImageOutsideDismiss();
     return;
   }
-  openLightbox(img.src, snapshot);
+  openLightbox(img.src, snapshot, actions);
   if (isTouch) wrap.classList.remove('cv-inline-img-active');
 }
 
@@ -173,10 +178,10 @@ function markCopyButtonSuccess(btn: HTMLElement): void {
  * @param snapshot 提示词快照
  * @returns Lightbox 根元素
  */
-function createLightboxDOM(src: string, snapshot?: InlinePromptSnapshot): HTMLElement {
+function createLightboxDOM(src: string, snapshot?: InlinePromptSnapshot, actions?: InlineLightboxActions): HTMLElement {
   const overlay = document.createElement('div');
   overlay.className = 'cv-lightbox-overlay';
-  overlay.innerHTML = buildLightboxMarkup(src, snapshot);
+  overlay.innerHTML = buildLightboxMarkup(src, snapshot, actions);
   return overlay;
 }
 
@@ -186,9 +191,9 @@ function createLightboxDOM(src: string, snapshot?: InlinePromptSnapshot): HTMLEl
  * @param snapshot 提示词快照
  * @returns HTML 字符串
  */
-function buildLightboxMarkup(src: string, snapshot?: InlinePromptSnapshot): string {
+function buildLightboxMarkup(src: string, snapshot?: InlinePromptSnapshot, actions?: InlineLightboxActions): string {
   return `
-    <button class="cv-lightbox-close"><i class="fa-solid fa-xmark"></i></button>
+    ${buildLightboxToolbarMarkup(actions)}
     <div class="cv-lightbox-wrapper">
       <div class="cv-lightbox-img-box">
         <img class="cv-lightbox-preview-img" src="${escapeHtml(src)}" alt="放大图片" draggable="false" />
@@ -200,6 +205,22 @@ function buildLightboxMarkup(src: string, snapshot?: InlinePromptSnapshot): stri
           ${buildPromptGroupMarkup('neg', '负面提示词', snapshot?.negativePrompt || '无负面提示词')}
         </div>
       </div>
+    </div>
+  `;
+}
+
+/**
+ * 构建 Lightbox 顶部操作栏
+ * @param actions Lightbox 操作集合
+ * @returns HTML 字符串
+ */
+function buildLightboxToolbarMarkup(actions?: InlineLightboxActions): string {
+  return `
+    <div class="cv-lightbox-toolbar">
+      ${actions?.onDownload
+        ? '<button class="cv-lightbox-download" title="下载图片" aria-label="下载图片"><i class="fa-solid fa-download"></i></button>'
+        : ''}
+      <button class="cv-lightbox-close" title="关闭" aria-label="关闭"><i class="fa-solid fa-xmark"></i></button>
     </div>
   `;
 }
@@ -254,14 +275,29 @@ function escapeHtml(value: string): string {
  * @param overlay Lightbox 根元素
  * @param snapshot 提示词快照
  */
-function bindLightboxEvents(overlay: HTMLElement, snapshot?: InlinePromptSnapshot): void {
+function bindLightboxEvents(overlay: HTMLElement, snapshot?: InlinePromptSnapshot, actions?: InlineLightboxActions): void {
   const close = () => closeLightbox(overlay, handleEsc);
   const handleEsc = (e: KeyboardEvent) => e.key === 'Escape' && close();
   document.addEventListener('keydown', handleEsc);
   overlay.addEventListener('click', e => handleOverlayClick(e, overlay, close));
   overlay.querySelector('.cv-lightbox-close')?.addEventListener('click', close);
+  bindLightboxDownload(overlay, actions);
   bindLightboxToggle(overlay);
   bindLightboxCopyButtons(overlay, snapshot);
+}
+
+/**
+ * 绑定 Lightbox 下载按钮
+ * @param overlay Lightbox 根元素
+ * @param actions Lightbox 操作集合
+ */
+function bindLightboxDownload(overlay: HTMLElement, actions?: InlineLightboxActions): void {
+  if (!actions?.onDownload) return;
+  overlay.querySelector('.cv-lightbox-download')?.addEventListener('click', () => {
+    void Promise.resolve(actions.onDownload?.()).catch(error => {
+      console.error('[CosmosVision] 下载图片失败', error);
+    });
+  });
 }
 
 /**
@@ -324,11 +360,11 @@ function bindLightboxCopyButtons(overlay: HTMLElement, snapshot?: InlinePromptSn
  * @param src 图片地址
  * @param snapshot 提示词快照
  */
-function openLightbox(src: string, snapshot?: InlinePromptSnapshot): void {
-  const overlay = createLightboxDOM(src, snapshot);
+function openLightbox(src: string, snapshot?: InlinePromptSnapshot, actions?: InlineLightboxActions): void {
+  const overlay = createLightboxDOM(src, snapshot, actions);
   document.body.appendChild(overlay);
   requestAnimationFrame(() => {
     overlay.classList.add('cv-lightbox-active');
   });
-  bindLightboxEvents(overlay, snapshot);
+  bindLightboxEvents(overlay, snapshot, actions);
 }

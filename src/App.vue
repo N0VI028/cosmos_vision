@@ -31,6 +31,12 @@
     :dark-mode="darkMode"
     @submit="handleTextInputDialog"
   />
+  <ImageDownloadDialog
+    v-model:visible="imageDownloadDialogVisible"
+    v-model:options="imageDownloadDialogOptions"
+    :dark-mode="darkMode"
+    @submit="handleImageDownloadDialog"
+  />
   <Teleport to="body">
     <!-- 顶部生图模式提示蒙版 -->
     <Transition name="cv-fade">
@@ -114,6 +120,7 @@ import { useDraggable, useLocalStorage, useWindowSize, onClickOutside } from '@v
 import { storeToRefs } from 'pinia';
 import { DARK_CLASS } from '@/constants/theme';
 import SettingsDialog from '@/panel/SettingsDialog.vue';
+import ImageDownloadDialog from '@/panel/components/ImageDownloadDialog.vue';
 import TextInputDialog from '@/panel/components/TextInputDialog.vue';
 import { useSettingsStore } from '@/store/settings';
 import {
@@ -124,6 +131,12 @@ import {
 } from '@/composables/useInlineImageGeneration';
 import { extractCleanParagraphText, getFocusedChatParagraph } from '@/services/sillytavern/chat-dom';
 import { ensureTavernHelper } from '@/services/tavern-helper/availability';
+import {
+  IMAGE_DOWNLOAD_OPTIONS_REQUEST_KEY,
+  cloneInlineImageDownloadOptions,
+  createDefaultInlineImageDownloadOptions,
+  type InlineImageDownloadOptions,
+} from '@/services/inline-image/download-options';
 
 interface TextInputDialogSubmitValue {
   value: string;
@@ -144,6 +157,10 @@ interface TextInputDialogState {
   resolve: (value: TextInputDialogSubmitValue | null) => void;
 }
 
+interface ImageDownloadDialogState {
+  resolve: (value: InlineImageDownloadOptions | null) => void;
+}
+
 /** 设置弹窗显隐状态 */
 const settingsVisible = ref(false);
 
@@ -158,6 +175,7 @@ const { savedSettings } = settingsStore;
 const { darkMode } = storeToRefs(settingsStore);
 
 const textInputDialogVisible = ref(false);
+const imageDownloadDialogVisible = ref(false);
 const textInputDialogState = ref<TextInputDialogState>({
   title: '',
   message: '',
@@ -171,6 +189,10 @@ const textInputDialogState = ref<TextInputDialogState>({
   cancelLabel: '取消',
   resolve: () => {},
 });
+const imageDownloadDialogOptions = ref(createDefaultInlineImageDownloadOptions());
+const imageDownloadDialogState = ref<ImageDownloadDialogState>({
+  resolve: () => {},
+});
 
 /** 段落生图运行时控制器 */
 const { isSelectionMode, toggleSelectionMode, exitSelectionMode, refreshGalleryTheme, cleanup } = useInlineImageGeneration(
@@ -179,9 +201,12 @@ const { isSelectionMode, toggleSelectionMode, exitSelectionMode, refreshGalleryT
     isRuntimeEnabled: () => savedSettings.enabled,
     requestTextInput: showTextInputDialog,
     requestPromptPairInput: showPromptPairDialog,
+    requestImageDownloadOptions: showImageDownloadDialog,
     getDarkMode: () => darkMode.value,
   },
 );
+
+provide(IMAGE_DOWNLOAD_OPTIONS_REQUEST_KEY, showImageDownloadDialog);
 
 /** 日夜模式切换时立即刷新画廊主题 */
 watch(darkMode, () => refreshGalleryTheme());
@@ -359,11 +384,33 @@ function showPromptPairDialog(options: InlinePromptPairInputOptions): Promise<In
 }
 
 /**
+ * 显示图片下载配置弹窗
+ * @returns 用户确认后的下载配置,取消时返回 null
+ */
+function showImageDownloadDialog(): Promise<InlineImageDownloadOptions | null> {
+  return new Promise(resolve => {
+    imageDownloadDialogOptions.value = createDefaultInlineImageDownloadOptions();
+    imageDownloadDialogState.value = {
+      resolve: result => resolve(result ? cloneInlineImageDownloadOptions(result) : null),
+    };
+    imageDownloadDialogVisible.value = true;
+  });
+}
+
+/**
  * 处理文本输入弹窗结果
  * @param value 输入文本或取消状态
  */
 function handleTextInputDialog(value: TextInputDialogSubmitValue | null): void {
   textInputDialogState.value.resolve(value);
+}
+
+/**
+ * 处理图片下载配置弹窗结果
+ * @param value 下载配置或取消状态
+ */
+function handleImageDownloadDialog(value: InlineImageDownloadOptions | null): void {
+  imageDownloadDialogState.value.resolve(value);
 }
 
 // ── 生命周期 ─────────────────────────────────────────────
@@ -392,6 +439,7 @@ watch(settingsVisible, visible => {
 
 onBeforeUnmount(() => {
   if (textInputDialogVisible.value) textInputDialogState.value.resolve(null);
+  if (imageDownloadDialogVisible.value) imageDownloadDialogState.value.resolve(null);
   cleanup();
 });
 </script>

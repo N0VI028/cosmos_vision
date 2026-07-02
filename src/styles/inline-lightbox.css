@@ -24,11 +24,17 @@
   opacity: 1;
 }
 
-.cv-lightbox-close {
-  @apply absolute z-[100001] flex items-center justify-center rounded-full;
+.cv-lightbox-toolbar {
+  @apply absolute z-[100001] flex items-center;
   top: max(1.5rem, env(safe-area-inset-top));
   right: max(1.5rem, env(safe-area-inset-right));
   z-index: 100001;
+  gap: 0.75rem;
+}
+
+.cv-lightbox-download,
+.cv-lightbox-close {
+  @apply flex items-center justify-center rounded-full;
   width: 2.5rem;
   height: 2.5rem;
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -39,8 +45,12 @@
   transition: all 0.2s ease;
 }
 
+.cv-lightbox-download:hover,
 .cv-lightbox-close:hover {
   background: rgba(255, 255, 255, 0.25);
+}
+
+.cv-lightbox-close:hover {
   transform: rotate(90deg);
 }
 

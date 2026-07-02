@@ -185,6 +185,10 @@ import { IMAGE_SOURCES } from '@/constants/comfyui';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import InlineFavoriteDataPanel from '@/panel/components/InlineFavoriteDataPanel.vue';
+import {
+  IMAGE_DOWNLOAD_OPTIONS_REQUEST_KEY,
+  type InlineImageDownloadOptions,
+} from '@/services/inline-image/download-options';
 import { useSettingsStore } from '@/store/settings';
 import {
   clearInlineImageFavorites,
@@ -236,6 +240,8 @@ const showConfirm =
       severity?: string;
     }) => Promise<boolean>
   >('showConfirm');
+const requestImageDownloadOptions =
+  inject<() => Promise<InlineImageDownloadOptions | null>>(IMAGE_DOWNLOAD_OPTIONS_REQUEST_KEY);
 
 watch(
   () => props.subTab,
@@ -403,8 +409,10 @@ async function deleteAllVibes(): Promise<void> {
  * @param group 收藏图片分组
  */
 async function downloadFavoriteGroup(group: InlineImageFavoriteGroup): Promise<void> {
+  const options = await requestInlineImageDownloadOptions();
+  if (!options) return;
   await runFavoriteAction(async () => {
-    await downloadInlineImageFavoriteGroup(group);
+    await downloadInlineImageFavoriteGroup(group, options);
   }, '下载收藏图片失败');
 }
 
@@ -412,13 +420,15 @@ async function downloadFavoriteGroup(group: InlineImageFavoriteGroup): Promise<v
  * 下载全部收藏图片分组
  */
 async function downloadAllFavorites(): Promise<void> {
+  const options = await requestInlineImageDownloadOptions();
+  if (!options) return;
   await runFavoriteAction(async () => {
     if (!favoriteGroups.value.length) {
       toastr.warning('暂无可下载的收藏图片');
       await refreshFavoriteGroups();
       return;
     }
-    await downloadAllInlineImageFavoriteGroups(favoriteGroups.value);
+    await downloadAllInlineImageFavoriteGroups(favoriteGroups.value, options);
   }, '下载全部收藏图片失败');
 }
 
@@ -454,9 +464,19 @@ async function deleteAllFavorites(): Promise<void> {
  * @param ids 选中的收藏记录 ID 列表
  */
 async function downloadFavoriteItems(ids: number[]): Promise<void> {
+  const options = await requestInlineImageDownloadOptions();
+  if (!options) return;
   await runFavoriteAction(async () => {
-    await downloadInlineImageFavoriteItems(ids, favoriteGroups.value);
+    await downloadInlineImageFavoriteItems(ids, favoriteGroups.value, options);
   }, '下载选中收藏图片失败');
+}
+
+/**
+ * 请求统一的图片下载配置
+ * @returns 用户确认后的下载配置
+ */
+async function requestInlineImageDownloadOptions(): Promise<InlineImageDownloadOptions | null> {
+  return requestImageDownloadOptions ? requestImageDownloadOptions() : null;
 }
 
 /**

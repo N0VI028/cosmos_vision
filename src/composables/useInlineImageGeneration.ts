@@ -31,6 +31,11 @@ import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services
 import type { ImagePromptVibeRef } from '@/constants/image-prompt';
 import { useSettingsStore } from '@/store/settings';
 import { getCurrentInstance } from 'vue';
+import {
+  downloadInlineImageBlob,
+} from '@/services/inline-image/image-download-transform';
+import type { InlineImageDownloadOptions } from '@/services/inline-image/download-options';
+import { formatTimestampForFileName } from '@/services/inline-image/filename-utils';
 
 type RuntimeEnabledGetter = () => boolean;
 type PromptLlmSchemaFields = ReturnType<typeof buildPromptLlmSchemaFields>;
@@ -66,6 +71,7 @@ interface InlineImageGenerationOptions {
   isRuntimeEnabled?: RuntimeEnabledGetter;
   requestTextInput: (options: InlineTextInputOptions) => Promise<string | null>;
   requestPromptPairInput: (options: InlinePromptPairInputOptions) => Promise<InlinePromptPairInputValue | null>;
+  requestImageDownloadOptions: () => Promise<InlineImageDownloadOptions | null>;
   getDarkMode: () => boolean;
 }
 
@@ -91,6 +97,7 @@ export function useInlineImageGeneration(
   const isRuntimeEnabled = options.isRuntimeEnabled ?? (() => true);
   const requestTextInput = options.requestTextInput;
   const requestPromptPairInput = options.requestPromptPairInput;
+  const requestImageDownloadOptions = options.requestImageDownloadOptions;
   const settingsStore = useSettingsStore();
 
   /** 当前组件实例上下文,用于把 PrimeVue Button 渲染到聊天内联 DOM */
@@ -116,6 +123,7 @@ export function useInlineImageGeneration(
     onGenerateWithSnapshot: handleGenerateWithFavoriteSnapshot,
     onGenerateWithFreshPrompt: handleGenerateWithFreshPrompt,
     onGenerateWithEditablePrompt: handleGenerateWithEditablePrompt,
+    onDownloadImage: handleDownloadImage,
   });
 
   /** 记录 pointerdown 的位置,用于区分点击和拖拽 */
@@ -342,6 +350,22 @@ export function useInlineImageGeneration(
     snapshot: InlinePromptSnapshot,
   ): Promise<void> {
     await runImageGeneration(paragraph, false, session => generateImageResultFromSnapshot(snapshot, session));
+  }
+
+  /**
+   * 下载当前预览图片
+   * @param imageBlob 当前图片 Blob
+   * @param createdAt 当前图片创建时间
+   */
+  async function handleDownloadImage(imageBlob: Blob, createdAt: number): Promise<void> {
+    const options = await requestImageDownloadOptions();
+    if (!options) return;
+    try {
+      await downloadInlineImageBlob(imageBlob, buildInlineImageDownloadBaseName(createdAt), options);
+    } catch (error) {
+      toastr.error('下载图片失败');
+      console.error('[CosmosVision] 下载图片失败', error);
+    }
   }
 
   /**
@@ -738,4 +762,13 @@ export function useInlineImageGeneration(
     refreshGalleryTheme: () => imageGallery.refreshTheme(),
     cleanup,
   };
+}
+
+/**
+ * 构建内联单图下载文件名
+ * @param createdAt 图片创建时间
+ * @returns 不含扩展名的文件名
+ */
+function buildInlineImageDownloadBaseName(createdAt: number): string {
+  return `cosmos-vision-inline-image-${formatTimestampForFileName(createdAt)}`;
 }

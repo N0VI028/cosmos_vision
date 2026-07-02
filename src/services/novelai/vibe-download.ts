@@ -1,5 +1,6 @@
 import '@sillytavern/lib/jszip.min';
 
+import { triggerBrowserDownload } from '@/services/browser-download';
 import { getNovelAIVibeDisplayFileName } from '@/services/novelai/vibe-display';
 import type { NovelAIVibeDownloadPayload } from '@/services/novelai/vibe-types';
 
@@ -109,20 +110,6 @@ function getUniquePath(path: string, usedPaths: Set<string>): string {
   }
   usedPaths.add(nextPath);
   return nextPath;
-}
-
-/**
- * 触发浏览器下载
- * @param blob 文件内容
- * @param fileName 下载文件名
- */
-function triggerBrowserDownload(blob: Blob, fileName: string): void {
-  const objectUrl = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = objectUrl;
-  anchor.download = fileName;
-  anchor.click();
-  setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
 }
 
 /**

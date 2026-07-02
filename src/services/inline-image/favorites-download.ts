@@ -1,5 +1,12 @@
 import '@sillytavern/lib/jszip.min';
 
+import type { InlineImageDownloadOptions } from '@/services/inline-image/download-options';
+import { formatTimestampForFileName } from '@/services/inline-image/filename-utils';
+import {
+  downloadInlineImageBlob,
+  transformInlineImageForDownload,
+  triggerBrowserDownload,
+} from '@/services/inline-image/image-download-transform';
 import type {
   InlineImageFavoriteGroup,
   InlineImageFavoriteListItem,
@@ -14,32 +21,53 @@ interface DownloadZipConstructor {
   new (): DownloadZipArchive;
 }
 
+interface FavoriteDownloadAppendResult {
+  succeededCount: number;
+  failedCount: number;
+}
+
 const DownloadJSZip = JSZip as unknown as DownloadZipConstructor;
 const DEFAULT_ARCHIVE_NAME = 'cosmos-vision-inline-image-favorites.zip';
+const SELECTED_ARCHIVE_NAME = 'cosmos-vision-selected-favorites.zip';
 
 /**
  * 下载单个收藏图片分组
  * @param group 收藏图片分组
+ * @param options 下载配置
  */
-export async function downloadInlineImageFavoriteGroup(group: InlineImageFavoriteGroup): Promise<void> {
+export async function downloadInlineImageFavoriteGroup(
+  group: InlineImageFavoriteGroup,
+  options: InlineImageDownloadOptions,
+): Promise<void> {
   if (!group.records.length) return;
   if (group.records.length === 1) {
-    downloadSingleInlineImageFavorite(group, group.records[0]);
+    await downloadSingleInlineImageFavorite(group, group.records[0], options);
     return;
   }
-  const zip = new DownloadJSZip();
-  appendInlineImageFavoriteRecords(zip, group.records);
-  triggerBrowserDownload(await zip.generateAsync({ type: 'blob' }), `${buildGroupFolderName(group)}.zip`);
+  await downloadFavoriteRecordsAsZip(group.records, options, `${buildGroupFolderName(group)}.zip`);
 }
 
 /**
  * 下载全部收藏图片分组
  * @param groups 收藏图片分组列表
+ * @param options 下载配置
  */
-export async function downloadAllInlineImageFavoriteGroups(groups: InlineImageFavoriteGroup[]): Promise<void> {
+export async function downloadAllInlineImageFavoriteGroups(
+  groups: InlineImageFavoriteGroup[],
+  options: InlineImageDownloadOptions,
+): Promise<void> {
   const zip = new DownloadJSZip();
   const usedFolders = new Set<string>();
-  groups.forEach(group => appendInlineImageFavoriteGroup(zip, group, getUniquePath(buildGroupFolderName(group), usedFolders)));
+  let succeededCount = 0;
+  let failedCount = 0;
+  for (const group of groups) {
+    const folder = getUniquePath(buildGroupFolderName(group), usedFolders);
+    const result = await appendInlineImageFavoriteGroup(zip, group, options, folder);
+    succeededCount += result.succeededCount;
+    failedCount += result.failedCount;
+  }
+  if (!succeededCount) throw new Error('没有可成功导出的收藏图片');
+  logFavoriteDownloadSkipSummary(failedCount);
   triggerBrowserDownload(await zip.generateAsync({ type: 'blob' }), DEFAULT_ARCHIVE_NAME);
 }
 
@@ -47,87 +75,124 @@ export async function downloadAllInlineImageFavoriteGroups(groups: InlineImageFa
  * 批量下载选中的收藏图片
  * @param ids 选中的收藏记录 ID 列表
  * @param groups 全部收藏图片分组
+ * @param options 下载配置
  */
 export async function downloadInlineImageFavoriteItems(
   ids: number[],
   groups: InlineImageFavoriteGroup[],
+  options: InlineImageDownloadOptions,
 ): Promise<void> {
-  const records = groups.flatMap(g => g.records).filter(r => ids.includes(r.id));
+  const records = groups.flatMap(group => group.records).filter(record => ids.includes(record.id));
   if (!records.length) return;
   if (records.length === 1) {
-    const record = records[0];
-    const group = groups.find(g => g.records.some(r => r.id === record.id));
-    if (group) downloadSingleInlineImageFavorite(group, record);
+    const group = groups.find(candidate => candidate.records.some(record => record.id === records[0]?.id));
+    if (group) await downloadSingleInlineImageFavorite(group, records[0], options);
     return;
   }
-  const zip = new DownloadJSZip();
-  appendInlineImageFavoriteRecords(zip, records);
-  triggerBrowserDownload(await zip.generateAsync({ type: 'blob' }), 'cosmos-vision-selected-favorites.zip');
+  await downloadFavoriteRecordsAsZip(records, options, SELECTED_ARCHIVE_NAME);
 }
 
 /**
  * 直接下载单张收藏图片
  * @param group 收藏图片分组
  * @param record 收藏记录
+ * @param options 下载配置
  */
-function downloadSingleInlineImageFavorite(
+async function downloadSingleInlineImageFavorite(
   group: InlineImageFavoriteGroup,
-  record?: InlineImageFavoriteListItem,
-): void {
+  record: InlineImageFavoriteListItem | undefined,
+  options: InlineImageDownloadOptions,
+): Promise<void> {
   if (!record) return;
-  triggerBrowserDownload(record.imageBlob, buildDirectDownloadName(group, record));
+  await downloadInlineImageBlob(record.imageBlob, buildDirectDownloadBaseName(group, record), options);
+}
+
+/**
+ * 把一组收藏记录导出为 ZIP
+ * @param records 收藏记录列表
+ * @param options 下载配置
+ * @param archiveName 压缩包文件名
+ */
+async function downloadFavoriteRecordsAsZip(
+  records: InlineImageFavoriteListItem[],
+  options: InlineImageDownloadOptions,
+  archiveName: string,
+): Promise<void> {
+  const zip = new DownloadJSZip();
+  const result = await appendInlineImageFavoriteRecords(zip, records, options);
+  if (!result.succeededCount) throw new Error('没有可成功导出的收藏图片');
+  logFavoriteDownloadSkipSummary(result.failedCount);
+  triggerBrowserDownload(await zip.generateAsync({ type: 'blob' }), archiveName);
 }
 
 /**
  * 将单个收藏分组写入总压缩包
  * @param zip 压缩包实例
  * @param group 收藏图片分组
+ * @param options 下载配置
  * @param folderPath 分组文件夹路径
  */
-function appendInlineImageFavoriteGroup(
+async function appendInlineImageFavoriteGroup(
   zip: DownloadZipArchive,
   group: InlineImageFavoriteGroup,
+  options: InlineImageDownloadOptions,
   folderPath: string,
-): void {
-  appendInlineImageFavoriteRecords(zip, group.records, `${folderPath}/`);
+): Promise<FavoriteDownloadAppendResult> {
+  return appendInlineImageFavoriteRecords(zip, group.records, options, `${folderPath}/`);
 }
 
 /**
  * 将收藏记录写入压缩包
  * @param zip 压缩包实例
  * @param records 收藏记录列表
+ * @param options 下载配置
  * @param prefix 可选路径前缀
  */
-function appendInlineImageFavoriteRecords(
+async function appendInlineImageFavoriteRecords(
   zip: DownloadZipArchive,
   records: InlineImageFavoriteListItem[],
+  options: InlineImageDownloadOptions,
   prefix = '',
-): void {
+): Promise<FavoriteDownloadAppendResult> {
   const usedPaths = new Set<string>();
-  records.forEach((record, index) => {
-    const fileName = getUniquePath(buildInlineImageFavoriteFileName(record, index), usedPaths);
-    zip.file(`${prefix}${fileName}`, record.imageBlob);
-  });
+  const result: FavoriteDownloadAppendResult = { succeededCount: 0, failedCount: 0 };
+  for (const [index, record] of records.entries()) {
+    try {
+      const payload = await transformInlineImageForDownload(record.imageBlob, options);
+      const path = getUniquePath(buildZipEntryName(record, index, payload.extension), usedPaths);
+      zip.file(`${prefix}${path}`, payload.blob);
+      result.succeededCount += 1;
+    } catch (error) {
+      result.failedCount += 1;
+      console.warn(`[CosmosVision] 收藏图片转换失败，已跳过第 ${index + 1} 项`, error);
+    }
+  }
+  return result;
 }
 
 /**
- * 构建单张直下文件名
+ * 构建单张直下文件名主体
  * @param group 收藏图片分组
  * @param record 收藏记录
- * @returns 下载文件名
+ * @returns 不含扩展名的文件名
  */
-function buildDirectDownloadName(group: InlineImageFavoriteGroup, record: InlineImageFavoriteListItem): string {
-  return `${buildGroupFolderName(group)}-${formatFavoriteTimestamp(record.createdAt)}.${getImageExtension(record.imageBlob)}`;
+function buildDirectDownloadBaseName(group: InlineImageFavoriteGroup, record: InlineImageFavoriteListItem): string {
+  return `${buildGroupFolderName(group)}-${formatFavoriteTimestamp(record.createdAt)}`;
 }
 
 /**
- * 构建分组内图片文件名
+ * 构建 ZIP 内图片文件名
  * @param record 收藏记录
  * @param index 当前序号
+ * @param extension 目标扩展名
  * @returns 文件名
  */
-function buildInlineImageFavoriteFileName(record: InlineImageFavoriteListItem, index: number): string {
-  return `${String(index + 1).padStart(3, '0')}-${formatFavoriteTimestamp(record.createdAt)}.${getImageExtension(record.imageBlob)}`;
+function buildZipEntryName(
+  record: InlineImageFavoriteListItem,
+  index: number,
+  extension: string,
+): string {
+  return `${String(index + 1).padStart(3, '0')}-${formatFavoriteTimestamp(record.createdAt)}.${extension}`;
 }
 
 /**
@@ -140,30 +205,20 @@ function buildGroupFolderName(group: Pick<InlineImageFavoriteGroup, 'characterKe
 }
 
 /**
- * 读取图片扩展名
- * @param imageBlob 图片 Blob
- * @returns 扩展名
- */
-function getImageExtension(imageBlob: Blob): string {
-  const extension = imageBlob.type.split('/')[1]?.toLowerCase();
-  if (!extension) return 'png';
-  return extension === 'jpeg' ? 'jpg' : extension.replace(/[^a-z0-9]+/g, '') || 'png';
-}
-
-/**
  * 格式化收藏时间戳
  * @param timestamp 时间戳
  * @returns 文件名安全时间文本
  */
 function formatFavoriteTimestamp(timestamp: number): string {
-  const date = new Date(timestamp);
-  const year = String(date.getFullYear());
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hour = String(date.getHours()).padStart(2, '0');
-  const minute = String(date.getMinutes()).padStart(2, '0');
-  const second = String(date.getSeconds()).padStart(2, '0');
-  return `${year}${month}${day}-${hour}${minute}${second}`;
+  return formatTimestampForFileName(timestamp);
+}
+
+/**
+ * 输出收藏图片跳过摘要
+ * @param failedCount 失败数量
+ */
+function logFavoriteDownloadSkipSummary(failedCount: number): void {
+  if (failedCount > 0) console.warn(`[CosmosVision] ${failedCount} 张收藏图片转换失败，已跳过`);
 }
 
 /**
@@ -206,18 +261,4 @@ function getUniquePath(path: string, usedPaths: Set<string>): string {
  */
 function getPathExtension(path: string): string {
   return path.split('.').pop() === path ? '' : (path.split('.').pop() ?? '');
-}
-
-/**
- * 触发浏览器下载
- * @param blob 文件内容
- * @param fileName 下载文件名
- */
-function triggerBrowserDownload(blob: Blob, fileName: string): void {
-  const objectUrl = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = objectUrl;
-  anchor.download = fileName;
-  anchor.click();
-  setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
 }

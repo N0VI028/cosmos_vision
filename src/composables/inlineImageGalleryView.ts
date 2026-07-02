@@ -32,6 +32,7 @@ export interface InlineGalleryGroupProps {
   generateLast: (item: InlineGalleryItem) => void;
   generateFresh: () => void;
   generateWithEditablePrompt: (item: InlineGalleryItem) => void;
+  downloadImage: (item: InlineGalleryItem) => void;
 }
 
 export const InlineGalleryGroupView = defineComponent({
@@ -48,6 +49,7 @@ export const InlineGalleryGroupView = defineComponent({
     generateLast: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
     generateFresh: { type: Function as PropType<() => void>, required: true },
     generateWithEditablePrompt: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
+    downloadImage: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
   },
   setup(props) {
     return () => (props.items.length ? renderGalleryGroup(props as InlineGalleryGroupProps) : h('div'));
@@ -166,7 +168,9 @@ function openLightbox(event: MouseEvent, props: Readonly<InlineGalleryGroupProps
   const img = event.currentTarget as HTMLImageElement;
   const wrap = img.closest('.cv-inline-img-wrap');
   if (wrap instanceof HTMLElement) {
-    handleInlineImageClick(event, img, wrap, props.isRuntimeEnabled, item.promptSnapshot);
+    handleInlineImageClick(event, img, wrap, props.isRuntimeEnabled, item.promptSnapshot, {
+      onDownload: () => props.downloadImage(item),
+    });
   }
 }
 
