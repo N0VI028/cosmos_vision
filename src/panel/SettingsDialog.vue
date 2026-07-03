@@ -362,11 +362,12 @@ type NovelAISubTab = 'api' | 'config' | 'preset' | 'test';
 type ComfyUISubTab = 'api' | 'config' | 'test';
 type PromptLlmSubTab = 'settings' | 'builder' | 'test';
 type PromptProfilesSubTab = 'user' | 'character';
-type MainSubTab = 'general' | 'data';
+type MainSubTab = 'general' | 'data' | 'portability';
 
 const MAIN_SUB_TABS = [
   { value: 'general', label: '通用' },
   { value: 'data', label: '数据' },
+  { value: 'portability', label: '导入导出' },
 ] as const;
 
 const NOVELAI_SUB_TABS = [

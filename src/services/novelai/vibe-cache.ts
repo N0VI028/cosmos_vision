@@ -174,6 +174,28 @@ export async function listNovelAIVibeDownloadPayloads(): Promise<NovelAIVibeDown
 }
 
 /**
+ * 读取全部 NovelAI vibe 缓存原始记录
+ * @returns 可结构化克隆的缓存记录快照
+ */
+export async function exportNovelAIVibeCacheRecords(): Promise<NovelAIVibeCacheRecord[]> {
+  return (await getAllNovelAIVibeRecords()).map(record => ({ ...record }));
+}
+
+/**
+ * 批量导入 NovelAI vibe 缓存记录
+ * @param records 待导入的缓存记录
+ * @returns 成功写入数量
+ */
+export async function importNovelAIVibeCacheRecords(records: NovelAIVibeCacheRecord[]): Promise<number> {
+  let imported = 0;
+  for (const record of records) {
+    await upsertNovelAIVibeRecord({ ...record, id: undefined });
+    imported += 1;
+  }
+  return imported;
+}
+
+/**
  * 删除单个 vibe 来源的全部缓存
  * @param sourceHash vibe 来源 hash
  */

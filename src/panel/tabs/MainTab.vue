@@ -176,6 +176,11 @@
         </div>
       </div>
     </template>
+
+    <!-- 导入导出子 tab -->
+    <template v-else-if="subTab === 'portability'">
+      <DataPortabilityPanel @refresh-data="refreshDataRows" />
+    </template>
   </div>
 </template>
 
@@ -184,6 +189,7 @@ import { computed, inject, ref, watch } from 'vue';
 import { IMAGE_SOURCES } from '@/constants/comfyui';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
+import DataPortabilityPanel from '@/panel/components/DataPortabilityPanel.vue';
 import InlineFavoriteDataPanel from '@/panel/components/InlineFavoriteDataPanel.vue';
 import {
   IMAGE_DOWNLOAD_OPTIONS_REQUEST_KEY,
@@ -214,7 +220,7 @@ import { downloadAllNovelAIVibes, downloadNovelAIVibe } from '@/services/novelai
 import type { NovelAIVibeCacheListItem } from '@/services/novelai/vibe-types';
 import manifest from '../../../manifest.json';
 
-const props = defineProps<{ subTab: 'general' | 'data' }>();
+const props = defineProps<{ subTab: 'general' | 'data' | 'portability' }>();
 
 const { settings, resetToDefaults } = useSettingsStore();
 const imageSourceOptions = [...IMAGE_SOURCES];

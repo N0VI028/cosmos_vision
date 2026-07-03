@@ -64,6 +64,72 @@ export async function listInlineImageFavoriteGroups(): Promise<InlineImageFavori
 }
 
 /**
+ * 读取全部收藏图片原始记录
+ * @returns 可导出的收藏图片记录快照
+ */
+export async function exportInlineImageFavoriteRecords(): Promise<InlineImageFavoriteListItem[]> {
+  return (await getAllInlineImageFavoriteRecords()).map(record => ({ ...record }));
+}
+
+/**
+ * 批量导入收藏图片记录:按业务键去重,命中则覆盖同 id,否则新增
+ * @param records 待导入的收藏图片记录
+ * @returns 成功写入数量
+ */
+export async function importInlineImageFavoriteRecords(records: InlineImageFavoriteRecord[]): Promise<number> {
+  const db = await openInlineImageFavoriteDb();
+  const store = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME);
+  const existing = (await requestToPromise(store.getAll() as IDBRequest<InlineImageFavoriteRecord[]>))
+    .filter(isInlineImageFavoriteListItem);
+  const existingIdByKey = new Map(existing.map(record => [buildFavoriteDedupKey(record), record.id]));
+  let imported = 0;
+  for (const record of records) {
+    const existingId = existingIdByKey.get(buildFavoriteDedupKey(record));
+    const value = existingId !== undefined
+      ? { ...createImportFavoriteRecord(record), id: existingId }
+      : createImportFavoriteRecord(record);
+    await requestToPromise(store.put(value) as IDBRequest<number>);
+    imported += 1;
+  }
+  return imported;
+}
+
+/**
+ * 构建收藏去重业务键(定位同一段落图片)
+ * @param record 收藏记录
+ * @returns 去重键
+ */
+function buildFavoriteDedupKey(record: InlineImageFavoriteRecord): string {
+  return [
+    record.characterKey,
+    record.chatId,
+    record.globalParagraphIndex,
+    record.mesId ?? '',
+    record.swipeId ?? '',
+    record.paragraphTextHash ?? '',
+  ].join('::');
+}
+
+/**
+ * 构建无自增 ID 的导入收藏记录
+ * @param record 外部收藏记录
+ * @returns 可新增写入的收藏记录
+ */
+function createImportFavoriteRecord(record: InlineImageFavoriteRecord): Omit<InlineImageFavoriteRecord, 'id'> {
+  return {
+    characterKey: record.characterKey,
+    chatId: record.chatId,
+    globalParagraphIndex: record.globalParagraphIndex,
+    mesId: record.mesId,
+    swipeId: record.swipeId,
+    paragraphTextHash: record.paragraphTextHash,
+    imageBlob: record.imageBlob,
+    promptSnapshot: record.promptSnapshot,
+    createdAt: record.createdAt,
+  };
+}
+
+/**
  * 删除单张段落图片收藏记录
  * @param id 收藏记录 ID
  */

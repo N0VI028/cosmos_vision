@@ -752,6 +752,17 @@ export const useSettingsStore = defineStore('cosmos_vision_settings', () => {
   }
 
   /**
+   * 导入外部设置快照并通过现有 schema 边界恢复
+   * @param candidate 外部构建的候选设置
+   */
+  function applyImportedSettings(candidate: unknown): void {
+    const importedSettings = parseSettings(candidate);
+    syncReactiveObject(settings, importedSettings);
+    syncReactiveObject(savedSettings, importedSettings);
+    persist(savedSettings);
+  }
+
+  /**
    * 将当前运行配置重新写回 ST 持久化
    */
   function persistSavedSettings(): void {
@@ -767,6 +778,7 @@ export const useSettingsStore = defineStore('cosmos_vision_settings', () => {
     discardSettings,
     resetDraftSettings,
     resetToDefaults,
+    applyImportedSettings,
     persistSavedSettings,
   };
 });

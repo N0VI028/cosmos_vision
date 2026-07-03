@@ -19,6 +19,32 @@ const formFieldColor = {
 } as const;
 
 /**
+ * ToggleButton 颜色 token —— light/dark 共用,颜色全部走 cv 自适应变量
+ */
+const toggleButtonColor = {
+  root: {
+    padding: '0',
+    background: 'var(--cv-surface-container-high)',
+    hoverBackground: 'var(--cv-surface-variant)',
+    checkedBackground: 'var(--cv-primary-container)',
+    borderColor: 'var(--cv-surface-variant)',
+    checkedBorderColor: 'var(--cv-primary-container)',
+    borderRadius: 'var(--cv-radius-full)',
+    color: 'var(--cv-on-surface-variant)',
+    hoverColor: 'var(--cv-on-surface)',
+    checkedColor: 'var(--cv-on-primary-container)',
+    fontWeight: '500',
+    transitionDuration: '0.15s',
+  },
+  content: {
+    padding: 'var(--cv-space-3xl) var(--cv-space-lg)',
+    borderRadius: 'var(--cv-radius-full)',
+    checkedBackground: 'transparent',
+    checkedShadow: 'none',
+  },
+} as const;
+
+/**
  * PrimeVue 主题 preset
  */
 export const cosmosPrimePreset = definePreset(Aura, {
@@ -159,26 +185,15 @@ export const cosmosPrimePreset = definePreset(Aura, {
         checkedHoverBackground: 'var(--cv-primary-container)',
       },
     },
+    // ToggleButton:必须用 colorScheme.light/dark 显式覆盖 Aura 默认值。
+    // Aura 的 togglebutton 颜色仅定义在 colorScheme.light/dark(surface.100/950),
+    // 会覆盖 root 层的 cv 自适应变量;且 PrimeVue darkModeSelector 与 cv 变量的
+    // .cosmos-vision-app-dark 各自独立,把 cv 变量挂到 light/dark 两端可保证
+    // 无论哪个 colorScheme 激活,都走随深色自适应的 cv 变量,深色下不再回退浅色。
     togglebutton: {
-      root: {
-        padding: '0',
-        background: 'var(--cv-surface-container-high)',
-        hoverBackground: 'var(--cv-surface-variant)',
-        checkedBackground: 'var(--cv-primary-container)',
-        borderColor: 'var(--cv-surface-variant)',
-        checkedBorderColor: 'var(--cv-primary-container)',
-        borderRadius: 'var(--cv-radius-full)',
-        color: 'var(--cv-on-surface-variant)',
-        hoverColor: 'var(--cv-on-surface)',
-        checkedColor: 'var(--cv-on-primary-container)',
-        fontWeight: '500',
-        transitionDuration: '0.15s',
-      },
-      content: {
-        padding: 'var(--cv-space-3xl) var(--cv-space-lg)',
-        borderRadius: 'var(--cv-radius-full)',
-        checkedBackground: 'transparent',
-        checkedShadow: 'none',
+      colorScheme: {
+        light: toggleButtonColor,
+        dark: toggleButtonColor,
       },
     },
   },

@@ -18,7 +18,7 @@
       <div class="cv-section-body">
         <div class="cv-field">
           <div class="cv-field-inline cv-workflow-actions">
-            <Button label="导入 JSON" icon="fa-solid fa-file-import" size="small" @click="triggerWorkflowImport" />
+            <Button label="导入 JSON" icon="fa-solid fa-download" size="small" @click="triggerWorkflowImport" />
             <Button
               label="恢复默认"
               icon="fa-solid fa-rotate-left"
