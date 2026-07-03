@@ -1,5 +1,4 @@
 <template>
-  <div class="cv-data-portability">
     <h2 class="cv-section-title">导出数据</h2>
     <div class="cv-section-body cv-portability-flow">
       <div class="cv-portability-cluster">
@@ -76,11 +75,24 @@
 
       <Message v-if="resultText" severity="success" size="small" class="cv-portability-message">{{ resultText }}</Message>
     </div>
-  </div>
+
+    <h2 class="cv-section-title">重置数据</h2>
+    <div class="cv-section-body">
+      <div class="cv-field">
+        <Button
+          label="重置为默认设置"
+          icon="fa-solid fa-rotate-left"
+          severity="danger"
+          size="small"
+          @click="handleReset"
+        />
+        <div class="cv-field-hint">将所有设置恢复为默认值，此操作不可撤销</div>
+      </div>
+    </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, inject, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { downloadPortableDataFile } from '@/services/data-portability/export';
 import { applyDataImport, buildDataImportPreview } from '@/services/data-portability/import';
@@ -95,8 +107,18 @@ import manifest from '../../../manifest.json';
 
 const emit = defineEmits<{ 'refresh-data': [] }>();
 const settingsStore = useSettingsStore();
-const { settings, applyImportedSettings } = settingsStore;
+const { settings, applyImportedSettings, resetToDefaults } = settingsStore;
 const { darkMode } = storeToRefs(settingsStore);
+const showConfirm =
+  inject<
+    (options: {
+      title?: string;
+      message: string;
+      acceptLabel?: string;
+      cancelLabel?: string;
+      severity?: string;
+    }) => Promise<boolean>
+  >('showConfirm');
 const sections = DATA_PORTABILITY_SECTIONS;
 const exportSections = ref<DataPortabilitySectionId[]>(getDefaultSelectedSections());
 const importSections = ref<DataPortabilitySectionId[]>([]);
@@ -286,12 +308,40 @@ async function runBusy(busy: typeof exportBusy, errorMessage: string, action: ()
 function buildResultText(imported: number, skipped: number, failed: number): string {
   return `导入完成：成功 ${imported} 项，跳过 ${skipped} 项，失败 ${failed} 项`;
 }
+
+/**
+ * 确认后重置所有设置为默认值
+ */
+async function handleReset(): Promise<void> {
+  const confirmed = await confirmReset();
+  if (confirmed) {
+    resetToDefaults();
+    emit('refresh-data');
+    toastr.success('已重置为默认设置');
+  }
+}
+
+/**
+ * 弹出重置确认弹窗
+ * @returns 用户是否确认
+ */
+async function confirmReset(): Promise<boolean> {
+  if (showConfirm) {
+    return showConfirm({
+      title: '重置设置',
+      message: '确定要重置所有设置为默认值吗？此操作不可撤销。',
+      acceptLabel: '确定',
+      cancelLabel: '取消',
+      severity: 'danger',
+    });
+  }
+  return confirm('确定要重置所有设置为默认值吗？此操作不可撤销。');
+}
 </script>
 
 <style scoped>
 @reference '../../global.css';
 
-.cv-data-portability,
 .cv-portability-flow,
 .cv-import-preview {
   @apply flex flex-col;

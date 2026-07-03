@@ -54,13 +54,7 @@
 
     <!-- 数据子 tab -->
     <template v-else-if="subTab === 'data'">
-      <h2 class="cv-section-title">数据管理</h2>
-      <div class="cv-data-management">
-        <CollapsiblePanelItem
-          title="Vibe 数据"
-          :collapsed="vibeCollapsed"
-          @toggle="vibeCollapsed = !vibeCollapsed"
-        >
+      <StaticPanel title="Vibe 数据">
         <template #actions>
           <CvMiniButton
             label="下载全部"
@@ -89,6 +83,7 @@
           class="cv-vibe-table"
           scrollable
           scroll-height="18rem"
+          :pt="vibeTablePt"
         >
           <template #header>
             <div class="cv-vibe-batch-bar">
@@ -112,42 +107,42 @@
               </div>
             </div>
           </template>
-            <Column selection-mode="multiple" style="width: 2.5rem; min-width: 2.5rem" />
-            <Column header="预览" style="width: 4rem; min-width: 4rem">
-              <template #body="{ data }">
-                <div class="cv-vibe-thumb">
-                  <img v-if="data.thumbnailData" :src="data.thumbnailData" alt="" />
-                  <i v-else class="fa-solid fa-image" />
-                </div>
-              </template>
-            </Column>
-            <Column field="fileName" header="名称" style="min-width: 0">
-              <template #body="{ data }">
-                <div class="cv-vibe-name">{{ getDisplayFileName(data) }}</div>
-              </template>
-            </Column>
-            <Column header="操作" style="width: 1%">
-              <template #body="{ data }">
-                <div class="cv-vibe-actions">
-                  <CvMiniButton
-                    icon="fa-solid fa-download"
-                    aria-label="下载"
-                    :disabled="isVibeActionBusy"
-                    @click="downloadVibe(data)"
-                  />
-                  <CvMiniButton
-                    icon="fa-solid fa-trash"
-                    tone="error"
-                    aria-label="删除"
-                    :disabled="isVibeActionBusy"
-                    @click="deleteVibe(data)"
-                  />
-                </div>
-              </template>
-            </Column>
-            <template #empty>暂无 vibe 数据</template>
-          </DataTable>
-      </CollapsiblePanelItem>
+          <Column selection-mode="multiple" style="width: 2.5rem; min-width: 2.5rem" />
+          <Column header="预览" style="width: 4rem; min-width: 4rem">
+            <template #body="{ data }">
+              <div class="cv-vibe-thumb">
+                <img v-if="data.thumbnailData" :src="data.thumbnailData" alt="" />
+                <i v-else class="fa-solid fa-image" />
+              </div>
+            </template>
+          </Column>
+          <Column field="fileName" header="名称" style="min-width: 0">
+            <template #body="{ data }">
+              <div class="cv-vibe-name">{{ getDisplayFileName(data) }}</div>
+            </template>
+          </Column>
+          <Column header="操作" style="width: 1%">
+            <template #body="{ data }">
+              <div class="cv-vibe-actions">
+                <CvMiniButton
+                  icon="fa-solid fa-download"
+                  aria-label="下载"
+                  :disabled="isVibeActionBusy"
+                  @click="downloadVibe(data)"
+                />
+                <CvMiniButton
+                  icon="fa-solid fa-trash"
+                  tone="error"
+                  aria-label="删除"
+                  :disabled="isVibeActionBusy"
+                  @click="deleteVibe(data)"
+                />
+              </div>
+            </template>
+          </Column>
+          <template #empty>暂无 vibe 数据</template>
+        </DataTable>
+      </StaticPanel>
 
       <InlineFavoriteDataPanel
         :groups="favoriteGroups"
@@ -160,21 +155,6 @@
         @download-items="downloadFavoriteItems"
         @delete-items="deleteFavoriteItems"
       />
-      </div>
-
-      <h2 class="cv-section-title">重置设置</h2>
-      <div class="cv-section-body">
-        <div class="cv-field">
-          <Button
-            label="重置为默认设置"
-            icon="fa-solid fa-rotate-left"
-            severity="danger"
-            size="small"
-            @click="handleReset"
-          />
-          <div class="cv-field-hint">将所有设置恢复为默认值，此操作不可撤销</div>
-        </div>
-      </div>
     </template>
 
     <!-- 导入导出子 tab -->
@@ -188,7 +168,7 @@
 import { computed, inject, ref, watch } from 'vue';
 import { IMAGE_SOURCES } from '@/constants/comfyui';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
-import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
+import StaticPanel from '@/panel/components/StaticPanel.vue';
 import DataPortabilityPanel from '@/panel/components/DataPortabilityPanel.vue';
 import InlineFavoriteDataPanel from '@/panel/components/InlineFavoriteDataPanel.vue';
 import {
@@ -222,13 +202,13 @@ import manifest from '../../../manifest.json';
 
 const props = defineProps<{ subTab: 'general' | 'data' | 'portability' }>();
 
-const { settings, resetToDefaults } = useSettingsStore();
+const { settings } = useSettingsStore();
 const imageSourceOptions = [...IMAGE_SOURCES];
-const vibeCollapsed = ref(true);
 const vibeRows = ref<NovelAIVibeCacheListItem[]>([]);
 const selectedVibeRows = ref<NovelAIVibeCacheListItem[]>([]);
 const isVibeRowsLoading = ref(false);
 const isVibeActionBusy = ref(false);
+const vibeTablePt = { header: { class: 'cv-vibe-table-header' } } as const;
 const isVibeActionDisabled = computed(
   () => isVibeRowsLoading.value || isVibeActionBusy.value || !vibeRows.value.length,
 );
@@ -568,14 +548,6 @@ async function confirmDangerAction(title: string, message: string, acceptLabel: 
 }
 
 /**
- * 确认后重置所有设置
- */
-async function handleReset(): Promise<void> {
-  const confirmed = await confirmDangerAction('重置设置', '确定要重置所有设置为默认值吗？此操作不可撤销。', '确定');
-  if (confirmed) resetToDefaults();
-}
-
-/**
  * 在新窗口中打开指定 URL
  * @param url 要打开的链接
  */
@@ -622,11 +594,6 @@ function openUrl(url: string): void {
   gap: var(--cv-space-xs);
 }
 
-.cv-data-management {
-  @apply flex flex-col;
-  gap: var(--cv-space-2xl);
-}
-
 .cv-vibe-batch-bar {
   @apply flex flex-wrap items-center justify-between;
   gap: var(--cv-space-md);
@@ -643,7 +610,7 @@ function openUrl(url: string): void {
 }
 
 .cv-vibe-table {
-  margin: 0 0 var(--cv-space-2xl) 0;
+  margin: 0;
   border-radius: var(--cv-radius-sm);
   overflow: hidden;
   padding-inline: 0!important;
@@ -652,6 +619,11 @@ function openUrl(url: string): void {
 .cv-vibe-table :deep(.p-datatable-table-container) {
   overflow-x: hidden !important;
   overflow-y: auto;
+}
+
+/* 批量操作栏贴左右边，去除 header 横向内边距 */
+.cv-vibe-table :deep(.cv-vibe-table-header) {
+  padding-inline: 0 !important;
 }
 
 .cv-vibe-table :deep(.p-datatable-table) {

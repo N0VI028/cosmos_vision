@@ -1,9 +1,5 @@
 <template>
-  <CollapsiblePanelItem
-    title="收藏图片数据"
-    :collapsed="collapsed"
-    @toggle="collapsed = !collapsed"
-  >
+  <StaticPanel title="收藏图片数据" class="cv-favorite-panel">
     <template #actions>
       <CvMiniButton
         label="下载全部"
@@ -37,6 +33,7 @@
         scroll-height="24rem"
         class="cv-favorite-tree"
         table-class="cv-favorite-tree-table"
+        :pt="favoriteTreePt"
       >
         <template #header>
           <div class="cv-favorite-batch-bar">
@@ -105,14 +102,14 @@
         </Column>
       </TreeTable>
     </section>
-  </CollapsiblePanelItem>
+  </StaticPanel>
 </template>
 
 <script setup lang="ts">
 import type { TreeTableExpandedKeys, TreeTableSelectionKeys } from 'primevue/treetable';
 import type { TreeNode } from 'primevue/treenode';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
+import StaticPanel from '@/panel/components/StaticPanel.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import type { InlineImageFavoriteGroup, InlineImageFavoriteListItem } from '@/services/inline-image/favorites-cache';
 
@@ -140,7 +137,6 @@ const emit = defineEmits<{
 }>();
 
 const IMAGE_KEY_PREFIX = 'image:';
-const collapsed = ref(true);
 const treeNodes = ref<TreeNode[]>([]);
 const expandedKeys = ref<TreeTableExpandedKeys>({});
 const selectionKeys = ref<TreeTableSelectionKeys>({});
@@ -148,6 +144,10 @@ const objectUrls = new Set<string>();
 const isGlobalActionDisabled = computed(() => props.loading || props.busy || !props.groups.length);
 const totalImageCount = computed(() => props.groups.reduce((sum, group) => sum + group.count, 0));
 const selectedImageIds = computed(() => extractSelectedImageIds(selectionKeys.value));
+/**
+ * 收藏树 PassThrough：批量操作栏左右贴边，去除 header 横向内边距
+ */
+const favoriteTreePt = { header: { class: 'cv-favorite-tree-header' } } as const;
 
 watch(
   () => props.groups,
@@ -351,6 +351,11 @@ function stripPngExtension(name: string): string {
 <style scoped>
 @reference '../../global.css';
 
+/* 收藏树较高，放宽模块内容区最大高度 */
+.cv-favorite-panel {
+  --cv-static-panel-max-h: 32rem;
+}
+
 .cv-favorite-batch-bar {
   @apply flex flex-wrap items-center justify-between;
   gap: var(--cv-space-md);
@@ -378,6 +383,11 @@ function stripPngExtension(name: string): string {
 /* 隐藏横向滚动条 */
 .cv-favorite-tree :deep(.p-treetable-table-container) {
   overflow-x: hidden !important;
+}
+
+/* 批量操作栏贴左右边：PT 注入的 header class 去除横向内边距 */
+.cv-favorite-tree :deep(.cv-favorite-tree-header) {
+  padding-inline: 0 !important;
 }
 
 /* 列表头行无内容，隐藏避免空白行 */
