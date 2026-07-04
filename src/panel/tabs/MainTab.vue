@@ -92,13 +92,13 @@
               </span>
               <div class="cv-vibe-batch-actions">
                 <CvMiniButton
-                  label="下载选中"
+                  label="下载"
                   :disabled="!selectedVibeRows.length || isVibeActionBusy"
                   size="small"
                   @click="downloadSelectedVibes"
                 />
                 <CvMiniButton
-                  label="删除选中"
+                  label="删除"
                   tone="error"
                   :disabled="!selectedVibeRows.length || isVibeActionBusy"
                   size="small"

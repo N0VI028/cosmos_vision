@@ -42,13 +42,13 @@
             </span>
             <div class="cv-favorite-batch-actions">
               <CvMiniButton
-                label="下载选中"
+                label="下载"
                 :disabled="!selectedImageIds.length || busy"
                 size="small"
                 @click="handleBatchDownload"
               />
               <CvMiniButton
-                label="删除选中"
+                label="删除"
                 tone="error"
                 :disabled="!selectedImageIds.length || busy"
                 size="small"

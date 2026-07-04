@@ -348,7 +348,7 @@ function getBeforeLength(): number {
 .cv-placeholder-token {
   @apply inline-flex cursor-grab select-none items-center;
   gap: var(--cv-space-sm);
-  min-height: 2rem;
+  min-height: 1.25rem;
   margin: 0 var(--cv-space-sm);
   padding: 0 var(--cv-space-lg);
   border: var(--cv-border-width) solid color-mix(in srgb, var(--p-primary-color) 60%, var(--p-content-border-color));
@@ -365,12 +365,5 @@ function getBeforeLength(): number {
 .cv-placeholder-editor.is-dragging .cv-placeholder-token {
   @apply pointer-events-none;
   opacity: 0.75;
-}
-
-@media (max-width: 40rem) {
-  .cv-placeholder-token {
-    min-height: 2.25rem;
-    padding: 0 var(--cv-space-3xl);
-  }
 }
 </style>

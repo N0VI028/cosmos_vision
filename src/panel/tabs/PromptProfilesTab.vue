@@ -49,32 +49,17 @@
             </div>
 
             <h3 class="cv-person-section-title">关键词</h3>
-            <div class="cv-token-input-row">
-              <InputText
-                v-model="keywordInput"
-                placeholder="输入关键词后回车"
-                @keydown.enter.prevent="addKeyword(person)"
-              />
-              <Button
-                icon="fa-solid fa-plus"
-                aria-label="添加关键词"
-                rounded
-                class="cv-add-keyword-btn"
-                @click="addKeyword(person)"
-              />
-            </div>
-            <div class="cv-chip-row">
-              <Tag v-for="keyword in person.triggerKeywords" :key="keyword" :value="keyword" class="cv-keyword-tag">
-                <template #icon>
-                  <button type="button" class="cv-chip-remove" @click="removeKeyword(person, keyword)">
-                    <i class="fa-solid fa-xmark" />
-                  </button>
-                </template>
-              </Tag>
-              <span v-if="person.triggerKeywords.length === 0" class="cv-muted">
-                {{ getKeywordHint(person) }}
-              </span>
-            </div>
+            <InputChips
+              v-model="person.triggerKeywords"
+              :allow-duplicate="false"
+              add-on-blur
+              separator=","
+              placeholder="输入关键词，回车或逗号添加"
+              class="cv-trigger-inputchips"
+            />
+            <span v-if="person.triggerKeywords.length === 0" class="cv-muted">
+              {{ getKeywordHint(person) }}
+            </span>
 
             <div class="cv-person-section-header">
               <h3 class="cv-person-section-title">固定 tag</h3>
@@ -203,7 +188,6 @@ const INSERT_MODE_OPTIONS: Array<{ label: string; value: PromptPersonInsertMode 
 const { settings } = useSettingsStore();
 const activeKind = defineModel<PromptPersonKind>('kind', { default: 'character' });
 const activePersonId = ref('');
-const keywordInput = ref('');
 const isParsingTags = ref(false);
 const parsingPersonId = ref('');
 const isTagParseDialogVisible = ref(false);
@@ -234,10 +218,6 @@ const canConfirmTagParse = computed(() => {
 
 watch(activeKind, () => {
   activePersonId.value = '';
-});
-
-watch(activePersonId, () => {
-  keywordInput.value = '';
 });
 
 watch(
@@ -338,27 +318,6 @@ async function confirmDelete(name: string): Promise<boolean> {
 function removePerson(id: string): void {
   const index = settings.promptProfiles.profiles.findIndex(person => person.id === id);
   if (index !== -1) settings.promptProfiles.profiles.splice(index, 1);
-}
-
-/**
- * 添加关键词
- * @param person 人物配置
- */
-function addKeyword(person: PromptPerson): void {
-  const keyword = keywordInput.value.trim();
-  if (!keyword) return;
-  if (!person.triggerKeywords.includes(keyword)) person.triggerKeywords.push(keyword);
-  keywordInput.value = '';
-}
-
-/**
- * 删除关键词
- * @param person 人物配置
- * @param keyword 关键词
- */
-function removeKeyword(person: PromptPerson, keyword: string): void {
-  const index = person.triggerKeywords.indexOf(keyword);
-  if (index !== -1) person.triggerKeywords.splice(index, 1);
 }
 
 /**
@@ -547,10 +506,8 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
   margin-top: 0;
 }
 
-.cv-token-input-row,
-.cv-chip-row {
-  @apply flex items-center;
-  gap: var(--cv-space-sm);
+.cv-trigger-inputchips {
+  @apply w-full;
 }
 
 .cv-parse-tags-btn {
@@ -565,36 +522,6 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
   background: var(--cv-surface-container-high) !important;
   color: var(--cv-on-surface) !important;
   opacity: 1;
-}
-
-.cv-add-keyword-btn {
-  padding: 0 !important;
-  aspect-ratio: 1 / 1;
-  border-radius: 50% !important;
-}
-
-.cv-token-input-row > .p-inputtext {
-  @apply min-w-0 flex-auto;
-}
-
-.cv-chip-row {
-  flex-wrap: wrap;
-  margin-top: var(--cv-space-lg);
-  margin-bottom: 0;
-}
-
-.cv-keyword-tag {
-  padding: 0.125rem 0.35rem !important;
-  font-size: var(--cv-font-size-2xs) !important;
-  background: color-mix(in srgb, var(--p-primary-color) 12%, transparent) !important;
-  border: 1px solid var(--p-primary-color) !important;
-  color: var(--p-primary-color) !important;
-}
-
-.cv-chip-remove {
-  @apply cursor-pointer border-0 bg-transparent p-0;
-  color: inherit;
-  font-size: 0.85em;
 }
 
 .cv-full-textarea {

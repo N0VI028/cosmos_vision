@@ -5,7 +5,7 @@
     :get-role="entry => (entry as PromptLlmMessage).role"
   >
     <template #main="{ entry }">
-      <span class="cv-message-indicator cv-indicator" />
+      <span class="cv-message-indicator cv-indicator" :class="getMessageTriggerToneClass(entry as PromptLlmMessage)" />
       <span class="cv-message-role">{{ ROLE_LABELS[(entry as PromptLlmMessage).role] }}</span>
       <span v-if="isSourceMessage(entry as PromptLlmMessage)" class="cv-message-source-kind">
         {{ getMessageSourceLabel(entry as PromptLlmMessage) }}
@@ -27,14 +27,7 @@
         size="small"
         @click="openMessageEditor(entry as PromptLlmMessage)"
       />
-      <Button
-        v-if="!isReservedMessage(entry as PromptLlmMessage)"
-        icon="fa-solid fa-trash"
-        severity="danger"
-        text
-        size="small"
-        @click="deleteMessage(entry.id)"
-      />
+      <Button icon="fa-solid fa-trash" severity="danger" text size="small" @click="deleteMessage(entry.id)" />
     </template>
   </PromptEntryList>
 
@@ -53,7 +46,7 @@
     @hide="closeMessageEditor"
   >
     <div v-if="editorDraft" class="cv-message-editor">
-      <label v-if="!isReservedDraft(editorDraft)" class="cv-field">
+      <label class="cv-field">
         <span>来源</span>
         <Select
           :model-value="editorDraft.kind"
@@ -99,7 +92,7 @@
         当前引用的世界书条目已失效，已保留原始值，请重新选择。
       </div>
 
-      <label v-if="!isReservedDraft(editorDraft)" class="cv-field">
+      <label class="cv-field">
         <span>条目名称</span>
         <InputText
           v-if="editorDraft.kind === 'custom'"
@@ -110,35 +103,27 @@
         <InputText v-else :model-value="editorReadonlyTitle" disabled />
       </label>
 
-      <label class="cv-field">
-        <span>角色</span>
-        <Select
-          v-model="editorDraft.role"
-          :options="ROLE_OPTIONS"
-          option-label="label"
-          option-value="value"
-          class="cv-role-select"
-        />
-      </label>
+      <Fluid class="cv-role-trigger-row">
+        <label class="cv-field cv-role-field">
+          <span>角色</span>
+          <Select v-model="editorDraft.role" :options="ROLE_OPTIONS" option-label="label" option-value="value" />
+        </label>
+        <PromptLlmTriggerEditor v-model="editorDraft" />
+      </Fluid>
 
       <label class="cv-field cv-message-editor-content-field">
         <div class="cv-field-header">
           <span>{{ getEditorContentLabel(editorDraft) }}</span>
-          <div v-if="editorDraft.kind === 'custom' && !isReservedDraft(editorDraft)" class="cv-source-tokens" @click.prevent>
+          <div v-if="editorDraft.kind === 'custom'" class="cv-source-tokens" @click.prevent>
             <span class="cv-token-label">插入：</span>
+            <button type="button" class="cv-token-btn" @click="insertMessageToken(PROMPT_LLM_HISTORY_TOKEN)">历史消息</button>
+            <button type="button" class="cv-token-btn" @click="insertMessageToken(PROMPT_LLM_PARTICIPANT_TOKEN)">人物信息</button>
             <button type="button" class="cv-token-btn" @click="insertMessageToken(PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN)">焦点段落</button>
             <button type="button" class="cv-token-btn" @click="insertMessageToken(PROMPT_LLM_SPECIAL_REQUEST_TOKEN)">特别要求</button>
           </div>
         </div>
         <Textarea
-          v-if="isReservedDraft(editorDraft)"
-          :model-value="getPromptLlmReservedPreviewText(editorDraft)"
-          class="cv-message-editor-textarea custom-scrollbar"
-          rows="4"
-          disabled
-        />
-        <Textarea
-          v-else-if="editorDraft.kind === 'custom'"
+          v-if="editorDraft.kind === 'custom'"
           :model-value="editorDraft.customContent"
           class="cv-message-editor-textarea custom-scrollbar"
           rows="10"
@@ -164,7 +149,12 @@
 </template>
 
 <script setup lang="ts">
-import { PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN, PROMPT_LLM_SPECIAL_REQUEST_TOKEN } from '@/constants/default-settings';
+import {
+  PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN,
+  PROMPT_LLM_HISTORY_TOKEN,
+  PROMPT_LLM_PARTICIPANT_TOKEN,
+  PROMPT_LLM_SPECIAL_REQUEST_TOKEN,
+} from '@/constants/default-settings';
 import {
   getPromptLlmMessageEntryKind,
   type PromptLlmMessage,
@@ -172,6 +162,7 @@ import {
   type PromptLlmMessageRole,
 } from '@/constants/novelai';
 import PromptEntryList from '@/panel/components/PromptEntryList.vue';
+import PromptLlmTriggerEditor from '@/panel/components/PromptLlmTriggerEditor.vue';
 import {
   applyPromptLlmMessageDefaults,
   buildPromptLlmSourceOptions,
@@ -189,7 +180,6 @@ import {
   isWorldbookReferenceMissing,
   pickWorldbookEntryUid,
 } from '@/panel/components/prompt-worldbook-source';
-import { getPromptLlmReservedPreviewText, isPromptLlmReservedMessage } from '@/services/prompt-llm/message-preset';
 import { createCustomPromptLlmMessage, resolvePromptLlmSourceMessage } from '@/services/prompt-llm/message-source';
 import {
   getPromptWorldbookSourceOptions,
@@ -323,7 +313,7 @@ function addMessage(): void {
  */
 function deleteMessage(id: string): void {
   const index = messages.value.findIndex(message => message.id === id);
-  if (index === -1 || isReservedMessage(messages.value[index])) return;
+  if (index === -1) return;
   if (editorDraft.value?.id === id) closeMessageEditor();
   messages.value.splice(index, 1);
 }
@@ -354,12 +344,7 @@ function saveMessageEditor(): void {
   if (!draft || !canSaveEditor.value) return;
   const message = messages.value.find(item => item.id === draft.id);
   if (!message) return closeMessageEditor();
-
-  if (isReservedDraft(draft)) {
-    message.role = draft.role;
-  } else {
-    Object.assign(message, buildSavedPromptLlmMessage(draft, worldbookSourceOptions.value));
-  }
+  Object.assign(message, buildSavedPromptLlmMessage(draft, worldbookSourceOptions.value));
   closeMessageEditor();
 }
 
@@ -438,30 +423,21 @@ async function refreshEditorPreview(): Promise<void> {
 }
 
 /**
- * 判断是否为保留消息
- * @param message 消息条目
- * @returns 是否为保留消息
- */
-function isReservedMessage(message: PromptLlmMessage): boolean {
-  return isPromptLlmReservedMessage(message);
-}
-
-/**
- * 判断编辑草稿是否为保留消息
- * @param draft 编辑草稿
- * @returns 是否为保留消息
- */
-function isReservedDraft(draft: PromptLlmMessageEditorDraft): boolean {
-  return isPromptLlmReservedMessage(draft);
-}
-
-/**
  * 判断是否为来源型消息
  * @param message 消息条目
  * @returns 是否为来源型消息
  */
 function isSourceMessage(message: PromptLlmMessage): boolean {
-  return !isReservedMessage(message) && getPromptLlmMessageEntryKind(message) !== 'custom';
+  return getPromptLlmMessageEntryKind(message) !== 'custom';
+}
+
+/**
+ * 获取条目触发模式指示灯颜色
+ * @param message 消息条目
+ * @returns 触发模式颜色类名
+ */
+function getMessageTriggerToneClass(message: PromptLlmMessage): string {
+  return message.triggerMode === 'keyword' ? 'cv-message-indicator--keyword' : 'cv-message-indicator--always';
 }
 
 /**
@@ -535,7 +511,7 @@ function getMessageTitle(message: PromptLlmMessage): string {
  * @returns 字段标签
  */
 function getEditorContentLabel(draft: PromptLlmMessageEditorDraft): string {
-  return isPromptLlmReservedMessage(draft) || draft.kind === 'custom' ? '内容' : '资料预览';
+  return draft.kind === 'custom' ? '内容' : '资料预览';
 }
 
 /**
@@ -610,8 +586,16 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
   @apply shrink-0 rounded-full;
   width: 6px;
   height: 6px;
-  background: var(--p-primary-color);
-  box-shadow: 0 0 6px var(--p-primary-color);
+}
+
+.cv-message-indicator--always {
+  background: var(--p-blue-500);
+  box-shadow: 0 0 6px var(--p-blue-500);
+}
+
+.cv-message-indicator--keyword {
+  background: var(--p-green-500);
+  box-shadow: 0 0 6px var(--p-green-500);
 }
 
 .cv-message-role,
@@ -666,8 +650,14 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
   @apply flex flex-col;
 }
 
-.cv-role-select {
-  width: 8em;
+.cv-role-trigger-row {
+  @apply grid w-full;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--cv-space-3xl) var(--cv-space-md);
+}
+
+.cv-role-field {
+  @apply min-w-0;
 }
 
 .cv-source-select {
@@ -737,6 +727,7 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
 }
 
 @media (max-width: 520px) {
+  .cv-role-trigger-row,
   .cv-source-pair-row {
     grid-template-columns: 1fr;
   }

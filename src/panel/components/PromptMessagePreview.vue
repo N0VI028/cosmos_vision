@@ -3,10 +3,7 @@
   <div v-else class="cv-preview-list custom-scrollbar">
     <section v-for="message in enabledMessages" :key="message.id" class="cv-preview-block">
       <div class="cv-preview-body">
-        <span v-if="isReservedMessage(message)" class="cv-preview-token">
-          <span>{{ getReservedPreviewText(message) }}</span>
-        </span>
-        <pre v-else class="cv-preview-text">{{ getMessagePreviewText(message) }}</pre>
+        <pre class="cv-preview-text">{{ getMessagePreviewText(message) }}</pre>
       </div>
     </section>
   </div>
@@ -14,7 +11,6 @@
 
 <script setup lang="ts">
 import { getPromptLlmMessageEntryKind, type PromptLlmMessage } from '@/constants/novelai';
-import { getPromptLlmReservedPreviewText, isPromptLlmReservedMessage } from '@/services/prompt-llm/message-preset';
 import { resolvePromptLlmSourceMessage } from '@/services/prompt-llm/message-source';
 
 const props = defineProps<{ messages: PromptLlmMessage[] }>();
@@ -43,24 +39,6 @@ async function refreshSourcePreviews(): Promise<void> {
 }
 
 /**
- * 判断消息是否为保留消息
- * @param message 消息条目
- * @returns 是否为保留消息
- */
-function isReservedMessage(message: PromptLlmMessage): boolean {
-  return isPromptLlmReservedMessage(message);
-}
-
-/**
- * 获取保留条目预览文本
- * @param message 消息条目
- * @returns 预览文本
- */
-function getReservedPreviewText(message: PromptLlmMessage): string {
-  return getPromptLlmReservedPreviewText(message);
-}
-
-/**
  * 获取普通消息预览文本
  * @param message 消息条目
  * @returns 预览文本
@@ -76,7 +54,7 @@ function getMessagePreviewText(message: PromptLlmMessage): string {
  * @returns 是否为来源型消息
  */
 function isSourceMessage(message: PromptLlmMessage): boolean {
-  return !isReservedMessage(message) && getPromptLlmMessageEntryKind(message) !== 'custom';
+  return getPromptLlmMessageEntryKind(message) !== 'custom';
 }
 
 /**

@@ -98,11 +98,7 @@ import {
   type PromptLlmMessage,
   type PromptLlmMessagePreset,
 } from '@/constants/novelai';
-import {
-  createPromptLlmHistoryMessage,
-  ensurePromptLlmReservedMessages,
-  isPromptLlmReservedMessage,
-} from '@/services/prompt-llm/message-preset';
+import { normalizePromptLlmMessagePresets } from '@/services/prompt-llm/message-preset';
 import { clonePromptLlmMessage } from '@/services/prompt-llm/message-source';
 import { useSettingsStore } from '@/store/settings';
 
@@ -194,7 +190,7 @@ async function createPresetPrompt(): Promise<void> {
   const preset = {
     id: newId,
     name: trimmed,
-    messages: [createPromptLlmHistoryMessage()],
+    messages: [],
   };
   settings.promptLlmMessagePresets.presets.push(normalizePresetMessages(preset));
   settings.promptLlmMessagePresets.activePresetId = newId;
@@ -328,16 +324,16 @@ const messages = computed<PromptLlmMessage[]>({
 });
 
 watchEffect(() => {
-  ensureReservedMessages();
+  normalizeCurrentMessages();
 });
 
 /**
- * 规范化预设中的保留条目
+ * 规范化预设中的消息条目
  * @param preset 待处理预设
- * @returns 已补齐保留条目的预设
+ * @returns 已规范化消息的预设
  */
 function normalizePresetMessages(preset: PromptLlmMessagePreset): PromptLlmMessagePreset {
-  const normalized = ensurePromptLlmReservedMessages({
+  const normalized = normalizePromptLlmMessagePresets({
     activePresetId: preset.id,
     presets: [preset],
   });
@@ -345,9 +341,9 @@ function normalizePresetMessages(preset: PromptLlmMessagePreset): PromptLlmMessa
 }
 
 /**
- * 确保当前消息列表包含全部保留条目
+ * 规范化当前消息列表
  */
-function ensureReservedMessages(): void {
+function normalizeCurrentMessages(): void {
   const preset = activePreset.value;
   if (!preset) return;
   const normalized = normalizePresetMessages(preset);
@@ -361,8 +357,7 @@ function ensureReservedMessages(): void {
  * @returns 克隆后的消息
  */
 function copyPresetMessage(message: PromptLlmMessage): PromptLlmMessage {
-  if (!isPromptLlmReservedMessage(message)) return clonePromptLlmMessage(message);
-  return { ...message, enabled: message.enabled !== false };
+  return clonePromptLlmMessage(message);
 }
 </script>
 

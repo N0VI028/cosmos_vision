@@ -15,6 +15,11 @@ import {
   resolvePromptWorldbookSourceEntry,
   type ResolvedPromptSourceEntry,
 } from '@/services/tavern-helper/worldbook-sources';
+import {
+  normalizePromptLlmMessageKeywords,
+  normalizePromptLlmMessageTriggerMode,
+  withPromptLlmMessageTriggerDefaults,
+} from '@/services/prompt-llm/message-trigger';
 
 /**
  * 创建自定义 LLM 条目
@@ -30,13 +35,13 @@ export function createCustomPromptLlmMessage(
   content = '',
   id = uuidv4(),
 ): PromptLlmMessage {
-  return {
+  return withPromptLlmMessageTriggerDefaults({
     id: normalizePromptLlmMessageId(id, 'custom'),
     title,
     role,
     content,
     enabled: DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
-  };
+  });
 }
 
 /**
@@ -53,14 +58,14 @@ export function createPromptLlmWorldbookMessage(
   title = '世界书条目',
   id = uuidv4(),
 ): PromptLlmMessage {
-  return {
+  return withPromptLlmMessageTriggerDefaults({
     id: normalizePromptLlmMessageId(id, 'worldbook_entry'),
     title: title.trim() || '世界书条目',
     role,
     content: '',
     enabled: DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
     reference: { ...reference },
-  };
+  });
 }
 
 /**
@@ -71,6 +76,8 @@ export function createPromptLlmWorldbookMessage(
 export function clonePromptLlmMessage(message: PromptLlmMessage): PromptLlmMessage {
   const copy = buildClonedPromptLlmMessage(message);
   copy.enabled = message.enabled !== false;
+  copy.triggerMode = normalizePromptLlmMessageTriggerMode(message.triggerMode);
+  copy.triggerKeywords = normalizePromptLlmMessageKeywords(message.triggerKeywords);
   return copy;
 }
 

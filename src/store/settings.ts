@@ -19,6 +19,7 @@ import {
   DEFAULT_PRESET_NAME,
   DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
   DEFAULT_PROMPT_LLM_MESSAGE_TITLE,
+  DEFAULT_PROMPT_LLM_MESSAGE_TRIGGER_MODE,
   DEFAULT_SETTINGS,
 } from '@/constants/default-settings';
 import {
@@ -42,13 +43,15 @@ import {
   type NovelAIAccount,
   type NovelAISettings,
   PROMPT_LLM_MESSAGE_ROLES,
+  PROMPT_LLM_MESSAGE_TRIGGER_MODES,
   PROMPT_PERSON_INSERT_MODES,
   PROMPT_PERSON_KINDS,
   type PromptLlmMessagePresetSettings,
   type PromptLlmSettings,
   type PromptProfilesSettings,
 } from '@/constants/novelai';
-import { ensurePromptLlmReservedMessages } from '@/services/prompt-llm/message-preset';
+import { normalizePromptLlmMessagePresets } from '@/services/prompt-llm/message-preset';
+import { normalizePromptLlmMessageKeywords } from '@/services/prompt-llm/message-trigger';
 
 /** ST extension_settings 中本扩展的 key */
 const SETTINGS_KEY = 'cosmos_vision';
@@ -179,6 +182,7 @@ const promptLlmSettingsSchema = z.object({
   negativePromptExtractPattern: z.string(),
   negativePromptExtractReplacement: z.string(),
 });
+const promptLlmMessageTriggerModeSchema = z.enum(PROMPT_LLM_MESSAGE_TRIGGER_MODES);
 
 const promptWorldbookSourceReferenceSchema = z.object({
   worldbookName: z.string().optional(),
@@ -220,6 +224,8 @@ const promptLlmMessageSchema = z.object({
   role: z.enum(PROMPT_LLM_MESSAGE_ROLES),
   content: z.string(),
   enabled: z.boolean().default(DEFAULT_PROMPT_LLM_MESSAGE_ENABLED),
+  triggerMode: promptLlmMessageTriggerModeSchema.default(DEFAULT_PROMPT_LLM_MESSAGE_TRIGGER_MODE),
+  triggerKeywords: z.array(z.string()).default([]).transform(normalizePromptLlmMessageKeywords),
   reference: promptWorldbookSourceReferenceSchema.catch({}).optional(),
 });
 
@@ -261,7 +267,7 @@ function parseSettings(value: unknown): CosmosVisionSettings {
   if (result.success) {
     return {
       ...result.data,
-      promptLlmMessagePresets: ensurePromptLlmReservedMessages(result.data.promptLlmMessagePresets),
+      promptLlmMessagePresets: normalizePromptLlmMessagePresets(result.data.promptLlmMessagePresets),
     };
   }
   console.warn('[CosmosVision] 设置数据异常，已局部回退默认值', result.error);
@@ -577,7 +583,7 @@ function recoverPromptLlmSettings(value: unknown): PromptLlmSettings {
  * @returns 可安全使用的预设集合
  */
 function recoverPromptLlmMessagePresets(value: unknown): PromptLlmMessagePresetSettings {
-  return ensurePromptLlmReservedMessages(
+  return normalizePromptLlmMessagePresets(
     recoverPresetSettings(promptLlmMessagePresetSettingsBaseSchema, value, DEFAULT_SETTINGS.promptLlmMessagePresets),
   );
 }

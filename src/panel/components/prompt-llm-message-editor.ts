@@ -17,6 +17,10 @@ import {
   createCustomPromptLlmMessage,
   createPromptLlmWorldbookMessage,
 } from '@/services/prompt-llm/message-source';
+import {
+  normalizePromptLlmMessageKeywords,
+  withPromptLlmMessageTriggerDefaults,
+} from '@/services/prompt-llm/message-trigger';
 import type { PromptWorldbookGroup } from '@/services/tavern-helper/worldbook-sources';
 
 /** 来源类型选项 */
@@ -60,7 +64,7 @@ export function createPromptLlmMessageEditorDraft(
   message: PromptLlmMessage | undefined,
   worldbooks: PromptWorldbookGroup[],
 ): PromptLlmMessageEditorDraft {
-  const nextMessage = _.cloneDeep(message ?? createCustomPromptLlmMessage('user'));
+  const nextMessage = withPromptLlmMessageTriggerDefaults(_.cloneDeep(message ?? createCustomPromptLlmMessage('user')));
   const kind = getPromptLlmMessageEntryKind(nextMessage);
   const draft = {
     ...nextMessage,
@@ -86,6 +90,8 @@ export function buildSavedPromptLlmMessage(
 ): PromptLlmMessage {
   const message = buildPromptLlmMessageByKind(draft, worldbooks);
   message.enabled = draft.enabled !== false;
+  message.triggerMode = draft.triggerMode;
+  message.triggerKeywords = normalizePromptLlmMessageKeywords(draft.triggerKeywords);
   return message;
 }
 

@@ -155,6 +155,18 @@ export const cosmosPrimePt = {
     pcOptionCheckbox: checkbox,
   },
   autocomplete: { overlay: fieldOverlay },
+  inputchips: {
+    root: { class: 'cv-prime-inputchips' },
+    input: { class: 'cv-prime-inputchips-input' },
+    chipItem: { class: 'cv-prime-inputchips-chip-item' },
+    inputItem: { class: 'cv-prime-inputchips-input-item' },
+    inputItemField: { class: 'cv-prime-inputchips-input-field' },
+    pcChip: {
+      root: { class: 'cv-prime-inputchips-chip' },
+      label: { class: 'cv-prime-inputchips-chip-label' },
+      removeIcon: { class: 'cv-prime-inputchips-chip-remove' },
+    },
+  },
   checkbox,
   datepicker: { panel: overlay },
   fluid: { root: { class: 'cv-prime-fluid' } },

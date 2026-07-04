@@ -11,6 +11,7 @@ import {
   resolvePromptLlmMessageContent,
   type PromptLlmRuntimeContent,
 } from '@/services/prompt-llm/message-preset';
+import { shouldSendPromptLlmMessage } from '@/services/prompt-llm/message-trigger';
 import { buildPromptLlmRuntimeContent } from '@/services/prompt-profiles/runtime';
 import { getTavernHelper } from '@/services/tavern-helper/availability';
 import { requestTavernHelperGenerateRaw } from '@/services/tavern-helper/generate-raw';
@@ -78,7 +79,9 @@ export async function buildPromptLlmOrderedPrompts(
   presetSettings: PromptLlmMessagePresetSettings,
   runtimeContent: PromptLlmRuntimeContent,
 ): Promise<TavernHelperRolePrompt[]> {
-  const messages = getActivePromptLlmPreset(presetSettings).messages.filter(message => message.enabled !== false);
+  const messages = getActivePromptLlmPreset(presetSettings).messages.filter(message =>
+    canSendPromptLlmMessage(message, runtimeContent),
+  );
   const prompts = await Promise.all(
     messages.map(async message => ({
       role: message.role,
@@ -86,6 +89,20 @@ export async function buildPromptLlmOrderedPrompts(
     })),
   );
   return prompts.filter(prompt => prompt.content.trim());
+}
+
+/**
+ * 判断 LLM 条目是否应进入本次请求
+ * @param message LLM 条目
+ * @param runtimeContent 运行时替换内容
+ * @returns 是否应发送
+ */
+function canSendPromptLlmMessage(
+  message: ReturnType<typeof getActivePromptLlmPreset>['messages'][number],
+  runtimeContent: PromptLlmRuntimeContent,
+): boolean {
+  if (message.enabled === false) return false;
+  return shouldSendPromptLlmMessage(message, runtimeContent.historyContent);
 }
 
 /**

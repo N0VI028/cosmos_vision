@@ -235,6 +235,12 @@ export const PROMPT_LLM_MESSAGE_ROLES = ['system', 'user', 'assistant'] as const
 /** 提示词 LLM 消息角色 */
 export type PromptLlmMessageRole = (typeof PROMPT_LLM_MESSAGE_ROLES)[number];
 
+/** 提示词 LLM 消息触发模式 */
+export const PROMPT_LLM_MESSAGE_TRIGGER_MODES = ['always', 'keyword'] as const;
+
+/** 提示词 LLM 消息触发模式 */
+export type PromptLlmMessageTriggerMode = (typeof PROMPT_LLM_MESSAGE_TRIGGER_MODES)[number];
+
 /** 人物类型 */
 export const PROMPT_PERSON_KINDS = ['user', 'character'] as const;
 
@@ -339,6 +345,10 @@ export interface PromptLlmMessage {
   content: string;
   /** 是否启用该条目 */
   enabled?: boolean;
+  /** 运行时触发模式 */
+  triggerMode?: PromptLlmMessageTriggerMode;
+  /** 关键词触发词列表 */
+  triggerKeywords?: string[];
   /** 外部来源引用,仅来源型条目使用 */
   reference?: PromptWorldbookSourceReference;
 }

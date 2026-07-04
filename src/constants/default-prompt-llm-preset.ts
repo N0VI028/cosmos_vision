@@ -1,5 +1,10 @@
 import type { PromptLlmMessagePresetSettings } from '@/constants/novelai';
-import { PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN, PROMPT_LLM_SPECIAL_REQUEST_TOKEN } from '@/constants/prompt-llm-tokens';
+import {
+  PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN,
+  PROMPT_LLM_HISTORY_TOKEN,
+  PROMPT_LLM_PARTICIPANT_TOKEN,
+  PROMPT_LLM_SPECIAL_REQUEST_TOKEN,
+} from '@/constants/prompt-llm-tokens';
 
 export const DEFAULT_PROMPT_LLM_PRESET_ID = 'prompt-llm-default-preset';
 export const DEFAULT_PROMPT_LLM_SYSTEM_MESSAGE_ID = '3b6d15c7-1f38-4d50-a9c1-7f0b9b6f4e12';
@@ -260,14 +265,18 @@ export default {
             '</additional_guidelines>',
           ].join('\n'),
           enabled: true,
+          triggerMode: 'always',
+          triggerKeywords: [],
         },
 
         {
           id: DEFAULT_PROMPT_LLM_PARTICIPANT_MESSAGE_ID,
           title: '人物总体信息',
           role: 'user',
-          content: '',
+          content: PROMPT_LLM_PARTICIPANT_TOKEN,
           enabled: true,
+          triggerMode: 'always',
+          triggerKeywords: [],
         },
         {
           id: DEFAULT_PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID,
@@ -275,13 +284,17 @@ export default {
           role: 'user',
           content: '<chat_history>',
           enabled: true,
+          triggerMode: 'always',
+          triggerKeywords: [],
         },
         {
           id: DEFAULT_PROMPT_LLM_HISTORY_MESSAGE_ID,
           title: '历史消息',
           role: 'user',
-          content: '',
+          content: PROMPT_LLM_HISTORY_TOKEN,
           enabled: true,
+          triggerMode: 'always',
+          triggerKeywords: [],
         },
         {
           id: DEFAULT_PROMPT_LLM_CONTENT_CLOSE_MESSAGE_ID,
@@ -289,6 +302,8 @@ export default {
           role: 'user',
           content: '</chat_history>',
           enabled: true,
+          triggerMode: 'always',
+          triggerKeywords: [],
         },
         {
           id: DEFAULT_PROMPT_LLM_FOCUS_SCENE_MESSAGE_ID,
@@ -296,6 +311,8 @@ export default {
           role: 'user',
           content: ['', '<main_scene>', `    ${PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN}`, '</main_scene>', ''].join('\n'),
           enabled: true,
+          triggerMode: 'always',
+          triggerKeywords: [],
         },
         {
           id: DEFAULT_PROMPT_LLM_SPECIAL_REQUEST_MESSAGE_ID,
@@ -310,6 +327,8 @@ export default {
             '',
           ].join('\n'),
           enabled: true,
+          triggerMode: 'always',
+          triggerKeywords: [],
         },
       ],
     },

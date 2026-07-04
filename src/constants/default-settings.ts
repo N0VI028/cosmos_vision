@@ -10,6 +10,8 @@ import { createImagePromptPresetSettings } from '@/constants/image-prompt';
 import {
   PROMPT_LLM_FIXED_TAGS_TOKEN,
   PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN,
+  PROMPT_LLM_HISTORY_TOKEN,
+  PROMPT_LLM_PARTICIPANT_TOKEN,
   PROMPT_LLM_SPECIAL_REQUEST_TOKEN,
   PROMPT_LLM_TRIGGER_NAMES_TOKEN,
 } from '@/constants/prompt-llm-tokens';
@@ -17,6 +19,7 @@ import {
   createNovelAIAccount,
   NOVELAI_DEFAULT_ACCOUNT_ID,
   type CosmosVisionSettings,
+  type PromptLlmMessageTriggerMode,
   type PromptLlmOutputFields,
 } from '@/constants/novelai';
 
@@ -28,6 +31,8 @@ export const DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID = defaultPromptLlmPresetSettin
 export const DEFAULT_PROMPT_LLM_MESSAGE_PRESET_NAME = defaultPromptLlmPreset.name;
 export const DEFAULT_PROMPT_LLM_MESSAGE_TITLE = '';
 export const DEFAULT_PROMPT_LLM_MESSAGE_ENABLED = true;
+export const DEFAULT_PROMPT_LLM_MESSAGE_TRIGGER_MODE: PromptLlmMessageTriggerMode = 'always';
+export const DEFAULT_PROMPT_LLM_MESSAGE_TRIGGER_KEYWORDS: string[] = [];
 export const PROMPT_LLM_HISTORY_MESSAGE_ID = DEFAULT_PROMPT_LLM_HISTORY_MESSAGE_ID;
 export const PROMPT_LLM_HISTORY_MESSAGE_TITLE = '历史消息';
 export const PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID = DEFAULT_PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID;
@@ -37,6 +42,8 @@ export const PROMPT_LLM_PARTICIPANT_MESSAGE_TITLE = '人物总体信息';
 export {
   PROMPT_LLM_FIXED_TAGS_TOKEN,
   PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN,
+  PROMPT_LLM_HISTORY_TOKEN,
+  PROMPT_LLM_PARTICIPANT_TOKEN,
   PROMPT_LLM_SPECIAL_REQUEST_TOKEN,
   PROMPT_LLM_TRIGGER_NAMES_TOKEN,
 };

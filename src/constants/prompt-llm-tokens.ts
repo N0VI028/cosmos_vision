@@ -9,3 +9,9 @@ export const PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN = '{{focus_paragraph}}';
 
 /** Prompt LLM 本次特别要求宏 */
 export const PROMPT_LLM_SPECIAL_REQUEST_TOKEN = '{{special_request}}';
+
+/** Prompt LLM 历史消息宏 */
+export const PROMPT_LLM_HISTORY_TOKEN = '{{history}}';
+
+/** Prompt LLM 人物总体信息宏 */
+export const PROMPT_LLM_PARTICIPANT_TOKEN = '{{participants}}';
