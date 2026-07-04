@@ -24,10 +24,13 @@
       :presets="presetOptions"
       :active-preset-id="settings.promptLlmMessagePresets.activePresetId"
       :default-preset-id="DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID"
+      show-portability
       @update:active-preset-id="updatePresetId"
       @create="createPresetPrompt"
       @clone="clonePreset"
       @rename="renamePreset"
+      @export-preset="exportPresetPackage"
+      @import-presets="importPresetPackage"
       @delete-preset="deletePreset"
     />
 
@@ -90,9 +93,14 @@ import {
   DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
 } from '@/constants/default-settings';
 import { type PromptLlmMessage, type PromptLlmMessagePreset } from '@/constants/novelai';
+import {
+  downloadActivePromptLlmPresetPackage,
+  importPresetPackageFile,
+} from '@/services/data-portability/preset-toolbar';
 import { normalizePromptLlmMessagePresets } from '@/services/prompt-llm/message-preset';
 import { clonePromptLlmMessage } from '@/services/prompt-llm/message-source';
 import { useSettingsStore } from '@/store/settings';
+import manifest from '../../../manifest.json';
 
 interface PromptExtractRuleField {
   label: string;
@@ -133,7 +141,8 @@ const PROMPT_EXTRACT_RULE_FIELDS = [
   },
 ] as const satisfies ReadonlyArray<PromptExtractRuleField>;
 
-const { settings } = useSettingsStore();
+const settingsStore = useSettingsStore();
+const { settings, applyImportedSettings } = settingsStore;
 const promptExtractRuleFields = [...PROMPT_EXTRACT_RULE_FIELDS];
 
 const activePreset = computed(() => {
@@ -254,6 +263,42 @@ function deletePreset(id: string): void {
     }
     toastr.success('预设已删除');
   }
+}
+
+/**
+ * 导出当前激活的 LLM 预设
+ */
+function exportPresetPackage(): void {
+  try {
+    downloadActivePromptLlmPresetPackage(settings, manifest.version);
+    toastr.success('已导出当前 LLM 预设');
+  } catch (error) {
+    reportPresetToolbarError('导出 LLM 预设失败', error);
+  }
+}
+
+/**
+ * 导入 LLM 预设
+ * @param file 用户选择的 JSON 文件
+ */
+async function importPresetPackage(file: File): Promise<void> {
+  try {
+    const result = await importPresetPackageFile(file, 'promptLlmMessagePresets', settings);
+    applyImportedSettings(result.settings);
+    toastr.success(`LLM 预设导入完成：成功 ${result.imported} 项`);
+  } catch (error) {
+    reportPresetToolbarError('导入 LLM 预设失败', error);
+  }
+}
+
+/**
+ * 报告预设工具栏错误
+ * @param fallback 默认提示
+ * @param error 捕获的错误
+ */
+function reportPresetToolbarError(fallback: string, error: unknown): void {
+  toastr.error(error instanceof Error ? error.message : fallback);
+  console.error(`[PromptBuilderTab] ${fallback}`, error);
 }
 
 /**

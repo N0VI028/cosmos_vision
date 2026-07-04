@@ -8,10 +8,13 @@
             :presets="section.presets"
             :active-preset-id="section.activePresetId"
             :default-preset-id="section.defaultPresetId"
+            show-portability
             @update:active-preset-id="updatePromptPresetId(section.kind, $event)"
             @create="createPromptPreset(section.kind)"
             @clone="clonePromptPreset(section.kind)"
             @rename="renamePromptPreset(section.kind)"
+            @export-preset="exportPromptPreset(section.kind, section.activePresetId)"
+            @import-presets="importPromptPresetPackage(section.kind, $event)"
             @delete-preset="deletePromptPreset(section.kind, $event, section.defaultPresetId)"
           />
           <span>{{ section.promptLabel }}</span>
@@ -36,10 +39,13 @@
           :presets="section.presets"
           :active-preset-id="section.activePresetId"
           :default-preset-id="section.defaultPresetId"
+          show-portability
           @update:active-preset-id="updatePromptPresetId(section.kind, $event)"
           @create="createPromptPreset(section.kind)"
           @clone="clonePromptPreset(section.kind)"
           @rename="renamePromptPreset(section.kind)"
+          @export-preset="exportPromptPreset(section.kind, section.activePresetId)"
+          @import-presets="importPromptPresetPackage(section.kind, $event)"
           @delete-preset="deletePromptPreset(section.kind, $event, section.defaultPresetId)"
         />
         <PromptPlaceholderEditor
@@ -67,7 +73,13 @@ import { DEFAULT_NEGATIVE_PROMPT_PRESET_ID, DEFAULT_POSITIVE_PROMPT_PRESET_ID } 
 import NovelAIVibePanel from '@/panel/components/NovelAIVibePanel.vue';
 import PresetSelector from '@/panel/components/PresetSelector.vue';
 import PromptPlaceholderEditor from '@/panel/components/PromptPlaceholderEditor.vue';
+import {
+  downloadActiveImagePromptPresetPackage,
+  importImagePromptPresetPackageFile,
+} from '@/services/data-portability/preset-toolbar';
 import { findImagePromptPreset } from '@/services/image-prompt/presets';
+import { useSettingsStore } from '@/store/settings';
+import manifest from '../../../manifest.json';
 
 type ImagePromptPresetKind = keyof ImagePromptPresetSettings;
 
@@ -124,6 +136,8 @@ const emit = defineEmits<{
   'update:negativePresetId': [id: string];
 }>();
 
+const settingsStore = useSettingsStore();
+const { settings, applyImportedSettings } = settingsStore;
 const showPrompt =
   inject<(options: { title?: string; message: string; defaultValue?: string }) => Promise<string | null>>('showPrompt');
 
@@ -239,6 +253,45 @@ function deletePromptPreset(kind: ImagePromptPresetKind, id: string, defaultPres
   updatePromptPresetList(kind, presets);
   updatePromptPresetId(kind, getFallbackPromptPresetId(presets, getCurrentPresetId(kind), defaultPresetId));
   toastr.success('预设已删除');
+}
+
+/**
+ * 导出当前激活的生图提示词预设
+ * @param kind 正面或负面
+ * @param activePresetId 当前预设 ID
+ */
+async function exportPromptPreset(kind: ImagePromptPresetKind, activePresetId: string): Promise<void> {
+  try {
+    await downloadActiveImagePromptPresetPackage(settings, kind, activePresetId, manifest.version);
+    toastr.success('已导出当前生图预设');
+  } catch (error) {
+    reportPresetToolbarError('导出生图预设失败', error);
+  }
+}
+
+/**
+ * 导入生图提示词预设
+ * @param kind 正面或负面
+ * @param file 用户选择的 JSON 文件
+ */
+async function importPromptPresetPackage(kind: ImagePromptPresetKind, file: File): Promise<void> {
+  try {
+    const result = await importImagePromptPresetPackageFile(file, kind, settings);
+    applyImportedSettings(result.settings);
+    toastr.success(`生图预设导入完成：成功 ${result.imported} 项`);
+  } catch (error) {
+    reportPresetToolbarError('导入生图预设失败', error);
+  }
+}
+
+/**
+ * 报告预设工具栏错误
+ * @param fallback 默认提示
+ * @param error 捕获的错误
+ */
+function reportPresetToolbarError(fallback: string, error: unknown): void {
+  toastr.error(error instanceof Error ? error.message : fallback);
+  console.error(`[ImagePromptPresetPanel] ${fallback}`, error);
 }
 
 /**

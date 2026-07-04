@@ -226,8 +226,9 @@ const showConfirm =
       severity?: string;
     }) => Promise<boolean>
   >('showConfirm');
-const requestImageDownloadOptions =
-  inject<() => Promise<InlineImageDownloadOptions | null>>(IMAGE_DOWNLOAD_OPTIONS_REQUEST_KEY);
+const requestImageDownloadOptions = inject<() => Promise<InlineImageDownloadOptions | null>>(
+  IMAGE_DOWNLOAD_OPTIONS_REQUEST_KEY,
+);
 
 watch(
   () => props.subTab,
@@ -255,7 +256,7 @@ async function refreshVibeRows(): Promise<void> {
   } catch (error) {
     vibeRows.value = [];
     toastr.error('读取 vibe 数据失败');
-    console.error('[MainTab] 读取 vibe 数据失败', error);
+    console.error('读取 vibe 数据失败', error);
   } finally {
     isVibeRowsLoading.value = false;
   }
@@ -271,7 +272,7 @@ async function refreshFavoriteGroups(): Promise<void> {
   } catch (error) {
     favoriteGroups.value = [];
     toastr.error('读取收藏图片数据失败');
-    console.error('[MainTab] 读取收藏图片数据失败', error);
+    console.error('读取收藏图片数据失败', error);
   } finally {
     isFavoriteGroupsLoading.value = false;
   }
@@ -491,7 +492,7 @@ async function runVibeAction(action: () => Promise<void>, errorMessage: string):
     await action();
   } catch (error) {
     toastr.error(errorMessage);
-    console.error(`[MainTab] ${errorMessage}`, error);
+    console.error(`${errorMessage}`, error);
   } finally {
     isVibeActionBusy.value = false;
   }
@@ -509,7 +510,7 @@ async function runFavoriteAction(action: () => Promise<void>, errorMessage: stri
     await action();
   } catch (error) {
     toastr.error(errorMessage);
-    console.error(`[MainTab] ${errorMessage}`, error);
+    console.error(`${errorMessage}`, error);
   } finally {
     isFavoriteActionBusy.value = false;
   }
@@ -613,7 +614,7 @@ function openUrl(url: string): void {
   margin: 0;
   border-radius: var(--cv-radius-sm);
   overflow: hidden;
-  padding-inline: 0!important;
+  padding-inline: 0 !important;
 }
 
 .cv-vibe-table :deep(.p-datatable-table-container) {

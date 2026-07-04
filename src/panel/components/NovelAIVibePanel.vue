@@ -6,7 +6,7 @@
       <input
         ref="fileInput"
         type="file"
-        accept="image/*,.vibe,.vibe40,.vibe42"
+        accept="image/*,.naiv4vibe"
         multiple
         class="hidden"
         @change="handleFileChange"
@@ -240,7 +240,11 @@ async function appendUploadedFiles(files: File[]): Promise<void> {
  */
 async function parseAndCacheFile(file: File): Promise<ParsedNovelAIVibeFile> {
   const payload = await parseNovelAIVibeFile(file);
-  await saveNovelAIVibeFilePayload(payload, props.settings.model, DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED);
+  await saveNovelAIVibeFilePayload(
+    payload,
+    payload.model ?? props.settings.model,
+    payload.informationExtracted ?? DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
+  );
   return payload;
 }
 
@@ -254,8 +258,8 @@ function createVibeRef(payload: ParsedNovelAIVibeFile): ImagePromptVibeRef {
     id: uuidv4(),
     sourceHash: payload.sourceHash,
     enabled: true,
-    referenceStrength: DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH,
-    informationExtracted: DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
+    referenceStrength: payload.referenceStrength ?? DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH,
+    informationExtracted: payload.informationExtracted ?? DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
     temporary: payload.sourceType === 'image',
   };
 }
@@ -360,7 +364,7 @@ function getDisplayFileName(vibe: ImagePromptVibeRef): string {
  * @returns 兜底文件名
  */
 function getFallbackFileName(vibe: ImagePromptVibeRef): string {
-  return `${vibe.sourceHash.slice(0, 8)}.vibe`;
+  return `${vibe.sourceHash.slice(0, 8)}.naiv4vibe`;
 }
 
 /**

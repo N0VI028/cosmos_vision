@@ -10,6 +10,10 @@ export interface ParsedNovelAIVibeFile {
   fileName: string;
   imageData?: string;
   encodedData?: string;
+  cacheSecretKey?: string;
+  model?: NovelAIModel;
+  referenceStrength?: number;
+  informationExtracted?: number;
 }
 
 /** NovelAI vibe IndexedDB 缓存记录 */
@@ -22,6 +26,7 @@ export interface NovelAIVibeCacheRecord {
   informationExtracted: number;
   imageData?: string;
   encodedData?: string;
+  cacheSecretKey?: string;
   thumbnailData?: string;
   createdAt: number;
 }
@@ -52,7 +57,12 @@ export interface NovelAIVibeCacheListItem {
 export interface NovelAIVibeDownloadPayload {
   sourceHash: string;
   fileName: string;
+  imageData?: string;
   encodedData: string;
+  cacheSecretKey?: string;
+  model: NovelAIModel;
+  informationExtracted: number;
+  referenceStrength: number;
   thumbnailData?: string;
 }
 

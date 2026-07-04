@@ -433,7 +433,7 @@ function buildVibeRecord(id: string, record: Record<string, unknown>, encodedDat
   return {
     sourceHash: readSourceHash(id, record),
     sourceType: 'encoded-vibe',
-    fileName: `${readText(record.name) || id}.vibe`,
+    fileName: `${readText(record.name) || id}.naiv4vibe`,
     model: readModel(record),
     informationExtracted: readInformationExtracted(record),
     encodedData,

@@ -1,3 +1,4 @@
+import { DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH } from '@/constants/image-prompt';
 import type { NovelAIModel } from '@/constants/novelai';
 import type {
   NovelAIVibeCacheListItem,
@@ -33,8 +34,19 @@ export async function saveNovelAIVibeFilePayload(
   model: NovelAIModel,
   informationExtracted: number,
 ): Promise<void> {
-  if (payload.imageData) saveTemporaryNovelAIVibeEntry(payload);
-  if (payload.encodedData) await saveNovelAIVibeEncodedData(payload, model, informationExtracted, payload.encodedData);
+  if (payload.imageData) {
+    saveTemporaryNovelAIVibeEntry(payload);
+    await upsertNovelAIVibeRecord(createImageRecord(payload, model, informationExtracted));
+  }
+  if (payload.encodedData) {
+    await saveNovelAIVibeEncodedData(
+      payload,
+      model,
+      informationExtracted,
+      payload.encodedData,
+      payload.cacheSecretKey,
+    );
+  }
 }
 
 /**
@@ -43,14 +55,16 @@ export async function saveNovelAIVibeFilePayload(
  * @param model 解析模型
  * @param informationExtracted 信息提取强度
  * @param encodedData 解析后的 vibe base64
+ * @param cacheSecretKey 官网缓存密钥
  */
 export async function saveNovelAIVibeEncodedData(
   payload: Pick<ParsedNovelAIVibeFile, 'sourceHash' | 'fileName'>,
   model: NovelAIModel,
   informationExtracted: number,
   encodedData: string,
+  cacheSecretKey?: string,
 ): Promise<void> {
-  await upsertNovelAIVibeRecord(createEncodedRecord(payload, model, informationExtracted, encodedData));
+  await upsertNovelAIVibeRecord(createEncodedRecord(payload, model, informationExtracted, encodedData, cacheSecretKey));
 }
 
 /**
@@ -145,14 +159,20 @@ export async function getNovelAIVibeFileName(sourceHash: string): Promise<string
  */
 export async function getNovelAIVibeDownloadPayload(sourceHash: string): Promise<NovelAIVibeDownloadPayload | null> {
   const records = await getNovelAIVibeSourceRecords(sourceHash);
-  const record = pickLatestEncodedRecord(records);
+  const record = pickOfficialExportRecord(records);
   if (!record?.encodedData) return null;
-  return {
+  const payload = {
     sourceHash,
     fileName: record.fileName,
+    imageData: getImageData(records, temporaryNovelAIVibeEntries.get(sourceHash)),
     encodedData: record.encodedData,
+    cacheSecretKey: record.cacheSecretKey,
+    model: record.model,
+    informationExtracted: record.informationExtracted,
+    referenceStrength: DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH,
     thumbnailData: getThumbnailData(records),
   };
+  return payload;
 }
 
 /**
@@ -162,12 +182,17 @@ export async function getNovelAIVibeDownloadPayload(sourceHash: string): Promise
 export async function listNovelAIVibeDownloadPayloads(): Promise<NovelAIVibeDownloadPayload[]> {
   const recordGroups = [...groupRecordsBySourceHash(await getAllNovelAIVibeRecords()).entries()];
   return recordGroups.flatMap(([sourceHash, records]) => {
-    const record = pickLatestEncodedRecord(records);
+    const record = pickOfficialExportRecord(records);
     if (!record?.encodedData) return [];
     return [{
       sourceHash,
       fileName: record.fileName,
+      imageData: getImageData(records, temporaryNovelAIVibeEntries.get(sourceHash)),
       encodedData: record.encodedData,
+      cacheSecretKey: record.cacheSecretKey,
+      model: record.model,
+      informationExtracted: record.informationExtracted,
+      referenceStrength: DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH,
       thumbnailData: getThumbnailData(records),
     }];
   });
@@ -291,8 +316,31 @@ function createEncodedRecord(
   model: NovelAIModel,
   informationExtracted: number,
   encodedData: string,
+  cacheSecretKey?: string,
 ): NovelAIVibeCacheRecord {
-  return createBaseRecord(payload, model, informationExtracted, { encodedData, sourceType: 'encoded-vibe' });
+  return createBaseRecord(payload, model, informationExtracted, {
+    encodedData,
+    cacheSecretKey,
+    sourceType: 'encoded-vibe',
+  });
+}
+
+/**
+ * 创建原图缓存记录
+ * @param payload 文件载荷
+ * @param model NovelAI 模型
+ * @param informationExtracted 信息提取强度
+ * @returns 原图缓存记录
+ */
+function createImageRecord(
+  payload: Pick<ParsedNovelAIVibeFile, 'sourceHash' | 'fileName' | 'imageData'>,
+  model: NovelAIModel,
+  informationExtracted: number,
+): NovelAIVibeCacheRecord {
+  return createBaseRecord(payload, model, informationExtracted, {
+    imageData: payload.imageData,
+    sourceType: 'image',
+  });
 }
 
 /**
@@ -319,12 +367,9 @@ function createBaseRecord(
  * @returns 是否同键
  */
 function isSameCacheKey(left: NovelAIVibeCacheRecord, right: NovelAIVibeCacheRecord): boolean {
-  return (
-    left.sourceHash === right.sourceHash &&
-    left.sourceType === right.sourceType &&
-    left.model === right.model &&
-    left.informationExtracted === right.informationExtracted
-  );
+  if (left.sourceHash !== right.sourceHash || left.sourceType !== right.sourceType) return false;
+  if (left.sourceType === 'image') return true;
+  return left.model === right.model && left.informationExtracted === right.informationExtracted;
 }
 
 /**
@@ -435,14 +480,25 @@ function pickLatestRecord(records: NovelAIVibeCacheRecord[]): NovelAIVibeCacheRe
 }
 
 /**
- * 选择最新已解析缓存记录
+ * 选择最适合官网导出的已解析缓存
  * @param records 同源缓存记录
- * @returns 最新 encoded 记录
+ * @returns 优先带官网缓存密钥的 encoded 记录
  */
-function pickLatestEncodedRecord(records: NovelAIVibeCacheRecord[]): NovelAIVibeCacheRecord | undefined {
+function pickOfficialExportRecord(records: NovelAIVibeCacheRecord[]): NovelAIVibeCacheRecord | undefined {
   return [...records]
     .filter(record => record.sourceType === 'encoded-vibe' && Boolean(record.encodedData))
-    .sort((left, right) => right.createdAt - left.createdAt)[0];
+    .sort(compareOfficialExportRecords)[0];
+}
+
+/**
+ * 排序官网导出缓存记录
+ * @param left 左侧缓存记录
+ * @param right 右侧缓存记录
+ * @returns 排序权重
+ */
+function compareOfficialExportRecords(left: NovelAIVibeCacheRecord, right: NovelAIVibeCacheRecord): number {
+  const keyWeight = Number(Boolean(right.cacheSecretKey)) - Number(Boolean(left.cacheSecretKey));
+  return keyWeight || right.createdAt - left.createdAt;
 }
 
 /**
@@ -486,6 +542,19 @@ function getThumbnailData(
     temporaryEntry?.imageData ??
     records.find(record => Boolean(record.imageData))?.imageData
   );
+}
+
+/**
+ * 读取原图 data URL
+ * @param records 同源缓存记录
+ * @param temporaryEntry 临时缓存
+ * @returns 原图 data URL 或 undefined
+ */
+function getImageData(
+  records: NovelAIVibeCacheRecord[],
+  temporaryEntry?: TemporaryNovelAIVibeEntry,
+): string | undefined {
+  return temporaryEntry?.imageData ?? records.find(record => Boolean(record.imageData))?.imageData;
 }
 
 /**

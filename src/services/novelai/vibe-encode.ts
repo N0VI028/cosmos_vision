@@ -6,6 +6,12 @@ export interface NovelAIVibeEncodeOptions {
   signal?: AbortSignal;
 }
 
+/** NovelAI encode-vibe 结果 */
+export interface NovelAIVibeEncodeResult {
+  encodedData: string;
+  cacheSecretKey: string;
+}
+
 /** NovelAI encode-vibe 请求体 */
 interface NovelAIVibeEncodePayload {
   image: string;
@@ -20,7 +26,7 @@ interface NovelAIVibeEncodePayload {
  * @param model 当前模型
  * @param informationExtracted 信息提取强度
  * @param options 请求控制选项
- * @returns encodedData base64
+ * @returns encodedData 与官网缓存密钥
  */
 export async function encodeNovelAIVibeWithAccounts(
   accounts: NovelAIAccount[],
@@ -28,7 +34,7 @@ export async function encodeNovelAIVibeWithAccounts(
   model: NovelAIModel,
   informationExtracted: number,
   options: NovelAIVibeEncodeOptions = {},
-): Promise<string> {
+): Promise<NovelAIVibeEncodeResult> {
   if (!accounts.length) throw new Error('没有可用的 NovelAI 账号，无法解析 vibe');
   const errors: string[] = [];
   for (const [index, account] of accounts.entries()) {
@@ -49,7 +55,7 @@ export async function encodeNovelAIVibeWithAccounts(
  * @param model 当前模型
  * @param informationExtracted 信息提取强度
  * @param options 请求控制选项
- * @returns encodedData base64
+ * @returns encodedData 与官网缓存密钥
  */
 async function encodeNovelAIVibe(
   account: NovelAIAccount,
@@ -57,9 +63,12 @@ async function encodeNovelAIVibe(
   model: NovelAIModel,
   informationExtracted: number,
   options: NovelAIVibeEncodeOptions,
-): Promise<string> {
+): Promise<NovelAIVibeEncodeResult> {
   const response = await requestEncodeVibeResponse(account, { image: imageBase64, information_extracted: informationExtracted, model }, options);
-  return arrayBufferToBase64(await response.arrayBuffer());
+  return {
+    encodedData: arrayBufferToBase64(await response.arrayBuffer()),
+    cacheSecretKey: '',
+  };
 }
 
 /**

@@ -129,7 +129,7 @@ async function resolveV4VibeImage(
 async function getEncodedOnlyVibeData(vibe: ImagePromptVibeRef): Promise<string> {
   const encodedData = await getNovelAIVibeAnyEncodedData(vibe.sourceHash);
   if (encodedData) return markVibePersistent(vibe, encodedData);
-  throw new Error('当前 vibe 缓存已丢失，请重新上传图片或 .vibe 文件');
+  throw new Error('当前 vibe 缓存已丢失，请重新上传图片或 .naiv4vibe 文件');
 }
 
 /**
@@ -148,9 +148,21 @@ async function encodeAndCacheVibe(
   accounts: NovelAIAccount[],
   options: NovelAIVibeResolveOptions,
 ): Promise<string> {
-  const encodedData = await encodeNovelAIVibeWithAccounts(accounts, stripDataUrlBase64(imageData), settings.model, vibe.informationExtracted, options);
-  await saveNovelAIVibeEncodedData(await createCachePayload(vibe), settings.model, vibe.informationExtracted, encodedData);
-  return markVibePersistent(vibe, encodedData);
+  const result = await encodeNovelAIVibeWithAccounts(
+    accounts,
+    stripDataUrlBase64(imageData),
+    settings.model,
+    vibe.informationExtracted,
+    options,
+  );
+  await saveNovelAIVibeEncodedData(
+    await createCachePayload(vibe),
+    settings.model,
+    vibe.informationExtracted,
+    result.encodedData,
+    result.cacheSecretKey,
+  );
+  return markVibePersistent(vibe, result.encodedData);
 }
 
 /**

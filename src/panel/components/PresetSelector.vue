@@ -11,6 +11,13 @@
       @update:model-value="$emit('update:activePresetId', $event)"
     />
     <div class="cv-preset-actions">
+      <input
+        ref="fileInput"
+        type="file"
+        accept="application/json,.json"
+        class="cv-preset-file-input"
+        @change="handleFileChange"
+      />
       <button type="button" class="cv-preset-btn" title="新建预设" aria-label="新建预设" @click="$emit('create')">
         <i class="fa-solid fa-plus" />
       </button>
@@ -33,6 +40,26 @@
         <i class="fa-solid fa-pen" />
       </button>
       <button
+        v-if="showPortability"
+        type="button"
+        class="cv-preset-btn"
+        title="导出当前预设"
+        aria-label="导出当前预设"
+        @click="$emit('export-preset')"
+      >
+        <i class="fa-solid fa-file-export" />
+      </button>
+      <button
+        v-if="showPortability"
+        type="button"
+        class="cv-preset-btn"
+        title="导入预设"
+        aria-label="导入预设"
+        @click="openFilePicker"
+      >
+        <i class="fa-solid fa-file-import" />
+      </button>
+      <button
         type="button"
         class="cv-preset-btn cv-preset-btn-danger"
         title="删除当前预设"
@@ -46,24 +73,32 @@
 </template>
 
 <script setup lang="ts">
-import { inject } from 'vue';
+import { inject, ref } from 'vue';
 
 interface PresetOption {
   id: string;
   name: string;
 }
 
-const props = defineProps<{
-  presets: PresetOption[];
-  activePresetId: string;
-  defaultPresetId: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    presets: PresetOption[];
+    activePresetId: string;
+    defaultPresetId: string;
+    showPortability?: boolean;
+  }>(),
+  {
+    showPortability: false,
+  },
+);
 
 const emit = defineEmits<{
   'update:activePresetId': [id: string];
   create: [];
   clone: [];
   rename: [];
+  'export-preset': [];
+  'import-presets': [file: File];
   'delete-preset': [id: string];
 }>();
 const PRESET_SELECT_PT = {
@@ -84,6 +119,24 @@ const showConfirm =
       severity?: string;
     }) => Promise<boolean>
   >('showConfirm');
+const fileInput = ref<HTMLInputElement | null>(null);
+
+/**
+ * 打开预设文件选择器
+ */
+function openFilePicker(): void {
+  fileInput.value?.click();
+}
+
+/**
+ * 读取用户选择的预设文件
+ * @param event 文件输入事件
+ */
+function handleFileChange(event: Event): void {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (file) emit('import-presets', file);
+  if (fileInput.value) fileInput.value.value = '';
+}
 
 /**
  * 触发删除当前预设，执行前置校验与二次确认
@@ -127,7 +180,7 @@ async function handleDeleteActiveClick(): Promise<void> {
   --p-select-focus-ring-shadow: none;
   --p-select-focus-ring-style: none;
   --p-select-focus-ring-width: 0;
-  @apply inline-flex items-center min-w-0 cursor-pointer border-0 bg-transparent p-0 shadow-none;
+  @apply inline-flex min-w-0 cursor-pointer items-center border-0 bg-transparent p-0 shadow-none;
   flex: 0 1 9em;
   width: 9em !important;
   height: auto !important;
@@ -164,6 +217,10 @@ async function handleDeleteActiveClick(): Promise<void> {
   color: var(--p-red-500);
   background: color-mix(in srgb, var(--p-red-500) 10%, transparent);
   border-color: color-mix(in srgb, var(--p-red-500) 40%, transparent);
+}
+
+.cv-preset-file-input {
+  @apply hidden;
 }
 
 @media (max-width: 48rem) {
