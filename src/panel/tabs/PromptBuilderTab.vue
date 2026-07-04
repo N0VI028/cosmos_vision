@@ -33,10 +33,6 @@
 
     <PromptLlmMessageList v-model="messages" />
 
-    <h2 class="cv-section-title">提示词预览</h2>
-    <div v-if="messages.length === 0" class="cv-empty-hint">暂无消息</div>
-    <PromptMessagePreview v-else :messages="messages" />
-
     <h2 class="cv-section-title">Tag提取规则</h2>
     <div class="cv-section-body">
       <div class="cv-field">
@@ -84,7 +80,6 @@
 import { uuidv4 } from '@sillytavern/scripts/utils';
 import PresetSelector from '@/panel/components/PresetSelector.vue';
 import PromptLlmMessageList from '@/panel/components/PromptLlmMessageList.vue';
-import PromptMessagePreview from '@/panel/components/PromptMessagePreview.vue';
 import defaultPromptLlmPresetSettings from '@/constants/default-prompt-llm-preset';
 import {
   DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID,
@@ -94,10 +89,7 @@ import {
   DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN,
   DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
 } from '@/constants/default-settings';
-import {
-  type PromptLlmMessage,
-  type PromptLlmMessagePreset,
-} from '@/constants/novelai';
+import { type PromptLlmMessage, type PromptLlmMessagePreset } from '@/constants/novelai';
 import { normalizePromptLlmMessagePresets } from '@/services/prompt-llm/message-preset';
 import { clonePromptLlmMessage } from '@/services/prompt-llm/message-source';
 import { useSettingsStore } from '@/store/settings';

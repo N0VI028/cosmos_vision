@@ -111,23 +111,48 @@
         <PromptLlmTriggerEditor v-model="editorDraft" />
       </Fluid>
 
-      <label class="cv-field cv-message-editor-content-field">
+      <div class="cv-field cv-message-editor-content-field">
         <div class="cv-field-header">
           <span>{{ getEditorContentLabel(editorDraft) }}</span>
-          <div v-if="editorDraft.kind === 'custom'" class="cv-source-tokens" @click.prevent>
-            <span class="cv-token-label">插入：</span>
-            <button type="button" class="cv-token-btn" @click="insertMessageToken(PROMPT_LLM_HISTORY_TOKEN)">历史消息</button>
-            <button type="button" class="cv-token-btn" @click="insertMessageToken(PROMPT_LLM_PARTICIPANT_TOKEN)">人物信息</button>
-            <button type="button" class="cv-token-btn" @click="insertMessageToken(PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN)">焦点段落</button>
-            <button type="button" class="cv-token-btn" @click="insertMessageToken(PROMPT_LLM_SPECIAL_REQUEST_TOKEN)">特别要求</button>
+          <div v-if="editorDraft.kind === 'custom'" class="cv-source-tokens">
+            <Button
+              label="插入宏"
+              variant="text"
+              :dt="MACRO_BUTTON_TOKENS"
+              :pt="MACRO_TRIGGER_BUTTON_PT"
+              @pointerdown.prevent="rememberMessageSelection"
+              @click.stop="toggleMacroPopover"
+            />
+            <Popover
+              ref="macroPopover"
+              :base-z-index="MACRO_POPOVER_BASE_Z_INDEX"
+              :dt="MACRO_POPOVER_TOKENS"
+              :pt="MACRO_POPOVER_PT"
+            >
+              <Button
+                v-for="option in PROMPT_LLM_TOKEN_OPTIONS"
+                :key="option.token"
+                :label="option.label"
+                variant="text"
+                :dt="MACRO_BUTTON_TOKENS"
+                :pt="MACRO_OPTION_BUTTON_PT"
+                @pointerdown.prevent="rememberMessageSelection"
+                @click.stop="selectMessageToken(option.token)"
+              />
+            </Popover>
           </div>
         </div>
         <Textarea
           v-if="editorDraft.kind === 'custom'"
+          ref="messageContentTextarea"
           :model-value="editorDraft.customContent"
           class="cv-message-editor-textarea custom-scrollbar"
           rows="10"
           placeholder="输入消息内容..."
+          @click="rememberMessageSelection"
+          @focus="rememberMessageSelection"
+          @keyup="rememberMessageSelection"
+          @select="rememberMessageSelection"
           @update:model-value="value => updateDraftField('customContent', value ?? '')"
         />
         <Textarea
@@ -137,7 +162,7 @@
           rows="6"
           disabled
         />
-      </label>
+      </div>
     </div>
     <template #footer>
       <div class="cv-message-editor-actions">
@@ -149,12 +174,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN,
-  PROMPT_LLM_HISTORY_TOKEN,
-  PROMPT_LLM_PARTICIPANT_TOKEN,
-  PROMPT_LLM_SPECIAL_REQUEST_TOKEN,
-} from '@/constants/default-settings';
+import Popover from 'primevue/popover';
 import {
   getPromptLlmMessageEntryKind,
   type PromptLlmMessage,
@@ -163,6 +183,15 @@ import {
 } from '@/constants/novelai';
 import PromptEntryList from '@/panel/components/PromptEntryList.vue';
 import PromptLlmTriggerEditor from '@/panel/components/PromptLlmTriggerEditor.vue';
+import {
+  MACRO_BUTTON_TOKENS,
+  MACRO_OPTION_BUTTON_PT,
+  MACRO_POPOVER_BASE_Z_INDEX,
+  MACRO_POPOVER_PT,
+  MACRO_POPOVER_TOKENS,
+  MACRO_TRIGGER_BUTTON_PT,
+  PROMPT_LLM_TOKEN_OPTIONS,
+} from '@/panel/components/prompt-llm-macro-popover';
 import {
   applyPromptLlmMessageDefaults,
   buildPromptLlmSourceOptions,
@@ -186,6 +215,18 @@ import {
   type PromptWorldbookGroup,
   type ResolvedPromptSourceEntry,
 } from '@/services/tavern-helper/worldbook-sources';
+
+interface MacroPopoverInstance {
+  hide: () => void;
+  toggle: (event: Event) => void;
+}
+
+interface TextRange {
+  start: number;
+  end: number;
+}
+
+type TextareaRef = { $el?: HTMLElement } | HTMLElement | null;
 
 const ROLE_LABELS: Record<PromptLlmMessageRole, string> = {
   system: 'system',
@@ -214,6 +255,9 @@ const entryStatusMap = ref<Record<string, ResolvedPromptSourceEntry>>({});
 const worldbookSourceOptions = ref<PromptWorldbookGroup[]>([]);
 const editorDraft = ref<PromptLlmMessageEditorDraft | null>(null);
 const editorPreview = ref<ResolvedPromptSourceEntry | null>(null);
+const macroPopover = ref<MacroPopoverInstance | null>(null);
+const messageContentTextarea = ref<TextareaRef>(null);
+const messageSelectionRange = ref<TextRange | null>(null);
 const isEditorVisible = ref(false);
 const isLoadingWorldbookSources = ref(false);
 
@@ -324,6 +368,7 @@ function deleteMessage(id: string): void {
  */
 function openMessageEditor(message: PromptLlmMessage): void {
   editorDraft.value = createPromptLlmMessageEditorDraft(message, worldbookSourceOptions.value);
+  messageSelectionRange.value = null;
   isEditorVisible.value = true;
 }
 
@@ -334,6 +379,7 @@ function closeMessageEditor(): void {
   isEditorVisible.value = false;
   editorDraft.value = null;
   editorPreview.value = null;
+  messageSelectionRange.value = null;
 }
 
 /**
@@ -398,14 +444,112 @@ function updateSelectedWorldbookEntryUid(entryUid: number | null): void {
 }
 
 /**
- * 向自定义消息末尾插入宏
+ * 记录当前消息输入框选区
+ */
+function rememberMessageSelection(): void {
+  const el = getMessageContentTextareaElement();
+  if (!el) return;
+  messageSelectionRange.value = { start: el.selectionStart, end: el.selectionEnd };
+}
+
+/**
+ * 切换宏选择浮层
+ * @param event 点击事件
+ */
+function toggleMacroPopover(event: Event): void {
+  macroPopover.value?.toggle(event);
+}
+
+/**
+ * 选择并插入消息宏
+ * @param token 宏文本
+ */
+function selectMessageToken(token: string): void {
+  insertMessageToken(token);
+  macroPopover.value?.hide();
+}
+
+/**
+ * 向自定义消息选区插入宏
  * @param token 宏文本
  */
 function insertMessageToken(token: string): void {
   const draft = editorDraft.value;
   if (!draft || draft.kind !== 'custom') return;
-  const separator = draft.customContent && !draft.customContent.endsWith(' ') ? ' ' : '';
-  updateDraftField('customContent', `${draft.customContent}${separator}${token}`);
+  const range = readMessageInsertRange(draft.customContent);
+  const nextValue = replaceTextRange(draft.customContent, range, token);
+  updateDraftField('customContent', nextValue);
+  focusMessageContentTextarea(range.start + token.length);
+}
+
+/**
+ * 读取消息输入框原生元素
+ * @returns 文本框元素
+ */
+function getMessageContentTextareaElement(): HTMLTextAreaElement | null {
+  const el =
+    messageContentTextarea.value instanceof HTMLElement
+      ? messageContentTextarea.value
+      : messageContentTextarea.value?.$el;
+  return el instanceof HTMLTextAreaElement ? el : null;
+}
+
+/**
+ * 读取宏插入选区
+ * @param content 当前内容
+ * @returns 插入选区
+ */
+function readMessageInsertRange(content: string): TextRange {
+  const liveRange = readLiveMessageSelection();
+  const savedRange = messageSelectionRange.value;
+  return clampTextRange(liveRange ?? savedRange ?? { start: content.length, end: content.length }, content.length);
+}
+
+/**
+ * 读取当前活动输入框选区
+ * @returns 输入框选区
+ */
+function readLiveMessageSelection(): TextRange | null {
+  const el = getMessageContentTextareaElement();
+  if (!el || document.activeElement !== el) return null;
+  return { start: el.selectionStart, end: el.selectionEnd };
+}
+
+/**
+ * 将文本选区限制在内容长度内
+ * @param range 原始选区
+ * @param length 内容长度
+ * @returns 有效选区
+ */
+function clampTextRange(range: TextRange, length: number): TextRange {
+  const start = Math.min(Math.max(range.start, 0), length);
+  const end = Math.min(Math.max(range.end, start), length);
+  return { start, end };
+}
+
+/**
+ * 替换指定文本选区
+ * @param content 原始内容
+ * @param range 替换选区
+ * @param token 宏文本
+ * @returns 替换后的内容
+ */
+function replaceTextRange(content: string, range: TextRange, token: string): string {
+  return `${content.slice(0, range.start)}${token}${content.slice(range.end)}`;
+}
+
+/**
+ * 恢复消息输入框焦点和光标位置
+ * @param position 光标位置
+ */
+function focusMessageContentTextarea(position: number): void {
+  nextTick(() => {
+    const el = getMessageContentTextareaElement();
+    if (!el) return;
+    el.focus();
+    el.setSelectionRange(position, position);
+    messageSelectionRange.value = { start: position, end: position };
+  });
 }
 
 /**
@@ -532,10 +676,13 @@ function getResolvedPreviewText(resolved: ResolvedPromptSourceEntry | null): str
  */
 function isEditorWorldbookReferenceMissing(): boolean {
   const draft = editorDraft.value;
-  return draft?.kind === 'worldbook_entry' && isWorldbookReferenceMissing(
-    worldbookSourceOptions.value,
-    draft.selectedWorldbookName,
-    draft.selectedWorldbookEntryUid,
+  return (
+    draft?.kind === 'worldbook_entry' &&
+    isWorldbookReferenceMissing(
+      worldbookSourceOptions.value,
+      draft.selectedWorldbookName,
+      draft.selectedWorldbookEntryUid,
+    )
   );
 }
 
@@ -687,28 +834,7 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
 
 .cv-source-tokens {
   @apply flex items-center;
-  gap: var(--cv-space-xs);
-  font-size: var(--cv-font-size-2xs);
-}
-
-.cv-token-label {
-  color: var(--cv-on-surface-variant);
-  opacity: 0.8;
-}
-
-.cv-token-btn {
-  @apply cursor-pointer border-0;
-  padding: 2px 6px;
-  border-radius: var(--cv-radius-sm);
-  background: none;
-  color: var(--p-primary-color);
-  font-size: inherit;
-  transition: all 0.2s;
-}
-
-.cv-token-btn:hover {
-  background: var(--cv-surface-container-high);
-  color: var(--p-primary-hover-color);
+  width: max-content;
 }
 
 .cv-message-editor-content-field {
