@@ -120,21 +120,48 @@
         />
         <InputText v-else :model-value="editorReadonlyTitle" disabled />
       </label>
-      <label class="cv-field cv-message-editor-content-field">
+      <div class="cv-field cv-message-editor-content-field">
         <div class="cv-field-header">
           <span>{{ editorDraft.kind === 'custom' ? '内容' : '资料预览' }}</span>
-          <div v-if="editorDraft.kind === 'custom'" class="cv-source-tokens" @click.prevent>
-            <span class="cv-token-label">插入：</span>
-            <button type="button" class="cv-token-btn" @click="insertToken(triggerToken)">关键词</button>
-            <button type="button" class="cv-token-btn" @click="insertToken(fixedTagsToken)">固定 tag</button>
+          <div v-if="editorDraft.kind === 'custom'" class="cv-source-tokens">
+            <Button
+              label="插入宏"
+              variant="text"
+              :dt="MACRO_BUTTON_TOKENS"
+              :pt="MACRO_TRIGGER_BUTTON_PT"
+              @pointerdown.prevent="rememberEntrySelection"
+              @click.stop="toggleMacroPopover"
+            />
+            <Popover
+              ref="macroPopover"
+              :base-z-index="MACRO_POPOVER_BASE_Z_INDEX"
+              :dt="MACRO_POPOVER_TOKENS"
+              :pt="MACRO_POPOVER_PT"
+            >
+              <Button
+                v-for="option in PROMPT_PERSON_TOKEN_OPTIONS"
+                :key="option.token"
+                :label="option.label"
+                variant="text"
+                :dt="MACRO_BUTTON_TOKENS"
+                :pt="MACRO_OPTION_BUTTON_PT"
+                @pointerdown.prevent="rememberEntrySelection"
+                @click.stop="selectEntryToken(option.token)"
+              />
+            </Popover>
           </div>
         </div>
         <Textarea
           v-if="editorDraft.kind === 'custom'"
+          ref="entryContentTextarea"
           :model-value="editorDraft.content"
           rows="10"
           class="cv-message-editor-textarea custom-scrollbar"
           placeholder="输入模板内容..."
+          @click="rememberEntrySelection"
+          @focus="rememberEntrySelection"
+          @keyup="rememberEntrySelection"
+          @select="rememberEntrySelection"
           @update:model-value="updateCustomContent"
         />
         <Textarea
@@ -144,7 +171,7 @@
           disabled
           class="cv-message-editor-textarea custom-scrollbar"
         />
-      </label>
+      </div>
     </div>
     <template #footer>
       <div class="cv-message-editor-actions">
@@ -156,15 +183,23 @@
 </template>
 
 <script setup lang="ts">
-import { PROMPT_LLM_FIXED_TAGS_TOKEN, PROMPT_LLM_TRIGGER_NAMES_TOKEN } from '@/constants/default-settings';
+import Popover from 'primevue/popover';
 import {
-  getPromptPersonTemplateEntryKind,
-  PROMPT_PERSON_TEMPLATE_ENTRY_KIND_LABELS,
   type PromptPersonKind,
   type PromptPersonTemplateEntry,
   type PromptPersonTemplateEntryKind,
 } from '@/constants/novelai';
 import PromptEntryList from '@/panel/components/PromptEntryList.vue';
+import {
+  MACRO_BUTTON_TOKENS,
+  MACRO_OPTION_BUTTON_PT,
+  MACRO_POPOVER_BASE_Z_INDEX,
+  MACRO_POPOVER_PT,
+  MACRO_POPOVER_TOKENS,
+  MACRO_TRIGGER_BUTTON_PT,
+  type MacroPopoverInstance,
+  PROMPT_PERSON_TOKEN_OPTIONS,
+} from '@/panel/components/prompt-llm-macro-popover';
 import {
   applySourceDefaults as applyEditorSourceDefaults,
   buildSavedPromptSourceEntry,
@@ -192,6 +227,23 @@ import {
   getPromptWorldbookSourceOptions,
   type PromptWorldbookGroup,
 } from '@/services/tavern-helper/worldbook-sources';
+import {
+  focusTextareaAt,
+  getTextareaElement,
+  readTextareaInsertRange,
+  replaceTextRange,
+  type TextareaRef,
+  type TextRange,
+} from '@/panel/components/textarea-token-insert';
+import {
+  getPromptSourceEntryKind,
+  getPromptSourceEntryLabel,
+  getPromptSourceEntryTitle,
+  getPromptSourcePreviewText,
+  getPromptSourceStatusSeverity,
+  getPromptSourceStatusText,
+  isCustomPromptSourceEntry,
+} from '@/panel/components/prompt-source-entry-display';
 
 const props = withDefaults(
   defineProps<{
@@ -210,11 +262,12 @@ const entryStatusMap = ref<Record<string, ResolvedPromptPersonTemplateEntry>>({}
 const worldbookSourceOptions = ref<PromptWorldbookGroup[]>([]);
 const editorDraft = ref<PromptSourceEditorDraft | null>(null);
 const editorPreview = ref<ResolvedPromptPersonTemplateEntry | null>(null);
+const macroPopover = ref<MacroPopoverInstance | null>(null);
+const entryContentTextarea = ref<TextareaRef>(null);
+const entrySelectionRange = ref<TextRange | null>(null);
 const isCreatingEntry = ref(false);
 const isEditorVisible = ref(false);
 const isLoadingWorldbookSources = ref(false);
-const triggerToken = PROMPT_LLM_TRIGGER_NAMES_TOKEN;
-const fixedTagsToken = PROMPT_LLM_FIXED_TAGS_TOKEN;
 const editorDialogStyle = {
   width: '42rem',
   maxHeight: 'min(42rem, calc(100dvh - 2rem))',
@@ -252,9 +305,9 @@ const canSaveEditor = computed(() => {
 const editorTitle = computed(() => {
   if (isCreatingEntry.value) return '新增人物模板条目';
   if (!editorDraft.value) return '编辑人物模板条目';
-  return `编辑 ${getEntryTitle(editorDraft.value)}`;
+  return `编辑 ${getPromptSourceEntryTitle(editorDraft.value)}`;
 });
-const editorPreviewText = computed(() => getResolvedPreviewText(editorPreview.value));
+const editorPreviewText = computed(() => getPromptSourcePreviewText(editorPreview.value));
 const editorReadonlyTitle = computed(() => getEditorReadonlyTitle(editorDraft.value));
 
 watch(entries, refreshEntryStatuses, { deep: true, immediate: true });
@@ -329,6 +382,7 @@ function removeEntry(id: string): void {
 function openNewEntryEditor(): void {
   isCreatingEntry.value = true;
   editorDraft.value = createEditorDraft();
+  entrySelectionRange.value = null;
   isEditorVisible.value = true;
 }
 
@@ -339,6 +393,7 @@ function openNewEntryEditor(): void {
 function openEntryEditor(entry: PromptPersonTemplateEntry): void {
   isCreatingEntry.value = false;
   editorDraft.value = createEditorDraft(entry);
+  entrySelectionRange.value = null;
   isEditorVisible.value = true;
 }
 
@@ -350,6 +405,7 @@ function closeEntryEditor(): void {
   isEditorVisible.value = false;
   editorDraft.value = null;
   editorPreview.value = null;
+  entrySelectionRange.value = null;
 }
 
 /**
@@ -439,14 +495,59 @@ function updateCustomContent(content: string | undefined): void {
 }
 
 /**
- * 向自定义条目末尾插入占位符
+ * 记录当前条目输入框选区
+ */
+function rememberEntrySelection(): void {
+  const el = getEntryContentTextareaElement();
+  if (!el) return;
+  entrySelectionRange.value = { start: el.selectionStart, end: el.selectionEnd };
+}
+
+/**
+ * 切换宏选择浮层
+ * @param event 点击事件
+ */
+function toggleMacroPopover(event: Event): void {
+  macroPopover.value?.toggle(event);
+}
+
+/**
+ * 选择并插入人物模板宏
+ * @param token 占位符文本
+ */
+function selectEntryToken(token: string): void {
+  insertToken(token);
+  macroPopover.value?.hide();
+}
+
+/**
+ * 向自定义条目选区插入占位符
  * @param token 占位符文本
  */
 function insertToken(token: string): void {
   const draft = editorDraft.value;
   if (!draft || draft.kind !== 'custom') return;
-  const separator = draft.customContent && !draft.customContent.endsWith(' ') ? ' ' : '';
-  updateCustomContent(`${draft.customContent}${separator}${token}`);
+  const range = readTextareaInsertRange(getEntryContentTextareaElement(), entrySelectionRange.value, draft.customContent);
+  updateCustomContent(replaceTextRange(draft.customContent, range, token));
+  focusEntryContentTextarea(range.start + token.length);
+}
+
+/**
+ * 读取条目输入框原生元素
+ * @returns 文本框元素
+ */
+function getEntryContentTextareaElement(): HTMLTextAreaElement | null {
+  return getTextareaElement(entryContentTextarea.value);
+}
+
+/**
+ * 恢复条目输入框焦点和光标位置
+ * @param position 光标位置
+ */
+function focusEntryContentTextarea(position: number): void {
+  focusTextareaAt(getEntryContentTextareaElement, position, range => {
+    entrySelectionRange.value = range;
+  });
 }
 
 /**
@@ -465,7 +566,7 @@ async function refreshEditorPreview(): Promise<void> {
     editorPreview.value = resolved;
   } catch {
     if (requestId !== editorPreviewRequestId) return;
-    editorPreview.value = { status: 'missing', title: getEntryTitle(draft), content: '' };
+    editorPreview.value = { status: 'missing', title: getPromptSourceEntryTitle(draft), content: '' };
   }
 }
 
@@ -484,10 +585,7 @@ function isEntryStatusReady(entry: PromptPersonTemplateEntry): boolean {
  * @returns 状态文案
  */
 function getEntryStatusText(entry: PromptPersonTemplateEntry): string {
-  const status = entryStatusMap.value[entry.id]?.status ?? 'missing';
-  if (status === 'ready') return '可用';
-  if (status === 'unsupported') return '未接入';
-  return '来源失效';
+  return getPromptSourceStatusText(entryStatusMap.value[entry.id]?.status ?? 'missing');
 }
 
 /**
@@ -496,10 +594,7 @@ function getEntryStatusText(entry: PromptPersonTemplateEntry): string {
  * @returns PrimeVue Tag severity
  */
 function getEntryStatusSeverity(entry: PromptPersonTemplateEntry): 'success' | 'warn' | 'danger' {
-  const status = entryStatusMap.value[entry.id]?.status ?? 'missing';
-  if (status === 'ready') return 'success';
-  if (status === 'unsupported') return 'warn';
-  return 'danger';
+  return getPromptSourceStatusSeverity(entryStatusMap.value[entry.id]?.status ?? 'missing');
 }
 
 /**
@@ -508,7 +603,7 @@ function getEntryStatusSeverity(entry: PromptPersonTemplateEntry): 'success' | '
  * @returns 来源标签
  */
 function getEntrySourceLabel(entry: PromptPersonTemplateEntry): string {
-  return PROMPT_PERSON_TEMPLATE_ENTRY_KIND_LABELS[getEntryKind(entry)] ?? '外部资料';
+  return getPromptSourceEntryLabel(entry);
 }
 
 /**
@@ -517,23 +612,7 @@ function getEntrySourceLabel(entry: PromptPersonTemplateEntry): string {
  * @returns 列表标题
  */
 function getEntryTitle(entry: PromptPersonTemplateEntry): string {
-  const title = entry.title.trim();
-  if (title) return title;
-  const content = entry.content.trim().replace(/\s+/g, ' ');
-  if (!content) return '未命名条目';
-  return content.length > 30 ? `${content.slice(0, 30)}...` : content;
-}
-
-/**
- * 获取解析结果的预览文本
- * @param resolved 解析结果
- * @returns 预览文本
- */
-function getResolvedPreviewText(resolved: ResolvedPromptPersonTemplateEntry | null): string {
-  if (!resolved) return '正在读取资料...';
-  if (resolved.status === 'ready') return resolved.content;
-  if (resolved.status === 'unsupported') return '该资料来源本期仅保留占位';
-  return '当前引用已失效，运行时会跳过该条目';
+  return getPromptSourceEntryTitle(entry);
 }
 
 /**
@@ -542,7 +621,7 @@ function getResolvedPreviewText(resolved: ResolvedPromptPersonTemplateEntry | nu
  * @returns 条目类型
  */
 function getEntryKind(entry: PromptPersonTemplateEntry): PromptPersonTemplateEntryKind {
-  return getPromptPersonTemplateEntryKind(entry);
+  return getPromptSourceEntryKind(entry);
 }
 
 /**
@@ -551,7 +630,7 @@ function getEntryKind(entry: PromptPersonTemplateEntry): PromptPersonTemplateEnt
  * @returns 是否为自定义条目
  */
 function isCustomEntry(entry: PromptPersonTemplateEntry): boolean {
-  return getEntryKind(entry) === 'custom';
+  return isCustomPromptSourceEntry(entry);
 }
 
 /**
@@ -655,7 +734,6 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
 
 <style scoped>
 @reference '../../global.css';
-
 .cv-add-entry-btn-flat-wide {
   @apply flex w-full cursor-pointer items-center justify-center;
   gap: var(--cv-space-sm);
@@ -667,56 +745,31 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: var(--cv-font-size-sm);
 }
-
 .cv-add-entry-btn-flat-wide:hover {
   background: var(--cv-surface-container-low);
   color: var(--p-primary-color);
   border-color: var(--cv-outline);
   box-shadow: 0 var(--cv-space-sm) var(--cv-space-3xl) color-mix(in srgb, var(--cv-on-surface) 10%, transparent);
 }
-
 .cv-field-header {
   @apply flex w-full items-center justify-between;
 }
-
 .cv-field-header > span {
   font-family: var(--cv-font-body);
   font-size: var(--cv-font-size-base);
   font-weight: 500;
   color: var(--cv-on-surface);
 }
-
 .cv-source-tokens {
   @apply flex items-center;
   gap: var(--cv-space-xs);
   font-size: var(--cv-font-size-2xs);
 }
-
-.cv-token-label {
-  color: var(--cv-on-surface-variant);
-  opacity: 0.8;
-}
-.cv-token-btn {
-  @apply cursor-pointer border-0;
-  background: none;
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: var(--p-primary-color);
-  font-size: inherit;
-  transition: all 0.2s;
-}
-
-.cv-token-btn:hover {
-  background: var(--cv-surface-container-high);
-  color: var(--p-primary-hover-color);
-}
-
 .cv-source-title {
   @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
   color: var(--cv-on-surface);
   font-weight: 500;
 }
-
 .cv-source-kind {
   @apply whitespace-nowrap;
   color: var(--cv-on-surface-variant);
@@ -725,7 +778,6 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
   text-transform: uppercase;
   letter-spacing: 0;
 }
-
 .cv-source-toggle {
   flex-shrink: 0;
   margin-right: 0;
@@ -734,12 +786,10 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
 .cv-source-edit-btn {
   color: color-mix(in srgb, var(--cv-on-surface) 60%, transparent) !important;
 }
-
 .cv-source-edit-btn:hover {
   background: var(--cv-surface-container-high) !important;
   color: var(--cv-on-surface) !important;
 }
-
 .cv-source-indicator {
   @apply shrink-0 rounded-full;
   width: 6px;
@@ -747,52 +797,43 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
   background: var(--p-primary-color);
   box-shadow: 0 0 6px var(--p-primary-color);
 }
-
 .cv-status-tag-mini {
   font-size: 0.65rem !important;
   padding: 0.05rem 0.2rem !important;
   height: auto !important;
   line-height: 1 !important;
 }
-
 .cv-message-editor {
   @apply flex flex-col;
   gap: var(--cv-space-3xl);
 }
-
 .cv-message-editor-dialog {
   @apply flex flex-col;
 }
 .cv-source-select {
   @apply w-full;
 }
-
 .cv-source-pair-row {
   @apply grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--cv-space-md);
 }
-
 .cv-source-pair-field {
   @apply min-w-0;
 }
-
 .cv-message-editor-content-field {
   @apply flex flex-col;
 }
-
 @media (max-width: 520px) {
   .cv-source-pair-row {
     grid-template-columns: 1fr;
   }
 }
-
 .cv-message-editor-textarea {
   @apply w-full resize-y overflow-y-auto;
   height: 12rem;
   min-height: 6rem;
 }
-
 .cv-message-editor-actions {
   @apply flex justify-end;
   gap: var(--cv-space-sm);
