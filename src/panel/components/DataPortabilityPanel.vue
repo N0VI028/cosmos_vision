@@ -72,8 +72,6 @@
           />
         </div>
       </div>
-
-      <Message v-if="resultText" severity="success" size="small" class="cv-portability-message">{{ resultText }}</Message>
     </div>
 
     <h2 class="cv-section-title">重置数据</h2>
@@ -126,7 +124,7 @@ const preview = ref<DataImportPreview | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 const exportBusy = ref(false);
 const importBusy = ref(false);
-const resultText = ref('');
+
 const describedExportSection = ref<DataPortabilitySectionId | null>(null);
 const describedImportSection = ref<DataPortabilitySectionId | null>(null);
 
@@ -261,7 +259,6 @@ async function parseImportFile(file: File): Promise<void> {
   preview.value = nextPreview;
   importSections.value = nextPreview.sections.map(section => section.id);
   describedImportSection.value = null;
-  resultText.value = '';
 }
 
 /**
@@ -274,7 +271,7 @@ async function importData(): Promise<void> {
     const result = await applyDataImport(currentPreview, importSections.value, settings);
     applyImportedSettings(result.settings);
     if (result.darkMode !== undefined) darkMode.value = result.darkMode;
-    resultText.value = buildResultText(result.imported, result.skipped, result.failed);
+    toastr.success(buildResultText(result.imported, result.skipped, result.failed));
     emit('refresh-data');
   });
 }
@@ -408,9 +405,5 @@ async function confirmReset(): Promise<boolean> {
 
 .cv-file-input {
   @apply hidden;
-}
-
-.cv-portability-message {
-  @apply m-0;
 }
 </style>

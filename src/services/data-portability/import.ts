@@ -13,7 +13,7 @@ import { importInlineImageFavoriteRecords } from '@/services/inline-image/favori
 import { importNovelAIVibeCacheRecords } from '@/services/novelai/vibe-cache';
 import type { NovelAIVibeCacheRecord } from '@/services/novelai/vibe-types';
 import { DATA_PORTABILITY_SECTIONS, isDataPortabilitySectionId, type DataPortabilitySectionId } from './sections';
-import { isChatu8Export, parseChatu8Export } from './chatu8';
+import { isOtherPluginExport, parseOtherPluginExport } from './other-plugin';
 import {
   COSMOS_VISION_EXPORT_FORMAT,
   COSMOS_VISION_EXPORT_VERSION,
@@ -33,7 +33,7 @@ import {
 export function buildDataImportPreview(text: string): DataImportPreview {
   const data = parseJson(text);
   if (isNativeExportFile(data)) return buildNativePreview(data);
-  if (isChatu8Export(data)) return buildChatu8Preview(data);
+  if (isOtherPluginExport(data)) return buildOtherPluginPreview(data);
   throw new Error('未识别的导入文件格式');
 }
 
@@ -91,16 +91,16 @@ function buildNativePreview(value: unknown): DataImportPreview {
 }
 
 /**
- * 构建 st-chatu8 导入预览
- * @param value st-chatu8 导出数据
+ * 构建其他插件导入预览
+ * @param value 其他插件导出数据
  * @returns 导入预览
  */
-function buildChatu8Preview(value: unknown): DataImportPreview {
-  const parsed = parseChatu8Export(value);
+function buildOtherPluginPreview(value: unknown): DataImportPreview {
+  const parsed = parseOtherPluginExport(value);
   const sections = Object.keys(parsed.payload)
     .filter(isDataPortabilitySectionId)
     .map(section => buildPreviewSection(section, parsed.payload[section], parsed.warnings));
-  return { source: 'st_chatu8', label: 'st-chatu8 兼容数据', sections, payload: parsed.payload, warnings: parsed.warnings };
+  return { source: 'other_plugin', label: '其他插件兼容数据', sections, payload: parsed.payload, warnings: parsed.warnings };
 }
 
 /**

@@ -21,7 +21,7 @@ export interface CosmosVisionExportFile {
 export type DataPortabilityPayload = Partial<Record<DataPortabilitySectionId, unknown>>;
 
 /** 导入预览来源 */
-export type DataImportSource = 'cosmos_vision' | 'st_chatu8';
+export type DataImportSource = 'cosmos_vision' | 'other_plugin';
 
 /** 导入预览 section */
 export interface DataImportPreviewSection {

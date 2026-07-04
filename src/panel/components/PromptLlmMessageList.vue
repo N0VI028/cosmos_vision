@@ -6,7 +6,12 @@
   >
     <template #main="{ entry }">
       <span class="cv-message-indicator cv-indicator" :class="getMessageTriggerToneClass(entry as PromptLlmMessage)" />
-      <span class="cv-message-role">{{ ROLE_LABELS[(entry as PromptLlmMessage).role] }}</span>
+      <i
+        class="cv-message-role-icon"
+        :class="ROLE_ICONS[(entry as PromptLlmMessage).role]"
+        :title="ROLE_LABELS[(entry as PromptLlmMessage).role]"
+      />
+      <span class="cv-message-role-sr">{{ ROLE_LABELS[(entry as PromptLlmMessage).role] }}</span>
       <span v-if="isSourceMessage(entry as PromptLlmMessage)" class="cv-message-source-kind">
         {{ getMessageSourceLabel(entry as PromptLlmMessage) }}
       </span>
@@ -229,6 +234,13 @@ const ROLE_LABELS: Record<PromptLlmMessageRole, string> = {
   system: 'system',
   user: 'user',
   assistant: 'assistant',
+};
+
+/** 各角色对应的 FontAwesome 图标，用于列表中替代角色文本 */
+const ROLE_ICONS: Record<PromptLlmMessageRole, string> = {
+  system: 'fa-solid fa-gear',
+  user: 'fa-solid fa-user',
+  assistant: 'fa-solid fa-robot',
 };
 
 const ROLE_OPTIONS = [
@@ -690,7 +702,6 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
   box-shadow: 0 0 6px var(--p-green-500);
 }
 
-.cv-message-role,
 .cv-message-source-kind {
   flex: 0 0 auto;
   color: color-mix(in srgb, var(--cv-on-surface) 55%, transparent);
@@ -698,6 +709,26 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
   font-weight: 600;
   letter-spacing: 0;
   text-transform: uppercase;
+}
+
+/** 角色图标：替代原本的角色文本 */
+.cv-message-role-icon {
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--cv-on-surface) 55%, transparent);
+  font-size: var(--cv-font-size-sm);
+}
+
+/** 保留角色文本供无障碍读屏，但视觉隐藏 */
+.cv-message-role-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .cv-message-source-kind {
