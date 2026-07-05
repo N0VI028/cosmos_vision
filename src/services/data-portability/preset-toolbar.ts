@@ -1,5 +1,6 @@
 import type { ImagePromptPreset, ImagePromptPresetSettings } from '@/constants/image-prompt';
 import type { CosmosVisionSettings } from '@/constants/novelai';
+import type { NovelAIVibePreset } from '@/constants/novelai-vibe';
 import { triggerBrowserDownload } from '@/services/browser-download';
 import { applyDataImport, buildDataImportPreview } from '@/services/data-portability/import';
 import type { DataPortabilitySectionId } from '@/services/data-portability/sections';
@@ -13,8 +14,9 @@ import {
   type PortableNovelAIVibeBundle,
 } from '@/services/data-portability/types';
 import { exportNovelAIVibeCacheRecords } from '@/services/novelai/vibe-cache';
+import { findNovelAIVibePreset } from '@/services/novelai/vibe-presets';
 
-export type PresetPackageSection = Extract<DataPortabilitySectionId, 'imagePromptPresets' | 'promptLlmMessagePresets'>;
+export type PresetPackageSection = Extract<DataPortabilitySectionId, 'imagePromptPresets' | 'novelAIVibeBundle' | 'promptLlmMessagePresets'>;
 export type ImagePromptPresetKind = keyof ImagePromptPresetSettings;
 
 /**
@@ -50,6 +52,28 @@ export async function downloadActiveImagePromptPresetPackage(
   const preset = settings.imagePromptPresets[kind].find(item => item.id === activePresetId);
   if (!preset) throw new Error('未找到当前激活的生图预设');
   await downloadImagePromptPresetPackage(kind, preset, appVersion);
+}
+
+/**
+ * 导出当前激活的 NovelAI vibe 预设
+ * @param settings 当前设置
+ * @param appVersion 插件版本
+ */
+export async function downloadActiveNovelAIVibePresetPackage(
+  settings: CosmosVisionSettings,
+  appVersion?: string,
+): Promise<void> {
+  const preset = findNovelAIVibePreset(
+    settings.novelai.novelAIVibePresets.presets,
+    settings.novelai.novelAIVibePresets.activePresetId,
+  );
+  if (!preset) throw new Error('未找到当前激活的 NovelAI vibe 预设');
+  downloadPresetPayloadFile(
+    { novelAIVibeBundle: await buildNovelAIVibeBundle([preset]) },
+    ['novelAIVibeBundle'],
+    preset.name,
+    appVersion,
+  );
 }
 
 /**
@@ -94,6 +118,23 @@ export async function importImagePromptPresetPackageFile(
 }
 
 /**
+ * 从文件中快速导入 NovelAI vibe 预设
+ * @param file 用户选择的文件
+ * @param currentSettings 当前设置
+ * @returns 导入结果
+ */
+export async function importNovelAIVibePresetPackageFile(
+  file: File,
+  currentSettings: CosmosVisionSettings,
+): Promise<DataImportResult> {
+  const preview = buildDataImportPreview(await file.text());
+  if (!preview.sections.some(section => section.id === 'novelAIVibeBundle')) {
+    throw new Error('文件中没有可导入的 NovelAI vibe 预设');
+  }
+  return applyDataImport(preview, ['novelAIVibeBundle'], currentSettings);
+}
+
+/**
  * 构建单侧生图提示词预设 payload
  * @param kind 正面或负面
  * @param preset 当前预设
@@ -115,10 +156,9 @@ function buildSingleSideImagePromptPreview(preview: DataImportPreview, kind: Ima
   if (!presets.length) throw new Error(`文件中没有可导入的${kind === 'positive' ? '正面' : '负面'}预设`);
   return {
     ...preview,
-    sections: preview.sections.filter(section => section.id === 'imagePromptPresets' || section.id === 'novelAIVibeBundle'),
+    sections: preview.sections.filter(section => section.id === 'imagePromptPresets'),
     payload: {
       imagePromptPresets: buildImagePromptSidePayload(kind, presets),
-      novelAIVibeBundle: buildImportVibePayload(preview.payload.novelAIVibeBundle, kind, presets),
     },
   };
 }
@@ -146,47 +186,13 @@ function buildImagePromptSidePayload(kind: ImagePromptPresetKind, presets: Image
 }
 
 /**
- * 构建单侧导入允许携带的 Vibe payload
- * @param payload 原始 Vibe payload
- * @param kind 正面或负面
- * @param presets 单侧预设
- * @returns Vibe payload 或 undefined
- */
-function buildImportVibePayload(
-  payload: unknown,
-  kind: ImagePromptPresetKind,
-  presets: ImagePromptPreset[],
-): PortableNovelAIVibeBundle | undefined {
-  if (kind !== 'positive') return undefined;
-  const bundle = readVibeBundle(payload);
-  const sourceHashes = new Set(presets.flatMap(preset => preset.vibes.map(vibe => vibe.sourceHash)));
-  return {
-    presets: bundle.presets.filter(preset => presets.some(item => item.id === preset.id)),
-    records: bundle.records.filter(record => sourceHashes.has(record.sourceHash)),
-  };
-}
-
-/**
- * 读取 Vibe 完整包 payload
- * @param payload 外部 payload
- * @returns Vibe 完整包
- */
-function readVibeBundle(payload: unknown): PortableNovelAIVibeBundle {
-  const record = _.isPlainObject(payload) ? (payload as Record<string, unknown>) : {};
-  return {
-    presets: Array.isArray(record.presets) ? record.presets.filter(isImagePromptPreset).map(preset => _.cloneDeep(preset)) : [],
-    records: Array.isArray(record.records) ? _.cloneDeep(record.records) : [],
-  };
-}
-
-/**
  * 判断是否为生图提示词预设
  * @param value 外部值
  * @returns 是否为预设
  */
 function isImagePromptPreset(value: unknown): value is ImagePromptPreset {
   const record = _.isPlainObject(value) ? (value as Record<string, unknown>) : {};
-  return typeof record.id === 'string' && typeof record.text === 'string' && Array.isArray(record.vibes);
+  return typeof record.id === 'string' && typeof record.text === 'string';
 }
 
 /**
@@ -200,30 +206,18 @@ async function downloadImagePromptPresetPackage(
   preset: ImagePromptPreset,
   appVersion?: string,
 ): Promise<void> {
-  const payload: DataPortabilityPayload = { imagePromptPresets: buildImagePromptPayload(kind, preset) };
-  const sections: DataPortabilitySectionId[] = ['imagePromptPresets'];
-  const vibeBundle = await buildPresetVibeBundle(kind, preset);
-  if (vibeBundle) {
-    payload.novelAIVibeBundle = vibeBundle;
-    sections.push('novelAIVibeBundle');
-  }
-  downloadPresetPayloadFile(payload, sections, preset.name, appVersion);
+  downloadPresetPayloadFile({ imagePromptPresets: buildImagePromptPayload(kind, preset) }, ['imagePromptPresets'], preset.name, appVersion);
 }
 
 /**
- * 构建单个正面预设依赖的 Vibe 完整包
- * @param kind 正面或负面
- * @param preset 当前预设
- * @returns Vibe 完整包或 null
+ * 构建 NovelAI vibe 完整包
+ * @param presets 当前要导出的 vibe 预设
+ * @returns Vibe 完整包
  */
-async function buildPresetVibeBundle(
-  kind: ImagePromptPresetKind,
-  preset: ImagePromptPreset,
-): Promise<PortableNovelAIVibeBundle | null> {
-  if (kind !== 'positive' || !preset.vibes.length) return null;
-  const sourceHashes = new Set(preset.vibes.map(vibe => vibe.sourceHash));
+async function buildNovelAIVibeBundle(presets: readonly NovelAIVibePreset[]): Promise<PortableNovelAIVibeBundle> {
+  const sourceHashes = new Set(presets.flatMap(preset => preset.vibes.map(vibe => vibe.sourceHash)));
   const records = (await exportNovelAIVibeCacheRecords()).filter(record => sourceHashes.has(record.sourceHash));
-  return { presets: [_.cloneDeep(preset)], records };
+  return { presets: presets.map(preset => _.cloneDeep(preset)), records };
 }
 
 /**
@@ -273,8 +267,19 @@ function buildPresetExportFile(
  * @returns 文件名
  */
 function buildPresetFileName(sections: readonly DataPortabilitySectionId[], presetName: string): string {
-  const scope = sections.includes('promptLlmMessagePresets') ? 'llm' : 'image-prompt';
+  const scope = resolvePresetFileScope(sections);
   return `cosmos-vision-${scope}-${normalizeFileNamePart(presetName)}-${new Date().toISOString().slice(0, 10)}.json`;
+}
+
+/**
+ * 解析预设文件名作用域
+ * @param sections 当前导出 section
+ * @returns 文件名前缀
+ */
+function resolvePresetFileScope(sections: readonly DataPortabilitySectionId[]): string {
+  if (sections.includes('promptLlmMessagePresets')) return 'llm';
+  if (sections.includes('novelAIVibeBundle')) return 'novelai-vibe';
+  return 'image-prompt';
 }
 
 /**
@@ -287,8 +292,7 @@ function resolveImportSections(
   available: readonly DataPortabilitySectionId[],
   primary: PresetPackageSection,
 ): DataPortabilitySectionId[] {
-  if (primary !== 'imagePromptPresets') return [primary];
-  return available.filter(section => section === 'imagePromptPresets' || section === 'novelAIVibeBundle');
+  return available.filter(section => section === primary);
 }
 
 /**

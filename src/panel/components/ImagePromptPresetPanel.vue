@@ -1,7 +1,7 @@
 <template>
   <template v-for="section in promptPresetSections" :key="section.kind">
-    <h2 v-if="showVibeSection" class="cv-section-title">{{ section.sectionLabel }}</h2>
-    <template v-if="showVibeSection">
+    <h2 v-if="showSectionTitle" class="cv-section-title">{{ section.sectionLabel }}</h2>
+    <template v-if="showSectionTitle">
       <div class="cv-section-body">
         <div class="cv-field cv-image-preset-field">
           <PresetSelector
@@ -17,19 +17,12 @@
             @import-presets="importPromptPresetPackage(section.kind, $event)"
             @delete-preset="deletePromptPreset(section.kind, $event, section.defaultPresetId)"
           />
-          <span>{{ section.promptLabel }}</span>
           <PromptPlaceholderEditor
             v-if="section.activePreset"
             :model-value="section.activePreset"
             @update:model-value="updateActivePromptPreset(section.kind, $event)"
           />
         </div>
-        <NovelAIVibePanel
-          v-if="section.kind === 'positive' && section.activePreset && novelaiSettings"
-          :vibes="section.activePreset.vibes"
-          :settings="novelaiSettings"
-          @update:vibes="updateActiveVibes"
-        />
       </div>
     </template>
     <template v-else>
@@ -66,11 +59,8 @@ import {
   createImagePromptPreset,
   type ImagePromptPreset,
   type ImagePromptPresetSettings,
-  type ImagePromptVibeRef,
 } from '@/constants/image-prompt';
-import type { NovelAISettings } from '@/constants/novelai';
 import { DEFAULT_NEGATIVE_PROMPT_PRESET_ID, DEFAULT_POSITIVE_PROMPT_PRESET_ID } from '@/constants/default-settings';
-import NovelAIVibePanel from '@/panel/components/NovelAIVibePanel.vue';
 import PresetSelector from '@/panel/components/PresetSelector.vue';
 import PromptPlaceholderEditor from '@/panel/components/PromptPlaceholderEditor.vue';
 import {
@@ -87,7 +77,6 @@ interface PromptPresetField {
   kind: ImagePromptPresetKind;
   label: string;
   sectionLabel: string;
-  promptLabel: string;
   defaultPresetId: string;
 }
 
@@ -106,15 +95,13 @@ const PRESET_FIELDS = [
   {
     kind: 'positive',
     label: '正面提示词',
-    sectionLabel: '正面预设',
-    promptLabel: '提示词',
+    sectionLabel: '正面提示词',
     defaultPresetId: DEFAULT_POSITIVE_PROMPT_PRESET_ID,
   },
   {
     kind: 'negative',
     label: '负面提示词',
-    sectionLabel: '负面预设',
-    promptLabel: '提示词',
+    sectionLabel: '负面提示词',
     defaultPresetId: DEFAULT_NEGATIVE_PROMPT_PRESET_ID,
   },
 ] as const satisfies ReadonlyArray<PromptPresetField>;
@@ -123,11 +110,9 @@ const props = withDefaults(defineProps<{
   presetSettings: ImagePromptPresetSettings;
   positivePresetId: string;
   negativePresetId: string;
-  showVibeSection?: boolean;
-  novelaiSettings?: NovelAISettings;
+  showSectionTitle?: boolean;
 }>(), {
-  showVibeSection: false,
-  novelaiSettings: undefined,
+  showSectionTitle: false,
 });
 
 const emit = defineEmits<{
@@ -219,7 +204,7 @@ async function clonePromptPreset(kind: ImagePromptPresetKind): Promise<void> {
   if (!activePreset) return;
   const name = await askPromptPresetName('请输入克隆预设的名称：', `${getPromptPresetName(activePreset)} - 副本`);
   if (!name) return;
-  const preset = { ...activePreset, id: uuidv4(), name, vibes: clonePromptPresetVibes(kind, activePreset.vibes) };
+  const preset = { ...activePreset, id: uuidv4(), name };
   updatePromptPresetList(kind, [...getPromptPresetList(kind), preset]);
   updatePromptPresetId(kind, preset.id);
   toastr.success(`已克隆到新预设 "${name}"`);
@@ -313,16 +298,6 @@ function updateActivePromptPreset(
 }
 
 /**
- * 更新当前正面预设绑定的 vibe
- * @param vibes 新 vibe 引用列表
- */
-function updateActiveVibes(vibes: ImagePromptVibeRef[]): void {
-  const activePreset = findImagePromptPreset(getPromptPresetList('positive'), getCurrentPresetId('positive'));
-  if (!activePreset) return;
-  updatePromptPreset('positive', activePreset.id, preset => ({ ...preset, vibes }));
-}
-
-/**
  * 更新单个生图固定提示词预设
  * @param kind 正面或负面
  * @param id 预设 ID
@@ -347,16 +322,6 @@ function updatePromptPreset(
  */
 function updatePromptPresetList(kind: ImagePromptPresetKind, presets: ImagePromptPreset[]): void {
   emit('update:presetSettings', { ...props.presetSettings, [kind]: presets });
-}
-
-/**
- * 克隆预设绑定的 vibe 引用
- * @param kind 正面或负面
- * @param vibes 原始 vibe 引用
- * @returns 克隆后的 vibe 引用
- */
-function clonePromptPresetVibes(kind: ImagePromptPresetKind, vibes: ImagePromptVibeRef[]): ImagePromptVibeRef[] {
-  return kind === 'positive' ? vibes.map(vibe => ({ ...vibe, id: uuidv4() })) : [];
 }
 
 /**

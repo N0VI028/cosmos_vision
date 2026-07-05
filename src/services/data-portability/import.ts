@@ -8,6 +8,7 @@ import {
   type PromptProfilesSettings,
 } from '@/constants/novelai';
 import type { ImagePromptPreset, ImagePromptPresetSettings } from '@/constants/image-prompt';
+import { MAX_NOVELAI_VIBES_PER_PRESET, type NovelAIVibePreset, type NovelAIVibePresetSettings } from '@/constants/novelai-vibe';
 import type { InlineImageFavoriteRecord } from '@/services/inline-image/favorites-cache';
 import { importInlineImageFavoriteRecords } from '@/services/inline-image/favorites-cache';
 import { importNovelAIVibeCacheRecords } from '@/services/novelai/vibe-cache';
@@ -252,6 +253,7 @@ function mergeObject(target: object, payload: unknown, result: DataImportResult)
 function mergeNovelAISettings(target: NovelAISettings, payload: unknown, result: DataImportResult): void {
   const source = _.cloneDeep(toRecord(payload));
   delete source.accounts;
+  delete source.novelAIVibePresets;
   Object.assign(target, source);
   result.imported += 1;
 }
@@ -303,9 +305,9 @@ function importImagePromptPresets(settings: CosmosVisionSettings, payload: unkno
  * @param result 导入结果
  */
 async function importNovelAIVibeBundle(settings: CosmosVisionSettings, payload: unknown, result: DataImportResult): Promise<void> {
-  const bundle = toVibeBundle(payload);
+  const bundle = toVibeBundle(payload, result.warnings);
   const importedRecords = await importNovelAIVibeCacheRecords(bundle.records);
-  settings.imagePromptPresets.positive = mergePresetSide(settings.imagePromptPresets.positive, bundle.presets);
+  settings.novelai.novelAIVibePresets = mergeNovelAIVibePresetSettings(settings.novelai.novelAIVibePresets, bundle.presets);
   result.imported += importedRecords + bundle.presets.length;
 }
 
@@ -389,6 +391,30 @@ function readPromptProfiles(value: unknown): PromptPerson[] {
 }
 
 /**
+ * 规范化导入的 NovelAI vibe 预设
+ * @param preset 外部 vibe 预设
+ * @param warnings 警告收集器
+ * @returns 截断后的安全预设
+ */
+function normalizeNovelAIVibePreset(preset: NovelAIVibePreset, warnings: string[]): NovelAIVibePreset {
+  const cloned = _.cloneDeep(preset);
+  if (cloned.vibes.length > MAX_NOVELAI_VIBES_PER_PRESET) {
+    warnings.push(`Vibe 预设「${cloned.name || cloned.id}」超过 ${MAX_NOVELAI_VIBES_PER_PRESET} 个条目，已自动截断。`);
+  }
+  return { ...cloned, vibes: cloned.vibes.slice(0, MAX_NOVELAI_VIBES_PER_PRESET) };
+}
+
+/**
+ * 读取 NovelAI vibe 预设列表并收集警告
+ * @param value 外部值
+ * @param warnings 警告收集器
+ * @returns vibe 预设列表
+ */
+function readNovelAIVibePresetsWithWarnings(value: unknown, warnings: string[]): NovelAIVibePreset[] {
+  return readArray(value).filter(isNovelAIVibePreset).map(preset => normalizeNovelAIVibePreset(preset, warnings));
+}
+
+/**
  * 合并正负预设集合
  * @param current 当前预设
  * @param incoming 导入预设
@@ -409,6 +435,23 @@ function mergePresetSide(current: ImagePromptPreset[], incoming: ImagePromptPres
 }
 
 /**
+ * 合并 NovelAI vibe 预设集合
+ * @param current 当前预设集合
+ * @param incoming 导入预设列表
+ * @returns 合并后的预设集合
+ */
+function mergeNovelAIVibePresetSettings(
+  current: NovelAIVibePresetSettings,
+  incoming: NovelAIVibePreset[],
+): NovelAIVibePresetSettings {
+  const presets = mergeById(current.presets, incoming);
+  const activePresetId = presets.some(preset => preset.id === current.activePresetId)
+    ? current.activePresetId
+    : presets[0]?.id ?? current.activePresetId;
+  return { activePresetId, presets };
+}
+
+/**
  * 按 id 合并列表:相同 id 用导入项覆盖,本地独有保留,导入独有追加
  * @param current 当前列表
  * @param incoming 导入列表
@@ -425,9 +468,9 @@ function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
  * @param payload 外部 payload
  * @returns Vibe 完整包
  */
-function toVibeBundle(payload: unknown): PortableNovelAIVibeBundle {
+function toVibeBundle(payload: unknown, warnings: string[] = []): PortableNovelAIVibeBundle {
   const record = toRecord(payload);
-  return { presets: readPromptPresets(record.presets), records: readArray(record.records).filter(isVibeRecord) };
+  return { presets: readNovelAIVibePresetsWithWarnings(record.presets, warnings), records: readArray(record.records).filter(isVibeRecord) };
 }
 
 /**
@@ -479,7 +522,17 @@ function dataUrlToBlob(dataUrl: string, fallbackType: string): Blob {
  */
 function isPromptPreset(value: unknown): value is ImagePromptPreset {
   const record = toRecord(value);
-  return typeof record.id === 'string' && typeof record.text === 'string' && Array.isArray(record.vibes);
+  return typeof record.id === 'string' && typeof record.text === 'string';
+}
+
+/**
+ * 判断是否为 NovelAI vibe 预设
+ * @param value 外部值
+ * @returns 是否匹配
+ */
+function isNovelAIVibePreset(value: unknown): value is NovelAIVibePreset {
+  const record = toRecord(value);
+  return typeof record.id === 'string' && typeof record.name === 'string' && Array.isArray(record.vibes);
 }
 
 /**

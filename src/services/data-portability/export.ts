@@ -1,5 +1,5 @@
 import type { CosmosVisionSettings, NovelAISettings } from '@/constants/novelai';
-import type { ImagePromptPreset } from '@/constants/image-prompt';
+import type { NovelAIVibePreset } from '@/constants/novelai-vibe';
 import { triggerBrowserDownload } from '@/services/browser-download';
 import { exportInlineImageFavoriteRecords } from '@/services/inline-image/favorites-cache';
 import { exportNovelAIVibeCacheRecords } from '@/services/novelai/vibe-cache';
@@ -104,8 +104,8 @@ function createSectionBuilders(
     novelAISettings: () => stripNovelAISecrets(settings.novelai),
     novelAISecrets: () => ({ accounts: settings.novelai.accounts.map(account => ({ ...account })) }),
     comfyUISettings: () => _.cloneDeep(settings.comfyui),
-    imagePromptPresets: () => stripPresetVibes(settings.imagePromptPresets),
-    novelAIVibeBundle: () => buildNovelAIVibeBundle(settings.imagePromptPresets.positive),
+    imagePromptPresets: () => _.cloneDeep(settings.imagePromptPresets),
+    novelAIVibeBundle: () => buildNovelAIVibeBundle(settings.novelai.novelAIVibePresets.presets),
     promptLlmSettings: () => _.cloneDeep(settings.promptLlm),
     promptLlmMessagePresets: () => _.cloneDeep(settings.promptLlmMessagePresets),
     promptProfiles: () => _.cloneDeep(settings.promptProfiles),
@@ -119,31 +119,19 @@ function createSectionBuilders(
  * @param settings NovelAI 设置
  * @returns 非敏感 NovelAI 设置
  */
-function stripNovelAISecrets(settings: NovelAISettings): Omit<NovelAISettings, 'accounts'> {
-  const { accounts: _accounts, ...safeSettings } = _.cloneDeep(settings);
+function stripNovelAISecrets(settings: NovelAISettings): Omit<NovelAISettings, 'accounts' | 'novelAIVibePresets'> {
+  const { accounts: _accounts, novelAIVibePresets: _novelAIVibePresets, ...safeSettings } = _.cloneDeep(settings);
   return safeSettings;
 }
 
 /**
- * 移除固定提示词预设中的 vibe 轻量引用
- * @param presets 生图提示词预设集合
- * @returns 不含 vibe 引用的预设集合
- */
-function stripPresetVibes(presets: CosmosVisionSettings['imagePromptPresets']): CosmosVisionSettings['imagePromptPresets'] {
-  return {
-    positive: presets.positive.map(preset => ({ ..._.cloneDeep(preset), vibes: [] })),
-    negative: presets.negative.map(preset => ({ ..._.cloneDeep(preset), vibes: [] })),
-  };
-}
-
-/**
  * 构建 NovelAI Vibe 完整包
- * @param positivePresets 正面预设列表
+ * @param presets vibe 预设列表
  * @returns Vibe 完整包
  */
-async function buildNovelAIVibeBundle(positivePresets: readonly ImagePromptPreset[]): Promise<PortableNovelAIVibeBundle> {
+async function buildNovelAIVibeBundle(presets: readonly NovelAIVibePreset[]): Promise<PortableNovelAIVibeBundle> {
   return {
-    presets: positivePresets.filter(preset => preset.vibes.length).map(preset => _.cloneDeep(preset)),
+    presets: presets.map(preset => _.cloneDeep(preset)),
     records: await exportNovelAIVibeCacheRecords(),
   };
 }

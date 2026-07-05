@@ -1,5 +1,5 @@
-import type { ImagePromptVibeRef } from '@/constants/image-prompt';
 import type { ImageSource } from '@/constants/comfyui';
+import type { ImagePromptVibeRef } from '@/constants/novelai-vibe';
 import type { ComfyUIRequestSnapshot } from '@/services/comfyui/workflow';
 import type { NovelAIFinalPrompts } from '@/services/novelai/api';
 import type { NovelAIVibeParameters } from '@/services/novelai/vibe-types';

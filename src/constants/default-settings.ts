@@ -8,6 +8,11 @@ import { COMFYUI_CUSTOM_RESOLUTION_PRESET, COMFYUI_DEFAULT_SAMPLER, type ImageSo
 import { createDefaultComfyUILoraSettings, DEFAULT_COMFYUI_WORKFLOW_JSON } from '@/constants/default-comfyui-workflow';
 import { createImagePromptPresetSettings } from '@/constants/image-prompt';
 import {
+  createNovelAIVibePresetSettings,
+  DEFAULT_NOVELAI_VIBE_PRESET_ID,
+  DEFAULT_NOVELAI_VIBE_PRESET_NAME,
+} from '@/constants/novelai-vibe';
+import {
   PROMPT_LLM_FIXED_TAGS_TOKEN,
   PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN,
   PROMPT_LLM_HISTORY_TOKEN,
@@ -53,6 +58,10 @@ export const DEFAULT_POSITIVE_PROMPT_PRESET_ID = 'novelai-positive-current-prese
 export const DEFAULT_NEGATIVE_PROMPT_PRESET_ID = 'novelai-negative-current-preset';
 export const DEFAULT_POSITIVE_PROMPT_PRESET_NAME = '默认正面预设';
 export const DEFAULT_NEGATIVE_PROMPT_PRESET_NAME = '默认负面预设';
+export {
+  DEFAULT_NOVELAI_VIBE_PRESET_ID,
+  DEFAULT_NOVELAI_VIBE_PRESET_NAME,
+};
 export const DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN = '/"positivePrompt"\\s*:\\s*"([^"]*)"/i';
 export const DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN = '/"negativePrompt"\\s*:\\s*"([^"]*)"/i';
 export const DEFAULT_PROMPT_EXTRACT_REPLACEMENT = '$1';
@@ -82,6 +91,10 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     accounts: [createNovelAIAccount(NOVELAI_DEFAULT_ACCOUNT_ID)],
     routingMode: 'sequential',
     corsProxy: '',
+    novelAIVibePresets: createNovelAIVibePresetSettings(
+      DEFAULT_NOVELAI_VIBE_PRESET_ID,
+      DEFAULT_NOVELAI_VIBE_PRESET_NAME,
+    ),
     model: 'nai-diffusion-4-5-curated',
     resolutionPreset: DEFAULT_NOVELAI_RESOLUTION_PRESET,
     width: 832,

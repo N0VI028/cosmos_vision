@@ -1,5 +1,6 @@
 import type { ComfyUISettings, ImageSource } from '@/constants/comfyui';
 import type { ImagePromptPresetReferences, ImagePromptPresetSettings } from '@/constants/image-prompt';
+import type { NovelAIVibePresetSettings } from '@/constants/novelai-vibe';
 
 /**
  * NovelAI 设置静态枚举与默认值
@@ -157,6 +158,7 @@ export interface NovelAISettings extends ImagePromptPresetReferences {
   accounts: NovelAIAccount[];
   routingMode: NovelAIRoutingMode;
   corsProxy: string;
+  novelAIVibePresets: NovelAIVibePresetSettings;
   model: NovelAIModel;
   resolutionPreset: NovelAIResolutionPreset;
   width: number;

@@ -1,6 +1,5 @@
-import type { ImagePromptPresetSettings, ImagePromptVibeRef } from '@/constants/image-prompt';
+import type { ImagePromptVibeRef, NovelAIVibePresetSettings } from '@/constants/novelai-vibe';
 import { isNovelAIV3Model, type NovelAIAccount, type NovelAISettings } from '@/constants/novelai';
-import { getImagePromptPreset } from '@/services/image-prompt/presets';
 import {
   getNovelAIVibeFileName,
   getNovelAIVibeAnyEncodedData,
@@ -10,6 +9,7 @@ import {
 } from '@/services/novelai/vibe-cache';
 import { encodeNovelAIVibeWithAccounts } from '@/services/novelai/vibe-encode';
 import { stripDataUrlBase64 } from '@/services/novelai/vibe-file';
+import { findNovelAIVibePreset } from '@/services/novelai/vibe-presets';
 import type { NovelAIVibeParameters, ParsedNovelAIVibeFile } from '@/services/novelai/vibe-types';
 
 /** NovelAI vibe 参数解析选项 */
@@ -24,16 +24,14 @@ interface ResolvedVibeEntry {
 }
 
 /**
- * 读取当前正面提示词预设绑定的 vibe
- * @param settings NovelAI 设置
- * @param presetSettings 共享提示词预设
+ * 读取当前激活的 NovelAI vibe 预设引用
+ * @param presetSettings NovelAI vibe 预设集合
  * @returns vibe 引用列表
  */
-export function getNovelAIPositivePresetVibes(
-  settings: NovelAISettings,
-  presetSettings: ImagePromptPresetSettings,
+export function getActiveNovelAIVibePresetRefs(
+  presetSettings: NovelAIVibePresetSettings,
 ): ImagePromptVibeRef[] {
-  return getImagePromptPreset(presetSettings.positive, settings.positivePromptPresetId).vibes;
+  return findNovelAIVibePreset(presetSettings.presets, presetSettings.activePresetId)?.vibes ?? [];
 }
 
 /**

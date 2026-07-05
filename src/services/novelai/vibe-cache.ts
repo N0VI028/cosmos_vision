@@ -1,4 +1,4 @@
-import { DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH } from '@/constants/image-prompt';
+import { DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH } from '@/constants/novelai-vibe';
 import type { NovelAIModel } from '@/constants/novelai';
 import type {
   NovelAIVibeCacheListItem,

@@ -1,5 +1,5 @@
 import type { CosmosVisionSettings } from '@/constants/novelai';
-import type { ImagePromptPreset } from '@/constants/image-prompt';
+import type { NovelAIVibePreset } from '@/constants/novelai-vibe';
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import type { NovelAIVibeCacheRecord } from '@/services/novelai/vibe-types';
 import type { DataPortabilitySectionId } from '@/services/data-portability/sections';
@@ -66,6 +66,6 @@ export interface PortableInlineFavoriteRecord {
 
 /** Vibe 完整包 */
 export interface PortableNovelAIVibeBundle {
-  presets: ImagePromptPreset[];
+  presets: NovelAIVibePreset[];
   records: NovelAIVibeCacheRecord[];
 }

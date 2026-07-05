@@ -1,10 +1,14 @@
 import {
-  DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
   type ImagePromptPreset,
   type ImagePromptPresetSettings,
-  type ImagePromptVibeRef,
 } from '@/constants/image-prompt';
 import { clampImagePromptPlaceholderOffset } from '@/constants/image-prompt';
+import {
+  DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
+  createNovelAIVibePreset,
+  type ImagePromptVibeRef,
+  type NovelAIVibePreset,
+} from '@/constants/novelai-vibe';
 import {
   NOVELAI_MODELS,
   type NovelAIModel,
@@ -366,7 +370,7 @@ function joinFixedPromptParts(prefix: string, suffix: string): { text: string; o
  * @returns 生图提示词预设
  */
 function createPromptPreset(id: string, name: string, text: string, placeholderOffset: number): ImagePromptPreset {
-  return { id, name, text, placeholderOffset, vibes: [] };
+  return { id, name, text, placeholderOffset };
 }
 
 /**
@@ -449,10 +453,10 @@ function buildVibeRecord(id: string, record: Record<string, unknown>, encodedDat
  * @param vibeData Vibe 数据表
  * @returns 正面预设或空数组
  */
-function createVibeGroupPreset(name: string, value: unknown, vibeData: Record<string, unknown>): ImagePromptPreset[] {
+function createVibeGroupPreset(name: string, value: unknown, vibeData: Record<string, unknown>): NovelAIVibePreset[] {
   const vibes = readVibeRefs(toRecord(value).vibes, vibeData, name);
   if (!vibes.length) return [];
-  return [createPromptPreset(`other-plugin-vibe-group-${stableHash(name)}`, name, '', 0),].map(preset => ({ ...preset, vibes }));
+  return [{ ...createNovelAIVibePreset(`other-plugin-vibe-group-${stableHash(name)}`, name), vibes }];
 }
 
 /**

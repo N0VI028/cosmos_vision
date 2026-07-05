@@ -365,8 +365,8 @@ type PromptProfilesSubTab = 'user' | 'character';
 type MainSubTab = 'general' | 'data' | 'portability';
 
 const MAIN_SUB_TABS = [
-  { value: 'general', label: '通用' },
-  { value: 'data', label: '数据' },
+  { value: 'general', label: '通用设置' },
+  { value: 'data', label: '数据管理' },
   { value: 'portability', label: '导入导出' },
 ] as const;
 

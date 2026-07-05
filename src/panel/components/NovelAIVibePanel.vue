@@ -1,8 +1,7 @@
 <template>
   <div class="cv-field cv-vibe-panel">
     <div class="cv-vibe-toolbar">
-      <span>Vibe Transfer</span>
-      <Button label="添加" icon="fa-solid fa-plus" size="small" @click="triggerFileInput" />
+      <Button label="添加" icon="fa-solid fa-plus" size="small" :disabled="isAppendingFiles" @click="triggerFileInput" />
       <input
         ref="fileInput"
         type="file"
@@ -107,8 +106,9 @@ import { uuidv4 } from '@sillytavern/scripts/utils';
 import {
   DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
   DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH,
+  MAX_NOVELAI_VIBES_PER_PRESET,
   type ImagePromptVibeRef,
-} from '@/constants/image-prompt';
+} from '@/constants/novelai-vibe';
 import { isNovelAIV3Model, type NovelAISettings } from '@/constants/novelai';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
@@ -145,12 +145,13 @@ const thumbnailTargetVibeId = ref('');
 const activeVibeId = ref('');
 const summaries = ref<Record<string, NovelAIVibeCacheSummary>>({});
 const parsingIds = ref<string[]>([]);
+const isAppendingFiles = ref(false);
 const refreshSections = inject<(() => void) | undefined>('refreshSections');
 
 watch(
-  () => [props.vibes, props.settings.model] as const,
+  () => createSummaryRefreshKey(props.vibes, props.settings.model),
   () => void refreshSummaries(),
-  { deep: true, immediate: true },
+  { immediate: true },
 );
 
 watch(
@@ -184,12 +185,19 @@ async function handleFileChange(event: Event): Promise<void> {
   const input = event.target as HTMLInputElement;
   const files = [...(input.files ?? [])];
   if (!files.length) return;
+  if (isAppendingFiles.value) {
+    input.value = '';
+    toastr.warning('正在添加 vibe，请稍候');
+    return;
+  }
+  isAppendingFiles.value = true;
   try {
-    await appendUploadedFiles(files);
-    toastr.success(`已添加 ${files.length} 个 vibe`);
+    const addedCount = await appendUploadedFiles(files);
+    if (addedCount) toastr.success(`已添加 ${addedCount} 个 vibe`);
   } catch (error) {
     handleVibeError(error, '添加 vibe 失败');
   } finally {
+    isAppendingFiles.value = false;
     input.value = '';
   }
 }
@@ -227,10 +235,40 @@ async function saveThumbnailFile(file: File): Promise<void> {
 /**
  * 追加上传文件到当前预设
  * @param files 上传文件列表
+ * @returns 实际添加数量
  */
-async function appendUploadedFiles(files: File[]): Promise<void> {
-  const payloads = await Promise.all(files.map(parseAndCacheFile));
-  emitVibes([...props.vibes, ...payloads.map(createVibeRef)]);
+async function appendUploadedFiles(files: File[]): Promise<number> {
+  const acceptedFiles = takeAppendableFiles(files);
+  const payloads = await Promise.all(acceptedFiles.map(parseAndCacheFile));
+  const nextVibes = buildNextVibes(payloads);
+  emitVibes(nextVibes);
+  return nextVibes.length - props.vibes.length;
+}
+
+/**
+ * 计算当前还可追加的文件列表
+ * @param files 用户上传文件
+ * @returns 允许追加的文件列表
+ */
+function takeAppendableFiles(files: File[]): File[] {
+  const availableCount = MAX_NOVELAI_VIBES_PER_PRESET - props.vibes.length;
+  if (availableCount <= 0) throw new Error(`单个 Vibe 组最多只能添加 ${MAX_NOVELAI_VIBES_PER_PRESET} 个 vibe`);
+  if (files.length <= availableCount) return files;
+  toastr.warning(`单个 Vibe 组最多支持 ${MAX_NOVELAI_VIBES_PER_PRESET} 个 vibe，已忽略多余文件`);
+  return files.slice(0, availableCount);
+}
+
+/**
+ * 根据当前剩余额度生成新的 vibe 列表
+ * @param payloads 已解析文件载荷
+ * @returns 最终可写入的 vibe 列表
+ */
+function buildNextVibes(payloads: ParsedNovelAIVibeFile[]): ImagePromptVibeRef[] {
+  const nextRefs = payloads.map(createVibeRef);
+  const availableCount = MAX_NOVELAI_VIBES_PER_PRESET - props.vibes.length;
+  if (nextRefs.length <= availableCount) return [...props.vibes, ...nextRefs];
+  toastr.warning(`单个 Vibe 组最多支持 ${MAX_NOVELAI_VIBES_PER_PRESET} 个 vibe，已忽略多余文件`);
+  return [...props.vibes, ...nextRefs.slice(0, Math.max(availableCount, 0))];
 }
 
 /**
@@ -324,6 +362,16 @@ function removeVibe(id: string): void {
 function emitVibes(nextVibes: ImagePromptVibeRef[]): void {
   emit('update:vibes', nextVibes);
   nextTick(() => refreshSections?.());
+}
+
+/**
+ * 生成刷新缓存摘要所需的浅签名
+ * @param vibes 当前 vibe 列表
+ * @param model 当前 NovelAI 模型
+ * @returns 仅与摘要相关的依赖键
+ */
+function createSummaryRefreshKey(vibes: readonly ImagePromptVibeRef[], model: NovelAISettings['model']): string {
+  return `${model}|${vibes.map(vibe => `${vibe.id}:${vibe.sourceHash}:${vibe.informationExtracted}`).join('|')}`;
 }
 
 /**

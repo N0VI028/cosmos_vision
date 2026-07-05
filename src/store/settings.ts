@@ -2,7 +2,6 @@ import { extension_settings } from '@sillytavern/scripts/extensions';
 import { saveSettingsDebounced } from '@sillytavern/script';
 import { useLocalStorage } from '@vueuse/core';
 import { z } from 'zod';
-
 import {
   COMFYUI_CUSTOM_RESOLUTION_PRESET,
   COMFYUI_IMAGE_SIZE_LIMITS,
@@ -23,12 +22,17 @@ import {
   DEFAULT_SETTINGS,
 } from '@/constants/default-settings';
 import {
-  DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
-  DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH,
   type ImagePromptPreset,
   type ImagePromptPresetSettings,
-  type ImagePromptVibeRef,
 } from '@/constants/image-prompt';
+import {
+  DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
+  DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH,
+  MAX_NOVELAI_VIBES_PER_PRESET,
+  type ImagePromptVibeRef,
+  type NovelAIVibePreset,
+  type NovelAIVibePresetSettings,
+} from '@/constants/novelai-vibe';
 import {
   NOVELAI_CUSTOM_RESOLUTION_PRESET,
   NOVELAI_IMAGE_SIZE_LIMITS,
@@ -52,12 +56,10 @@ import {
 } from '@/constants/novelai';
 import { normalizePromptLlmMessagePresets } from '@/services/prompt-llm/message-preset';
 import { normalizePromptLlmMessageKeywords } from '@/services/prompt-llm/message-trigger';
-
 /** ST extension_settings 中本扩展的 key */
 const SETTINGS_KEY = 'cosmos_vision';
 const DARK_MODE_STORAGE_KEY = 'cosmos-vision-dark-mode';
 type PlainRecord = Record<string, unknown>;
-
 /**
  * 提取下拉常量中的 value 作为 Zod 枚举
  * @param options 至少包含一个 value 的只读选项数组
@@ -114,7 +116,6 @@ const imagePromptPresetSchema = z.object({
   name: z.string().default(DEFAULT_PRESET_NAME),
   text: z.string(),
   placeholderOffset: z.number().int().min(0),
-  vibes: z.array(imagePromptVibeRefSchema).default([]),
 });
 
 const imagePromptPresetSettingsSchema = z.object({
@@ -122,10 +123,25 @@ const imagePromptPresetSettingsSchema = z.object({
   negative: z.array(imagePromptPresetSchema).min(1),
 });
 
+const novelAIVibePresetSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().default(DEFAULT_PRESET_NAME),
+  vibes: z.array(imagePromptVibeRefSchema).max(MAX_NOVELAI_VIBES_PER_PRESET),
+});
+const novelAIVibePresetSettingsBaseSchema = z.object({
+  activePresetId: z.string().min(1),
+  presets: z.array(novelAIVibePresetSchema).min(1),
+});
+const novelAIVibePresetSettingsSchema = novelAIVibePresetSettingsBaseSchema.refine(
+  value => value.presets.some(preset => preset.id === value.activePresetId),
+  'activePresetId 必须指向已有 NovelAI vibe 预设',
+);
+
 const novelAISettingsSchema = z.object({
   accounts: z.array(novelAIAccountSchema),
   routingMode: novelAIRoutingModeSchema,
   corsProxy: z.string(),
+  novelAIVibePresets: novelAIVibePresetSettingsSchema,
   model: novelAIModelSchema,
   resolutionPreset: novelAIResolutionPresetSchema,
   width: novelAIImageSizeSchema,
@@ -239,7 +255,6 @@ const promptLlmMessagePresetSettingsBaseSchema = z.object({
   activePresetId: z.string().min(1),
   presets: z.array(promptLlmMessagePresetSchema).min(1),
 });
-
 const promptLlmMessagePresetSettingsSchema = promptLlmMessagePresetSettingsBaseSchema.refine(
   value => value.presets.some(preset => preset.id === value.activePresetId),
   'activePresetId 必须指向已有提示词消息预设',
@@ -365,8 +380,8 @@ function recoverImagePromptPresets(value: unknown): ImagePromptPresetSettings {
   const fallback = DEFAULT_SETTINGS.imagePromptPresets;
   const record = toPlainRecord(value);
   return {
-    positive: recoverImagePromptCollection(record.positive, fallback.positive, true),
-    negative: recoverImagePromptCollection(record.negative, fallback.negative, false),
+    positive: recoverImagePromptCollection(record.positive, fallback.positive),
+    negative: recoverImagePromptCollection(record.negative, fallback.negative),
   };
 }
 
@@ -379,10 +394,9 @@ function recoverImagePromptPresets(value: unknown): ImagePromptPresetSettings {
 function recoverImagePromptCollection(
   value: unknown,
   fallback: ImagePromptPreset[],
-  keepVibes: boolean,
 ): ImagePromptPreset[] {
   if (!Array.isArray(value)) return _.cloneDeep(fallback);
-  const presets = value.map((preset, index) => recoverImagePromptPreset(preset, fallback[index] ?? fallback[0], keepVibes));
+  const presets = value.map((preset, index) => recoverImagePromptPreset(preset, fallback[index] ?? fallback[0]));
   return presets.length ? presets : _.cloneDeep(fallback);
 }
 
@@ -390,40 +404,26 @@ function recoverImagePromptCollection(
  * 从异常配置中恢复单个生图提示词预设
  * @param value 原始预设
  * @param fallback 默认预设
- * @param keepVibes 是否保留 vibe 引用
  * @returns 可安全使用的预设
  */
-function recoverImagePromptPreset(value: unknown, fallback: ImagePromptPreset | undefined, keepVibes: boolean): ImagePromptPreset {
+function recoverImagePromptPreset(value: unknown, fallback: ImagePromptPreset | undefined): ImagePromptPreset {
   const source = toPlainRecord(value);
   const preset = {
     id: parseField(z.string().min(1), source.id, fallback?.id ?? ''),
     name: parseField(z.string(), source.name, fallback?.name ?? DEFAULT_PRESET_NAME),
     text: parseField(z.string(), source.text, fallback?.text ?? ''),
     placeholderOffset: parseField(z.number().int().min(0), source.placeholderOffset, fallback?.placeholderOffset ?? 0),
-    vibes: keepVibes ? recoverImagePromptVibes(source.vibes) : [],
   };
   return parseField(imagePromptPresetSchema, preset, fallback ?? DEFAULT_SETTINGS.imagePromptPresets.positive[0]);
 }
 
 /**
- * 从异常配置中恢复 NovelAI vibe 引用列表
- * @param value 原始 vibe 列表
- * @returns 可安全使用的 vibe 引用
+ * 从异常配置中恢复 NovelAI vibe 预设集合
+ * @param value 原始 vibe 预设集合
+ * @returns 可安全使用的预设集合
  */
-function recoverImagePromptVibes(value: unknown): ImagePromptVibeRef[] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap(recoverImagePromptVibe);
-}
-
-/**
- * 从异常配置中恢复单个 NovelAI vibe 引用
- * @param value 原始 vibe 引用
- * @returns 合法 vibe 引用或空数组
- */
-function recoverImagePromptVibe(value: unknown): ImagePromptVibeRef[] {
-  const record = toPlainRecord(value);
-  const result = imagePromptVibeRefSchema.safeParse({ ...record, sourceHash: record.sourceHash ?? record.imageHash });
-  return result.success ? [result.data] : [];
+function recoverNovelAIVibePresetSettings(value: unknown): NovelAIVibePresetSettings {
+  return recoverPresetSettings(novelAIVibePresetSettingsBaseSchema, value, DEFAULT_SETTINGS.novelai.novelAIVibePresets);
 }
 
 /**
@@ -438,6 +438,7 @@ function recoverNovelAISettings(value: unknown): NovelAISettings {
     accounts: recoverNovelAIAccounts(record.accounts),
     routingMode: read('routingMode', novelAIRoutingModeSchema),
     corsProxy: read('corsProxy', z.string()),
+    novelAIVibePresets: recoverNovelAIVibePresetSettings(record.novelAIVibePresets),
     model: read('model', novelAIModelSchema),
     resolutionPreset: read('resolutionPreset', novelAIResolutionPresetSchema),
     width: read('width', novelAIImageSizeSchema),
@@ -649,22 +650,43 @@ function sanitizeSettingsForPersist(settings: CosmosVisionSettings): CosmosVisio
   const snapshot = _.cloneDeep(settings);
   return {
     ...snapshot,
-    imagePromptPresets: {
-      positive: snapshot.imagePromptPresets.positive.map(sanitizeImagePromptPreset),
-      negative: snapshot.imagePromptPresets.negative.map(sanitizeImagePromptPreset),
-    },
+    novelai: sanitizeNovelAISettings(snapshot.novelai),
   };
 }
 
 /**
- * 清理单个生图提示词预设中的临时 vibe
- * @param preset 原始预设
+ * 清理 NovelAI 设置中的临时字段
+ * @param settings 原始 NovelAI 设置
+ * @returns 可持久化 NovelAI 设置
+ */
+function sanitizeNovelAISettings(settings: NovelAISettings): NovelAISettings {
+  return {
+    ...settings,
+    novelAIVibePresets: sanitizeNovelAIVibePresetSettings(settings.novelAIVibePresets),
+  };
+}
+
+/**
+ * 清理 NovelAI vibe 预设集合中的临时 vibe
+ * @param settings 原始 vibe 预设集合
+ * @returns 可持久化预设集合
+ */
+function sanitizeNovelAIVibePresetSettings(settings: NovelAIVibePresetSettings): NovelAIVibePresetSettings {
+  return {
+    ...settings,
+    presets: settings.presets.map(sanitizeNovelAIVibePreset),
+  };
+}
+
+/**
+ * 清理单个 NovelAI vibe 预设中的临时 vibe
+ * @param preset 原始 vibe 预设
  * @returns 可持久化预设
  */
-function sanitizeImagePromptPreset(preset: ImagePromptPreset): ImagePromptPreset {
+function sanitizeNovelAIVibePreset(preset: NovelAIVibePreset): NovelAIVibePreset {
   return {
     ...preset,
-    vibes: preset.vibes.filter(vibe => !vibe.temporary).map(sanitizeImagePromptVibe),
+    vibes: preset.vibes.map(sanitizeImagePromptVibe),
   };
 }
 
@@ -769,6 +791,14 @@ export const useSettingsStore = defineStore('cosmos_vision_settings', () => {
   }
 
   /**
+   * 导入外部设置快照到当前草稿,不立即持久化
+   * @param candidate 外部构建的候选设置
+   */
+  function stageImportedSettings(candidate: unknown): void {
+    syncReactiveObject(settings, parseSettings(candidate));
+  }
+
+  /**
    * 将当前运行配置重新写回 ST 持久化
    */
   function persistSavedSettings(): void {
@@ -785,6 +815,7 @@ export const useSettingsStore = defineStore('cosmos_vision_settings', () => {
     resetDraftSettings,
     resetToDefaults,
     applyImportedSettings,
+    stageImportedSettings,
     persistSavedSettings,
   };
 });

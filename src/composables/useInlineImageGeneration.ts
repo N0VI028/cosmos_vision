@@ -28,7 +28,7 @@ import {
   generatePromptTextFromRuntimeContext,
 } from '@/services/prompt-llm/runtime-request';
 import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
-import type { ImagePromptVibeRef } from '@/constants/image-prompt';
+import type { ImagePromptVibeRef } from '@/constants/novelai-vibe';
 import { useSettingsStore } from '@/store/settings';
 import { getCurrentInstance } from 'vue';
 import {

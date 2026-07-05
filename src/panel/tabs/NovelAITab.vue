@@ -214,12 +214,19 @@
         :preset-settings="settings.imagePromptPresets"
         :positive-preset-id="settings.novelai.positivePromptPresetId"
         :negative-preset-id="settings.novelai.negativePromptPresetId"
-        :novelai-settings="settings.novelai"
-        show-vibe-section
+        show-section-title
         @update:preset-settings="settings.imagePromptPresets = $event"
         @update:positive-preset-id="settings.novelai.positivePromptPresetId = $event"
         @update:negative-preset-id="settings.novelai.negativePromptPresetId = $event"
       />
+      <h2 class="cv-section-title">Vibe Transfer</h2>
+      <div class="cv-section-body">
+        <NovelAIVibePresetPanel
+          :preset-settings="settings.novelai.novelAIVibePresets"
+          :settings="settings.novelai"
+          @update:preset-settings="settings.novelai.novelAIVibePresets = $event"
+        />
+      </div>
     </template>
 
     <!-- 测试 Tab -->
@@ -245,6 +252,7 @@ import {
   isNovelAIV4OnlyModel,
 } from '@/constants/novelai';
 import ImagePromptPresetPanel from '@/panel/components/ImagePromptPresetPanel.vue';
+import NovelAIVibePresetPanel from '@/panel/components/NovelAIVibePresetPanel.vue';
 import SubscriptionCard from '@/panel/components/SubscriptionCard.vue';
 import { buildProxiedUrl } from '@/services/novelai/subscription';
 import { useSettingsStore } from '@/store/settings';

@@ -1,4 +1,5 @@
-import type { ImagePromptPresetSettings, ImagePromptVibeRef } from '@/constants/image-prompt';
+import type { ImagePromptPresetSettings } from '@/constants/image-prompt';
+import type { ImagePromptVibeRef } from '@/constants/novelai-vibe';
 import type {
   NovelAIAccount,
   NovelAIModel,
@@ -25,7 +26,7 @@ import { readPreferredPromptLlmOutput, type PromptLlmExtractSettings } from '@/s
 import { extractFirstImage } from '@/services/novelai/zip';
 import { getNovelAIRequestAccounts } from '@/services/novelai/router';
 import {
-  getNovelAIPositivePresetVibes,
+  getActiveNovelAIVibePresetRefs,
   resolveNovelAIVibeParameters,
 } from '@/services/novelai/vibe-parameters';
 import type { NovelAIVibeParameters, NovelAIVibeSnapshot } from '@/services/novelai/vibe-types';
@@ -452,7 +453,7 @@ function resolveFinalPrompts(
       overrides?.negativeLLMPrompt ?? '',
       overrides?.negativePromptMode ?? 'extract',
     ),
-    vibeReferences: getNovelAIPositivePresetVibes(settings, imagePromptPresets),
+    vibeReferences: getActiveNovelAIVibePresetRefs(settings.novelAIVibePresets),
   };
 }
 
