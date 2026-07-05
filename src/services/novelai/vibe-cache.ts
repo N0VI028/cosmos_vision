@@ -214,7 +214,7 @@ export async function exportNovelAIVibeCacheRecords(): Promise<NovelAIVibeCacheR
 export async function importNovelAIVibeCacheRecords(records: NovelAIVibeCacheRecord[]): Promise<number> {
   let imported = 0;
   for (const record of records) {
-    await upsertNovelAIVibeRecord({ ...record, id: undefined });
+    await upsertNovelAIVibeRecord(removeVibeRecordId(record));
     imported += 1;
   }
   return imported;
@@ -299,8 +299,18 @@ function createUpsertRecord(
   record: NovelAIVibeCacheRecord,
   existing: NovelAIVibeCacheRecord | null,
 ): NovelAIVibeCacheRecord {
-  if (typeof existing?.id !== 'number') return record;
+  if (typeof existing?.id !== 'number') return removeVibeRecordId(record);
   return { ...record, id: existing.id, createdAt: existing.createdAt ?? record.createdAt };
+}
+
+/**
+ * 移除不应写入 IndexedDB keyPath 的记录 id
+ * @param record 原始缓存记录
+ * @returns 去除 id 后的可写入记录
+ */
+function removeVibeRecordId(record: NovelAIVibeCacheRecord): NovelAIVibeCacheRecord {
+  const { id: _id, ...next } = record;
+  return next;
 }
 
 /**

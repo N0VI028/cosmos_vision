@@ -39,6 +39,7 @@ import {
   downloadActiveNovelAIVibePresetPackage,
   importNovelAIVibePresetPackageFile,
 } from '@/services/data-portability/preset-toolbar';
+import type { DataImportResult } from '@/services/data-portability/types';
 import { findNovelAIVibePreset } from '@/services/novelai/vibe-presets';
 import { useSettingsStore } from '@/store/settings';
 import manifest from '../../../manifest.json';
@@ -157,10 +158,19 @@ async function importPresetPackage(file: File): Promise<void> {
     const result = await importNovelAIVibePresetPackageFile(file, draftSettings);
     stageImportedSettings(result.settings);
     result.warnings.forEach(message => toastr.warning(message));
-    toastr.success(`Vibe 预设导入完成：成功 ${result.imported} 项`);
+    toastr.success(buildImportResultText(result));
   } catch (error) {
     reportError('导入 Vibe 预设失败', error);
   }
+}
+
+/**
+ * 构建 vibe 导入结果文案
+ * @param result 导入结果
+ * @returns 展示文案
+ */
+function buildImportResultText(result: DataImportResult): string {
+  return `Vibe 预设导入完成：成功 ${result.imported} 项，跳过 ${result.skipped} 项，失败 ${result.failed} 项`;
 }
 
 /**

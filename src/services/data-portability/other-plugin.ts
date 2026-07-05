@@ -24,6 +24,7 @@ import {
   PROMPT_LLM_PARTICIPANT_TOKEN,
   PROMPT_LLM_SPECIAL_REQUEST_TOKEN,
 } from '@/constants/prompt-llm-tokens';
+import { stripDataUrlBase64 } from '@/services/novelai/vibe-file';
 import type { NovelAIVibeCacheRecord } from '@/services/novelai/vibe-types';
 import type { DataPortabilityPayload, PortableNovelAIVibeBundle } from '@/services/data-portability/types';
 import { normalizePromptLlmMessagePresets } from '@/services/prompt-llm/message-preset';
@@ -55,6 +56,11 @@ interface OtherPluginPromptPresetSource {
   key: string;
   name: string;
   entries: unknown[];
+}
+
+interface OtherPluginVibeAsset {
+  imageData?: string;
+  thumbnailData?: string;
 }
 
 /**
@@ -394,7 +400,8 @@ function parseOtherPluginVibeBundle(value: unknown, warnings: string[]): Portabl
   if (!hasOtherPluginVibeBundle(record)) return null;
   const groups = toRecord(record.groups);
   const vibeData = toRecord(record.vibeData);
-  const records = Object.entries(vibeData).flatMap(([id, data]) => createVibeRecord(id, data, warnings));
+  const assets = collectOtherPluginVibeAssets(toRecord(record.vibePresets), toRecord(record.presetImages));
+  const records = Object.entries(vibeData).flatMap(([id, data]) => createVibeRecords(id, data, assets[id], warnings));
   const presets = Object.entries(groups).flatMap(([name, group]) => createVibeGroupPreset(name, group, vibeData));
   if (!records.length && !presets.length) return null;
   return { records, presets };
@@ -410,38 +417,114 @@ function hasOtherPluginVibeBundle(record: Record<string, unknown>): boolean {
 }
 
 /**
- * 创建单条 Vibe 缓存记录
- * @param id 其他插件 vibe id
- * @param value vibe 数据
- * @param warnings 警告收集器
- * @returns 缓存记录或空数组
+ * 收集其他插件 vibe 的原图与缩略图
+ * @param vibePresets 其他插件预设映射
+ * @param presetImages 其他插件原图映射
+ * @returns 按 vibeDataId 聚合后的媒体资源
  */
-function createVibeRecord(id: string, value: unknown, warnings: string[]): NovelAIVibeCacheRecord[] {
-  const record = toRecord(value);
-  const encodedData = readEncodedData(record.encodings);
-  if (!encodedData) {
-    warnings.push(`Vibe ${id} 缺少 encodings，已跳过缓存写入。`);
-    return [];
-  }
-  return [buildVibeRecord(id, record, encodedData)];
+function collectOtherPluginVibeAssets(
+  vibePresets: Record<string, unknown>,
+  presetImages: Record<string, unknown>,
+): Record<string, OtherPluginVibeAsset> {
+  const assets: Record<string, OtherPluginVibeAsset> = {};
+  Object.values(vibePresets).forEach(value => {
+    const record = toRecord(value);
+    const vibeDataId = readText(record.vibeDataId);
+    if (!vibeDataId) return;
+    const current = assets[vibeDataId] ?? {};
+    const imageData = current.imageData || readImageDataUrl(presetImages[readText(record.imageId)]);
+    const thumbnailData = current.thumbnailData || readImageDataUrl(record.thumbnail);
+    assets[vibeDataId] = { imageData: imageData || undefined, thumbnailData: thumbnailData || undefined };
+  });
+  return assets;
 }
 
 /**
- * 构建 Vibe 缓存记录
+ * 创建一组 Vibe 缓存记录
+ * @param id 其他插件 vibe id
+ * @param value vibe 数据
+ * @param asset 兜底媒体资源
+ * @param warnings 警告收集器
+ * @returns 缓存记录列表
+ */
+function createVibeRecords(
+  id: string,
+  value: unknown,
+  asset: OtherPluginVibeAsset | undefined,
+  warnings: string[],
+): NovelAIVibeCacheRecord[] {
+  const record = toRecord(value);
+  const imageData = readImageDataUrl(record.image) || asset?.imageData;
+  const encodedData = readEncodedData(record.encodings);
+  const thumbnailData = readImageDataUrl(record.thumbnail) || asset?.thumbnailData || imageData;
+  const records: NovelAIVibeCacheRecord[] = [];
+  if (imageData) records.push(buildImageVibeRecord(id, record, imageData, thumbnailData));
+  if (encodedData) records.push(buildEncodedVibeRecord(id, record, encodedData, thumbnailData));
+  if (!encodedData) warnings.push(`Vibe ${id} 缺少 encodings，已跳过已解析缓存导入。`);
+  return records;
+}
+
+/**
+ * 构建 Vibe 原图缓存记录
+ * @param id 其他插件 vibe id
+ * @param record vibe 数据记录
+ * @param imageData 原图 data URL
+ * @param thumbnailData 缩略图 data URL
+ * @returns NovelAI Vibe 缓存记录
+ */
+function buildImageVibeRecord(
+  id: string,
+  record: Record<string, unknown>,
+  imageData: string,
+  thumbnailData?: string,
+): NovelAIVibeCacheRecord {
+  return {
+    ...buildVibeRecordBase(id, record, thumbnailData),
+    sourceType: 'image',
+    fileName: buildImageFileName(readText(record.name) || id, imageData),
+    imageData,
+  };
+}
+
+/**
+ * 构建 Vibe 已解析缓存记录
  * @param id 其他插件 vibe id
  * @param record vibe 数据记录
  * @param encodedData encoded vibe 数据
+ * @param thumbnailData 缩略图 data URL
  * @returns NovelAI Vibe 缓存记录
  */
-function buildVibeRecord(id: string, record: Record<string, unknown>, encodedData: string): NovelAIVibeCacheRecord {
+function buildEncodedVibeRecord(
+  id: string,
+  record: Record<string, unknown>,
+  encodedData: string,
+  thumbnailData?: string,
+): NovelAIVibeCacheRecord {
   return {
-    sourceHash: readSourceHash(id, record),
+    ...buildVibeRecordBase(id, record, thumbnailData),
     sourceType: 'encoded-vibe',
     fileName: `${readText(record.name) || id}.naiv4vibe`,
+    encodedData,
+  };
+}
+
+/**
+ * 构建通用 Vibe 缓存字段
+ * @param id 其他插件 vibe id
+ * @param record vibe 数据记录
+ * @param thumbnailData 缩略图 data URL
+ * @returns 通用缓存字段
+ */
+function buildVibeRecordBase(
+  id: string,
+  record: Record<string, unknown>,
+  thumbnailData?: string,
+): Omit<NovelAIVibeCacheRecord, 'sourceType' | 'fileName'> {
+  return {
+    sourceHash: readSourceHash(id, record),
     model: readModel(record),
     informationExtracted: readInformationExtracted(record),
-    encodedData,
-    thumbnailData: readText(record.thumbnail) || readText(record.image) || undefined,
+    thumbnailData,
     createdAt: readTimestamp(record.createdAt),
   };
 }
@@ -510,9 +593,59 @@ function readOtherPluginVibeRef(value: unknown): OtherPluginVibeRefInput | null 
  * @returns encodedData 或空字符串
  */
 function readEncodedData(value: unknown): string {
-  if (typeof value === 'string') return value;
-  if (Array.isArray(value)) return readText(value[0]);
-  return readText(Object.values(toRecord(value))[0]);
+  const text = readText(value);
+  if (text) return text;
+  if (Array.isArray(value)) return value.map(readEncodedData).find(Boolean) ?? '';
+  const record = toRecord(value);
+  return readText(record.encoding) || Object.values(record).map(readEncodedData).find(Boolean) || '';
+}
+
+/**
+ * 读取图片 data URL
+ * @param value 原始图片字段
+ * @returns 标准化后的 data URL
+ */
+function readImageDataUrl(value: unknown): string {
+  const base64 = stripDataUrlBase64(readRawText(value).trim());
+  if (!base64) return '';
+  return `data:${detectImageMimeFromBase64(base64)};base64,${base64}`;
+}
+
+/**
+ * 根据 data URL 推断图片扩展名
+ * @param imageData 图片 data URL
+ * @returns 文件扩展名
+ */
+function readImageExtension(imageData: string): string {
+  const mime = imageData.match(/^data:([^;]+);base64,/)?.[1];
+  if (mime === 'image/jpeg') return 'jpg';
+  if (mime === 'image/webp') return 'webp';
+  if (mime === 'image/gif') return 'gif';
+  return 'png';
+}
+
+/**
+ * 构建导入后的图片文件名
+ * @param name 原始名称
+ * @param imageData 图片 data URL
+ * @returns 带扩展名的文件名
+ */
+function buildImageFileName(name: string, imageData: string): string {
+  const baseName = name.replace(/\.[^.\\/]+$/, '');
+  return `${baseName}.${readImageExtension(imageData)}`;
+}
+
+/**
+ * 通过 base64 头部识别图片 MIME
+ * @param base64 原始 base64
+ * @returns MIME 类型
+ */
+function detectImageMimeFromBase64(base64: string): string {
+  if (base64.startsWith('/9j/')) return 'image/jpeg';
+  if (base64.startsWith('iVBOR')) return 'image/png';
+  if (base64.startsWith('R0lGOD')) return 'image/gif';
+  if (base64.startsWith('UklGR')) return 'image/webp';
+  return 'image/png';
 }
 
 /**
@@ -531,7 +664,8 @@ function readInformationExtracted(record: Record<string, unknown>): number {
  * @returns NovelAI 模型
  */
 function readModel(record: Record<string, unknown>): NovelAIModel {
-  const model = readText(record.model);
+  const importInfo = toRecord(record.importInfo);
+  const model = readText(record.model) || readText(importInfo.model);
   return isNovelAIModel(model) ? model : DEFAULT_OTHER_PLUGIN_MODEL;
 }
 

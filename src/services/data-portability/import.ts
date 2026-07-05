@@ -307,6 +307,9 @@ function importImagePromptPresets(settings: CosmosVisionSettings, payload: unkno
 async function importNovelAIVibeBundle(settings: CosmosVisionSettings, payload: unknown, result: DataImportResult): Promise<void> {
   const bundle = toVibeBundle(payload, result.warnings);
   const importedRecords = await importNovelAIVibeCacheRecords(bundle.records);
+  if (!importedRecords && bundle.presets.length) {
+    result.warnings.push('本次导入只写入了 vibe 预设，没有写入任何缓存记录；切换到该预设后会显示为失效。');
+  }
   settings.novelai.novelAIVibePresets = mergeNovelAIVibePresetSettings(settings.novelai.novelAIVibePresets, bundle.presets);
   result.imported += importedRecords + bundle.presets.length;
 }
@@ -562,15 +565,17 @@ function isPromptPerson(value: unknown): value is PromptPerson {
  */
 function isVibeRecord(value: unknown): value is NovelAIVibeCacheRecord {
   const record = toRecord(value);
-  return (
+  const hasSharedFields = (
     typeof record.sourceHash === 'string' &&
-    record.sourceType === 'encoded-vibe' &&
     typeof record.fileName === 'string' &&
     isNovelAIModel(record.model) &&
     typeof record.informationExtracted === 'number' &&
-    typeof record.encodedData === 'string' &&
     typeof record.createdAt === 'number'
   );
+  if (!hasSharedFields) return false;
+  if (record.sourceType === 'image') return typeof record.imageData === 'string';
+  if (record.sourceType === 'encoded-vibe') return typeof record.encodedData === 'string';
+  return false;
 }
 
 /**

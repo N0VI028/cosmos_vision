@@ -131,7 +131,43 @@ export async function importNovelAIVibePresetPackageFile(
   if (!preview.sections.some(section => section.id === 'novelAIVibeBundle')) {
     throw new Error('文件中没有可导入的 NovelAI vibe 预设');
   }
-  return applyDataImport(preview, ['novelAIVibeBundle'], currentSettings);
+  const result = await applyDataImport(preview, ['novelAIVibeBundle'], currentSettings);
+  activateImportedNovelAIVibePreset(result, preview.payload.novelAIVibeBundle);
+  return result;
+}
+
+/**
+ * 单独导入 vibe 预设时优先切换到本次导入的预设
+ * @param result 导入结果
+ * @param payload 原始 vibe bundle
+ */
+function activateImportedNovelAIVibePreset(result: DataImportResult, payload: unknown): void {
+  const presets = readImportedNovelAIVibePresets(payload);
+  if (presets.length !== 1) return;
+  const importedPresetId = presets[0].id;
+  if (!result.settings.novelai.novelAIVibePresets.presets.some(preset => preset.id === importedPresetId)) return;
+  result.settings.novelai.novelAIVibePresets.activePresetId = importedPresetId;
+}
+
+/**
+ * 读取导入 bundle 里的 vibe 预设列表
+ * @param payload 原始 vibe bundle
+ * @returns 预设列表
+ */
+function readImportedNovelAIVibePresets(payload: unknown): NovelAIVibePreset[] {
+  const record = _.isPlainObject(payload) ? (payload as Record<string, unknown>) : {};
+  const presets = record.presets;
+  return Array.isArray(presets) ? presets.filter(isNovelAIVibePreset).map(preset => _.cloneDeep(preset)) : [];
+}
+
+/**
+ * 判断是否为 NovelAI vibe 预设
+ * @param value 外部值
+ * @returns 是否为合法预设
+ */
+function isNovelAIVibePreset(value: unknown): value is NovelAIVibePreset {
+  const record = _.isPlainObject(value) ? (value as Record<string, unknown>) : {};
+  return typeof record.id === 'string' && Array.isArray(record.vibes);
 }
 
 /**

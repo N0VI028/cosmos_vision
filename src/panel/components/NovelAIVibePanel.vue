@@ -459,9 +459,9 @@ function isMissingSummary(summary: NovelAIVibeCacheSummary | undefined): boolean
 function showParseButton(vibe: ImagePromptVibeRef): boolean {
   const summary = summaries.value[vibe.id];
   return Boolean(
-    summary?.sourceType === 'image' &&
+    summary?.hasImage &&
       summary.hasImage &&
-      !summary.hasExactEncoded &&
+      !summary.hasEncoded &&
       !isNovelAIV3Model(props.settings.model),
   );
 }
