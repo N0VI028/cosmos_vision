@@ -30,11 +30,12 @@ import type { DataPortabilityPayload, PortableNovelAIVibeBundle } from '@/servic
 import { normalizePromptLlmMessagePresets } from '@/services/prompt-llm/message-preset';
 
 const DEFAULT_OTHER_PLUGIN_MODEL: NovelAIModel = 'nai-diffusion-4-5-curated';
-const OTHER_PLUGIN_POSITIVE_FIELDS = ['fixedPrompt_novelai', 'fixedPrompt_end_novelai'] as const;
-const OTHER_PLUGIN_NEGATIVE_FIELD = 'negativePrompt_novelai';
-const OTHER_PLUGIN_TRIGGER_WORD_SPLIT_PATTERN = /[\r\n,，、|;；]+/;
-const OTHER_PLUGIN_DELETE_MACROS = new Set(['世界书触发', '通用服装启用列表']);
-const OTHER_PLUGIN_PROMPT_MACRO_MAP: Record<string, string> = {
+const ST_CHAT8_POSITIVE_PREFIX_FIELDS = ['fixedPrompt_novelai', 'fixedPrompt'] as const;
+const ST_CHAT8_POSITIVE_SUFFIX_FIELDS = ['fixedPrompt_end_novelai', 'fixedPrompt_end'] as const;
+const ST_CHAT8_NEGATIVE_FIELDS = ['negativePrompt_novelai', 'negativePrompt'] as const;
+const ST_CHAT8_TRIGGER_WORD_SPLIT_PATTERN = /[\r\n,，、|;；]+/;
+const ST_CHAT8_DELETE_MACROS = new Set(['世界书触发', '通用服装启用列表']);
+const ST_CHAT8_PROMPT_MACRO_MAP: Record<string, string> = {
   正文: PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN,
   用户需求: PROMPT_LLM_SPECIAL_REQUEST_TOKEN,
   上下文: PROMPT_LLM_HISTORY_TOKEN,
@@ -58,6 +59,12 @@ interface OtherPluginPromptPresetSource {
   entries: unknown[];
 }
 
+interface OtherPluginYushePresetSource {
+  key: string;
+  name: string;
+  record: Record<string, unknown>;
+}
+
 interface OtherPluginVibeAsset {
   imageData?: string;
   thumbnailData?: string;
@@ -70,7 +77,7 @@ interface OtherPluginVibeAsset {
  */
 export function isOtherPluginExport(value: unknown): boolean {
   const record = toRecord(value);
-  return hasOtherPluginVibeBundle(record) || collectYushePresetRecords(value).length > 0 || collectOtherPluginPromptPresetSources(value).length > 0;
+  return hasOtherPluginVibeBundle(record) || collectYushePresetSources(value).length > 0 || collectOtherPluginPromptPresetSources(value).length > 0;
 }
 
 /**
@@ -272,7 +279,7 @@ function readPromptLlmTriggerMode(value: unknown): PromptLlmMessageTriggerMode {
  */
 function readPromptLlmTriggerKeywords(value: unknown): string[] {
   return readRawText(value)
-    .split(OTHER_PLUGIN_TRIGGER_WORD_SPLIT_PATTERN)
+    .split(ST_CHAT8_TRIGGER_WORD_SPLIT_PATTERN)
     .map(keyword => keyword.trim())
     .filter(Boolean);
 }
@@ -285,8 +292,8 @@ function readPromptLlmTriggerKeywords(value: unknown): string[] {
 function convertOtherPluginPromptContent(content: string): string {
   return content.replace(/\{\{([^{}]+)\}\}/g, (_, rawName: string) => {
     const name = rawName.trim();
-    if (OTHER_PLUGIN_DELETE_MACROS.has(name)) return '';
-    return OTHER_PLUGIN_PROMPT_MACRO_MAP[name] ?? `{{${name}}}`;
+    if (ST_CHAT8_DELETE_MACROS.has(name)) return '';
+    return ST_CHAT8_PROMPT_MACRO_MAP[name] ?? `{{${name}}}`;
   });
 }
 
@@ -297,7 +304,7 @@ function convertOtherPluginPromptContent(content: string): string {
  * @returns 生图固定提示词预设集合
  */
 function parseOtherPluginYushePresets(value: unknown, warnings: string[]): ImagePromptPresetSettings | null {
-  const sources = collectYushePresetRecords(value);
+  const sources = collectYushePresetSources(value);
   const positive = sources.flatMap((source, index) => createPositivePreset(source, index));
   const negative = sources.flatMap((source, index) => createNegativePreset(source, index));
   if (!positive.length && !negative.length) return null;
@@ -306,16 +313,42 @@ function parseOtherPluginYushePresets(value: unknown, warnings: string[]): Image
 }
 
 /**
- * 收集包含 yushe 字段的记录
+ * 收集包含 yushe 字段的预设源
  * @param value 外部 JSON 数据
- * @returns yushe 预设记录
+ * @returns yushe 预设源
  */
-function collectYushePresetRecords(value: unknown): Record<string, unknown>[] {
-  const found: Record<string, unknown>[] = [];
-  walkRecords(value, record => {
-    if (hasOtherPluginPromptFields(record)) found.push(record);
+function collectYushePresetSources(value: unknown): OtherPluginYushePresetSource[] {
+  const root = toRecord(value);
+  const fromPresets = collectNamedYushePresetSources(toRecord(root.presets));
+  if (fromPresets.length) return fromPresets;
+  if (hasOtherPluginPromptFields(root)) return [createYushePresetSource('default', root)];
+  return Object.entries(root).flatMap(([key, item]) => {
+    const record = toRecord(item);
+    return hasOtherPluginPromptFields(record) ? [createYushePresetSource(key, record)] : [];
   });
-  return found;
+}
+
+/**
+ * 收集 presets 容器内的命名 yushe 预设
+ * @param presets 预设映射
+ * @returns 命名预设源
+ */
+function collectNamedYushePresetSources(presets: Record<string, unknown>): OtherPluginYushePresetSource[] {
+  return Object.entries(presets).flatMap(([key, item]) => {
+    const record = toRecord(item);
+    return hasOtherPluginPromptFields(record) ? [createYushePresetSource(key, record)] : [];
+  });
+}
+
+/**
+ * 创建 yushe 预设源
+ * @param key 预设键名
+ * @param record 预设记录
+ * @returns 标准化预设源
+ */
+function createYushePresetSource(key: string, record: Record<string, unknown>): OtherPluginYushePresetSource {
+  const name = readPresetName(record, key);
+  return { key: key || name, name, record };
 }
 
 /**
@@ -324,34 +357,36 @@ function collectYushePresetRecords(value: unknown): Record<string, unknown>[] {
  * @returns 是否命中
  */
 function hasOtherPluginPromptFields(record: Record<string, unknown>): boolean {
-  return OTHER_PLUGIN_POSITIVE_FIELDS.some(field => typeof record[field] === 'string') || typeof record[OTHER_PLUGIN_NEGATIVE_FIELD] === 'string';
+  return hasAnyTextField(record, ST_CHAT8_POSITIVE_PREFIX_FIELDS)
+    || hasAnyTextField(record, ST_CHAT8_POSITIVE_SUFFIX_FIELDS)
+    || hasAnyTextField(record, ST_CHAT8_NEGATIVE_FIELDS);
 }
 
 /**
  * 创建正面固定提示词预设
- * @param record 其他插件记录
+ * @param source 其他插件预设源
  * @param index 预设序号
  * @returns 正面预设或空数组
  */
-function createPositivePreset(record: Record<string, unknown>, index: number): ImagePromptPreset[] {
-  const prefix = readText(record.fixedPrompt_novelai);
-  const suffix = readText(record.fixedPrompt_end_novelai);
+function createPositivePreset(source: OtherPluginYushePresetSource, index: number): ImagePromptPreset[] {
+  const prefix = readFirstText(source.record, ST_CHAT8_POSITIVE_PREFIX_FIELDS);
+  const suffix = readFirstText(source.record, ST_CHAT8_POSITIVE_SUFFIX_FIELDS);
   if (!prefix && !suffix) return [];
   const merged = joinFixedPromptParts(prefix, suffix);
-  return [createPromptPreset(`other-plugin-positive-${index + 1}`, readPresetName(record, index), merged.text, merged.offset)];
+  return [createPromptPreset(`other-plugin-positive-${stableHash(`${source.key}-${index}`)}`, source.name, merged.text, merged.offset)];
 }
 
 /**
  * 创建负面固定提示词预设
- * @param record 其他插件记录
+ * @param source 其他插件预设源
  * @param index 预设序号
  * @returns 负面预设或空数组
  */
-function createNegativePreset(record: Record<string, unknown>, index: number): ImagePromptPreset[] {
-  const text = readText(record[OTHER_PLUGIN_NEGATIVE_FIELD]);
+function createNegativePreset(source: OtherPluginYushePresetSource, index: number): ImagePromptPreset[] {
+  const text = readFirstText(source.record, ST_CHAT8_NEGATIVE_FIELDS);
   if (!text) return [];
   const offset = clampImagePromptPlaceholderOffset(text, text.length);
-  return [createPromptPreset(`other-plugin-negative-${index + 1}`, readPresetName(record, index), text, offset)];
+  return [createPromptPreset(`other-plugin-negative-${stableHash(`${source.key}-${index}`)}`, source.name, text, offset)];
 }
 
 /**
@@ -361,10 +396,32 @@ function createNegativePreset(record: Record<string, unknown>, index: number): I
  * @returns 合并文本与占位符位置
  */
 function joinFixedPromptParts(prefix: string, suffix: string): { text: string; offset: number } {
-  if (!prefix) return { text: suffix, offset: 0 };
-  if (!suffix) return { text: prefix, offset: prefix.length };
-  const separator = /[,，、\s]$/.test(prefix) || /^[,，、\s]/.test(suffix) ? '' : ', ';
-  return { text: `${prefix}${separator}${suffix}`, offset: prefix.length + separator.length };
+  const normalizedPrefix = normalizePrefixPromptPart(prefix);
+  const normalizedSuffix = normalizeSuffixPromptPart(suffix);
+  return {
+    text: `${normalizedPrefix}${normalizedSuffix}`,
+    offset: normalizedPrefix.length,
+  };
+}
+
+/**
+ * 规范化前置固定提示词，保证末尾恰好一个英文逗号
+ * @param prefix 前置固定提示词
+ * @returns 规范化后的前置文本
+ */
+function normalizePrefixPromptPart(prefix: string): string {
+  if (!prefix) return '';
+  return `${prefix.replace(/[\s,，、]+$/u, '')},`;
+}
+
+/**
+ * 规范化后置固定提示词，保证开头恰好一个英文逗号
+ * @param suffix 后置固定提示词
+ * @returns 规范化后的后置文本
+ */
+function normalizeSuffixPromptPart(suffix: string): string {
+  if (!suffix) return '';
+  return `,${suffix.replace(/^[\s,，、]+/u, '')}`;
 }
 
 /**
@@ -691,24 +748,11 @@ function readSourceHash(id: string, record: Record<string, unknown>): string {
 /**
  * 读取预设名称
  * @param record 原始记录
- * @param index 序号
+ * @param fallbackName 兜底名称
  * @returns 预设名
  */
-function readPresetName(record: Record<string, unknown>, index: number): string {
-  return readText(record.name) || readText(record.title) || `其他插件预设 ${index + 1}`;
-}
-
-/**
- * 深度遍历普通记录
- * @param value 待遍历值
- * @param visit 访问回调
- */
-function walkRecords(value: unknown, visit: (record: Record<string, unknown>) => void): void {
-  if (Array.isArray(value)) value.forEach(item => walkRecords(item, visit));
-  const record = toRecord(value);
-  if (!Object.keys(record).length) return;
-  visit(record);
-  Object.values(record).forEach(item => walkRecords(item, visit));
+function readPresetName(record: Record<string, unknown>, fallbackName: string): string {
+  return readText(record.name) || readText(record.title) || fallbackName || '其他插件预设';
 }
 
 /**
@@ -727,6 +771,26 @@ function toRecord(value: unknown): Record<string, unknown> {
  */
 function readArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
+}
+
+/**
+ * 判断对象是否包含任一非空文本字段
+ * @param record 普通记录
+ * @param fields 字段列表
+ * @returns 是否命中
+ */
+function hasAnyTextField(record: Record<string, unknown>, fields: readonly string[]): boolean {
+  return fields.some(field => readText(record[field]).length > 0);
+}
+
+/**
+ * 读取字段列表中的第一个非空文本
+ * @param record 普通记录
+ * @param fields 字段列表
+ * @returns 首个非空文本
+ */
+function readFirstText(record: Record<string, unknown>, fields: readonly string[]): string {
+  return fields.map(field => readText(record[field])).find(Boolean) ?? '';
 }
 
 /**
