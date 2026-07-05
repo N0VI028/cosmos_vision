@@ -8,10 +8,21 @@ import {
   type PromptProfilesSettings,
 } from '@/constants/novelai';
 import type { ImagePromptPreset, ImagePromptPresetSettings } from '@/constants/image-prompt';
-import { MAX_NOVELAI_VIBES_PER_PRESET, type NovelAIVibePreset, type NovelAIVibePresetSettings } from '@/constants/novelai-vibe';
+import {
+  DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
+  MAX_NOVELAI_VIBES_PER_PRESET,
+  type NovelAIVibePreset,
+  type NovelAIVibePresetSettings,
+} from '@/constants/novelai-vibe';
 import type { InlineImageFavoriteRecord } from '@/services/inline-image/favorites-cache';
 import { importInlineImageFavoriteRecords } from '@/services/inline-image/favorites-cache';
 import { importNovelAIVibeCacheRecords } from '@/services/novelai/vibe-cache';
+import {
+  countOfficialNovelAIVibeTransferEntries,
+  isOfficialNovelAIVibeTransferValue,
+  parseOfficialNovelAIVibeTransferContent,
+} from '@/services/novelai/vibe-file';
+import { importNovelAIVibePayloadsAsPreset } from '@/services/novelai/vibe-import';
 import type { NovelAIVibeCacheRecord } from '@/services/novelai/vibe-types';
 import { DATA_PORTABILITY_SECTIONS, isDataPortabilitySectionId, type DataPortabilitySectionId } from './sections';
 import { isOtherPluginExport, parseOtherPluginExport } from './other-plugin';
@@ -22,19 +33,25 @@ import {
   type DataImportPreviewSection,
   type DataImportResult,
   type DataPortabilityPayload,
+  type OfficialVibeImportPreview,
   type PortableInlineFavoriteRecord,
   type PortableNovelAIVibeBundle,
 } from './types';
+
+interface DataImportPreviewOptions {
+  fileName?: string;
+}
 
 /**
  * 解析 JSON 文本并构建导入预览
  * @param text 文件文本
  * @returns 导入预览
  */
-export function buildDataImportPreview(text: string): DataImportPreview {
+export function buildDataImportPreview(text: string, options: DataImportPreviewOptions = {}): DataImportPreview {
   const data = parseJson(text);
   if (isNativeExportFile(data)) return buildNativePreview(data);
   if (isOtherPluginExport(data)) return buildOtherPluginPreview(data);
+  if (isOfficialNovelAIVibeTransferValue(data)) return buildOfficialVibePreview(data, text, options.fileName);
   throw new Error('未识别的导入文件格式');
 }
 
@@ -51,9 +68,22 @@ export async function applyDataImport(
   currentSettings: CosmosVisionSettings,
 ): Promise<DataImportResult> {
   const result = createInitialResult(currentSettings, preview.warnings);
-  for (const section of selectedSections) await importSection(section, preview.payload[section], result);
+  for (const section of selectedSections) {
+    await importSection(section, resolvePreviewSectionPayload(preview, section), result);
+  }
   result.skipped += preview.sections.length - selectedSections.length;
   return result;
+}
+
+/**
+ * 读取导入预览里某个 section 的实际载荷
+ * @param preview 导入预览
+ * @param section 目标 section
+ * @returns section 对应载荷
+ */
+function resolvePreviewSectionPayload(preview: DataImportPreview, section: DataPortabilitySectionId): unknown {
+  if (section === 'novelAIVibeBundle' && preview.officialVibeImport) return preview.officialVibeImport;
+  return preview.payload[section];
 }
 
 /**
@@ -102,6 +132,24 @@ function buildOtherPluginPreview(value: unknown): DataImportPreview {
     .filter(isDataPortabilitySectionId)
     .map(section => buildPreviewSection(section, parsed.payload[section], parsed.warnings));
   return { source: 'other_plugin', label: '其他插件兼容数据', sections, payload: parsed.payload, warnings: parsed.warnings };
+}
+
+/**
+ * 构建官网 vibe 导入预览
+ * @param value 官网 vibe JSON
+ * @param text 原始 JSON 文本
+ * @returns 导入预览
+ */
+function buildOfficialVibePreview(value: unknown, text: string, fileName?: string): DataImportPreview {
+  const count = countOfficialNovelAIVibeTransferEntries(value);
+  return {
+    source: 'official_vibe',
+    label: 'NovelAI Vibe',
+    sections: [{ id: 'novelAIVibeBundle', label: getSectionLabel('novelAIVibeBundle'), count, warnings: [] }],
+    payload: {},
+    officialVibeImport: { text, fileName },
+    warnings: [],
+  };
 }
 
 /**
@@ -305,6 +353,10 @@ function importImagePromptPresets(settings: CosmosVisionSettings, payload: unkno
  * @param result 导入结果
  */
 async function importNovelAIVibeBundle(settings: CosmosVisionSettings, payload: unknown, result: DataImportResult): Promise<void> {
+  if (isOfficialVibeImportPreview(payload)) {
+    await importOfficialNovelAIVibeBundle(settings, payload, result);
+    return;
+  }
   const bundle = toVibeBundle(payload, result.warnings);
   const importedRecords = await importNovelAIVibeCacheRecords(bundle.records);
   if (!importedRecords && bundle.presets.length) {
@@ -312,6 +364,29 @@ async function importNovelAIVibeBundle(settings: CosmosVisionSettings, payload: 
   }
   settings.novelai.novelAIVibePresets = mergeNovelAIVibePresetSettings(settings.novelai.novelAIVibePresets, bundle.presets);
   result.imported += importedRecords + bundle.presets.length;
+}
+
+/**
+ * 导入官网 vibe JSON
+ * @param settings 目标设置
+ * @param payload 官网 vibe 载荷
+ * @param result 导入结果
+ */
+async function importOfficialNovelAIVibeBundle(
+  settings: CosmosVisionSettings,
+  payload: OfficialVibeImportPreview,
+  result: DataImportResult,
+): Promise<void> {
+  const source = { name: payload.fileName || 'import.naiv4vibe.json' };
+  const payloads = await parseOfficialNovelAIVibeTransferContent(payload.text, source.name);
+  const imported = await importNovelAIVibePayloadsAsPreset(source, payloads, {
+    model: settings.novelai.model,
+    informationExtracted: DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
+  });
+  if (imported.skipped) result.warnings.push(`已忽略 ${imported.skipped} 个超出上限的 vibe`);
+  settings.novelai.novelAIVibePresets.presets = [...settings.novelai.novelAIVibePresets.presets, imported.preset];
+  settings.novelai.novelAIVibePresets.activePresetId = imported.preset.id;
+  result.imported += imported.imported;
 }
 
 /**
@@ -474,6 +549,16 @@ function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
 function toVibeBundle(payload: unknown, warnings: string[] = []): PortableNovelAIVibeBundle {
   const record = toRecord(payload);
   return { presets: readNovelAIVibePresetsWithWarnings(record.presets, warnings), records: readArray(record.records).filter(isVibeRecord) };
+}
+
+/**
+ * 判断是否为官网 vibe 预览载荷
+ * @param payload 外部 payload
+ * @returns 是否为官网 vibe 载荷
+ */
+function isOfficialVibeImportPreview(payload: unknown): payload is OfficialVibeImportPreview {
+  const record = toRecord(payload);
+  return typeof record.text === 'string';
 }
 
 /**

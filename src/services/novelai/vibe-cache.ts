@@ -47,6 +47,7 @@ export async function saveNovelAIVibeFilePayload(
       payload.cacheSecretKey,
     );
   }
+  if (payload.thumbnailData) await saveNovelAIVibeThumbnailData(payload.sourceHash, payload.thumbnailData);
 }
 
 /**

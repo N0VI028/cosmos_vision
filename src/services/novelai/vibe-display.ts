@@ -1,11 +1,10 @@
+import { ENCODED_NOVELAI_VIBE_FILE_NAME_PATTERN } from '@/services/novelai/vibe-shared';
 import type { NovelAIVibeCacheListItem, NovelAIVibeCacheSummary } from '@/services/novelai/vibe-types';
 
 interface NovelAIVibeDisplayEntry {
   fileName: string;
   hasEncoded: boolean;
 }
-
-const VIBE_FILE_NAME_PATTERN = /\.naiv4vibe$/i;
 
 /**
  * 读取用于 UI 展示的 vibe 文件名
@@ -16,7 +15,7 @@ const VIBE_FILE_NAME_PATTERN = /\.naiv4vibe$/i;
 export function getNovelAIVibeDisplayFileName(
   entry: NovelAIVibeCacheSummary | NovelAIVibeCacheListItem | NovelAIVibeDisplayEntry,
 ): string {
-  if (!entry.hasEncoded || VIBE_FILE_NAME_PATTERN.test(entry.fileName)) return entry.fileName;
+  if (!entry.hasEncoded || ENCODED_NOVELAI_VIBE_FILE_NAME_PATTERN.test(entry.fileName)) return entry.fileName;
   return replaceFileExtension(entry.fileName, 'naiv4vibe');
 }
 

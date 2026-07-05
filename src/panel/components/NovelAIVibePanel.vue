@@ -5,7 +5,7 @@
       <input
         ref="fileInput"
         type="file"
-        accept="image/*,.naiv4vibe"
+        accept="image/*,.json,.naiv4vibe,.naiv4vibebundle"
         multiple
         class="hidden"
         @change="handleFileChange"
@@ -101,25 +101,22 @@
 </template>
 
 <script setup lang="ts">
-import { uuidv4 } from '@sillytavern/scripts/utils';
-
 import {
   DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
-  DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH,
-  MAX_NOVELAI_VIBES_PER_PRESET,
   type ImagePromptVibeRef,
 } from '@/constants/novelai-vibe';
 import { isNovelAIV3Model, type NovelAISettings } from '@/constants/novelai';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import { getNovelAIRequestAccounts } from '@/services/novelai/router';
-import {
-  saveNovelAIVibeFilePayload,
-  saveNovelAIVibeThumbnailData,
-  summarizeNovelAIVibeCache,
-} from '@/services/novelai/vibe-cache';
+import { saveNovelAIVibeThumbnailData, summarizeNovelAIVibeCache } from '@/services/novelai/vibe-cache';
 import { getNovelAIVibeDisplayFileName } from '@/services/novelai/vibe-display';
-import { parseNovelAIVibeFile, parseNovelAIVibeThumbnailFile } from '@/services/novelai/vibe-file';
+import { parseNovelAIVibeFiles, parseNovelAIVibeThumbnailFile } from '@/services/novelai/vibe-file';
+import {
+  createNovelAIVibeRefs,
+  limitNovelAIVibePayloads,
+  saveNovelAIVibePayloads,
+} from '@/services/novelai/vibe-import';
 import { resolveNovelAIVibeParameters } from '@/services/novelai/vibe-parameters';
 import type { NovelAIVibeCacheSummary, ParsedNovelAIVibeFile } from '@/services/novelai/vibe-types';
 
@@ -194,6 +191,7 @@ async function handleFileChange(event: Event): Promise<void> {
   try {
     const addedCount = await appendUploadedFiles(files);
     if (addedCount) toastr.success(`已添加 ${addedCount} 个 vibe`);
+    else toastr.warning('文件中没有可用的 NovelAI vibe');
   } catch (error) {
     handleVibeError(error, '添加 vibe 失败');
   } finally {
@@ -238,68 +236,52 @@ async function saveThumbnailFile(file: File): Promise<void> {
  * @returns 实际添加数量
  */
 async function appendUploadedFiles(files: File[]): Promise<number> {
-  const acceptedFiles = takeAppendableFiles(files);
-  const payloads = await Promise.all(acceptedFiles.map(parseAndCacheFile));
-  const nextVibes = buildNextVibes(payloads);
-  emitVibes(nextVibes);
-  return nextVibes.length - props.vibes.length;
+  const payloads = await parseUploadedFiles(files);
+  const limited = limitNovelAIVibePayloads(payloads, props.vibes.length);
+  if (limited.skipped) reportSkippedVibes(limited.skipped);
+  await saveNovelAIVibePayloads(limited.payloads, getImportDefaults());
+  return appendPayloadRefs(limited.payloads);
 }
 
 /**
- * 计算当前还可追加的文件列表
+ * 解析用户选择的全部文件
  * @param files 用户上传文件
- * @returns 允许追加的文件列表
+ * @returns 展开后的 vibe 载荷
  */
-function takeAppendableFiles(files: File[]): File[] {
-  const availableCount = MAX_NOVELAI_VIBES_PER_PRESET - props.vibes.length;
-  if (availableCount <= 0) throw new Error(`单个 Vibe 组最多只能添加 ${MAX_NOVELAI_VIBES_PER_PRESET} 个 vibe`);
-  if (files.length <= availableCount) return files;
-  toastr.warning(`单个 Vibe 组最多支持 ${MAX_NOVELAI_VIBES_PER_PRESET} 个 vibe，已忽略多余文件`);
-  return files.slice(0, availableCount);
+async function parseUploadedFiles(files: File[]): Promise<ParsedNovelAIVibeFile[]> {
+  const payloadGroups = await Promise.all(files.map(parseNovelAIVibeFiles));
+  return payloadGroups.flat();
 }
 
 /**
- * 根据当前剩余额度生成新的 vibe 列表
- * @param payloads 已解析文件载荷
- * @returns 最终可写入的 vibe 列表
+ * 报告超出上限的 vibe 数量
+ * @param skipped 跳过数量
  */
-function buildNextVibes(payloads: ParsedNovelAIVibeFile[]): ImagePromptVibeRef[] {
-  const nextRefs = payloads.map(createVibeRef);
-  const availableCount = MAX_NOVELAI_VIBES_PER_PRESET - props.vibes.length;
-  if (nextRefs.length <= availableCount) return [...props.vibes, ...nextRefs];
-  toastr.warning(`单个 Vibe 组最多支持 ${MAX_NOVELAI_VIBES_PER_PRESET} 个 vibe，已忽略多余文件`);
-  return [...props.vibes, ...nextRefs.slice(0, Math.max(availableCount, 0))];
+function reportSkippedVibes(skipped: number): void {
+  toastr.warning(`已忽略 ${skipped} 个超出上限的 vibe`);
 }
 
 /**
- * 解析并缓存单个上传文件
- * @param file 上传文件
- * @returns 解析载荷
+ * 读取导入默认参数
+ * @returns 默认模型和信息提取强度
  */
-async function parseAndCacheFile(file: File): Promise<ParsedNovelAIVibeFile> {
-  const payload = await parseNovelAIVibeFile(file);
-  await saveNovelAIVibeFilePayload(
-    payload,
-    payload.model ?? props.settings.model,
-    payload.informationExtracted ?? DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
-  );
-  return payload;
-}
-
-/**
- * 创建新 vibe 引用
- * @param payload 文件载荷
- * @returns 轻量 vibe 引用
- */
-function createVibeRef(payload: ParsedNovelAIVibeFile): ImagePromptVibeRef {
+function getImportDefaults(): { model: NovelAISettings['model']; informationExtracted: number } {
   return {
-    id: uuidv4(),
-    sourceHash: payload.sourceHash,
-    enabled: true,
-    referenceStrength: payload.referenceStrength ?? DEFAULT_IMAGE_PROMPT_VIBE_REFERENCE_STRENGTH,
-    informationExtracted: payload.informationExtracted ?? DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
-    temporary: payload.sourceType === 'image',
+    model: props.settings.model,
+    informationExtracted: DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
   };
+}
+
+/**
+ * 追加载荷引用到当前预设
+ * @param payloads 已写入缓存的 vibe 载荷
+ * @returns 新增数量
+ */
+function appendPayloadRefs(payloads: ParsedNovelAIVibeFile[]): number {
+  const nextRefs = createNovelAIVibeRefs(payloads);
+  activeVibeId.value = nextRefs[0]?.id ?? activeVibeId.value;
+  emitVibes([...props.vibes, ...nextRefs]);
+  return nextRefs.length;
 }
 
 /**

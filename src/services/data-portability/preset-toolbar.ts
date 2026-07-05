@@ -1,6 +1,6 @@
 import type { ImagePromptPreset, ImagePromptPresetSettings } from '@/constants/image-prompt';
 import type { CosmosVisionSettings } from '@/constants/novelai';
-import type { NovelAIVibePreset } from '@/constants/novelai-vibe';
+import { DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED, type NovelAIVibePreset } from '@/constants/novelai-vibe';
 import { triggerBrowserDownload } from '@/services/browser-download';
 import { applyDataImport, buildDataImportPreview } from '@/services/data-portability/import';
 import type { DataPortabilitySectionId } from '@/services/data-portability/sections';
@@ -15,9 +15,13 @@ import {
 } from '@/services/data-portability/types';
 import { exportNovelAIVibeCacheRecords } from '@/services/novelai/vibe-cache';
 import { findNovelAIVibePreset } from '@/services/novelai/vibe-presets';
+import { isOfficialNovelAIVibeFile, parseNovelAIVibeFiles } from '@/services/novelai/vibe-file';
+import { importNovelAIVibePayloadsAsPreset } from '@/services/novelai/vibe-import';
 
 export type PresetPackageSection = Extract<DataPortabilitySectionId, 'imagePromptPresets' | 'novelAIVibeBundle' | 'promptLlmMessagePresets'>;
 export type ImagePromptPresetKind = keyof ImagePromptPresetSettings;
+
+const JSON_FILE_NAME_PATTERN = /\.json$/i;
 
 /**
  * 导出当前激活的 LLM 消息预设
@@ -127,6 +131,7 @@ export async function importNovelAIVibePresetPackageFile(
   file: File,
   currentSettings: CosmosVisionSettings,
 ): Promise<DataImportResult> {
+  if (!isJsonPresetPackage(file)) return importNovelAIVibeTransferFile(file, currentSettings);
   const preview = buildDataImportPreview(await file.text());
   if (!preview.sections.some(section => section.id === 'novelAIVibeBundle')) {
     throw new Error('文件中没有可导入的 NovelAI vibe 预设');
@@ -134,6 +139,56 @@ export async function importNovelAIVibePresetPackageFile(
   const result = await applyDataImport(preview, ['novelAIVibeBundle'], currentSettings);
   activateImportedNovelAIVibePreset(result, preview.payload.novelAIVibeBundle);
   return result;
+}
+
+/**
+ * 导入官网 vibe 文件为新的预设
+ * @param file 用户选择的官网 vibe 文件
+ * @param currentSettings 当前设置
+ * @returns 导入结果
+ */
+async function importNovelAIVibeTransferFile(
+  file: File,
+  currentSettings: CosmosVisionSettings,
+): Promise<DataImportResult> {
+  const result = createVibeTransferImportResult(currentSettings);
+  const parsedPayloads = await parseNovelAIVibeFiles(file);
+  const imported = await importNovelAIVibePayloadsAsPreset(file, parsedPayloads, {
+    model: currentSettings.novelai.model,
+    informationExtracted: DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
+  });
+  if (imported.skipped) result.warnings.push(`已忽略 ${imported.skipped} 个超出上限的 vibe`);
+  appendImportedVibePreset(result, imported.preset);
+  result.imported += imported.imported;
+  return result;
+}
+
+/**
+ * 创建官网 vibe 导入结果
+ * @param settings 当前设置
+ * @returns 导入结果
+ */
+function createVibeTransferImportResult(settings: CosmosVisionSettings): DataImportResult {
+  return { imported: 0, skipped: 0, failed: 0, warnings: [], settings: _.cloneDeep(settings) };
+}
+
+/**
+ * 追加官网导入的新预设并切换激活项
+ * @param result 导入结果
+ * @param preset 新预设
+ */
+function appendImportedVibePreset(result: DataImportResult, preset: NovelAIVibePreset): void {
+  result.settings.novelai.novelAIVibePresets.presets.push(preset);
+  result.settings.novelai.novelAIVibePresets.activePresetId = preset.id;
+}
+
+/**
+ * 判断文件是否为原生 JSON 预设包
+ * @param file 用户选择文件
+ * @returns 是否为 JSON
+ */
+function isJsonPresetPackage(file: File): boolean {
+  return JSON_FILE_NAME_PATTERN.test(file.name) && !isOfficialNovelAIVibeFile(file);
 }
 
 /**

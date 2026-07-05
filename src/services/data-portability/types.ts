@@ -21,7 +21,13 @@ export interface CosmosVisionExportFile {
 export type DataPortabilityPayload = Partial<Record<DataPortabilitySectionId, unknown>>;
 
 /** 导入预览来源 */
-export type DataImportSource = 'cosmos_vision' | 'other_plugin';
+export type DataImportSource = 'cosmos_vision' | 'other_plugin' | 'official_vibe';
+
+/** 官网 Vibe 导入预览附加信息 */
+export interface OfficialVibeImportPreview {
+  text: string;
+  fileName?: string;
+}
 
 /** 导入预览 section */
 export interface DataImportPreviewSection {
@@ -38,6 +44,7 @@ export interface DataImportPreview {
   sections: DataImportPreviewSection[];
   payload: DataPortabilityPayload;
   warnings: string[];
+  officialVibeImport?: OfficialVibeImportPreview;
 }
 
 /** 导入结果摘要 */

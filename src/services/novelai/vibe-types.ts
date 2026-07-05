@@ -14,6 +14,7 @@ export interface ParsedNovelAIVibeFile {
   model?: NovelAIModel;
   referenceStrength?: number;
   informationExtracted?: number;
+  thumbnailData?: string;
 }
 
 /** NovelAI vibe IndexedDB 缓存记录 */

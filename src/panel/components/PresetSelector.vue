@@ -14,7 +14,7 @@
       <input
         ref="fileInput"
         type="file"
-        accept="application/json,.json"
+        :accept="importAccept"
         class="cv-preset-file-input"
         @change="handleFileChange"
       />
@@ -86,9 +86,11 @@ const props = withDefaults(
     activePresetId: string;
     defaultPresetId: string;
     showPortability?: boolean;
+    importAccept?: string;
   }>(),
   {
     showPortability: false,
+    importAccept: 'application/json,.json',
   },
 );
 

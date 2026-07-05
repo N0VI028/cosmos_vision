@@ -1,5 +1,6 @@
 import type { NovelAIModel } from '@/constants/novelai';
 import { stripDataUrlBase64 } from '@/services/novelai/vibe-file';
+import { sha256Text } from '@/services/novelai/vibe-shared';
 import type { NovelAIVibeDownloadPayload } from '@/services/novelai/vibe-types';
 
 const OFFICIAL_VIBE_IDENTIFIER = 'novelai-vibe-transfer';
@@ -144,16 +145,6 @@ async function createOfficialCacheSecretKey(payload: NovelAIVibeDownloadPayload,
  */
 function buildOfficialVibeName(imageId: string): string {
   return `${imageId.slice(0, 6)}-${imageId.slice(-6)}`;
-}
-
-/**
- * 对官网 image 字段计算 SHA-256
- * @param value 原图纯 base64
- * @returns 十六进制 hash
- */
-async function sha256Text(value: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 /**

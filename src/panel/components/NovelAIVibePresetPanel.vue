@@ -4,6 +4,7 @@
       :presets="presetOptions"
       :active-preset-id="props.presetSettings.activePresetId"
       :default-preset-id="defaultPresetId"
+      import-accept="application/json,.json,image/*,.naiv4vibe,.naiv4vibebundle"
       show-portability
       @update:active-preset-id="updateActivePresetId"
       @create="createPreset"

@@ -39,7 +39,7 @@
 
       <div v-if="preview" class="cv-import-preview">
         <div class="cv-import-source">
-          <span>{{ preview.label }}</span>
+          <span>识别到的数据</span>
           <span>{{ importSummaryText }}</span>
         </div>
         <div class="cv-portability-cluster">
@@ -255,7 +255,7 @@ async function handleFileChange(event: Event): Promise<void> {
  * @param file 用户选择的文件
  */
 async function parseImportFile(file: File): Promise<void> {
-  const nextPreview = buildDataImportPreview(await file.text());
+  const nextPreview = buildDataImportPreview(await file.text(), { fileName: file.name });
   preview.value = nextPreview;
   importSections.value = nextPreview.sections.map(section => section.id);
   describedImportSection.value = null;
