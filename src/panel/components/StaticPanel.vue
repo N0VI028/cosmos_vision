@@ -41,6 +41,7 @@ defineProps<{ title: string }>();
 .cv-static-panel-actions {
   @apply flex flex-wrap items-center justify-end;
   gap: var(--cv-space-3xl);
+  margin: var(--cv-space-10xl) 0 var(--cv-space-3xl) 0;
 }
 
 .cv-static-panel-body {
@@ -51,11 +52,5 @@ defineProps<{ title: string }>();
 .cv-static-panel-scroll {
   @apply overflow-y-auto;
   max-height: var(--cv-static-panel-max-h, 26rem);
-}
-
-@media (max-width: 38rem) {
-  .cv-static-panel-actions {
-    @apply justify-end;
-  }
 }
 </style>

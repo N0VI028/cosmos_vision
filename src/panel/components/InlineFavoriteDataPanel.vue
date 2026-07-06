@@ -2,124 +2,150 @@
   <StaticPanel title="收藏图片数据" class="cv-favorite-panel">
     <template #actions>
       <CvMiniButton
-        label="下载全部"
-        icon="fa-solid fa-download"
-        :disabled="isGlobalActionDisabled"
-        :loading="busy"
+        :label="isSelecting ? '取消选择' : '选择'"
+        icon="fa-solid fa-check-double"
+        :disabled="isSelectionToggleDisabled"
         size="small"
-        @click="$emit('download-all')"
-      />
-      <CvMiniButton
-        label="删除全部"
-        icon="fa-solid fa-trash"
-        tone="error"
-        :disabled="isGlobalActionDisabled"
-        :loading="busy"
-        size="small"
-        @click="$emit('delete-all')"
+        @click="toggleSelectMode"
       />
     </template>
 
-    <div v-if="loading" class="cv-favorite-empty">正在读取收藏图片数据...</div>
-    <div v-else-if="!treeNodes.length" class="cv-favorite-empty">暂无收藏图片数据</div>
-    <section v-else class="cv-favorite-tree-panel">
-      <TreeTable
-        v-model:expanded-keys="expandedKeys"
-        v-model:selection-keys="selectionKeys"
-        :value="treeNodes"
-        data-key="key"
-        selection-mode="checkbox"
-        scrollable
-        scroll-height="24rem"
-        class="cv-favorite-tree"
-        table-class="cv-favorite-tree-table"
-        :pt="favoriteTreePt"
-      >
-        <template #header>
-          <div class="cv-favorite-batch-bar">
-            <span class="cv-favorite-batch-count">
-              {{ selectedImageIds.length ? `已选 ${selectedImageIds.length} 张` : `共 ${totalImageCount} 张` }}
-            </span>
-            <div class="cv-favorite-batch-actions">
+    <div v-if="loading" class="cv-favorite-grid">
+      <CvDataCard v-for="index in 4" :key="index">
+        <div class="cv-favorite-card">
+          <Skeleton height="100%" class="cv-favorite-skeleton-thumb" :dt="SKELETON_TOKENS" />
+          <div class="cv-favorite-card-body">
+            <Skeleton height="1rem" width="70%" :dt="SKELETON_TOKENS" />
+            <Skeleton height="0.9rem" width="52%" :dt="SKELETON_TOKENS" />
+          </div>
+        </div>
+      </CvDataCard>
+    </div>
+
+    <div v-else-if="!groups.length" class="cv-favorite-empty">暂无收藏图片数据</div>
+
+    <template v-else>
+      <div class="cv-favorite-filter-row">
+        <div class="cv-favorite-filter-block">
+          <div class="cv-favorite-filter-label">角色</div>
+          <Select
+            v-model="selectedCharacterKey"
+            :options="characterOptions"
+            option-label="label"
+            option-value="value"
+            class="cv-favorite-filter-select"
+          />
+        </div>
+
+        <div class="cv-favorite-filter-block">
+          <div class="cv-favorite-filter-label">聊天</div>
+          <Select
+            v-model="selectedChatId"
+            :options="chatOptions"
+            option-label="label"
+            option-value="value"
+            class="cv-favorite-filter-select"
+          />
+        </div>
+      </div>
+
+      <div v-if="visibleItems.length" class="cv-favorite-grid">
+        <CvDataCard
+          v-for="item in visibleItems"
+          :key="item.id"
+          :selected="isItemSelected(item.id)"
+          :selecting="isSelecting"
+          :disabled="busy"
+          @toggle="toggleItem(item.id)"
+        >
+          <div class="cv-favorite-card">
+            <div v-if="isSelecting" class="cv-favorite-select" @click.stop>
+              <Checkbox binary :model-value="isItemSelected(item.id)" :disabled="busy" @update:model-value="toggleItem(item.id)" />
+            </div>
+
+            <div class="cv-favorite-thumb-wrap">
+              <img :src="getPreviewUrl(item.id)" alt="" class="cv-favorite-thumb" />
+            </div>
+
+            <div class="cv-favorite-card-body">
+              <div class="cv-favorite-title">{{ formatInlineFavoriteImageLabel(item.createdAt) }}</div>
+              <div class="cv-favorite-meta">{{ stripPngExtension(item.characterKey) }} · {{ stripPngExtension(item.chatId) }}</div>
+            </div>
+
+            <div v-if="!isSelecting" class="cv-favorite-actions" @click.stop>
               <CvMiniButton
-                label="下载"
-                :disabled="!selectedImageIds.length || busy"
-                size="small"
-                @click="handleBatchDownload"
+                icon="fa-solid fa-download"
+                aria-label="下载"
+                :disabled="busy"
+                @click="$emit('download-items', [item.id])"
               />
               <CvMiniButton
-                label="删除"
+                icon="fa-solid fa-trash"
                 tone="error"
-                :disabled="!selectedImageIds.length || busy"
-                size="small"
-                @click="handleBatchDelete"
+                aria-label="删除"
+                :disabled="busy"
+                @click="$emit('delete-items', [item.id])"
               />
             </div>
           </div>
-        </template>
-        <Column expander field="label">
-          <template #body="{ node }">
-            <div class="cv-favorite-tree-label">
-              <img v-if="node.data.previewUrl" :src="node.data.previewUrl" alt="" class="cv-favorite-tree-thumb" />
-              <i v-else :class="node.data.icon" />
-              <span class="cv-favorite-tree-text" :title="node.data.label">{{ node.data.label }}</span>
-            </div>
-          </template>
-        </Column>
-        <Column style="width: 1%">
-          <template #body="{ node }">
-            <div v-if="node.data.group" class="cv-favorite-tree-actions">
-              <CvMiniButton
-                icon="fa-solid fa-download"
-                aria-label="下载"
-                :disabled="busy"
-                @click="$emit('download-group', node.data.group)"
-              />
-              <CvMiniButton
-                icon="fa-solid fa-trash"
-                tone="error"
-                aria-label="删除"
-                :disabled="busy"
-                @click="$emit('delete-group', node.data.group)"
-              />
-            </div>
-            <div v-else-if="node.data.imageId !== undefined" class="cv-favorite-tree-actions">
-              <CvMiniButton
-                icon="fa-solid fa-download"
-                aria-label="下载"
-                :disabled="busy"
-                @click="$emit('download-items', [node.data.imageId])"
-              />
-              <CvMiniButton
-                icon="fa-solid fa-trash"
-                tone="error"
-                aria-label="删除"
-                :disabled="busy"
-                @click="$emit('delete-items', [node.data.imageId])"
-              />
-            </div>
-          </template>
-        </Column>
-      </TreeTable>
-    </section>
+        </CvDataCard>
+      </div>
+      <div v-else class="cv-favorite-empty">当前筛选范围暂无收藏图片</div>
+
+      <div v-if="isSelecting" class="cv-favorite-batch-bar">
+        <span class="cv-favorite-batch-count">已选 {{ selectedCount }} 张</span>
+        <div class="cv-favorite-batch-actions">
+          <CvMiniButton
+            :label="isAllSelected ? '取消全选' : '全选'"
+            :disabled="busy || !visibleItems.length"
+            size="small"
+            @click="toggleSelectAll"
+          />
+          <CvMiniButton
+            label="下载"
+            :disabled="!selectedCount || busy"
+            size="small"
+            @click="downloadSelected"
+          />
+          <CvMiniButton
+            label="删除"
+            tone="error"
+            :disabled="!selectedCount || busy"
+            size="small"
+            @click="deleteSelected"
+          />
+          <CvMiniButton label="取消" :disabled="busy" size="small" @click="clearSelection" />
+        </div>
+      </div>
+    </template>
   </StaticPanel>
 </template>
 
 <script setup lang="ts">
-import type { TreeTableExpandedKeys, TreeTableSelectionKeys } from 'primevue/treetable';
-import type { TreeNode } from 'primevue/treenode';
+import type { SkeletonDesignTokens } from '@primeuix/themes/types/skeleton';
+import Checkbox from 'primevue/checkbox';
+import Select from 'primevue/select';
+import Skeleton from 'primevue/skeleton';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import StaticPanel from '@/panel/components/StaticPanel.vue';
+import CvDataCard from '@/panel/components/CvDataCard.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
+import StaticPanel from '@/panel/components/StaticPanel.vue';
 import type { InlineImageFavoriteGroup, InlineImageFavoriteListItem } from '@/services/inline-image/favorites-cache';
 
-interface InlineFavoriteTreeNodeData {
+interface FavoriteFilterOption {
   label: string;
-  icon: string;
-  group?: InlineImageFavoriteGroup;
-  imageId?: number;
-  previewUrl?: string;
+  value: string;
 }
+
+const ALL_CHARACTER_KEY = '__all_character__';
+const ALL_CHAT_KEY = '__all_chat__';
+const SKELETON_TOKENS = {
+  root: {
+    borderRadius: 'var(--cv-radius-sm)',
+    background: 'var(--cv-surface-container-high)',
+    animationBackground: 'color-mix(in srgb, var(--cv-surface-container-high) 68%, var(--cv-surface-container))',
+  },
+} satisfies SkeletonDesignTokens;
 
 const props = defineProps<{
   groups: InlineImageFavoriteGroup[];
@@ -128,237 +154,354 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  'download-all': [];
-  'delete-all': [];
-  'download-group': [group: InlineImageFavoriteGroup];
-  'delete-group': [group: InlineImageFavoriteGroup];
   'download-items': [ids: number[]];
   'delete-items': [ids: number[]];
 }>();
 
-const IMAGE_KEY_PREFIX = 'image:';
-const treeNodes = ref<TreeNode[]>([]);
-const expandedKeys = ref<TreeTableExpandedKeys>({});
-const selectionKeys = ref<TreeTableSelectionKeys>({});
+const selectedCharacterKey = ref(ALL_CHARACTER_KEY);
+const selectedChatId = ref(ALL_CHAT_KEY);
+const isSelecting = ref(false);
+const selectedImageIds = ref<number[]>([]);
+const previewUrlMap = ref<Record<number, string>>({});
 const objectUrls = new Set<string>();
-const isGlobalActionDisabled = computed(() => props.loading || props.busy || !props.groups.length);
-const totalImageCount = computed(() => props.groups.reduce((sum, group) => sum + group.count, 0));
-const selectedImageIds = computed(() => extractSelectedImageIds(selectionKeys.value));
-/**
- * 收藏树 PassThrough：批量操作栏左右贴边，去除 header 横向内边距
- */
-const favoriteTreePt = { header: { class: 'cv-favorite-tree-header' } } as const;
+const characterOptions = computed(() => buildCharacterOptions(props.groups));
+const filteredCharacterGroups = computed(() => filterGroupsByCharacter(props.groups, selectedCharacterKey.value));
+const chatOptions = computed(() => buildChatOptions(filteredCharacterGroups.value));
+const visibleGroups = computed(() => filterGroupsByChat(filteredCharacterGroups.value, selectedChatId.value));
+const visibleItems = computed(() => flattenFavoriteItems(visibleGroups.value));
+const selectedCount = computed(() => selectedImageIds.value.length);
+const isAllSelected = computed(() => visibleItems.value.length > 0 && selectedCount.value === visibleItems.value.length);
+const isSelectionToggleDisabled = computed(() => props.loading || props.busy || !visibleItems.value.length);
 
 watch(
   () => props.groups,
   groups => {
-    syncInlineFavoriteViews(groups);
+    syncPreviewUrls(groups);
+    reconcileCharacterSelection(characterOptions.value.map(option => option.value));
   },
   { immediate: true },
 );
 
+watch(
+  () => selectedCharacterKey.value,
+  () => {
+    selectedChatId.value = ALL_CHAT_KEY;
+  },
+);
+
+watch(
+  () => chatOptions.value.map(option => option.value),
+  values => {
+    if (values.includes(selectedChatId.value)) return;
+    selectedChatId.value = values[0] ?? ALL_CHAT_KEY;
+  },
+  { immediate: true },
+);
+
+watch(
+  () => visibleItems.value.map(item => item.id),
+  ids => {
+    selectedImageIds.value = selectedImageIds.value.filter(id => ids.includes(id));
+    if (!ids.length) isSelecting.value = false;
+  },
+);
+
 onBeforeUnmount(() => {
-  clearInlineFavoritePreviewUrls();
+  clearPreviewUrls();
 });
 
 /**
- * 批量下载选中图片
+ * 切换显式多选模式
  */
-function handleBatchDownload(): void {
-  if (!selectedImageIds.value.length) return;
+function toggleSelectMode(): void {
+  if (isSelectionToggleDisabled.value) return;
+  isSelecting.value = !isSelecting.value;
+  if (!isSelecting.value) selectedImageIds.value = [];
+}
+
+/**
+ * 退出多选并清空已选项
+ */
+function clearSelection(): void {
+  isSelecting.value = false;
+  selectedImageIds.value = [];
+}
+
+/**
+ * 判断图片是否已被选中
+ * @param id 收藏图片 ID
+ * @returns 是否选中
+ */
+function isItemSelected(id: number): boolean {
+  return selectedImageIds.value.includes(id);
+}
+
+/**
+ * 切换单张图片选中状态
+ * @param id 收藏图片 ID
+ */
+function toggleItem(id: number): void {
+  if (!isSelecting.value || props.busy) return;
+  selectedImageIds.value = isItemSelected(id)
+    ? selectedImageIds.value.filter(itemId => itemId !== id)
+    : [...selectedImageIds.value, id];
+}
+
+/**
+ * 切换当前可见范围的全选状态
+ */
+function toggleSelectAll(): void {
+  if (props.busy) return;
+  selectedImageIds.value = isAllSelected.value ? [] : visibleItems.value.map(item => item.id);
+}
+
+/**
+ * 批量下载当前已选图片
+ */
+function downloadSelected(): void {
+  if (!selectedCount.value || props.busy) return;
   emit('download-items', selectedImageIds.value);
 }
 
 /**
- * 批量删除选中图片
+ * 批量删除当前已选图片
  */
-function handleBatchDelete(): void {
-  if (!selectedImageIds.value.length) return;
+function deleteSelected(): void {
+  if (!selectedCount.value || props.busy) return;
   emit('delete-items', selectedImageIds.value);
 }
 
 /**
- * 同步收藏图片树与图片数据视图
- * @param groups 原始收藏分组
+ * 读取图片缩略图预览地址
+ * @param id 收藏图片 ID
+ * @returns 预览 URL
  */
-function syncInlineFavoriteViews(groups: InlineImageFavoriteGroup[]): void {
-  clearInlineFavoritePreviewUrls();
-  treeNodes.value = buildInlineFavoriteTreeNodes(groups);
-  expandedKeys.value = buildInlineFavoriteExpandedKeys(treeNodes.value);
-  selectionKeys.value = {};
+function getPreviewUrl(id: number): string {
+  return previewUrlMap.value[id] ?? '';
 }
 
 /**
- * 构建收藏图片树节点（角色 > 聊天 > 图片）
- * @param groups 收藏分组列表
- * @returns TreeTable 节点
+ * 格式化收藏图片标题
+ * @param createdAt 创建时间
+ * @returns 时间风格标题
  */
-function buildInlineFavoriteTreeNodes(groups: InlineImageFavoriteGroup[]): TreeNode[] {
-  const characterGroups = groups.reduce(
-    reduceInlineFavoriteCharacterGroup,
-    new Map<string, InlineImageFavoriteGroup[]>(),
-  );
-  return [...characterGroups.entries()].map(([characterKey, items]) =>
-    createInlineFavoriteCharacterNode(characterKey, items),
-  );
-}
-
-/**
- * 按角色聚合收藏分组
- * @param groups 已聚合角色分组
- * @param group 当前收藏分组
- * @returns 更新后的分组映射
- */
-function reduceInlineFavoriteCharacterGroup(
-  groups: Map<string, InlineImageFavoriteGroup[]>,
-  group: InlineImageFavoriteGroup,
-): Map<string, InlineImageFavoriteGroup[]> {
-  const items = groups.get(group.characterKey) ?? [];
-  items.push(group);
-  groups.set(group.characterKey, items);
-  return groups;
-}
-
-/**
- * 创建角色树节点
- * @param characterKey 角色标识
- * @param groups 该角色下的聊天分组
- * @returns 角色节点
- */
-function createInlineFavoriteCharacterNode(characterKey: string, groups: InlineImageFavoriteGroup[]): TreeNode {
-  return {
-    key: `character:${characterKey}`,
-    selectable: true,
-    data: { label: stripPngExtension(characterKey), icon: 'fa-solid fa-folder-tree' } satisfies InlineFavoriteTreeNodeData,
-    children: groups.map(createInlineFavoriteChatNode),
-  };
-}
-
-/**
- * 创建聊天树节点
- * @param group 收藏分组
- * @returns 聊天节点
- */
-function createInlineFavoriteChatNode(group: InlineImageFavoriteGroup): TreeNode {
-  return {
-    key: group.id,
-    selectable: true,
-    data: {
-      label: `${stripPngExtension(group.chatId)} (${group.count})`,
-      icon: 'fa-solid fa-comments',
-      group,
-    } satisfies InlineFavoriteTreeNodeData,
-    children: group.records.map(createInlineFavoriteImageNode),
-  };
-}
-
-/**
- * 创建图片树节点
- * @param record 收藏记录
- * @returns 图片节点
- */
-function createInlineFavoriteImageNode(record: InlineImageFavoriteListItem): TreeNode {
-  return {
-    key: `${IMAGE_KEY_PREFIX}${record.id}`,
-    selectable: true,
-    data: {
-      label: formatInlineFavoriteImageLabel(record),
-      icon: 'fa-solid fa-image',
-      imageId: record.id,
-      previewUrl: createInlineFavoritePreviewUrl(record),
-    } satisfies InlineFavoriteTreeNodeData,
-  };
-}
-
-/**
- * 构建图片节点显示文本
- * @param record 收藏记录
- * @returns 文件名风格的展示文本
- */
-function formatInlineFavoriteImageLabel(record: InlineImageFavoriteListItem): string {
-  const date = new Date(record.createdAt);
-  const pad = (n: number) => String(n).padStart(2, '0');
+function formatInlineFavoriteImageLabel(createdAt: number): string {
+  const date = new Date(createdAt);
+  const pad = (value: number) => String(value).padStart(2, '0');
   return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
 
 /**
- * 构建默认展开状态（仅展开角色节点）
- * @param nodes 当前树节点
- * @returns 默认展开 key 映射
+ * 去除角色或聊天名称中的 .png 扩展名
+ * @param name 原始名称
+ * @returns 处理后的名称
  */
-function buildInlineFavoriteExpandedKeys(nodes: TreeNode[]): TreeTableExpandedKeys {
-  return nodes.reduce((keys, node) => ({ ...keys, [node.key as string]: true }), {});
+function stripPngExtension(name: string): string {
+  return name.replace('.png', '');
 }
 
 /**
- * 从 selection-keys 中提取已选中的图片 ID 列表
- * @param keys TreeTable checkbox 选择映射
- * @returns 图片记录 ID 列表
+ * 同步收藏缩略图 URL 映射
+ * @param groups 收藏分组
  */
-function extractSelectedImageIds(keys: TreeTableSelectionKeys): number[] {
-  if (!keys) return [];
-  const ids: number[] = [];
-  for (const [key, value] of Object.entries(keys)) {
-    if (!key.startsWith(IMAGE_KEY_PREFIX) || !isCheckboxChecked(value)) continue;
-    const id = Number(key.slice(IMAGE_KEY_PREFIX.length));
-    if (Number.isFinite(id)) ids.push(id);
-  }
-  return ids;
+function syncPreviewUrls(groups: InlineImageFavoriteGroup[]): void {
+  clearPreviewUrls();
+  previewUrlMap.value = buildPreviewUrlMap(groups);
 }
 
 /**
- * 判断 TreeTable checkbox 选择项是否处于完全选中态
- * @param value selection-keys 中的值
- * @returns 是否完全选中
+ * 构建收藏缩略图 URL 映射
+ * @param groups 收藏分组
+ * @returns ID 到 URL 的映射
  */
-function isCheckboxChecked(value: unknown): boolean {
-  if (typeof value === 'boolean') return value;
-  if (value && typeof value === 'object' && 'checked' in value) {
-    return Boolean((value as { checked?: boolean }).checked);
-  }
-  return false;
+function buildPreviewUrlMap(groups: InlineImageFavoriteGroup[]): Record<number, string> {
+  return groups.reduce((map, group) => {
+    group.records.forEach(record => {
+      const objectUrl = URL.createObjectURL(record.imageBlob);
+      objectUrls.add(objectUrl);
+      map[record.id] = objectUrl;
+    });
+    return map;
+  }, {} as Record<number, string>);
 }
 
 /**
- * 创建收藏缩略图 Object URL
- * @param record 收藏记录
- * @returns 可渲染预览 URL
+ * 清理已创建的收藏缩略图 URL
  */
-function createInlineFavoritePreviewUrl(record: InlineImageFavoriteListItem): string {
-  const objectUrl = URL.createObjectURL(record.imageBlob);
-  objectUrls.add(objectUrl);
-  return objectUrl;
-}
-
-/**
- * 清理全部收藏缩略图 Object URL
- */
-function clearInlineFavoritePreviewUrls(): void {
+function clearPreviewUrls(): void {
   objectUrls.forEach(url => URL.revokeObjectURL(url));
   objectUrls.clear();
 }
 
 /**
- * 去除名称中的 .png 扩展名
- * @param name 文件名，如 "Claude.png" 或 "Claude.png - 2026-06-29@13h58m44s"
- * @returns 去掉 .png 后的名称
+ * 校正角色筛选值，避免刷新后越界
+ * @param values 当前可选角色值
  */
-function stripPngExtension(name: string): string {
-  return name.replace('.png', '');
+function reconcileCharacterSelection(values: string[]): void {
+  if (values.includes(selectedCharacterKey.value)) return;
+  selectedCharacterKey.value = values[0] ?? ALL_CHARACTER_KEY;
 }
+
+/**
+ * 构建角色筛选项
+ * @param groups 收藏分组
+ * @returns Select 选项
+ */
+function buildCharacterOptions(groups: InlineImageFavoriteGroup[]): FavoriteFilterOption[] {
+  return [{ label: '全部角色', value: ALL_CHARACTER_KEY }, ...collectCharacterOptions(groups)];
+}
+
+/**
+ * 收集去重后的角色筛选项
+ * @param groups 收藏分组
+ * @returns 去重后的角色筛选项
+ */
+function collectCharacterOptions(groups: InlineImageFavoriteGroup[]): FavoriteFilterOption[] {
+  return groups.reduce((options, group) => {
+    if (options.some(option => option.value === group.characterKey)) return options;
+    return [...options, { label: stripPngExtension(group.characterKey), value: group.characterKey }];
+  }, [] as FavoriteFilterOption[]);
+}
+
+/**
+ * 构建聊天筛选项
+ * @param groups 当前角色下的收藏分组
+ * @returns Select 选项
+ */
+function buildChatOptions(groups: InlineImageFavoriteGroup[]): FavoriteFilterOption[] {
+  return [{ label: '全部聊天', value: ALL_CHAT_KEY }, ...groups.map(group => ({ label: stripPngExtension(group.chatId), value: group.id }))];
+}
+
+/**
+ * 按角色过滤收藏分组
+ * @param groups 收藏分组
+ * @param characterKey 当前角色筛选值
+ * @returns 过滤后的分组
+ */
+function filterGroupsByCharacter(groups: InlineImageFavoriteGroup[], characterKey: string): InlineImageFavoriteGroup[] {
+  if (characterKey === ALL_CHARACTER_KEY) return groups;
+  return groups.filter(group => group.characterKey === characterKey);
+}
+
+/**
+ * 按聊天范围过滤收藏分组
+ * @param groups 当前角色下的收藏分组
+ * @param chatId 当前聊天筛选值
+ * @returns 过滤后的分组
+ */
+function filterGroupsByChat(groups: InlineImageFavoriteGroup[], chatId: string): InlineImageFavoriteGroup[] {
+  if (chatId === ALL_CHAT_KEY) return groups;
+  return groups.filter(group => group.id === chatId);
+}
+
+/**
+ * 展开当前筛选范围内的图片列表
+ * @param groups 当前可见收藏分组
+ * @returns 按时间倒序的图片列表
+ */
+function flattenFavoriteItems(groups: InlineImageFavoriteGroup[]): InlineImageFavoriteListItem[] {
+  return groups.flatMap(group => group.records).sort((left, right) => right.createdAt - left.createdAt);
+}
+
 </script>
 
 <style scoped>
 @reference '../../global.css';
 
-/* 收藏树较高，放宽模块内容区最大高度 */
 .cv-favorite-panel {
-  --cv-static-panel-max-h: 32rem;
+  --cv-static-panel-max-h: 36rem;
+}
+
+.cv-favorite-filter-row {
+  @apply flex flex-wrap items-end;
+  gap: var(--cv-space-4xl);
+  margin-bottom: var(--cv-space-4xl);
+}
+
+.cv-favorite-filter-block {
+  @apply flex flex-col;
+  flex: 1 1 14rem;
+  min-width: 0;
+  gap: var(--cv-space-md);
+}
+
+.cv-favorite-filter-label {
+  color: var(--cv-on-surface-variant);
+  font-size: var(--cv-font-size-xs);
+  font-weight: 600;
+}
+
+.cv-favorite-filter-select {
+  @apply w-full;
+}
+
+.cv-favorite-grid {
+  @apply grid;
+  gap: var(--cv-space-4xl);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cv-favorite-card {
+  @apply relative flex min-w-0 flex-col;
+}
+
+.cv-favorite-select {
+  @apply absolute;
+  top: var(--cv-space-lg);
+  left: var(--cv-space-lg);
+  z-index: 1;
+}
+
+.cv-favorite-thumb-wrap {
+  @apply overflow-hidden;
+  aspect-ratio: 1;
+  border-bottom: var(--cv-border-width) solid color-mix(in srgb, var(--cv-surface-variant) 72%, transparent);
+  background: var(--cv-surface-container-high);
+}
+
+.cv-favorite-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cv-favorite-skeleton-thumb {
+  display: block;
+  aspect-ratio: 1;
+}
+
+.cv-favorite-card-body {
+  @apply flex min-w-0 flex-col;
+  gap: var(--cv-space-sm);
+  padding: var(--cv-space-4xl);
+}
+
+.cv-favorite-title {
+  color: var(--cv-on-surface);
+  font-size: var(--cv-font-size-xs);
+  font-weight: 600;
+}
+
+.cv-favorite-meta {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
+  color: var(--cv-on-surface-variant);
+  font-size: var(--cv-font-size-2xs);
+}
+
+.cv-favorite-actions {
+  @apply flex items-center justify-end;
+  gap: var(--cv-space-2xl);
+  padding: 0 var(--cv-space-4xl) var(--cv-space-4xl);
 }
 
 .cv-favorite-batch-bar {
-  @apply flex flex-wrap items-center justify-between;
+  @apply sticky flex flex-wrap items-center justify-between;
+  bottom: 0;
   gap: var(--cv-space-md);
+  margin-top: var(--cv-space-4xl);
+  padding: var(--cv-space-4xl) 0 0;
+  border-top: var(--cv-border-width) solid var(--cv-surface-variant);
 }
 
 .cv-favorite-batch-count {
@@ -371,75 +514,6 @@ function stripPngExtension(name: string): string {
   gap: var(--cv-space-3xl);
 }
 
-.cv-favorite-tree-panel {
-  @apply overflow-hidden;
-}
-
-.cv-favorite-tree :deep(.p-treetable-table) {
-  table-layout: auto;
-  width: 100%;
-}
-
-/* 隐藏横向滚动条 */
-.cv-favorite-tree :deep(.p-treetable-table-container) {
-  overflow-x: hidden !important;
-}
-
-/* 批量操作栏贴左右边：PT 注入的 header class 去除横向内边距 */
-.cv-favorite-tree :deep(.cv-favorite-tree-header) {
-  padding-inline: 0 !important;
-}
-
-/* 列表头行无内容，隐藏避免空白行 */
-.cv-favorite-tree :deep(.p-treetable-thead) {
-  display: none;
-}
-
-/* 第一列：确保内容不溢出 */
-.cv-favorite-tree :deep(.p-treetable-tbody > tr > td:first-child) {
-  overflow: hidden;
-}
-
-/* 操作列去除内边距并自适应内容宽度 */
-.cv-favorite-tree :deep(.p-treetable-tbody > tr > td:last-child) {
-  padding: 0 var(--cv-space-5xl) 0 0;
-  width: 1%;
-  white-space: nowrap;
-}
-
-.cv-favorite-tree-label {
-  @apply flex min-w-0 items-center;
-  gap: var(--cv-space-md);
-}
-
-.cv-favorite-tree-label > i {
-  @apply shrink-0;
-  color: var(--cv-on-surface-variant);
-}
-
-.cv-favorite-tree-thumb {
-  @apply shrink-0 object-cover;
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--cv-radius-sm);
-  background: var(--cv-surface-container-high);
-}
-
-.cv-favorite-tree-text {
-  @apply overflow-hidden text-ellipsis whitespace-nowrap;
-}
-
-.cv-favorite-tree-actions {
-  @apply flex items-center;
-  gap: var(--cv-space-2xl);
-  white-space: nowrap;
-}
-
-/* 下载按钮（第一个操作按钮）使用次要前景色 */
-.cv-favorite-tree-actions > :first-child :deep(.cv-prime-icon) {
-  color: var(--cv-on-surface-variant);
-}
-
 .cv-favorite-empty {
   @apply flex items-center justify-center text-center;
   min-height: 9rem;
@@ -448,5 +522,22 @@ function stripPngExtension(name: string): string {
   border-radius: var(--cv-radius);
   background: color-mix(in srgb, var(--cv-surface-container-low) 42%, transparent);
   color: var(--cv-on-surface-variant);
+}
+
+@media (max-width: 56rem) {
+  .cv-favorite-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 38rem) {
+  .cv-favorite-filter-block {
+    flex-basis: 100%;
+  }
+
+  .cv-favorite-grid {
+    grid-template-columns: 1fr;
+  }
+
 }
 </style>
