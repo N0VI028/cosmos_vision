@@ -1,9 +1,12 @@
 import type { InlineImageFavoriteListItem } from '@/services/inline-image/favorites-cache';
 import {
+  hasFavoriteSwipeId,
+  isFavoriteRecordVisibleForMessage,
+} from '@/services/inline-image/favorite-visibility';
+import {
   createInlineFavoriteAnchor,
   findMessageId,
   getGlobalParagraphIndex,
-  getMessageSwipeId,
   getParagraphTextHash,
   getVisibleChatParagraphElements,
   type InlineFavoriteAnchor,
@@ -255,30 +258,9 @@ function isRecordForRenderedMessage(
   anchors: Map<number, InlineFavoriteAnchor>,
 ): boolean {
   if (record.mesId && record.mesId !== messageId) return false;
-  if (hasStoredSwipeId(record) && !isRecordSwipeVisible(record, messageId)) return false;
+  if (hasFavoriteSwipeId(record) && !isFavoriteRecordVisibleForMessage(record, messageId)) return false;
   if (record.mesId) return true;
   return anchors.has(record.globalParagraphIndex);
-}
-
-/**
- * 判断收藏记录是否保存了明确的 swipe 版本
- * @param record 收藏记录
- * @returns 是否带有 swipeId
- */
-function hasStoredSwipeId(record: InlineImageFavoriteListItem): boolean {
-  return typeof record.swipeId === 'number';
-}
-
-/**
- * 判断收藏记录是否属于当前消息的可见 swipe
- * @param record 收藏记录
- * @param messageId 当前消息楼层 ID
- * @returns 是否属于当前 swipe
- */
-function isRecordSwipeVisible(record: InlineImageFavoriteListItem, messageId: string): boolean {
-  const currentSwipeId = getMessageSwipeId(messageId);
-  if (hasStoredSwipeId(record)) return currentSwipeId === record.swipeId;
-  return currentSwipeId === null || currentSwipeId === 0;
 }
 
 /**
@@ -288,7 +270,7 @@ function isRecordSwipeVisible(record: InlineImageFavoriteListItem, messageId: st
  * @returns 是否允许使用索引兜底
  */
 function canUseGlobalParagraphFallback(record: InlineImageFavoriteListItem, messageId: string): boolean {
-  return isRecordSwipeVisible(record, messageId);
+  return isFavoriteRecordVisibleForMessage(record, messageId);
 }
 
 /**

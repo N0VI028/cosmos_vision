@@ -3,7 +3,7 @@ import { PrimeVueResolver } from '@primevue/auto-import-resolver';
 import path from 'node:path';
 import unpluginAutoImport from 'unplugin-auto-import/vite';
 import unpluginVueComponents from 'unplugin-vue-components/vite';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import pluginExternal from 'vite-plugin-external';
 
 /**
@@ -100,5 +100,15 @@ export default defineConfig(({ mode }) => ({
           },
 
     target: 'esnext',
+  },
+
+  test: {
+    environment: 'jsdom',
+    globals: false,
+    setupFiles: ['./tests/setup.ts'],
+    include: ['tests/**/*.test.ts'],
+    coverage: {
+      reporter: ['text', 'html'],
+    },
   },
 }));

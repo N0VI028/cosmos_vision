@@ -1,9 +1,19 @@
-import {
-  createInlineGenerationStatus,
-  type InlineGenerationStatusHandle,
-} from '@/composables/inlineGenerationStatus';
+import { DARK_CLASS } from '@/constants/theme';
+import { preventInlineEventBubbling } from '@/composables/inlineImageDom';
 import { stopTavernHelperGeneration } from '@/services/tavern-helper/generation-control';
+import Message from 'primevue/message';
+import ProgressSpinner from 'primevue/progressspinner';
 import type { AppContext } from 'vue';
+import { h, render } from 'vue';
+
+export type InlineGenerationStatusMode = 'running' | 'error';
+
+/** 段落内生成状态句柄 */
+export interface InlineGenerationStatusHandle {
+  host: HTMLElement;
+  setStatus: (text: string, mode?: InlineGenerationStatusMode, onRetry?: () => void) => void;
+  remove: () => void;
+}
 
 /** 内联生成会话 */
 export interface InlineGenerationSession {
@@ -28,10 +38,32 @@ interface InlineGenerationSessionOptions {
   getDarkMode: () => boolean;
 }
 
+interface InlineGenerationStatusOptions {
+  appContext?: AppContext;
+  darkMode: boolean;
+  initialText: string;
+  onCancel: () => void;
+}
+
+interface InlineGenerationStatusState {
+  text: string;
+  mode: InlineGenerationStatusMode;
+  onRetry?: () => void;
+}
+
 type InlineGenerationStatusPlacement = 'after' | 'overlay';
 type ActiveInlineGenerationSessions = Map<HTMLElement, InlineGenerationSession>;
+type InlineGenerationStatusSlots = Record<string, () => ReturnType<typeof h>>;
 
 const ERROR_REMOVE_DELAY_MS = 8000;
+const MODE_SEVERITY: Record<InlineGenerationStatusMode, 'secondary' | 'error'> = {
+  running: 'secondary',
+  error: 'error',
+};
+const MODE_CLOSE_LABEL: Record<InlineGenerationStatusMode, string> = {
+  running: '取消',
+  error: '关闭',
+};
 
 /**
  * 读取指定段落的当前活动会话
@@ -272,4 +304,125 @@ function createGenerationId(): string {
  */
 function scheduleStatusRemoval(status: InlineGenerationStatusHandle, delay: number): void {
   window.setTimeout(() => status.remove(), delay);
+}
+
+/**
+ * 创建段落下方的生成状态条
+ * @param options 状态条配置
+ * @returns 状态条句柄
+ */
+function createInlineGenerationStatus(options: InlineGenerationStatusOptions): InlineGenerationStatusHandle {
+  const host = document.createElement('div');
+  host.className = buildStatusClass(options.darkMode);
+  preventInlineEventBubbling(host);
+  let removed = false;
+  let state: InlineGenerationStatusState = { text: options.initialText, mode: 'running' };
+
+  function remove(): void {
+    if (removed) return;
+    removed = true;
+    render(null, host);
+    host.remove();
+  }
+
+  function setStatus(text: string, mode: InlineGenerationStatusMode = 'running', onRetry?: () => void): void {
+    state = { text, mode, onRetry };
+    renderStatus(host, state, options, remove);
+  }
+
+  setStatus(options.initialText);
+  return { host, setStatus, remove };
+}
+
+/**
+ * 组装状态条主题 class
+ * @param darkMode 是否为暗色模式
+ * @returns class 字符串
+ */
+function buildStatusClass(darkMode: boolean): string {
+  const base = 'cv-inline-generation-status cosmos-vision-root';
+  return darkMode ? `${base} ${DARK_CLASS}` : base;
+}
+
+/**
+ * 渲染状态条内容为 PrimeVue Message
+ * @param host 状态条宿主元素
+ * @param state 当前状态
+ * @param options 状态条配置
+ * @param remove 移除方法
+ */
+function renderStatus(
+  host: HTMLElement,
+  state: InlineGenerationStatusState,
+  options: InlineGenerationStatusOptions,
+  remove: () => void,
+): void {
+  const isRunning = state.mode === 'running';
+  const vnode = h(
+    Message,
+    {
+      class: `cv-inline-generation-message cv-inline-generation-message--${state.mode}`,
+      severity: MODE_SEVERITY[state.mode],
+      closable: true,
+      onClose: isRunning ? options.onCancel : remove,
+    },
+    buildStatusSlots(state, isRunning, remove),
+  );
+  if (options.appContext) vnode.appContext = options.appContext;
+  render(vnode, host);
+}
+
+/**
+ * 构建状态条插槽
+ * @param state 当前状态
+ * @param isRunning 是否正在运行
+ * @param remove 移除方法
+ * @returns Message 插槽
+ */
+function buildStatusSlots(
+  state: InlineGenerationStatusState,
+  isRunning: boolean,
+  remove: () => void,
+): InlineGenerationStatusSlots {
+  if (!isRunning && state.onRetry) return buildRetryStatusSlots(state, remove);
+  const slots: InlineGenerationStatusSlots = {
+    default: () => h('span', { class: 'cv-inline-generation-text' }, state.text),
+    closeicon: () => h('span', { class: 'cv-inline-generation-close-text' }, MODE_CLOSE_LABEL[state.mode]),
+  };
+  if (isRunning) {
+    slots.icon = () => h(ProgressSpinner, { class: 'cv-inline-generation-spinner', strokeWidth: '4' });
+  }
+  return slots;
+}
+
+/**
+ * 构建错误重试状态的插槽
+ * @param state 当前状态
+ * @param remove 移除方法
+ * @returns Message 插槽
+ */
+function buildRetryStatusSlots(
+  state: InlineGenerationStatusState,
+  remove: () => void,
+): InlineGenerationStatusSlots {
+  const retry = state.onRetry;
+  return {
+    default: () =>
+      h('span', { class: 'cv-inline-generation-error-row' }, [
+        h('span', { class: 'cv-inline-generation-text' }, state.text),
+        h(
+          'button',
+          {
+            class: 'p-message-close-button cv-inline-generation-close-text',
+            type: 'button',
+            onClick: () => {
+              remove();
+              retry?.();
+            },
+          },
+          '重试',
+        ),
+      ]),
+    closeicon: () => h('span', { class: 'cv-inline-generation-close-text' }, MODE_CLOSE_LABEL[state.mode]),
+  };
 }

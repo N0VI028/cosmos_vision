@@ -1,7 +1,5 @@
 import { DARK_CLASS } from '@/constants/theme';
-import Button from 'primevue/button';
-import type { AppContext } from 'vue';
-import { h, render } from 'vue';
+import { render } from 'vue';
 
 export interface InlineActionButtonSpec {
   label?: string;
@@ -11,13 +9,6 @@ export interface InlineActionButtonSpec {
   onClick: () => void;
 }
 
-interface InlineActionHostOptions {
-  appContext?: AppContext;
-  hostClass: string;
-  darkMode: boolean;
-  actions: InlineActionButtonSpec[];
-}
-
 /**
  * 阻止聊天内联控件事件冒泡到底层 ST 消息区
  * @param host 内联控件根节点
@@ -25,19 +16,6 @@ interface InlineActionHostOptions {
 export function preventInlineEventBubbling(host: HTMLElement): void {
   const events = ['pointerdown', 'mousedown', 'touchstart', 'pointerup', 'mouseup', 'touchend', 'click'];
   events.forEach(evt => host.addEventListener(evt, e => e.stopPropagation()));
-}
-
-/**
- * 创建聊天内联 PrimeVue 操作按钮宿主
- * @param options 渲染参数
- * @returns 已挂载 Vue 按钮的宿主元素
- */
-export function createInlineActionHost(options: InlineActionHostOptions): HTMLElement {
-  const host = document.createElement('div');
-  host.className = buildInlineActionHostClass(options.hostClass, options.darkMode);
-  preventInlineEventBubbling(host);
-  renderInlineActions(host, options);
-  return host;
 }
 
 /**
@@ -75,19 +53,4 @@ export function removeInlineVueHost(host: HTMLElement | null): void {
   if (!host) return;
   render(null, host);
   host.remove();
-}
-
-/**
- * 渲染内联操作按钮行
- * @param host 宿主元素
- * @param options 渲染参数
- */
-function renderInlineActions(host: HTMLElement, options: InlineActionHostOptions): void {
-  const vnode = h(
-    'div',
-    { class: 'cv-inline-button-row' },
-    options.actions.map(action => h(Button, buildInlineActionButtonProps(action))),
-  );
-  if (options.appContext) vnode.appContext = options.appContext;
-  render(vnode, host);
 }
