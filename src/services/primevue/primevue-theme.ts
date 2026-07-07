@@ -45,6 +45,36 @@ const toggleButtonColor = {
 } as const;
 
 /**
+ * ToggleSwitch 颜色 token —— 显式挂到 light/dark,避免 Aura colorScheme 回退覆盖默认轨道色
+ */
+const toggleSwitchColor = {
+  root: {
+    background: 'var(--cv-surface-container-high)',
+    hoverBackground: 'var(--cv-surface-container)',
+    checkedBackground: 'var(--cv-primary-container)',
+    checkedHoverBackground: 'var(--cv-primary-container)',
+    disabledBackground: 'color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent)',
+    borderColor: 'transparent',
+    hoverBorderColor: 'transparent',
+    checkedBorderColor: 'transparent',
+    checkedHoverBorderColor: 'transparent',
+    invalidBorderColor: 'var(--p-red-500)',
+    shadow: 'none',
+  },
+  handle: {
+    background: 'var(--cv-surface-container-lowest)',
+    hoverBackground: 'var(--cv-surface-container-lowest)',
+    checkedBackground: 'var(--cv-on-primary-container)',
+    checkedHoverBackground: 'var(--cv-on-primary-container)',
+    disabledBackground: 'var(--cv-surface-container-lowest)',
+    color: 'var(--cv-on-surface-variant)',
+    hoverColor: 'var(--cv-on-surface)',
+    checkedColor: 'var(--cv-primary-container)',
+    checkedHoverColor: 'var(--cv-primary-container)',
+  },
+} as const;
+
+/**
  * PrimeVue 主题 preset
  */
 export const cosmosPrimePreset = definePreset(Aura, {
@@ -179,10 +209,9 @@ export const cosmosPrimePreset = definePreset(Aura, {
       },
     },
     toggleswitch: {
-      root: {
-        background: 'var(--cv-surface-container-high)',
-        checkedBackground: 'var(--cv-primary-container)',
-        checkedHoverBackground: 'var(--cv-primary-container)',
+      colorScheme: {
+        light: toggleSwitchColor,
+        dark: toggleSwitchColor,
       },
     },
     // ToggleButton:必须用 colorScheme.light/dark 显式覆盖 Aura 默认值。

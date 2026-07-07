@@ -1,4 +1,5 @@
 import type { PrimeVuePTOptions } from 'primevue/config';
+import type { InputTagsPassThroughOptions } from 'primevue/inputtags';
 import { sliderToken } from './primevue-tokens';
 
 const fieldRoot = { class: 'cv-prime-field' } as const;
@@ -124,6 +125,24 @@ const galleria = {
 } as const;
 
 /**
+ * InputTags Pass Through 集中配置
+ */
+export const cosmosInputTagsPt = {
+  root: { class: 'cv-prime-inputtags' },
+  item: { class: 'cv-prime-inputtags-chip-item' },
+  pcChip: {
+    root: { class: 'cv-prime-inputtags-chip' },
+    label: { class: 'cv-prime-inputtags-chip-label' },
+    removeIcon: { class: 'cv-prime-inputtags-chip-remove' },
+  },
+  pcAutoComplete: {
+    root: { class: 'cv-prime-inputtags-input' },
+    input: { class: 'cv-prime-inputtags-input-item' },
+    pcInputText: { root: { class: 'cv-prime-inputtags-input-field' } },
+  },
+} satisfies InputTagsPassThroughOptions;
+
+/**
  * PrimeVue Pass Through 集中配置
  */
 export const cosmosPrimePt = {
@@ -155,18 +174,6 @@ export const cosmosPrimePt = {
     pcOptionCheckbox: checkbox,
   },
   autocomplete: { overlay: fieldOverlay },
-  inputchips: {
-    root: { class: 'cv-prime-inputchips' },
-    input: { class: 'cv-prime-inputchips-input' },
-    chipItem: { class: 'cv-prime-inputchips-chip-item' },
-    inputItem: { class: 'cv-prime-inputchips-input-item' },
-    inputItemField: { class: 'cv-prime-inputchips-input-field' },
-    pcChip: {
-      root: { class: 'cv-prime-inputchips-chip' },
-      label: { class: 'cv-prime-inputchips-chip-label' },
-      removeIcon: { class: 'cv-prime-inputchips-chip-remove' },
-    },
-  },
   checkbox,
   datepicker: { panel: overlay },
   fluid: { root: { class: 'cv-prime-fluid' } },

@@ -49,11 +49,12 @@
             </div>
 
             <h3 class="cv-person-section-title">关键词</h3>
-            <InputChips
+            <InputTags
               v-model="person.triggerKeywords"
               :allow-duplicate="false"
+              :pt="cosmosInputTagsPt"
               add-on-blur
-              separator=","
+              delimiter=","
               placeholder="输入关键词，回车或逗号添加"
               class="cv-trigger-inputchips"
             />
@@ -172,6 +173,7 @@ import PromptSourceEntryList from '@/panel/components/PromptSourceEntryList.vue'
 import type { PromptPerson, PromptPersonInsertMode, PromptPersonKind } from '@/constants/novelai';
 import { useSettingsStore } from '@/store/settings';
 import { createPromptPerson } from '@/services/prompt-profiles/runtime';
+import { cosmosInputTagsPt } from '@/services/primevue/primevue-pt';
 import { getCurrentCharacterKey, getCurrentUserPersonaKey } from '@/services/tavern-helper/prompt-profiles-context';
 import {
   parsePromptPersonStaticTags,

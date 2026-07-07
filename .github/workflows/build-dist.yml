@@ -40,6 +40,8 @@ jobs:
 
       - name: Build extension dist
         run: pnpm build
+        env:
+          VITE_PRIMEUI_LICENSE: ${{ secrets.PRIMEUI_LICENSE }}
 
       - name: Commit built dist
         shell: bash

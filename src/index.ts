@@ -14,10 +14,12 @@ import PrimeVue from 'primevue/config';
  * 在 ST 加载完成后挂载到 #extensions_settings,使用 jQuery 兼容 ST 的生命周期
  */
 const app = createApp(App);
+const primeUiLicense = import.meta.env.VITE_PRIMEUI_LICENSE?.trim() || undefined;
 
 app.use(createPinia());
 
 app.use(PrimeVue, {
+  license: primeUiLicense,
   theme: {
     preset: cosmosPrimePreset,
     options: {

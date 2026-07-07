@@ -16,17 +16,17 @@
     "defaults and partially supports es6-module"
   ],
   "dependencies": {
-    "@primeuix/themes": "^2.0.3",
+    "@primeuix/themes": "3.0.0-rc.1",
     "@vueuse/core": "^14.3.0",
     "pinia": "^3.0.4",
-    "primevue": "^4.5.5",
+    "primevue": "5.0.0-rc.1",
     "vue": "^3.5.33",
     "vue-draggable-plus": "^0.6.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
-    "@primevue/auto-import-resolver": "^4.5.5",
+    "@primevue/auto-import-resolver": "5.0.0-rc.1",
     "@tailwindcss/postcss": "^4.2.4",
     "@types/jquery": "^3.5.34",
     "@types/lodash": "^4.17.24",

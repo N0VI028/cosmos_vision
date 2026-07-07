@@ -1,0 +1,34 @@
+/**
+ * PrimeVue ToggleSwitch 可见性兜底
+ *
+ * PrimeVue V5 的 ToggleSwitch 轨道颜色来自 `toggleswitch.background` 等
+ * design token。这里用项目 PT 类补一层作用域内颜色,避免 token 解析回退或
+ * ST 全局样式污染时出现默认轨道透明。
+ */
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-toggleswitch-slider {
+  background: var(--cv-surface-container-high, var(--p-surface-200)) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root)
+  .cv-prime-toggleswitch:not([data-p-disabled='true']):hover
+  .cv-prime-toggleswitch-slider {
+  background: var(--cv-surface-container, var(--p-surface-300)) !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root)
+  .cv-prime-toggleswitch[data-p-checked='true']
+  .cv-prime-toggleswitch-slider {
+  background: var(--cv-primary-container, var(--p-primary-color)) !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-toggleswitch-handle {
+  background: var(--cv-surface-container-lowest, var(--p-surface-0)) !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root)
+  .cv-prime-toggleswitch[data-p-checked='true']
+  .cv-prime-toggleswitch-handle {
+  background: var(--cv-on-primary-container, var(--p-primary-contrast-color)) !important;
+}

@@ -644,13 +644,13 @@
  *
  * 统一强制 inherit,让 --cv-font-size-base 桥接 + .cv-field 的相对字号继续生效。
  */
-.cosmos-vision-root :is(.cv-prime-field, .cv-prime-field-text, .cv-select-option, .cv-prime-button, .cv-prime-button-label, .cv-prime-message, .cv-prime-inputchips, .cv-prime-inputchips-input, .cv-prime-inputchips-input-field),
-#cosmos_vision :is(.cv-prime-field, .cv-prime-field-text, .cv-select-option, .cv-prime-button, .cv-prime-button-label, .cv-prime-message, .cv-prime-inputchips, .cv-prime-inputchips-input, .cv-prime-inputchips-input-field) {
+.cosmos-vision-root :is(.cv-prime-field, .cv-prime-field-text, .cv-select-option, .cv-prime-button, .cv-prime-button-label, .cv-prime-message, .cv-prime-inputtags, .cv-prime-inputtags-input, .cv-prime-inputtags-input-field),
+#cosmos_vision :is(.cv-prime-field, .cv-prime-field-text, .cv-select-option, .cv-prime-button, .cv-prime-button-label, .cv-prime-message, .cv-prime-inputtags, .cv-prime-inputtags-input, .cv-prime-inputtags-input-field) {
   font-size: inherit;
 }
 
-.cosmos-vision-root :is(.cv-prime-field, .cv-prime-field-text, .cv-prime-button, .cv-prime-button-label, .cv-prime-message, .cv-prime-message-text, .cv-prime-inputchips, .cv-prime-inputchips-input, .cv-prime-inputchips-input-field),
-#cosmos_vision :is(.cv-prime-field, .cv-prime-field-text, .cv-prime-button, .cv-prime-button-label, .cv-prime-message, .cv-prime-message-text, .cv-prime-inputchips, .cv-prime-inputchips-input, .cv-prime-inputchips-input-field) {
+.cosmos-vision-root :is(.cv-prime-field, .cv-prime-field-text, .cv-prime-button, .cv-prime-button-label, .cv-prime-message, .cv-prime-message-text, .cv-prime-inputtags, .cv-prime-inputtags-input, .cv-prime-inputtags-input-field),
+#cosmos_vision :is(.cv-prime-field, .cv-prime-field-text, .cv-prime-button, .cv-prime-button-label, .cv-prime-message, .cv-prime-message-text, .cv-prime-inputtags, .cv-prime-inputtags-input, .cv-prime-inputtags-input-field) {
   font-family: var(--cv-font-body) !important;
 }
 
@@ -692,11 +692,11 @@
   background: inherit !important;
 }
 
-:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-inputchips, .cv-prime-inputchips-input) {
+:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-inputtags, .cv-prime-inputtags-input) {
   border-radius: calc((var(--cv-font-size-base) + var(--cv-space-2xl) * 2 + var(--cv-border-width) * 2) / 2) !important;
 }
 
-:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-inputchips-input {
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-inputtags-input {
   background: var(--p-inputtext-background) !important;
   border-color: var(--p-inputtext-border-color) !important;
   color: var(--p-inputtext-color) !important;
@@ -704,7 +704,7 @@
   padding: var(--cv-space-lg) var(--cv-space-5xl) !important;
 }
 
-:is(#cosmos_vision, .cosmos-vision-root) input.cv-prime-inputchips-input-field {
+:is(#cosmos_vision, .cosmos-vision-root) input.cv-prime-inputtags-input-field {
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
@@ -712,12 +712,12 @@
   font-size: var(--cv-font-size-sm) !important;
 }
 
-:is(#cosmos_vision, .cosmos-vision-root) input.cv-prime-inputchips-input-field::placeholder {
+:is(#cosmos_vision, .cosmos-vision-root) input.cv-prime-inputtags-input-field::placeholder {
   color: var(--p-inputtext-placeholder-color, var(--cv-on-surface-variant)) !important;
   opacity: 0.65 !important;
 }
 
-:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip, .cv-prime-inputchips-chip, .p-multiselect .p-chip) {
+:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip, .cv-prime-inputtags-chip, .p-multiselect .p-chip) {
   background: var(--p-chip-background) !important;
   border: var(--cv-border-width) solid var(--p-primary-color) !important;
   border-radius: var(--cv-radius-full) !important;
@@ -730,15 +730,15 @@
   padding: 0.25em 0.6em !important;
 }
 
-:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip-label, .cv-prime-inputchips-chip-label, .p-multiselect .p-chip-label) {
+:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip-label, .cv-prime-inputtags-chip-label, .p-multiselect .p-chip-label) {
   color: inherit !important;
 }
 
-:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip-remove-icon, .cv-prime-inputchips-chip-remove, .p-multiselect .p-chip-remove-icon) {
+:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip-remove-icon, .cv-prime-inputtags-chip-remove, .p-multiselect .p-chip-remove-icon) {
   color: var(--p-chip-remove-icon-color) !important;
 }
 
-:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip-remove-icon, .cv-prime-inputchips-chip-remove, .p-multiselect .p-chip-remove-icon):hover {
+:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip-remove-icon, .cv-prime-inputtags-chip-remove, .p-multiselect .p-chip-remove-icon):hover {
   color: var(--cv-on-surface) !important;
 }
 

@@ -390,7 +390,7 @@ function buildStatusSlots(
     closeicon: () => h('span', { class: 'cv-inline-generation-close-text' }, MODE_CLOSE_LABEL[state.mode]),
   };
   if (isRunning) {
-    slots.icon = () => h(ProgressSpinner, { class: 'cv-inline-generation-spinner', strokeWidth: '4' });
+    slots.icon = () => h(ProgressSpinner, { class: 'cv-inline-generation-spinner', strokeWidth: 4 });
   }
   return slots;
 }
