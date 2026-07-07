@@ -149,8 +149,10 @@ export type NovelAITierLabel = (typeof NOVELAI_TIERS)[number]['label'];
 /** NovelAI 账号条目 */
 export interface NovelAIAccount {
   id: string;
+  name: string;
   url: string;
   apiKey: string;
+  enabled: boolean;
 }
 
 /** NovelAI 子设置 */
@@ -479,10 +481,11 @@ function stripPromptLlmMessageIdPrefix(id: string): string {
  * @param id 账号 id
  * @param url NovelAI URL
  * @param apiKey NovelAI API Key
+ * @param name 账号名称
  * @returns 账号条目
  */
-export function createNovelAIAccount(id: string, url = NOVELAI_DEFAULT_URL, apiKey = ''): NovelAIAccount {
-  return { id, url, apiKey };
+export function createNovelAIAccount(id: string, url = NOVELAI_DEFAULT_URL, apiKey = '', name = ''): NovelAIAccount {
+  return { id, name, url, apiKey, enabled: true };
 }
 
 /** CosmosVision 顶层设置(持久化到 ST extension_settings) */

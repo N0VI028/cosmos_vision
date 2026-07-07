@@ -37,7 +37,7 @@ export function getAvailableNovelAIAccounts(settings: NovelAISettings): NovelAIA
  * @returns 是否可直接发起请求
  */
 function isNovelAIAccountAvailable(account: NovelAIAccount): boolean {
-  return Boolean(account.url.trim() && account.apiKey.trim());
+  return Boolean(account.enabled && account.url.trim() && account.apiKey.trim());
 }
 
 /**

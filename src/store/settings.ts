@@ -85,8 +85,10 @@ const novelAIImageSizeSchema = z.number().int().min(NOVELAI_IMAGE_SIZE_LIMITS.mi
 const novelAISeedSchema = z.number().int().min(0).max(NOVELAI_MAX_SEED).nullable();
 const novelAIAccountSchema = z.object({
   id: z.string().min(1),
+  name: z.string().default(''),
   url: z.string(),
   apiKey: z.string(),
+  enabled: z.boolean().default(true),
 });
 const comfyUISamplerSchema = z.enum(optionValues(COMFYUI_SAMPLERS));
 const comfyUIResolutionPresetSchema = z.union([
@@ -475,8 +477,10 @@ function recoverNovelAIAccount(value: unknown, index: number): NovelAIAccount {
   const record = toPlainRecord(value);
   return {
     id: parseField(z.string().min(1), record.id, `novelai-account-${index + 1}`),
+    name: parseField(z.string(), record.name, fallback.name),
     url: parseField(z.string(), record.url, fallback.url),
     apiKey: parseField(z.string(), record.apiKey, fallback.apiKey),
+    enabled: parseField(z.boolean(), record.enabled, fallback.enabled),
   };
 }
 
