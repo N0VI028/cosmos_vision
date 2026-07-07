@@ -179,11 +179,10 @@
                 option-label="label"
                 option-value="value"
                 placeholder="选择 ComfyUI LoRA"
-                class="cv-lora-select"
+                class="cv-lora-select w-full max-w-full"
                 :loading="isLoadingLoras"
                 aria-label="LoRA 文件"
                 filter
-                :pt="LORA_SELECT_PT"
               />
               <InputNumber
                 v-model="lora.strength"
@@ -196,7 +195,6 @@
                 placeholder="强度"
                 class="cv-lora-strength"
                 aria-label="LoRA 强度"
-                :pt="LORA_STRENGTH_PT"
               />
               <Button
                 icon="fa-solid fa-trash"
@@ -260,12 +258,6 @@ type TextOption = { value: string; label: string };
 const { settings } = useSettingsStore();
 const workflowFileInput = ref<HTMLInputElement | null>(null);
 const maxSeed = COMFYUI_MAX_SEED;
-const LORA_SELECT_PT = {
-  root: { class: 'cv-prime-field w-full max-w-full' },
-} as const;
-const LORA_STRENGTH_PT = {
-  pcInputText: { root: { class: 'cv-prime-field w-full text-center' } },
-} as const;
 
 const props = defineProps<{ subTab: ComfyUISubTab }>();
 const subTab = computed(() => props.subTab);
@@ -601,6 +593,10 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
 
 .cv-lora-strength {
   @apply min-w-0 w-full;
+}
+
+.cv-lora-strength :deep(.cv-prime-field) {
+  @apply w-full text-center;
 }
 
 .cv-empty-lora-state {

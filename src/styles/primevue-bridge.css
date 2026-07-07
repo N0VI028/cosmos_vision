@@ -1,0 +1,273 @@
+/**
+ * 字号 / 间距桥接到 CosmosVision 全局 token
+ *
+ * - font-size:让作用域内 em 单位与 ST 字号一致
+ * - --spacing:Tailwind 4 spacing 系统的基准变量
+ *   覆写为 --cv-spacing-unit 后,`p-N / m-N / gap-N` 全部基于
+ *   CosmosVision 字号重算,不再依赖根字号
+ *
+ * 仅作用于扩展容器与 PrimeVue Teleport 根类,不污染 ST 全局
+ */
+#cosmos_vision,
+.cosmos-vision-root,
+.cv-inline-selected,
+.cv-inline-img-wrap {
+  font-size: var(--cv-font-size-base);
+  --spacing: var(--cv-spacing-unit);
+}
+
+/**
+ * PrimeVue 间距 / 尺寸 / 圆角 token 桥接到作用域内 token
+ */
+#cosmos_vision,
+.cosmos-vision-root {
+  /* semantic: list */
+  --p-list-padding: 0.25em 0.25em;
+  --p-list-header-padding: 0.5em 1em 0.25em 1em;
+  --p-list-option-padding: 0.5em 0.75em;
+  --p-list-option-group-padding: 0.5em 0.75em;
+
+  /* semantic: navigation */
+  --p-navigation-list-padding: 0.25em 0.25em;
+  --p-navigation-item-padding: 0.5em 0.75em;
+  --p-navigation-item-gap: 0.5em;
+  --p-navigation-submenu-label-padding: 0.5em 0.75em;
+  --p-navigation-submenu-icon-size: 0.875em;
+
+  /* semantic: overlay */
+  --p-overlay-popover-padding: 0.75em;
+  --p-overlay-modal-padding: 1.25em;
+
+  /* semantic: icon */
+  --p-icon-size: 1em;
+
+  /* component: dialog */
+  --p-dialog-background: var(--cv-surface-container-lowest);
+  --p-dialog-border-color: transparent;
+  --p-dialog-color: var(--cv-on-surface);
+  --p-dialog-shadow: var(--cv-floating-shadow);
+  --p-dialog-header-gap: 0.5em;
+  --p-dialog-footer-gap: 0.5em;
+  --p-dialog-title-font-size: var(--cv-font-size-2xl);
+  --p-dialog-border: none;
+  --p-dialog-border-radius: var(--cv-radius-lg);
+
+  /* component: tabs */
+  --p-tabs-tab-padding: 1em 1.125em;
+  --p-tabs-tab-gap: 0.5em;
+  --p-tabs-tabpanel-padding: 0.875em 1.125em 1.125em 1.125em;
+  --p-tabs-nav-button-width: 2.5em;
+
+  /* component: button */
+  --p-button-gap: 0.5em;
+  --p-button-icon-only-width: 2.5em;
+  --p-button-sm-icon-only-width: 2em;
+  --p-button-lg-icon-only-width: 3em;
+  --p-button-badge-size: 1em;
+
+  /* component: password */
+  --p-password-content-gap: 0.5em;
+  --p-password-meter-height: 0.75em;
+
+  /* component: message */
+  --p-message-text-font-size: var(--cv-font-size-sm);
+  --p-message-text-sm-font-size: var(--cv-font-size-xs);
+  --p-message-text-lg-font-size: var(--cv-font-size-md);
+
+  /* component: select */
+  --p-select-dropdown-width: 2.5em;
+  --p-select-checkmark-gutter-start: -0.375em;
+  --p-select-checkmark-gutter-end: 0.375em;
+
+  /* component: toggleswitch */
+  --p-toggleswitch-width: 2.5em;
+  --p-toggleswitch-height: 1.5em;
+  --p-toggleswitch-handle-size: 1em;
+
+  /* PrimeVue 圆角 token */
+  --p-border-radius-xs: 0.0667em;
+  --p-border-radius-sm: 0.1333em;
+  --p-border-radius-md: 0.1333em;
+  --p-border-radius-lg: 0.2em;
+  --p-border-radius-xl: 0.2667em;
+
+  /* PrimeVue 在 :root 已字面值化的组件圆角，需在作用域内逐项回写 */
+  --p-button-border-radius: var(--cv-radius-full);
+  --p-inputtext-border-radius: var(--cv-radius-full);
+  --p-textarea-border-radius: var(--cv-radius-md);
+  --p-select-border-radius: var(--cv-radius-full);
+  --p-select-overlay-border-radius: var(--cv-radius-lg);
+  --p-select-option-border-radius: var(--cv-radius-md);
+  --p-multiselect-border-radius: var(--cv-radius-full);
+  --p-multiselect-overlay-border-radius: var(--cv-radius-lg);
+  --p-multiselect-option-border-radius: var(--cv-radius-md);
+  --p-multiselect-chip-border-radius: var(--cv-radius-full);
+  --p-chip-border-radius: var(--cv-radius-full);
+  --p-password-border-radius: var(--cv-radius-full);
+  --p-inputnumber-border-radius: var(--cv-radius-full);
+  --p-togglebutton-border-radius: var(--cv-radius-full);
+  --p-message-border-radius: var(--cv-radius-lg);
+}
+
+.cosmos-vision-root {
+  --p-content-background: var(--cv-surface-container);
+  --p-content-hover-background: var(--cv-surface-container-high);
+  --p-content-border-color: var(--cv-surface-variant);
+  --p-content-color: var(--cv-on-surface);
+  --p-overlay-select-background: var(--cv-surface-container-high);
+  --p-overlay-select-border-color: var(--cv-surface-variant);
+  --p-overlay-select-color: var(--cv-on-surface);
+  --p-overlay-select-shadow: var(--cv-popover-shadow);
+  --p-list-option-focus-background: var(--cv-surface-variant);
+  --p-list-option-selected-background: color-mix(in srgb, var(--cv-primary-container) 18%, transparent);
+  --p-list-option-selected-focus-background: color-mix(in srgb, var(--cv-primary-container) 26%, transparent);
+  --p-list-option-color: var(--cv-on-surface);
+  --p-list-option-focus-color: var(--cv-on-surface);
+  --p-list-option-selected-color: var(--cv-on-surface);
+  --p-list-option-selected-focus-color: var(--cv-on-surface);
+  --p-list-option-group-background: var(--cv-surface-container-high);
+  --p-list-option-group-color: var(--cv-on-surface-variant);
+  --p-text-color: var(--cv-on-surface);
+  --p-text-muted-color: var(--cv-on-surface-variant);
+  --p-text-hover-color: var(--cv-on-surface);
+  --p-text-hover-muted-color: var(--cv-on-surface);
+  --p-inputtext-background: var(--cv-surface-container-high);
+  --p-inputtext-border-color: var(--cv-surface-variant);
+  --p-inputtext-hover-border-color: var(--cv-outline);
+  --p-inputtext-focus-border-color: var(--cv-primary-container);
+  --p-inputtext-invalid-border-color: var(--p-red-500);
+  --p-inputtext-color: var(--cv-on-surface);
+  --p-inputtext-placeholder-color: var(--cv-on-surface-variant);
+  --p-textarea-background: var(--cv-surface-container-high);
+  --p-textarea-border-color: var(--cv-surface-variant);
+  --p-textarea-hover-border-color: var(--cv-outline);
+  --p-textarea-focus-border-color: var(--cv-primary-container);
+  --p-textarea-invalid-border-color: var(--p-red-500);
+  --p-textarea-color: var(--cv-on-surface);
+  --p-textarea-placeholder-color: var(--cv-on-surface-variant);
+  --p-select-background: var(--cv-surface-container-high);
+  --p-select-border-color: var(--cv-surface-variant);
+  --p-select-hover-border-color: var(--cv-outline);
+  --p-select-focus-border-color: var(--cv-primary-container);
+  --p-select-invalid-border-color: var(--p-red-500);
+  --p-select-color: var(--cv-on-surface);
+  --p-select-placeholder-color: var(--cv-on-surface-variant);
+  --p-select-overlay-background: var(--p-overlay-select-background);
+  --p-select-overlay-border-color: var(--p-overlay-select-border-color);
+  --p-select-overlay-color: var(--p-overlay-select-color);
+  --p-select-overlay-shadow: var(--p-overlay-select-shadow);
+  --p-select-option-focus-background: var(--p-list-option-focus-background);
+  --p-select-option-selected-background: var(--p-list-option-selected-background);
+  --p-select-option-selected-focus-background: var(--p-list-option-selected-focus-background);
+  --p-select-option-color: var(--p-list-option-color);
+  --p-select-option-focus-color: var(--p-list-option-focus-color);
+  --p-select-option-selected-color: var(--p-list-option-selected-color);
+  --p-select-option-selected-focus-color: var(--p-list-option-selected-focus-color);
+  --p-select-option-group-background: var(--p-list-option-group-background);
+  --p-select-option-group-color: var(--p-list-option-group-color);
+  --p-multiselect-background: var(--cv-surface-container-high);
+  --p-multiselect-disabled-background: var(--p-form-field-disabled-background);
+  --p-multiselect-filled-background: var(--cv-surface-container-high);
+  --p-multiselect-filled-hover-background: var(--cv-surface-container);
+  --p-multiselect-filled-focus-background: var(--cv-surface-container-high);
+  --p-multiselect-border-color: var(--cv-surface-variant);
+  --p-multiselect-hover-border-color: var(--cv-outline);
+  --p-multiselect-focus-border-color: var(--cv-primary-container);
+  --p-multiselect-invalid-border-color: var(--p-red-500);
+  --p-multiselect-color: var(--cv-on-surface);
+  --p-multiselect-placeholder-color: var(--cv-on-surface-variant);
+  --p-multiselect-overlay-background: var(--p-overlay-select-background);
+  --p-multiselect-overlay-border-color: var(--p-overlay-select-border-color);
+  --p-multiselect-overlay-color: var(--p-overlay-select-color);
+  --p-multiselect-overlay-shadow: var(--p-overlay-select-shadow);
+  --p-multiselect-option-focus-background: var(--p-list-option-focus-background);
+  --p-multiselect-option-selected-background: var(--p-list-option-selected-background);
+  --p-multiselect-option-selected-focus-background: var(--p-list-option-selected-focus-background);
+  --p-multiselect-option-color: var(--p-list-option-color);
+  --p-multiselect-option-focus-color: var(--p-list-option-focus-color);
+  --p-multiselect-option-selected-color: var(--p-list-option-selected-color);
+  --p-multiselect-option-selected-focus-color: var(--p-list-option-selected-focus-color);
+  --p-multiselect-option-group-background: var(--p-list-option-group-background);
+  --p-multiselect-option-group-color: var(--p-list-option-group-color);
+  --p-multiselect-dropdown-color: var(--cv-on-surface-variant);
+  --p-multiselect-clear-icon-color: var(--cv-on-surface-variant);
+  --p-chip-background: color-mix(in srgb, var(--p-primary-color) 12%, transparent);
+  --p-chip-color: var(--p-primary-color);
+  --p-chip-icon-color: var(--p-primary-color);
+  --p-chip-remove-icon-color: var(--p-primary-color);
+  --p-chip-remove-icon-focus-ring-color: color-mix(in srgb, var(--cv-primary-container) 24%, transparent);
+  --p-chip-remove-icon-focus-ring-shadow: none;
+  --p-checkbox-background: var(--cv-surface-container-high);
+  --p-checkbox-disabled-background: color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent);
+  --p-checkbox-border-color: var(--cv-surface-variant);
+  --p-checkbox-hover-border-color: var(--cv-outline);
+  --p-checkbox-checked-background: var(--cv-primary-container);
+  --p-checkbox-checked-hover-background: var(--cv-primary-container);
+  --p-checkbox-checked-border-color: var(--cv-primary-container);
+  --p-checkbox-checked-hover-border-color: var(--cv-primary-container);
+  --p-checkbox-checked-disabled-border-color: var(--cv-surface-variant);
+  --p-checkbox-icon-color: var(--cv-on-surface);
+  --p-checkbox-icon-checked-color: var(--cv-on-primary-container);
+  --p-checkbox-icon-checked-hover-color: var(--cv-on-primary-container);
+  --p-checkbox-icon-disabled-color: var(--cv-on-surface-variant);
+  --p-checkbox-border-radius: var(--cv-radius-sm);
+  --p-datatable-background: var(--cv-surface-container-low);
+  --p-datatable-header-background: var(--cv-surface-container-low);
+  --p-datatable-header-border-color: var(--cv-surface-variant);
+  --p-datatable-row-background: var(--cv-surface-container-low);
+  --p-datatable-row-color: var(--cv-on-surface);
+  --p-datatable-header-cell-background: var(--cv-surface-container-high);
+  --p-datatable-header-cell-border-color: var(--cv-surface-variant);
+  --p-datatable-header-cell-color: var(--cv-on-surface);
+  --p-datatable-body-cell-background: transparent;
+  --p-datatable-body-cell-border-color: var(--cv-surface-variant);
+  --p-datatable-body-cell-color: var(--cv-on-surface);
+  --p-datatable-row-hover-background: var(--cv-surface-container-highest);
+  --p-datatable-row-hover-color: var(--cv-on-surface);
+  --p-treetable-border-color: var(--cv-surface-variant);
+  --p-treetable-background: var(--cv-surface-container-low);
+  --p-treetable-header-background: var(--cv-surface-container-low);
+  --p-treetable-header-border-color: var(--cv-surface-variant);
+  --p-treetable-header-color: var(--cv-on-surface);
+  --p-treetable-header-cell-background: var(--cv-surface-container-high);
+  --p-treetable-header-cell-border-color: var(--cv-surface-variant);
+  --p-treetable-header-cell-color: var(--cv-on-surface);
+  --p-treetable-row-background: var(--cv-surface-container-low);
+  --p-treetable-row-color: var(--cv-on-surface);
+  --p-treetable-row-hover-background: var(--cv-surface-container-highest);
+  --p-treetable-row-hover-color: var(--cv-on-surface);
+  --p-treetable-body-cell-background: transparent;
+  --p-treetable-body-cell-border-color: var(--cv-surface-variant);
+  --p-treetable-body-cell-color: var(--cv-on-surface);
+  --p-treetable-footer-background: var(--cv-surface-container-low);
+  --p-treetable-footer-border-color: var(--cv-surface-variant);
+  --p-treetable-footer-color: var(--cv-on-surface);
+  --p-treetable-node-toggle-button-hover-background: var(--cv-surface-container-highest);
+  --p-treetable-node-toggle-button-color: var(--cv-on-surface-variant);
+  --p-treetable-node-toggle-button-hover-color: var(--cv-on-surface);
+}
+
+/**
+ * Overlay 字号对齐触发器
+ */
+.cosmos-vision-root.cv-prime-field-overlay {
+  font-size: var(--cv-font-size-sm);
+}
+
+/**
+ * 字号继承桥接
+ */
+.cosmos-vision-root :is(.cv-prime-field, .cv-prime-field-text, .cv-select-option, .cv-prime-button, .cv-prime-button-label, .cv-prime-message, .cv-prime-inputtags, .cv-prime-inputtags-input, .cv-prime-inputtags-input-field),
+#cosmos_vision :is(.cv-prime-field, .cv-prime-field-text, .cv-select-option, .cv-prime-button, .cv-prime-button-label, .cv-prime-message, .cv-prime-inputtags, .cv-prime-inputtags-input, .cv-prime-inputtags-input-field) {
+  font-size: inherit;
+}
+
+.cosmos-vision-root :is(.cv-prime-field, .cv-prime-field-text, .cv-prime-button, .cv-prime-button-label, .cv-prime-message, .cv-prime-message-text, .cv-prime-inputtags, .cv-prime-inputtags-input, .cv-prime-inputtags-input-field),
+#cosmos_vision :is(.cv-prime-field, .cv-prime-field-text, .cv-prime-button, .cv-prime-button-label, .cv-prime-message, .cv-prime-message-text, .cv-prime-inputtags, .cv-prime-inputtags-input, .cv-prime-inputtags-input-field) {
+  font-family: var(--cv-font-body) !important;
+}
+
+.cosmos-vision-root .cv-prime-button-label,
+#cosmos_vision .cv-prime-button-label {
+  @apply whitespace-nowrap;
+}

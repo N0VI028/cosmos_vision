@@ -90,10 +90,10 @@
               <span>API Key</span>
               <Password
                 v-model="account.apiKey"
+                class="w-full"
                 :feedback="false"
                 toggle-mask
                 :input-class="'w-full'"
-                :pt="PASSWORD_FIELD_PT"
               />
             </label>
           </div>
@@ -114,9 +114,6 @@ import { uuidv4 } from '@sillytavern/scripts/utils';
 import { createNovelAIAccount, NOVELAI_DEFAULT_URL, type NovelAIAccount } from '@/constants/novelai';
 
 const accounts = defineModel<NovelAIAccount[]>({ required: true });
-const PASSWORD_FIELD_PT = {
-  root: { style: { width: '100%' } },
-} as const;
 
 const collapsedIds = ref<Set<string>>(new Set());
 const editingAccountId = ref<string | null>(null);

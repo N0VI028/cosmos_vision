@@ -37,8 +37,8 @@
     modal
     dismissable-mask
     :header="editorTitle"
-    :style="editorDialogStyle"
-    :pt="MESSAGE_EDITOR_DIALOG_PT"
+    :style="PROMPT_EDITOR_DIALOG_STYLE"
+    :pt="PROMPT_EDITOR_DIALOG_PT"
     @hide="closeEntryEditor"
   >
     <div v-if="editorDraft" class="cv-message-editor">
@@ -190,6 +190,7 @@ import {
   type PromptPersonTemplateEntryKind,
 } from '@/constants/novelai';
 import PromptEntryList from '@/panel/components/PromptEntryList.vue';
+import { PROMPT_EDITOR_DIALOG_PT, PROMPT_EDITOR_DIALOG_STYLE } from '@/panel/components/prompt-editor-dialog';
 import {
   MACRO_BUTTON_TOKENS,
   MACRO_OPTION_BUTTON_PT,
@@ -268,14 +269,6 @@ const entrySelectionRange = ref<TextRange | null>(null);
 const isCreatingEntry = ref(false);
 const isEditorVisible = ref(false);
 const isLoadingWorldbookSources = ref(false);
-const editorDialogStyle = {
-  width: '42rem',
-  maxHeight: 'min(42rem, calc(100dvh - 2rem))',
-  maxWidth: 'calc(100vw - 2rem)',
-} as const;
-const MESSAGE_EDITOR_DIALOG_PT = {
-  content: { style: { display: 'flex', flexDirection: 'column', overflowY: 'auto' } },
-} as const;
 
 let worldbookSourceRequestId = 0;
 let entryStatusRequestId = 0;

@@ -46,8 +46,8 @@
     modal
     dismissable-mask
     :header="editorTitle"
-    :style="EDITOR_DIALOG_STYLE"
-    :pt="EDITOR_DIALOG_PT"
+    :style="PROMPT_EDITOR_DIALOG_STYLE"
+    :pt="PROMPT_EDITOR_DIALOG_PT"
     @hide="closeMessageEditor"
   >
     <div v-if="editorDraft" class="cv-message-editor">
@@ -187,6 +187,7 @@ import {
   type PromptLlmMessageRole,
 } from '@/constants/novelai';
 import PromptEntryList from '@/panel/components/PromptEntryList.vue';
+import { PROMPT_EDITOR_DIALOG_PT, PROMPT_EDITOR_DIALOG_STYLE } from '@/panel/components/prompt-editor-dialog';
 import PromptLlmTriggerEditor from '@/panel/components/PromptLlmTriggerEditor.vue';
 import {
   MACRO_BUTTON_TOKENS,
@@ -248,16 +249,6 @@ const ROLE_OPTIONS = [
   { label: ROLE_LABELS.user, value: 'user' },
   { label: ROLE_LABELS.assistant, value: 'assistant' },
 ];
-
-const EDITOR_DIALOG_STYLE = {
-  width: '42rem',
-  maxHeight: 'min(42rem, calc(100dvh - 2rem))',
-  maxWidth: 'calc(100vw - 2rem)',
-} as const;
-
-const EDITOR_DIALOG_PT = {
-  content: { style: { display: 'flex', flexDirection: 'column', overflowY: 'auto' } },
-} as const;
 
 const messages = defineModel<PromptLlmMessage[]>({ required: true });
 const entryStatusMap = ref<Record<string, ResolvedPromptSourceEntry>>({});

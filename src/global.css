@@ -4,9 +4,17 @@
 @import 'tailwindcss/utilities.css' layer(utilities);
 @import 'tailwindcss-primeui';
 
-/* CosmosVision 样式隔离:对抗 ST unlayered 全局表单样式,unlayered 不进 @layer */
-@import './styles/isolation.css';
-@import './styles/primevue-toggle.css';
+/* CosmosVision 主题 token:设置面板与 Teleport overlay 共享 */
+@import './styles/theme-tokens.css';
+
+/* PrimeVue 变量桥接:让组件 token 与项目 token 在作用域内稳定对齐 */
+@import './styles/primevue-bridge.css';
+
+/* ST 宿主反压:处理 checkbox / input / button / text-shadow 等全局污染 */
+@import './styles/st-host-resets.css';
+
+/* CosmosVision 组件兜底:保留 token / PT 仍无法稳定表达的全局修正 */
+@import './styles/primevue-fallbacks.css';
 
 /* 避免 tailwindcss 扫描 dist 中的打包产物 */
 @source not "../dist";

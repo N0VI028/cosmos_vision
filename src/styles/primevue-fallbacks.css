@@ -1,0 +1,221 @@
+/**
+ * PrimeVue 组件级全局兜底
+ *
+ * 这里只保留 token / PT 仍然不够、但又不是 ST 宿主污染的组件结构与视觉修正。
+ * 这些规则仍属于“最后一层”，后续若能继续收口到 token / PT / 包装组件，应优先迁回。
+ */
+
+/* 密码输入框需要给右侧眼睛/切显按钮预留单独占位空间，防止长文本被遮挡 */
+.cosmos-vision-root .cv-prime-password > input.cv-prime-field,
+#cosmos_vision .cv-prime-password > input.cv-prime-field {
+  padding-inline-end: 2.5rem !important;
+}
+
+/* InputNumber 步进按钮 / Message 关闭按钮：扁平方块，跟随 input 边框 token */
+.cosmos-vision-root .cv-prime-icon-button,
+#cosmos_vision .cv-prime-icon-button {
+  background: transparent !important;
+  border-color: var(--p-inputtext-border-color) !important;
+  color: var(--p-text-muted-color) !important;
+}
+
+.cosmos-vision-root .cv-prime-galleria-nav-button,
+#cosmos_vision .cv-prime-galleria-nav-button {
+  pointer-events: auto !important;
+  touch-action: manipulation;
+}
+
+/* Button 默认圆角钉死，避免子作用域 bridge token 无法回传到 PrimeVue 已展开的半径字面值。 */
+.cosmos-vision-root .cv-prime-button:not([data-p~='rounded']),
+#cosmos_vision .cv-prime-button:not([data-p~='rounded']) {
+  border-radius: var(--cv-radius, 0.1333em) !important;
+}
+
+/* Outlined secondary 按钮在 hover 时的边框颜色补偿，当前仍需 CSS 兜底。 */
+.cosmos-vision-root
+  .cv-prime-button[data-p~='outlined'][data-p-severity='secondary']:not([data-p-disabled='true']):hover,
+#cosmos_vision
+  .cv-prime-button[data-p~='outlined'][data-p-severity='secondary']:not([data-p-disabled='true']):hover {
+  border-color: var(--cv-outline) !important;
+}
+
+/* Slider：紧凑轨道与可见手柄，避免轨道阴影和默认留白异常。 */
+.cosmos-vision-root .cv-prime-slider,
+#cosmos_vision .cv-prime-slider {
+  border: 0 !important;
+  box-shadow: none !important;
+  margin: var(--cv-space-xl) var(--cv-space-lg) var(--cv-space-md);
+}
+
+.cosmos-vision-root .cv-prime-slider-handle,
+#cosmos_vision .cv-prime-slider-handle {
+  border: var(--cv-border-width) solid var(--cv-outline) !important;
+  box-shadow: none !important;
+}
+
+.cosmos-vision-root .cv-prime-slider-handle::before,
+#cosmos_vision .cv-prime-slider-handle::before {
+  box-shadow: none !important;
+}
+
+/* SelectButton / ToggleButton checked 状态：保证选中态不会回退到宿主色值。 */
+.cosmos-vision-root .cv-prime-togglebutton[data-p-checked='true'],
+#cosmos_vision .cv-prime-togglebutton[data-p-checked='true'] {
+  background: var(--cv-primary-container) !important;
+  border-color: var(--cv-primary-container) !important;
+  color: var(--cv-on-primary-container) !important;
+}
+
+.cosmos-vision-root .cv-prime-togglebutton[data-p-checked='true'] .cv-prime-togglebutton-content,
+#cosmos_vision .cv-prime-togglebutton[data-p-checked='true'] .cv-prime-togglebutton-content {
+  color: inherit !important;
+}
+
+.cosmos-vision-root .cv-prime-togglebutton[data-p-checked='true'] .cv-prime-togglebutton-content > *,
+#cosmos_vision .cv-prime-togglebutton[data-p-checked='true'] .cv-prime-togglebutton-content > * {
+  color: inherit !important;
+}
+
+/**
+ * ToggleSwitch 可见性兜底
+ *
+ * PrimeVue V5 的 ToggleSwitch 轨道颜色来自 `toggleswitch.background` 等
+ * design token。这里用项目 PT 类补一层作用域内颜色，避免 token 解析回退或
+ * ST 全局样式污染时出现默认轨道透明。
+ */
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-toggleswitch-slider {
+  background: var(--cv-surface-container-high, var(--p-surface-200)) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root)
+  .cv-prime-toggleswitch:not([data-p-disabled='true']):hover
+  .cv-prime-toggleswitch-slider {
+  background: var(--cv-surface-container, var(--p-surface-300)) !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root)
+  .cv-prime-toggleswitch[data-p-checked='true']
+  .cv-prime-toggleswitch-slider {
+  background: var(--cv-primary-container, var(--p-primary-color)) !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-toggleswitch-handle {
+  background: var(--cv-surface-container-lowest, var(--p-surface-0)) !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root)
+  .cv-prime-toggleswitch[data-p-checked='true']
+  .cv-prime-toggleswitch-handle {
+  background: var(--cv-on-primary-container, var(--p-primary-contrast-color)) !important;
+}
+
+.cosmos-vision-root .cv-select-option[data-p-selected='true'] {
+  border-radius: var(--cv-radius-full) !important;
+}
+
+/* MultiSelect：当前还有一组内部节点需要全局补偿，后续再继续削减 `.p-*` 依赖。 */
+.cosmos-vision-root .p-multiselect,
+#cosmos_vision .p-multiselect {
+  background: var(--p-multiselect-background) !important;
+  border-color: var(--p-multiselect-border-color) !important;
+  color: var(--p-multiselect-color) !important;
+}
+
+.cosmos-vision-root .p-multiselect-label,
+#cosmos_vision .p-multiselect-label {
+  color: inherit !important;
+}
+
+.cosmos-vision-root .p-multiselect-dropdown,
+#cosmos_vision .p-multiselect-dropdown,
+.cosmos-vision-root .p-multiselect-clear-icon,
+#cosmos_vision .p-multiselect-clear-icon {
+  color: var(--cv-on-surface-variant) !important;
+}
+
+.cosmos-vision-root .p-multiselect-overlay {
+  background: var(--p-multiselect-overlay-background) !important;
+  border-color: var(--p-multiselect-overlay-border-color) !important;
+  color: var(--p-multiselect-overlay-color) !important;
+}
+
+.cosmos-vision-root .p-multiselect-header {
+  background: inherit !important;
+}
+
+/* InputTags / Chip：PrimeVue 当前缺少足够细的 token/PT 落点，先集中在 fallback 层。 */
+:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-inputtags, .cv-prime-inputtags-input) {
+  border-radius: calc((var(--cv-font-size-base) + var(--cv-space-2xl) * 2 + var(--cv-border-width) * 2) / 2) !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-inputtags-input {
+  background: var(--p-inputtext-background) !important;
+  border-color: var(--p-inputtext-border-color) !important;
+  color: var(--p-inputtext-color) !important;
+  min-height: calc(var(--cv-font-size-base) + var(--cv-space-lg) * 2 + var(--cv-border-width) * 2) !important;
+  padding: var(--cv-space-lg) var(--cv-space-5xl) !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) input.cv-prime-inputtags-input-field {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: var(--p-inputtext-color) !important;
+  font-size: var(--cv-font-size-sm) !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) input.cv-prime-inputtags-input-field::placeholder {
+  color: var(--p-inputtext-placeholder-color, var(--cv-on-surface-variant)) !important;
+  opacity: 0.65 !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip, .cv-prime-inputtags-chip, .p-multiselect .p-chip) {
+  background: var(--p-chip-background) !important;
+  border: var(--cv-border-width) solid var(--p-primary-color) !important;
+  border-radius: var(--cv-radius-full) !important;
+  color: var(--p-chip-color) !important;
+  box-shadow: none !important;
+  font-size: var(--cv-font-size-xs) !important;
+  gap: var(--cv-space-xs) !important;
+  line-height: 1.2 !important;
+  min-height: 1.85em !important;
+  padding: 0.25em 0.6em !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip-label, .cv-prime-inputtags-chip-label, .p-multiselect .p-chip-label) {
+  color: inherit !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip-remove-icon, .cv-prime-inputtags-chip-remove, .p-multiselect .p-chip-remove-icon) {
+  color: var(--p-chip-remove-icon-color) !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip-remove-icon, .cv-prime-inputtags-chip-remove, .p-multiselect .p-chip-remove-icon):hover {
+  color: var(--cv-on-surface) !important;
+}
+
+#cosmos_vision .cv-prime-textarea,
+.cosmos-vision-root .cv-prime-textarea {
+  border-radius: var(--cv-radius-md) !important;
+}
+
+/**
+ * Dialog 根圆角直接钉死
+ *
+ * PrimeVue 的 `--p-dialog-border-radius` 在 `:root` 上已展开为字面值，
+ * 子作用域 bridge token 不会回传，所以这里先直接兜底根圆角与容器视觉。
+ */
+.cosmos-vision-root.cv-dialog {
+  @apply overflow-hidden;
+  background: var(--p-dialog-background, var(--cv-surface-container-lowest)) !important;
+  border: none !important;
+  border-radius: var(--cv-radius-lg) !important;
+  box-shadow: var(--p-dialog-shadow, var(--cv-floating-shadow)) !important;
+  color: var(--p-dialog-color, var(--cv-on-surface)) !important;
+}
+
+.cv-dialog-mask {
+  @apply absolute! flex h-dvh w-dvw items-center justify-center;
+}

@@ -1,0 +1,82 @@
+.cosmos-vision-root {
+  --cv-surface: #ffffff;
+  --cv-surface-container-lowest: #ffffff;
+  --cv-surface-container-low: #ebedf0;
+  --cv-surface-container: #dde3ea;
+  --cv-surface-container-high: #d2d7df;
+  --cv-on-surface: #18202a;
+  --cv-on-surface-variant: color-mix(in srgb, var(--p-primary-color) 18%, #4d5968);
+  --cv-surface-variant: #cbd3dd;
+  --cv-surface-bright: var(--cv-surface-variant);
+  --cv-outline: color-mix(in srgb, var(--p-primary-color) 28%, #8a97a8);
+  --cv-primary-container: var(--p-primary-color);
+  --cv-on-primary-container: var(--p-primary-contrast-color);
+  --cv-background: #f8fafc;
+  --cv-font-headline: inherit;
+  --cv-font-body: inherit;
+  --cv-font-label: inherit;
+  --cv-gutter: var(--cv-space-8xl);
+  --cv-sidebar-width: 12.5333em;
+  --cv-popover-shadow: 0 0.4em 0.8em color-mix(in srgb, var(--cv-on-surface) 12%, transparent);
+  --cv-floating-shadow:
+    0 1.3333em 1.6667em -0.3333em color-mix(in srgb, var(--cv-on-surface) 14%, transparent),
+    0 0.6667em 0.6667em -0.3333em color-mix(in srgb, var(--cv-on-surface) 10%, transparent);
+}
+
+.cosmos-vision-root.cosmos-vision-app-dark,
+body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
+  --cv-surface: #121416;
+  --cv-surface-bright: #38393c;
+  --cv-surface-container-lowest: #121416;
+  --cv-surface-container-low: #1a1c1e;
+  --cv-surface-container: #1e2022;
+  --cv-surface-container-high: #282a2c;
+  --cv-on-surface: #e2e2e5;
+  --cv-on-surface-variant: color-mix(in srgb, var(--p-primary-color) 30%, #c4c6c8);
+  --cv-surface-variant: #333537;
+  --cv-outline: color-mix(in srgb, var(--p-primary-color) 40%, #8e9091);
+  --cv-background: #121416;
+  --cv-popover-shadow: 0 0.4em 0.8em rgba(0, 0, 0, 0.3);
+  --cv-floating-shadow:
+    0 1.3333em 1.6667em -0.3333em rgba(0, 0, 0, 0.3),
+    0 0.6667em 0.6667em -0.3333em rgba(0, 0, 0, 0.2);
+}
+
+/**
+ * CosmosVision 公共字号 / 间距 / 圆角 token
+ *
+ * 挂到 :root 供设置面板、Teleport overlay 和聊天区内联 UI 复用。
+ */
+:root {
+  --cv-font-size-base: var(--mainFontSize, var(--mainFontsSize, var(--mainfontsize, 1em)));
+  --cv-font-size-2xs: calc(var(--cv-font-size-base) * 0.75);
+  --cv-font-size-xs: calc(var(--cv-font-size-base) * 0.8);
+  --cv-font-size-sm: calc(var(--cv-font-size-base) * 0.85);
+  --cv-font-size-md: calc(var(--cv-font-size-base) * 0.9);
+  --cv-font-size-lg: calc(var(--cv-font-size-base) * 0.95);
+  --cv-font-size-xl: calc(var(--cv-font-size-base) * 1.0667);
+  --cv-font-size-2xl: calc(var(--cv-font-size-base) * 1.2);
+  --cv-font-size-3xl: calc(var(--cv-font-size-base) * 1.4);
+  --cv-font-size-4xl: calc(var(--cv-font-size-base) * 2.1333);
+  --cv-spacing-unit: calc(var(--cv-font-size-base) * 0.25);
+  --cv-space-xs: 0.2em;
+  --cv-space-sm: 0.2667em;
+  --cv-space-md: 0.4em;
+  --cv-space-lg: 0.5333em;
+  --cv-space-xl: 0.6667em;
+  --cv-space-2xl: 0.7333em;
+  --cv-space-3xl: 0.8em;
+  --cv-space-4xl: 0.9333em;
+  --cv-space-5xl: 1.0667em;
+  --cv-space-7xl: 1.3333em;
+  --cv-space-8xl: 1.5em;
+  --cv-space-10xl: 2.1333em;
+  --cv-space-12xl: 3.6em;
+  --cv-border-width: 0.0667em;
+  --cv-radius-sm: 0.2em;
+  --cv-radius: 0.5em;
+  --cv-radius-md: 0.75em;
+  --cv-radius-lg: 1em;
+  --cv-radius-xl: 2em;
+  --cv-radius-full: 999em;
+}
