@@ -118,7 +118,7 @@
 <script setup lang="ts">
 import { useDraggable, useLocalStorage, useWindowSize, onClickOutside } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
-import { DARK_CLASS } from '@/constants/theme';
+import { DARK_CLASS } from '@/constants/default-settings';
 import SettingsDialog from '@/panel/SettingsDialog.vue';
 import ImageDownloadDialog from '@/panel/components/ImageDownloadDialog.vue';
 import TextInputDialog from '@/panel/components/TextInputDialog.vue';

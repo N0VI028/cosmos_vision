@@ -49,7 +49,7 @@
 import { useMediaQuery } from '@vueuse/core';
 
 import SubTabNav from '@/panel/components/SubTabNav.vue';
-import { DARK_CLASS } from '@/constants/theme';
+import { DARK_CLASS } from '@/constants/default-settings';
 import {
   cloneInlineImageDownloadOptions,
   type InlineImageDownloadOptions,

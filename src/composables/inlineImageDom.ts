@@ -1,4 +1,4 @@
-import { DARK_CLASS } from '@/constants/theme';
+import { DARK_CLASS } from '@/constants/default-settings';
 import { render } from 'vue';
 
 export interface InlineActionButtonSpec {

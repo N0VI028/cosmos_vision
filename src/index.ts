@@ -2,7 +2,7 @@ import '@/global.css';
 import '@/styles/inline-image.css';
 import '@/styles/inline-lightbox.css';
 import App from '@/App.vue';
-import { DARK_CLASS } from '@/constants/theme';
+import { DARK_CLASS } from '@/constants/default-settings';
 import { cosmosPrimePt } from '@/services/primevue/primevue-pt';
 import { cosmosPrimePreset } from '@/services/primevue/primevue-theme';
 import { syncThemeColorToPrimary } from '@/services/primevue/theme-adapter';

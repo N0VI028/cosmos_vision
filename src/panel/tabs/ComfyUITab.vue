@@ -243,9 +243,10 @@ import {
   COMFYUI_RESOLUTION_PRESETS,
   COMFYUI_SAMPLERS,
   createComfyUILoraSetting,
+  createDefaultComfyUILoraSettings,
+  DEFAULT_COMFYUI_WORKFLOW_JSON,
   type ComfyUILoraSetting,
 } from '@/constants/comfyui';
-import { createDefaultComfyUILoraSettings, DEFAULT_COMFYUI_WORKFLOW_JSON } from '@/constants/default-comfyui-workflow';
 import { useResolutionPreset } from '@/composables/useResolutionPreset';
 import { fetchComfyUICheckpointNames, fetchComfyUILoraNames } from '@/services/comfyui/api';
 import { getComfyUIWorkflowValidationError } from '@/services/comfyui/workflow';

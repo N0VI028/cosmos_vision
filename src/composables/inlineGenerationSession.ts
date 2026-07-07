@@ -1,4 +1,4 @@
-import { DARK_CLASS } from '@/constants/theme';
+import { DARK_CLASS } from '@/constants/default-settings';
 import { preventInlineEventBubbling } from '@/composables/inlineImageDom';
 import { stopTavernHelperGeneration } from '@/services/tavern-helper/generation-control';
 import Message from 'primevue/message';

@@ -4,8 +4,7 @@ import defaultPromptLlmPresetSettings, {
   DEFAULT_PROMPT_LLM_HISTORY_MESSAGE_ID,
   DEFAULT_PROMPT_LLM_PARTICIPANT_MESSAGE_ID,
 } from '@/constants/default-prompt-llm-preset';
-import { COMFYUI_CUSTOM_RESOLUTION_PRESET, COMFYUI_DEFAULT_SAMPLER, type ImageSource } from '@/constants/comfyui';
-import { createDefaultComfyUILoraSettings, DEFAULT_COMFYUI_WORKFLOW_JSON } from '@/constants/default-comfyui-workflow';
+import { COMFYUI_CUSTOM_RESOLUTION_PRESET, COMFYUI_DEFAULT_SAMPLER, createDefaultComfyUILoraSettings, DEFAULT_COMFYUI_WORKFLOW_JSON, type ImageSource } from '@/constants/comfyui';
 import { createImagePromptPresetSettings } from '@/constants/image-prompt';
 import {
   createNovelAIVibePresetSettings,
@@ -72,7 +71,13 @@ export const DEFAULT_PROMPT_LLM_OUTPUT_FIELDS = {
   negative: 'negativePrompt',
 } as const satisfies PromptLlmOutputFields;
 
+/** 图像生成来源默认值 */
 export const DEFAULT_IMAGE_SOURCE: ImageSource = 'novelai';
+
+/** 设置窗口深色模式触发 class
+ * 仅挂在 CosmosVision Dialog 根节点,避免污染 ST 全局主题
+ */
+export const DARK_CLASS = 'cosmos-vision-app-dark';
 
 /** 暗色模式默认值,仅用于 localStorage 初始化与回退,不进入 ST extension_settings */
 export const DEFAULT_DARK_MODE = true;

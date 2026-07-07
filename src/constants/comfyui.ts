@@ -4,6 +4,7 @@ import {
   NOVELAI_RESOLUTION_PRESETS,
 } from '@/constants/novelai';
 import type { ImagePromptPresetReferences } from '@/constants/image-prompt';
+import defaultComfyUIWorkflowJson from './default-comfyui-workflow.json?raw';
 
 /** 图像生成来源 */
 export const IMAGE_SOURCES = [
@@ -49,6 +50,19 @@ export const COMFYUI_DEFAULT_SAMPLER = 'euler_ancestral';
 
 /** ComfyUI 可用的最大安全 seed */
 export const COMFYUI_MAX_SEED = Number.MAX_SAFE_INTEGER;
+
+/** ComfyUI 默认工作流
+ * 来自 https://github.com/willmiao/ComfyUI-Lora-Manager 的示例模板
+ */
+export const DEFAULT_COMFYUI_WORKFLOW_JSON = defaultComfyUIWorkflowJson.trim();
+
+/**
+ * 创建默认 ComfyUI LoRA 设置
+ * @returns 可安全修改的默认 LoRA 列表
+ */
+export function createDefaultComfyUILoraSettings(): ComfyUILoraSetting[] {
+  return [];
+}
 
 /** 图像来源类型 */
 export type ImageSource = (typeof IMAGE_SOURCES)[number]['value'];

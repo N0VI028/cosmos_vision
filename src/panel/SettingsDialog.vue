@@ -281,7 +281,7 @@
 import { onClickOutside, useEventListener, useMediaQuery } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 
-import { DARK_CLASS } from '@/constants/theme';
+import { DARK_CLASS } from '@/constants/default-settings';
 import '@/panel/styles/settings-dialog.css';
 import ComfyUITab from '@/panel/tabs/ComfyUITab.vue';
 import MainTab from '@/panel/tabs/MainTab.vue';

@@ -43,7 +43,7 @@
 <script setup lang="ts">
 import { useMediaQuery } from '@vueuse/core';
 
-import { DARK_CLASS } from '@/constants/theme';
+import { DARK_CLASS } from '@/constants/default-settings';
 
 type TextInputRef = { $el?: HTMLElement } | HTMLElement | null;
 
