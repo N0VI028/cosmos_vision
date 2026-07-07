@@ -506,7 +506,7 @@ export function useInlineImageGeneration(
     session: InlineGenerationSession,
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
   ): Promise<InlineGenerationResult> {
-    const context = { ...buildPromptLlmContextFromParagraph(paragraph), specialRequest };
+    const context = { ...buildPromptLlmContextFromParagraph(paragraph, settings.promptLlm), specialRequest };
     return settings.imageSource === 'comfyui'
       ? generateComfyUIImageResult(context, session, onSnapshotResolved)
       : generateNovelAIImageResult(context, session, onSnapshotResolved);

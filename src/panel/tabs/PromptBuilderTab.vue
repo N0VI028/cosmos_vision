@@ -1,5 +1,32 @@
 <template>
   <div class="cv-tab-content">
+    <h2 class="cv-section-title">历史上下文</h2>
+    <div class="cv-section-body">
+      <div>
+        <div class="flex flex-col gap-(--cv-space-5xl)">
+          <label class="cv-field">
+            <span>发送的楼层数</span>
+            <InputNumber
+              v-model="settings.promptLlm.historyFloorCount"
+              :min="0"
+              :step="1"
+              :use-grouping="false"
+              show-buttons
+            />
+            <div class="cv-field-hint">
+              输入 0 时仅发送焦点段落所在楼层
+            </div>
+          </label>
+          <div class="cv-field">
+            <label class="cv-field-inline" style="margin-bottom: 0">
+              <span>忽略用户楼层</span>
+              <ToggleSwitch v-model="settings.promptLlm.ignoreUserMessagesInHistory" />
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="cv-message-section-head">
       <h2 class="cv-section-title cv-prompt-builder-title">
         <span>提示词生成预设</span>

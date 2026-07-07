@@ -199,6 +199,10 @@ export interface PromptLlmSettings {
   topP: number;
   /** top_k(可选) */
   topK: number;
+  /** 向前追溯的历史楼层数，不含当前焦点楼层 */
+  historyFloorCount: number;
+  /** 追溯历史时是否忽略 user 楼层 */
+  ignoreUserMessagesInHistory: boolean;
   /** 是否优先 JSON Schema 解析(公共:所有生图渠道共享) */
   preferJsonSchemaExtraction: boolean;
   /** 正面提示词 JSON 字段名 */
@@ -217,7 +221,7 @@ export interface PromptLlmSettings {
 
 /** 提示词 LLM 运行时上下文 */
 export interface PromptLlmContext {
-  /** 焦点段落所属整条 mes 的全部历史段落 */
+  /** 按时间顺序拼装的历史上下文，末尾包含当前焦点楼层文本 */
   historyParagraphs: string[];
   /** 当前选中的高光段落 */
   focusParagraph: string;

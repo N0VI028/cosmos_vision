@@ -51,11 +51,11 @@ import {
   PROMPT_PERSON_INSERT_MODES,
   PROMPT_PERSON_KINDS,
   type PromptLlmMessagePresetSettings,
-  type PromptLlmSettings,
   type PromptProfilesSettings,
 } from '@/constants/novelai';
 import { normalizePromptLlmMessagePresets } from '@/services/prompt-llm/message-preset';
 import { normalizePromptLlmMessageKeywords } from '@/services/prompt-llm/message-trigger';
+import { promptLlmSettingsSchema, recoverPromptLlmSettings } from '@/store/prompt-llm-settings';
 /** ST extension_settings 中本扩展的 key */
 const SETTINGS_KEY = 'cosmos_vision';
 const DARK_MODE_STORAGE_KEY = 'cosmos-vision-dark-mode';
@@ -180,24 +180,6 @@ const comfyUISettingsSchema = z.object({
   seed: comfyUISeedSchema,
 });
 
-const promptLlmSettingsSchema = z.object({
-  proxyPreset: z.string(),
-  apiUrl: z.string(),
-  apiKey: z.string(),
-  model: z.string(),
-  source: z.string(),
-  temperature: z.number(),
-  maxTokens: z.number(),
-  topP: z.number(),
-  topK: z.number(),
-  preferJsonSchemaExtraction: z.boolean(),
-  positivePromptJsonField: z.string(),
-  negativePromptJsonField: z.string(),
-  positivePromptExtractPattern: z.string(),
-  positivePromptExtractReplacement: z.string(),
-  negativePromptExtractPattern: z.string(),
-  negativePromptExtractReplacement: z.string(),
-});
 const promptLlmMessageTriggerModeSchema = z.enum(PROMPT_LLM_MESSAGE_TRIGGER_MODES);
 
 const promptWorldbookSourceReferenceSchema = z.object({
@@ -547,34 +529,6 @@ function recoverComfyUILora(value: unknown, index: number): ComfyUILoraSetting {
     name: parseField(z.string(), record.name, fallback.name),
     strength: parseField(z.number(), record.strength, fallback.strength),
     enabled: parseField(z.boolean(), record.enabled, fallback.enabled),
-  };
-}
-
-/**
- * 从异常配置中恢复提示词 LLM 设置
- * @param value 提示词 LLM 原始设置
- * @returns 局部回退后的提示词 LLM 设置
- */
-function recoverPromptLlmSettings(value: unknown): PromptLlmSettings {
-  const fallback = DEFAULT_SETTINGS.promptLlm;
-  const { read } = createRecoveryReader(value, fallback);
-  return {
-    proxyPreset: read('proxyPreset', z.string()),
-    apiUrl: read('apiUrl', z.string()),
-    apiKey: read('apiKey', z.string()),
-    model: read('model', z.string()),
-    source: read('source', z.string()),
-    temperature: read('temperature', z.number()),
-    maxTokens: read('maxTokens', z.number()),
-    topP: read('topP', z.number()),
-    topK: read('topK', z.number()),
-    preferJsonSchemaExtraction: read('preferJsonSchemaExtraction', z.boolean()),
-    positivePromptJsonField: read('positivePromptJsonField', z.string()),
-    negativePromptJsonField: read('negativePromptJsonField', z.string()),
-    positivePromptExtractPattern: read('positivePromptExtractPattern', z.string()),
-    positivePromptExtractReplacement: read('positivePromptExtractReplacement', z.string()),
-    negativePromptExtractPattern: read('negativePromptExtractPattern', z.string()),
-    negativePromptExtractReplacement: read('negativePromptExtractReplacement', z.string()),
   };
 }
 

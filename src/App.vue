@@ -14,6 +14,8 @@
   </Teleport>
   <SettingsDialog
     v-model:visible="settingsVisible"
+    :initial-focus-message-id="settingsFocusMessageId"
+    :initial-focus-message-paragraphs="settingsFocusMessageParagraphs"
     :initial-focus-paragraph-text="settingsFocusParagraphText"
   />
   <TextInputDialog
@@ -129,7 +131,12 @@ import {
   type InlinePromptPairInputValue,
   type InlineTextInputOptions,
 } from '@/composables/useInlineImageGeneration';
-import { extractCleanParagraphText, getFocusedChatParagraph } from '@/services/sillytavern/chat-dom';
+import {
+  extractCleanParagraphText,
+  extractMessageParagraphs,
+  findMessageId,
+  getFocusedChatParagraph,
+} from '@/services/sillytavern/chat-dom';
 import { ensureTavernHelper } from '@/services/tavern-helper/availability';
 import {
   IMAGE_DOWNLOAD_OPTIONS_REQUEST_KEY,
@@ -166,6 +173,12 @@ const settingsVisible = ref(false);
 
 /** 打开设置时捕获的焦点段落文本快照 */
 const settingsFocusParagraphText = ref('');
+
+/** 打开设置时捕获的焦点楼层 ID 快照 */
+const settingsFocusMessageId = ref<string | null>(null);
+
+/** 打开设置时捕获的焦点整楼文本快照 */
+const settingsFocusMessageParagraphs = ref<string[]>([]);
 
 /** Speed Dial 菜单展开状态 */
 const speedDialOpen = ref(false);
@@ -308,10 +321,13 @@ function handleSettingsClick(): void {
 
 /**
  * 打开设置并清理段落生图选择态
- * 设置页只保留打开瞬间捕获的段落文本快照
+ * 设置页只保留打开瞬间捕获的焦点楼层快照
  */
 function openSettings(): void {
-  settingsFocusParagraphText.value = readFocusedParagraphText();
+  const paragraph = getFocusedChatParagraph();
+  settingsFocusParagraphText.value = readFocusedParagraphText(paragraph);
+  settingsFocusMessageId.value = paragraph ? findMessageId(paragraph) : null;
+  settingsFocusMessageParagraphs.value = paragraph ? extractMessageParagraphs(paragraph) : [];
   speedDialOpen.value = false;
   exitSelectionMode();
   ensureTavernHelper();
@@ -320,10 +336,10 @@ function openSettings(): void {
 
 /**
  * 读取当前焦点段落文本
+ * @param paragraph 当前焦点段落
  * @returns 当前选中段落的纯文本快照
  */
-function readFocusedParagraphText(): string {
-  const paragraph = getFocusedChatParagraph();
+function readFocusedParagraphText(paragraph = getFocusedChatParagraph()): string {
   return paragraph ? extractCleanParagraphText(paragraph) : '';
 }
 
@@ -332,6 +348,8 @@ function readFocusedParagraphText(): string {
  */
 function clearSettingsFocusParagraphText(): void {
   settingsFocusParagraphText.value = '';
+  settingsFocusMessageId.value = null;
+  settingsFocusMessageParagraphs.value = [];
 }
 
 /**

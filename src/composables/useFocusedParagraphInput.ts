@@ -1,11 +1,15 @@
 import { computed, inject, onBeforeUnmount, onMounted, ref, type ComputedRef, type Ref } from 'vue';
 
 import type { PromptLlmContext } from '@/constants/novelai';
+import { useSettingsStore } from '@/store/settings';
 import {
   buildPromptLlmContextFromParagraph,
   extractCleanParagraphText,
+  extractMessageParagraphs,
+  findMessageId,
   getFocusedChatParagraph,
 } from '@/services/sillytavern/chat-dom';
+import { readPromptLlmHistoryMessages } from '@/services/tavern-helper/chat-history';
 
 interface FocusedParagraphInputState {
   paragraphText: Ref<string>;
@@ -14,6 +18,8 @@ interface FocusedParagraphInputState {
 }
 
 export const FOCUSED_PARAGRAPH_TEXT_KEY = Symbol('focused-paragraph-text');
+export const FOCUSED_PARAGRAPH_MESSAGE_ID_KEY = Symbol('focused-paragraph-message-id');
+export const FOCUSED_PARAGRAPH_MESSAGE_PARAGRAPHS_KEY = Symbol('focused-paragraph-message-paragraphs');
 
 /**
  * 管理测试面板使用的焦点段落输入
@@ -22,13 +28,18 @@ export const FOCUSED_PARAGRAPH_TEXT_KEY = Symbol('focused-paragraph-text');
  * @returns 焦点段落输入状态与上下文构建函数
  */
 export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInputState {
+  const { settings } = useSettingsStore();
   const initialParagraphText = inject<ComputedRef<string> | null>(FOCUSED_PARAGRAPH_TEXT_KEY, null);
+  const initialMessageId = inject<ComputedRef<string | null> | null>(FOCUSED_PARAGRAPH_MESSAGE_ID_KEY, null);
+  const initialMessageParagraphs = inject<ComputedRef<string[]> | null>(FOCUSED_PARAGRAPH_MESSAGE_PARAGRAPHS_KEY, null);
   const paragraphText = ref(initialParagraphText?.value || initialValue);
+  const messageId = ref<string | null>(initialMessageId?.value ?? null);
+  const messageParagraphs = ref<string[]>([...(initialMessageParagraphs?.value ?? [])]);
   const hasFocusedChatParagraph = ref(false);
   const hasFocusedParagraph = computed(() => hasFocusedChatParagraph.value || Boolean(paragraphText.value.trim()));
 
   onMounted(() => {
-    syncFocusedParagraph(paragraphText, hasFocusedChatParagraph, initialParagraphText);
+    syncFocusedParagraph();
     document.addEventListener('pointerup', handleDocumentPointerUp, true);
   });
 
@@ -42,7 +53,7 @@ export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInp
    */
   function handleDocumentPointerUp(): void {
     window.setTimeout(() => {
-      syncFocusedParagraph(paragraphText, hasFocusedChatParagraph, initialParagraphText);
+      syncFocusedParagraph();
     }, 50);
   }
 
@@ -53,34 +64,45 @@ export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInp
   function buildTestContext(): PromptLlmContext {
     const focusedParagraph = getFocusedChatParagraph();
     if (!focusedParagraph) {
-      return buildManualPromptLlmContext(paragraphText.value);
+      return buildManualPromptLlmContext(
+        paragraphText.value,
+        messageId.value,
+        messageParagraphs.value,
+        settings.promptLlm,
+      );
     }
-    return buildPromptLlmContextFromParagraph(focusedParagraph);
+    return buildPromptLlmContextFromParagraph(focusedParagraph, settings.promptLlm);
   }
 
-  return { paragraphText, hasFocusedParagraph, buildTestContext };
-}
+  /**
+   * 同步当前焦点段落文本与楼层快照
+   */
+  function syncFocusedParagraph(): void {
+    const focusedParagraph = getFocusedChatParagraph();
+    hasFocusedChatParagraph.value = Boolean(focusedParagraph);
+    if (!focusedParagraph) {
+      syncInitialFocusedParagraph();
+      return;
+    }
+    paragraphText.value = extractCleanParagraphText(focusedParagraph);
+    messageId.value = findMessageId(focusedParagraph);
+    messageParagraphs.value = extractMessageParagraphs(focusedParagraph);
+  }
 
-/**
- * 同步当前焦点段落文本
- * @param paragraphText 测试输入文本
- * @param hasFocusedChatParagraph 是否有实时焦点段落
- * @param initialParagraphText 打开设置时捕获的焦点段落文本快照
- */
-function syncFocusedParagraph(
-  paragraphText: Ref<string>,
-  hasFocusedChatParagraph: Ref<boolean>,
-  initialParagraphText: ComputedRef<string> | null,
-): void {
-  const focusedParagraph = getFocusedChatParagraph();
-  hasFocusedChatParagraph.value = Boolean(focusedParagraph);
-  if (!focusedParagraph) {
+  /**
+   * 同步打开设置时捕获的焦点楼层快照
+   */
+  function syncInitialFocusedParagraph(): void {
     if (!paragraphText.value && initialParagraphText?.value) {
       paragraphText.value = initialParagraphText.value;
     }
-    return;
+    messageId.value ??= initialMessageId?.value ?? null;
+    if (!messageParagraphs.value.length) {
+      messageParagraphs.value = [...(initialMessageParagraphs?.value ?? [])];
+    }
   }
-  paragraphText.value = extractCleanParagraphText(focusedParagraph);
+
+  return { paragraphText, hasFocusedParagraph, buildTestContext };
 }
 
 /**
@@ -88,11 +110,32 @@ function syncFocusedParagraph(
  * @param content 手动输入内容
  * @returns Prompt LLM 上下文对象
  */
-function buildManualPromptLlmContext(content: string): PromptLlmContext {
+function buildManualPromptLlmContext(
+  content: string,
+  messageId: string | null,
+  messageParagraphs: string[],
+  settings: { historyFloorCount: number; ignoreUserMessagesInHistory: boolean },
+): PromptLlmContext {
   const focusParagraph = content.trim();
+  const currentParagraphs = normalizeManualMessageParagraphs(messageParagraphs, focusParagraph);
+  const historyParagraphs = readPromptLlmHistoryMessages(messageId, {
+    historyFloorCount: settings.historyFloorCount,
+    ignoreUserMessages: settings.ignoreUserMessagesInHistory,
+  });
   return {
-    historyParagraphs: focusParagraph ? [focusParagraph] : [],
+    historyParagraphs: [...historyParagraphs, ...currentParagraphs],
     focusParagraph,
     specialRequest: '',
   };
+}
+
+/**
+ * 规范化手动测试使用的当前楼层段落
+ * @param messageParagraphs 当前楼层段落快照
+ * @param focusParagraph 焦点段落文本
+ * @returns 可加入历史上下文的当前楼层段落
+ */
+function normalizeManualMessageParagraphs(messageParagraphs: string[], focusParagraph: string): string[] {
+  const paragraphs = messageParagraphs.map(paragraph => paragraph.trim()).filter(Boolean);
+  return paragraphs.length ? paragraphs : focusParagraph ? [focusParagraph] : [];
 }

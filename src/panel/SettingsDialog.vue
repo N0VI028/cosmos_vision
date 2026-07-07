@@ -290,7 +290,11 @@ import PromptLlmTab from '@/panel/tabs/PromptLlmTab.vue';
 import PromptProfilesTab from '@/panel/tabs/PromptProfilesTab.vue';
 import SubTabNav from '@/panel/components/SubTabNav.vue';
 import { useSettingsStore } from '@/store/settings';
-import { FOCUSED_PARAGRAPH_TEXT_KEY } from '@/composables/useFocusedParagraphInput';
+import {
+  FOCUSED_PARAGRAPH_MESSAGE_ID_KEY,
+  FOCUSED_PARAGRAPH_MESSAGE_PARAGRAPHS_KEY,
+  FOCUSED_PARAGRAPH_TEXT_KEY,
+} from '@/composables/useFocusedParagraphInput';
 
 type NavValue = 'main' | 'novelai' | 'comfyui' | 'prompt-llm' | 'prompt-profiles';
 type ThemeOption = { value: boolean; label: string; icon: string };
@@ -317,6 +321,8 @@ interface CustomPromptOptions {
 }
 
 interface Props {
+  initialFocusMessageId?: string | null;
+  initialFocusMessageParagraphs?: string[];
   initialFocusParagraphText?: string;
 }
 
@@ -334,6 +340,8 @@ const THEME_OPTIONS: ThemeOption[] = [
 ];
 
 const props = withDefaults(defineProps<Props>(), {
+  initialFocusMessageId: null,
+  initialFocusMessageParagraphs: () => [],
   initialFocusParagraphText: '',
 });
 
@@ -508,6 +516,8 @@ function showCustomPrompt(options: CustomPromptOptions): Promise<string | null> 
 
 provide('showConfirm', showCustomConfirm);
 provide('showPrompt', showCustomPrompt);
+provide(FOCUSED_PARAGRAPH_MESSAGE_ID_KEY, computed(() => props.initialFocusMessageId));
+provide(FOCUSED_PARAGRAPH_MESSAGE_PARAGRAPHS_KEY, computed(() => props.initialFocusMessageParagraphs));
 provide(FOCUSED_PARAGRAPH_TEXT_KEY, computed(() => props.initialFocusParagraphText));
 
 const dialogVisible = computed({

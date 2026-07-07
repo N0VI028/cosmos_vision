@@ -1,5 +1,8 @@
-import type { PromptLlmContext } from '@/constants/novelai';
+import type { PromptLlmContext, PromptLlmSettings } from '@/constants/novelai';
 import { chat } from '@sillytavern/script';
+import { readPromptLlmHistoryMessages } from '@/services/tavern-helper/chat-history';
+
+const MESSAGE_TEXT_BLOCK_SELECTOR = 'p, li, blockquote, pre, h1, h2, h3, h4, h5, h6';
 
 /**
  * ST 聊天 DOM 段落定位与上下文抽取
@@ -21,10 +24,7 @@ export interface InlineFavoriteAnchor {
  * @returns 段落文本(已去首尾空白)
  */
 export function extractCleanParagraphText(p: HTMLElement): string {
-  // 克隆后剥离插件注入节点,避免污染原文
-  const clone = p.cloneNode(true) as HTMLElement;
-  clone.querySelectorAll('.cv-inline-gen-btn, .cv-inline-toolbar, .cv-inline-favorite-wrap').forEach(el => el.remove());
-  return clone.textContent?.trim() ?? '';
+  return normalizeMessageTextBlock(readMessageTextNode(p));
 }
 
 /**
@@ -102,45 +102,131 @@ export function findInlineFavoriteFallbackTarget(): InlineFavoriteAnchor | null 
 }
 
 /**
- * 获取目标段落所属 mes 内的全部段落元素
+ * 获取目标段落所属 mes 内的语义文本块元素
  * @param targetP 目标段落 DOM 元素
- * @returns 同一条 mes 内的段落元素数组
+ * @returns 同一条 mes 内的文本块元素数组
  */
-function getMessageParagraphElements(targetP: HTMLElement): HTMLElement[] {
+function getMessageTextBlockElements(targetP: HTMLElement): HTMLElement[] {
   const mesBlock = targetP.closest('[mesid]');
   if (!(mesBlock instanceof HTMLElement)) {
     throw new Error('未找到目标段落所属消息');
   }
-  return Array.from(mesBlock.querySelectorAll('.mes_text p'));
+  const elements = Array.from(mesBlock.querySelectorAll(`.mes_text :is(${MESSAGE_TEXT_BLOCK_SELECTOR})`));
+  return elements.filter(isLeafMessageTextBlock);
 }
 
 /**
- * 提取目标段落所属 mes 的全部段落文本
+ * 提取目标段落所属 mes 的全部语义文本块
  * @param targetP 目标段落 DOM 元素
- * @returns 整层历史段落文本数组
+ * @returns 整层历史文本块数组
  */
 export function extractMessageParagraphs(targetP: HTMLElement): string[] {
-  const historyParagraphs = extractParagraphTexts(getMessageParagraphElements(targetP));
-  if (historyParagraphs.length > 0) return historyParagraphs;
+  const messageBlocks = extractMessageTextBlockTexts(getMessageTextBlockElements(targetP));
+  if (messageBlocks.length > 0) return messageBlocks;
   const focusParagraph = extractCleanParagraphText(targetP);
   return focusParagraph ? [focusParagraph] : [];
 }
 
 /**
+ * 批量提取语义文本块文本
+ * @param elements 语义文本块元素
+ * @returns 清理后的文本块数组
+ */
+function extractMessageTextBlockTexts(elements: HTMLElement[]): string[] {
+  return elements.map(extractMessageTextBlockText).filter(Boolean);
+}
+
+/**
+ * 提取单个语义文本块文本
+ * @param element 语义文本块元素
+ * @returns 已规范化空白的文本
+ */
+function extractMessageTextBlockText(element: HTMLElement): string {
+  return normalizeMessageTextBlock(readMessageTextNode(element));
+}
+
+/**
+ * 递归读取文本节点，并将 br 转为换行
+ * @param node DOM 节点
+ * @returns 节点文本
+ */
+function readMessageTextNode(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? '';
+  if (!(node instanceof HTMLElement)) return '';
+  if (hasCosmosInlineClass(node)) return '';
+  if (node.tagName === 'BR') return '\n';
+  return Array.from(node.childNodes).map(readMessageTextNode).join('');
+}
+
+/**
+ * 判断元素是否为 CosmosVision 注入的内联装饰节点
+ * 保留真实正文宿主上的选中态 class,只跳过插件附加内容
+ * @param element 待检查元素
+ * @returns 是否应跳过该节点
+ */
+function hasCosmosInlineClass(element: HTMLElement): boolean {
+  return Array.from(element.classList).some(className => className.startsWith('cv-inline') && className !== 'cv-inline-selected');
+}
+
+/**
+ * 判断语义块是否没有更深层语义块
+ * @param element 语义文本块元素
+ * @returns 是否作为本次抽取单位
+ */
+function isLeafMessageTextBlock(element: Element): element is HTMLElement {
+  return element instanceof HTMLElement && !element.querySelector(MESSAGE_TEXT_BLOCK_SELECTOR);
+}
+
+/**
+ * 规范化语义文本块空白
+ * @param text 原始文本
+ * @returns 保留换行后的文本
+ */
+function normalizeMessageTextBlock(text: string): string {
+  return text.replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').trim();
+}
+
+/**
  * 构建 Prompt LLM 所需的整层历史与焦点段落上下文
+ * 当前焦点楼层走 DOM，向前追溯的楼层走 TavernHelper 原始消息
  * @param targetP 当前焦点段落
+ * @param settings Prompt LLM 历史楼层设置
  * @returns Prompt LLM 运行时上下文
  */
-export function buildPromptLlmContextFromParagraph(targetP: HTMLElement): PromptLlmContext {
+export function buildPromptLlmContextFromParagraph(
+  targetP: HTMLElement,
+  settings: Pick<PromptLlmSettings, 'historyFloorCount' | 'ignoreUserMessagesInHistory'>,
+): PromptLlmContext {
   const focusParagraph = extractCleanParagraphText(targetP);
   if (!focusParagraph) {
     throw new Error('未找到目标段落文本');
   }
+  const historyParagraphs = buildPromptLlmHistoryParagraphs(targetP, settings);
   return {
-    historyParagraphs: extractMessageParagraphs(targetP),
+    historyParagraphs,
     focusParagraph,
     specialRequest: '',
   };
+}
+
+/**
+ * 构建 Prompt LLM 历史消息数组
+ * 焦点楼层始终保留，并追加到更早楼层原始消息之后
+ * @param targetP 当前焦点段落
+ * @param settings Prompt LLM 历史楼层设置
+ * @returns 按时间顺序拼接的历史消息
+ */
+function buildPromptLlmHistoryParagraphs(
+  targetP: HTMLElement,
+  settings: Pick<PromptLlmSettings, 'historyFloorCount' | 'ignoreUserMessagesInHistory'>,
+): string[] {
+  const currentParagraphs = extractMessageParagraphs(targetP);
+  const messageId = findMessageId(targetP);
+  const previousMessages = readPromptLlmHistoryMessages(messageId, {
+    historyFloorCount: settings.historyFloorCount,
+    ignoreUserMessages: settings.ignoreUserMessagesInHistory,
+  });
+  return [...previousMessages, ...currentParagraphs];
 }
 
 /**
