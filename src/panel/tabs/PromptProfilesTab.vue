@@ -21,11 +21,10 @@
         >
           <template #actions>
             <ToggleSwitch v-model="person.enabled" :aria-label="getPersonEnabledLabel(person)" />
-            <Button
+            <CvMiniButton
               icon="fa-solid fa-trash"
-              severity="danger"
-              text
-              rounded
+              size="small"
+              tone="danger"
               aria-label="删除人物"
               @click="deletePerson(person)"
             />
@@ -169,6 +168,7 @@
 
 <script setup lang="ts">
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
+import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import PromptSourceEntryList from '@/panel/components/PromptSourceEntryList.vue';
 import type { PromptPerson, PromptPersonInsertMode, PromptPersonKind } from '@/constants/novelai';
 import { useSettingsStore } from '@/store/settings';

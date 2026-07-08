@@ -285,5 +285,32 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: toggleButtonColor,
       },
     },
+    accordion: {
+      panel: {
+        borderWidth: '0',
+        borderColor: 'transparent',
+      },
+      header: {
+        background: 'transparent',
+        hoverBackground: 'transparent',
+        activeBackground: 'transparent',
+        activeHoverBackground: 'transparent',
+        borderWidth: '0',
+        borderColor: 'transparent',
+        padding: 'var(--cv-space-2xl)',
+        focusRing: {
+          width: '2px',
+          style: 'solid',
+          color: 'var(--p-primary-color)',
+          offset: '2px',
+          shadow: 'none',
+        },
+      },
+      content: {
+        background: 'transparent',
+        borderWidth: '0',
+        padding: '0',
+      },
+    },
   },
 });
