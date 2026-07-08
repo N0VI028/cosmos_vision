@@ -1,17 +1,4 @@
 .cosmos-vision-root {
-  --cv-surface: #ffffff;
-  --cv-surface-container-lowest: #ffffff;
-  --cv-surface-container-low: #ebedf0;
-  --cv-surface-container: #dde3ea;
-  --cv-surface-container-high: #d2d7df;
-  --cv-on-surface: #18202a;
-  --cv-on-surface-variant: color-mix(in srgb, var(--p-primary-color) 18%, #4d5968);
-  --cv-surface-variant: #cbd3dd;
-  --cv-surface-bright: var(--cv-surface-variant);
-  --cv-outline: color-mix(in srgb, var(--p-primary-color) 28%, #8a97a8);
-  --cv-primary-container: var(--p-primary-color);
-  --cv-on-primary-container: var(--p-primary-contrast-color);
-  --cv-background: #f8fafc;
   --cv-font-headline: inherit;
   --cv-font-body: inherit;
   --cv-font-label: inherit;
@@ -23,8 +10,9 @@
     0 0.6667em 0.6667em -0.3333em color-mix(in srgb, var(--cv-on-surface) 10%, transparent);
 }
 
+/* 深色模式 - 覆盖 :root 上的颜色变量 */
 .cosmos-vision-root.cosmos-vision-app-dark,
-body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
+:root:has(.cosmos-vision-root.cosmos-vision-app-dark) {
   --cv-surface: #121416;
   --cv-surface-bright: #38393c;
   --cv-surface-container-lowest: #121416;
@@ -36,6 +24,9 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
   --cv-surface-variant: #333537;
   --cv-outline: color-mix(in srgb, var(--p-primary-color) 40%, #8e9091);
   --cv-background: #121416;
+}
+
+.cosmos-vision-root.cosmos-vision-app-dark {
   --cv-popover-shadow: 0 0.4em 0.8em rgba(0, 0, 0, 0.3);
   --cv-floating-shadow:
     0 1.3333em 1.6667em -0.3333em rgba(0, 0, 0, 0.3),
@@ -79,4 +70,19 @@ body:has(.cosmos-vision-root.cosmos-vision-app-dark) .cosmos-vision-root {
   --cv-radius-lg: 1em;
   --cv-radius-xl: 2em;
   --cv-radius-full: 999em;
+
+  /* 浅色主题颜色变量 - 提升到 :root 供 PrimeVue 全局引用 */
+  --cv-surface: #ffffff;
+  --cv-surface-container-lowest: #ffffff;
+  --cv-surface-container-low: #ebedf0;
+  --cv-surface-container: #dde3ea;
+  --cv-surface-container-high: #d2d7df;
+  --cv-on-surface: #18202a;
+  --cv-on-surface-variant: color-mix(in srgb, var(--p-primary-color) 18%, #4d5968);
+  --cv-surface-variant: #cbd3dd;
+  --cv-surface-bright: var(--cv-surface-variant);
+  --cv-outline: color-mix(in srgb, var(--p-primary-color) 28%, #8a97a8);
+  --cv-primary-container: var(--p-primary-color);
+  --cv-on-primary-container: var(--p-primary-contrast-color);
+  --cv-background: #f8fafc;
 }

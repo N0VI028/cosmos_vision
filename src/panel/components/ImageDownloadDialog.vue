@@ -69,6 +69,7 @@ const emit = defineEmits<{
 const isMobile = useMediaQuery('(max-width: 66.6667em)');
 
 const dialogClass = computed(() => [
+  'cosmos-vision-root',
   'cv-confirm-dialog',
   'cv-image-download-dialog__root',
   { [DARK_CLASS]: props.darkMode },

@@ -28,7 +28,6 @@
             option-label="label"
             option-value="value"
             class="nai-sub-account-select"
-            :pt="SUBSCRIPTION_ACCOUNT_SELECT_PT"
           />
           <span v-else>账号订阅</span>
         </div>
@@ -90,13 +89,6 @@ import { useNovelAISubscription } from '@/composables/useNovelAISubscription';
 import { useSettingsStore } from '@/store/settings';
 
 const { settings, savedSettings } = useSettingsStore();
-const SUBSCRIPTION_ACCOUNT_SELECT_PT = {
-  label: {
-    class: 'cv-prime-field-text',
-    style: { padding: '0 var(--cv-space-xs) 0 0', color: 'var(--cv-on-surface)', fontWeight: '600' },
-  },
-  dropdown: { style: { width: 'auto', color: 'var(--cv-on-surface-variant)' } },
-} as const;
 
 /** 当前选中的账号序号 (0-based)，用于切换展示哪个账号的订阅 */
 const selectedIndex = ref(0);
@@ -199,6 +191,17 @@ function formatFetchedAt(ts: number): string {
   font-size: var(--cv-font-size-xl);
   font-weight: 600;
   color: var(--cv-on-surface) !important;
+}
+
+.nai-sub-account-select :deep(.p-select-label) {
+  padding: 0 var(--cv-space-xs) 0 0;
+  color: var(--cv-on-surface);
+  font-weight: 600;
+}
+
+.nai-sub-account-select :deep(.p-select-dropdown) {
+  width: auto;
+  color: var(--cv-on-surface-variant);
 }
 
 .nai-sub-empty {

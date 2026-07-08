@@ -271,3 +271,42 @@
 #cosmos_vision .cv-prime-button-label {
   @apply whitespace-nowrap;
 }
+
+/**
+ * 公共 PT 结构类
+ *
+ * 这些样式来自 `primevue-pt.ts` 注入的语义类，只承接跨组件复用的结构与尺寸，
+ * 不承载主题色或宿主反压职责。
+ */
+.cosmos-vision-root .cv-prime-selectbutton,
+#cosmos_vision .cv-prime-selectbutton {
+  @apply flex w-full;
+  gap: var(--cv-space-lg);
+  box-shadow: none;
+}
+
+.cosmos-vision-root .cv-prime-togglebutton,
+#cosmos_vision .cv-prime-togglebutton {
+  @apply min-w-0 flex-1 whitespace-nowrap;
+  font-family: var(--cv-font-label);
+  font-size: var(--cv-font-size-xs);
+  box-shadow: none;
+}
+
+.cosmos-vision-root .cv-prime-togglebutton-content,
+#cosmos_vision .cv-prime-togglebutton-content {
+  @apply flex w-full items-center justify-center whitespace-nowrap;
+  gap: var(--cv-space-lg);
+  box-shadow: none;
+}
+
+.cosmos-vision-root .cv-prime-panel-header,
+#cosmos_vision .cv-prime-panel-header {
+  @apply flex items-center;
+  gap: var(--cv-space-lg);
+}
+
+.cosmos-vision-root .cv-prime-image-preview-mask,
+#cosmos_vision .cv-prime-image-preview-mask {
+  border-radius: var(--cv-radius);
+}

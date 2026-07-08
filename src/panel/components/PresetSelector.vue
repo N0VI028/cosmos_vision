@@ -104,11 +104,8 @@ const emit = defineEmits<{
   'delete-preset': [id: string];
 }>();
 const PRESET_SELECT_PT = {
-  label: {
-    class: 'cv-prime-field-text',
-    style: { padding: '0 var(--cv-space-sm) 0 0', color: 'var(--p-primary-color)' },
-  },
-  dropdown: { style: { width: 'auto', color: 'var(--p-primary-color)' } },
+  label: { class: 'cv-prime-field-text cv-preset-select-label' },
+  dropdown: { class: 'cv-preset-select-dropdown' },
 } as const;
 
 const showConfirm =
@@ -189,6 +186,16 @@ async function handleDeleteActiveClick(): Promise<void> {
   color: var(--p-primary-color) !important;
   font-size: var(--cv-font-size-sm) !important;
   font-weight: 600;
+}
+
+.cv-preset-select :deep(.cv-preset-select-label) {
+  padding: 0 var(--cv-space-sm) 0 0;
+  color: var(--p-primary-color);
+}
+
+.cv-preset-select :deep(.cv-preset-select-dropdown) {
+  width: auto;
+  color: var(--p-primary-color);
 }
 
 .cv-preset-actions {
