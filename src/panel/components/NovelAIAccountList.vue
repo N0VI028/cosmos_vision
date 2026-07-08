@@ -13,7 +13,7 @@
         :key="account.id"
         :title="getAccountTitle(account, index)"
         :collapsed="isCollapsed(account.id)"
-        :disabled="!account.enabled"
+        :class="{ 'cv-account-item--disabled': !account.enabled }"
         @toggle="toggleCollapse(account.id)"
       >
         <template #title-extra>
@@ -37,6 +37,11 @@
         </template>
 
         <template #actions>
+          <ToggleSwitch
+            v-model="account.enabled"
+            :title="account.enabled ? '禁用账号' : '启用账号'"
+            :dt="{ width: '2rem', height: '1.2rem', handle: { size: '0.8rem' } }"
+          />
           <CvMiniButton
             icon="fa-solid fa-arrow-up"
             size="small"
@@ -51,7 +56,6 @@
             title="下移账号"
             @click="moveAccount(index, index + 1)"
           />
-          <ToggleSwitch v-model="account.enabled" :title="account.enabled ? '禁用账号' : '启用账号'" />
           <CvMiniButton
             icon="fa-solid fa-trash"
             size="small"
@@ -68,13 +72,7 @@
           </label>
           <label class="cv-account-field">
             <span>API Key</span>
-            <Password
-              v-model="account.apiKey"
-              class="w-full"
-              :feedback="false"
-              toggle-mask
-              :input-class="'w-full'"
-            />
+            <Password v-model="account.apiKey" class="w-full" :feedback="false" toggle-mask :input-class="'w-full'" />
           </label>
         </div>
       </CollapsiblePanelItem>
@@ -253,6 +251,10 @@ function removeAccount(index: number): void {
 
 .cv-account-list__empty > i {
   font-size: 1.2rem;
+}
+
+.cv-account-item--disabled {
+  opacity: 0.62;
 }
 
 @media (max-width: 48rem) {

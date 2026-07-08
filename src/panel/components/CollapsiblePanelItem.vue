@@ -5,7 +5,7 @@
     @update:value="handleAccordionChange"
   >
     <AccordionPanel value="0" :disabled="disabled">
-      <AccordionHeader :pt="{ root: { style: { gap: 'var(--cv-space-sm)' } }, toggleIcon: { class: 'hidden' } }">
+      <AccordionHeader :pt="{ root: { style: { gap: 'var(--cv-space-lg)' } }, toggleIcon: { class: 'hidden' } }">
         <i
           :class="[
             'fa-solid',
@@ -20,7 +20,7 @@
           </span>
           <slot name="title-extra" />
         </div>
-        <div v-if="$slots.actions" class="flex shrink-0 items-center gap-(--cv-space-3xl) max-[38rem]:flex-wrap max-[38rem]:justify-end" @click.stop @keydown.stop>
+        <div v-if="$slots.actions" class="flex items-center gap-(--cv-space-5xl) justify-end" @click.stop @keydown.stop>
           <slot name="actions" />
         </div>
       </AccordionHeader>
