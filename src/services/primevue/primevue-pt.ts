@@ -1,5 +1,5 @@
 import type { PrimeVuePTOptions } from 'primevue/config';
-import { sliderToken } from './primevue-tokens';
+import type { InputTagsPassThroughOptions } from 'primevue/inputtags';
 
 const fieldRoot = { class: 'cv-prime-field' } as const;
 const buttonRoot = { class: 'cv-prime-button' } as const;
@@ -18,58 +18,17 @@ const checkbox = {
 } as const;
 const selectButtonRoot = {
   class: 'cv-prime-selectbutton',
-  style: { display: 'flex', gap: 'var(--cv-space-lg)', width: '100%', boxShadow: 'none' },
 } as const;
 const selectButtonToggle = {
   root: {
     class: 'cv-prime-togglebutton',
-    style: {
-      flex: '1 1 0',
-      minWidth: '0',
-      fontFamily: 'var(--cv-font-label)',
-      fontSize: 'var(--cv-font-size-xs)',
-      whiteSpace: 'nowrap',
-      boxShadow: 'none',
-    },
   },
   content: {
     class: 'cv-prime-togglebutton-content',
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 'var(--cv-space-lg)',
-      width: '100%',
-      whiteSpace: 'nowrap',
-      boxShadow: 'none',
-    },
   },
 } as const;
 const sliderHandle = {
   class: 'cv-prime-slider-handle',
-} as const;
-const sliderRootStyle = {
-  '--p-slider-transition-duration': sliderToken.root.transitionDuration,
-  '--p-slider-track-background': sliderToken.track.background,
-  '--p-slider-track-border-radius': sliderToken.track.borderRadius,
-  '--p-slider-track-size': sliderToken.track.size,
-  '--p-slider-range-background': sliderToken.range.background,
-  '--p-slider-handle-width': sliderToken.handle.width,
-  '--p-slider-handle-height': sliderToken.handle.height,
-  '--p-slider-handle-border-radius': sliderToken.handle.borderRadius,
-  '--p-slider-handle-background': sliderToken.handle.background,
-  '--p-slider-handle-hover-background': sliderToken.handle.hoverBackground,
-  '--p-slider-handle-content-border-radius': sliderToken.handle.content.borderRadius,
-  '--p-slider-handle-content-background': sliderToken.handle.content.background,
-  '--p-slider-handle-content-hover-background': sliderToken.handle.content.hoverBackground,
-  '--p-slider-handle-content-width': sliderToken.handle.content.width,
-  '--p-slider-handle-content-height': sliderToken.handle.content.height,
-  '--p-slider-handle-content-shadow': sliderToken.handle.content.shadow,
-  '--p-slider-handle-focus-ring-width': sliderToken.handle.focusRing.width,
-  '--p-slider-handle-focus-ring-style': sliderToken.handle.focusRing.style,
-  '--p-slider-handle-focus-ring-color': sliderToken.handle.focusRing.color,
-  '--p-slider-handle-focus-ring-offset': sliderToken.handle.focusRing.offset,
-  '--p-slider-handle-focus-ring-shadow': sliderToken.handle.focusRing.shadow,
 } as const;
 const tag = {
   root: { class: 'cv-prime-tag' },
@@ -77,7 +36,7 @@ const tag = {
   label: { class: 'cv-prime-tag-label' },
 } as const;
 const imagePreviewMask = {
-  style: { borderRadius: 'var(--cv-radius)' },
+  class: 'cv-prime-image-preview-mask',
 } as const;
 const progressSpinner = {
   root: { class: 'cv-prime-progress-spinner' },
@@ -86,11 +45,6 @@ const progressSpinner = {
 } as const;
 const panelHeader = {
   class: 'cv-prime-panel-header',
-  style: {
-    display: 'flex',
-    gap: 'var(--cv-space-lg)',
-    alignItems: 'center',
-  },
 } as const;
 const panelContent = {
   class: 'cv-prime-panel-content',
@@ -124,6 +78,24 @@ const galleria = {
 } as const;
 
 /**
+ * InputTags Pass Through 集中配置
+ */
+export const cosmosInputTagsPt = {
+  root: { class: 'cv-prime-inputtags' },
+  item: { class: 'cv-prime-inputtags-chip-item' },
+  pcChip: {
+    root: { class: 'cv-prime-inputtags-chip' },
+    label: { class: 'cv-prime-inputtags-chip-label' },
+    removeIcon: { class: 'cv-prime-inputtags-chip-remove' },
+  },
+  pcAutoComplete: {
+    root: { class: 'cv-prime-inputtags-input' },
+    input: { class: 'cv-prime-inputtags-input-item' },
+    pcInputText: { root: { class: 'cv-prime-inputtags-input-field' } },
+  },
+} satisfies InputTagsPassThroughOptions;
+
+/**
  * PrimeVue Pass Through 集中配置
  */
 export const cosmosPrimePt = {
@@ -155,18 +127,6 @@ export const cosmosPrimePt = {
     pcOptionCheckbox: checkbox,
   },
   autocomplete: { overlay: fieldOverlay },
-  inputchips: {
-    root: { class: 'cv-prime-inputchips' },
-    input: { class: 'cv-prime-inputchips-input' },
-    chipItem: { class: 'cv-prime-inputchips-chip-item' },
-    inputItem: { class: 'cv-prime-inputchips-input-item' },
-    inputItemField: { class: 'cv-prime-inputchips-input-field' },
-    pcChip: {
-      root: { class: 'cv-prime-inputchips-chip' },
-      label: { class: 'cv-prime-inputchips-chip-label' },
-      removeIcon: { class: 'cv-prime-inputchips-chip-remove' },
-    },
-  },
   checkbox,
   datepicker: { panel: overlay },
   fluid: { root: { class: 'cv-prime-fluid' } },
@@ -211,7 +171,7 @@ export const cosmosPrimePt = {
     label: { class: 'cv-prime-togglebutton-label' },
   },
   slider: {
-    root: { class: 'cv-prime-slider', style: sliderRootStyle },
+    root: { class: 'cv-prime-slider' },
     range: { class: 'cv-prime-slider-range' },
     handle: sliderHandle,
     startHandler: sliderHandle,

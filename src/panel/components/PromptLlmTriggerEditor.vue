@@ -11,11 +11,12 @@
   </label>
 
   <div v-if="message.triggerMode === 'keyword'" class="cv-trigger-keywords">
-    <InputChips
+    <InputTags
       v-model="triggerKeywordsModel"
       :allow-duplicate="false"
+      :pt="cosmosInputTagsPt"
       add-on-blur
-      separator=","
+      delimiter=","
       placeholder="输入关键词，回车或逗号添加"
       class="cv-trigger-inputchips"
     />
@@ -26,6 +27,7 @@
 <script setup lang="ts">
 import type { PromptLlmMessage, PromptLlmMessageTriggerMode } from '@/constants/novelai';
 import { normalizePromptLlmMessageKeywords } from '@/services/prompt-llm/message-trigger';
+import { cosmosInputTagsPt } from '@/services/primevue/primevue-pt';
 
 const TRIGGER_MODE_OPTIONS: Array<{ label: string; value: PromptLlmMessageTriggerMode }> = [
   { label: '始终触发', value: 'always' },

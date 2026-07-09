@@ -19,41 +19,70 @@
           :disabled="person.enabled === false"
           @toggle="togglePerson(person.id)"
         >
+          <template #title>
+            <template v-if="editingPersonId === person.id">
+              <InputText
+                v-model="editingDraft"
+                class="cv-person-item__name-input"
+                size="small"
+                autofocus
+                @click.stop
+                @keydown.enter="finishEditing(person)"
+                @keydown.esc="finishEditing(person)"
+              />
+              <CvMiniButton
+                icon="fa-solid fa-check"
+                size="small"
+                aria-label="完成"
+                @click.stop="finishEditing(person)"
+              />
+            </template>
+            <template v-else>
+              <span class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)">
+                {{ person.name || '未命名人物' }}
+              </span>
+              <CvMiniButton
+                icon="fa-solid fa-pen"
+                size="small"
+                aria-label="重命名"
+                @click.stop="toggleEditing(person)"
+              />
+            </template>
+          </template>
+
           <template #actions>
-            <ToggleSwitch v-model="person.enabled" :aria-label="getPersonEnabledLabel(person)" />
-            <Button
+            <ToggleSwitch
+              v-model="person.enabled"
+              :aria-label="getPersonEnabledLabel(person)"
+              :dt="{ width: '2rem', height: '1.2rem', handle: { size: '0.8rem' } }"
+            />
+            <CvMiniButton
               icon="fa-solid fa-trash"
-              severity="danger"
-              text
-              rounded
+              size="small"
+              tone="danger"
               aria-label="删除人物"
               @click="deletePerson(person)"
             />
           </template>
 
           <section class="cv-person-editor">
-            <div class="cv-field-grid">
-              <label class="cv-field">
-                <span>人物名称</span>
-                <InputText v-model="person.name" />
-              </label>
-              <label class="cv-field">
-                <span>触发模式</span>
-                <Select
-                  v-model="person.insertMode"
-                  :options="INSERT_MODE_OPTIONS"
-                  option-label="label"
-                  option-value="value"
-                />
-              </label>
-            </div>
+            <label class="cv-field">
+              <span>触发模式</span>
+              <Select
+                v-model="person.insertMode"
+                :options="INSERT_MODE_OPTIONS"
+                option-label="label"
+                option-value="value"
+              />
+            </label>
 
             <h3 class="cv-person-section-title">关键词</h3>
-            <InputChips
+            <InputTags
               v-model="person.triggerKeywords"
               :allow-duplicate="false"
+              :pt="cosmosInputTagsPt"
               add-on-blur
-              separator=","
+              delimiter=","
               placeholder="输入关键词，回车或逗号添加"
               class="cv-trigger-inputchips"
             />
@@ -93,7 +122,7 @@
 
       <section v-else class="cv-person-empty-panel">
         <i class="fa-solid fa-user-gear" />
-        <span>请选择或创建一个人物设置</span>
+        <span>请创建一个人物设置</span>
       </section>
     </div>
   </div>
@@ -168,10 +197,12 @@
 
 <script setup lang="ts">
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
+import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import PromptSourceEntryList from '@/panel/components/PromptSourceEntryList.vue';
 import type { PromptPerson, PromptPersonInsertMode, PromptPersonKind } from '@/constants/novelai';
 import { useSettingsStore } from '@/store/settings';
 import { createPromptPerson } from '@/services/prompt-profiles/runtime';
+import { cosmosInputTagsPt } from '@/services/primevue/primevue-pt';
 import { getCurrentCharacterKey, getCurrentUserPersonaKey } from '@/services/tavern-helper/prompt-profiles-context';
 import {
   parsePromptPersonStaticTags,
@@ -188,6 +219,9 @@ const INSERT_MODE_OPTIONS: Array<{ label: string; value: PromptPersonInsertMode 
 const { settings } = useSettingsStore();
 const activeKind = defineModel<PromptPersonKind>('kind', { default: 'character' });
 const activePersonId = ref('');
+const editingPersonId = ref<string | null>(null);
+/** 编辑草稿：进入编辑时预填入旧人物名，确认时写回 person.name */
+const editingDraft = ref('');
 const isParsingTags = ref(false);
 const parsingPersonId = ref('');
 const isTagParseDialogVisible = ref(false);
@@ -286,6 +320,30 @@ function togglePerson(id: string): void {
 }
 
 /**
+ * 进入重命名模式，将旧名字预填入草稿
+ * @param person 人物配置
+ */
+function toggleEditing(person: PromptPerson): void {
+  if (editingPersonId.value === person.id) {
+    finishEditing(person);
+    return;
+  }
+  editingPersonId.value = person.id;
+  editingDraft.value = person.name;
+}
+
+/**
+ * 完成编辑，将草稿写回人物名
+ * @param person 人物配置
+ */
+function finishEditing(person: PromptPerson): void {
+  if (editingPersonId.value !== person.id) return;
+  person.name = editingDraft.value;
+  editingPersonId.value = null;
+  editingDraft.value = '';
+}
+
+/**
  * 删除指定人物
  * @param person 人物配置
  */
@@ -316,6 +374,7 @@ async function confirmDelete(name: string): Promise<boolean> {
  * @param id 人物 ID
  */
 function removePerson(id: string): void {
+  if (editingPersonId.value === id) editingPersonId.value = null;
   const index = settings.promptProfiles.profiles.findIndex(person => person.id === id);
   if (index !== -1) settings.promptProfiles.profiles.splice(index, 1);
 }
@@ -455,13 +514,6 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
   gap: var(--cv-space-4xl);
 }
 
-.cv-person-empty-panel {
-  border: var(--cv-border-width) solid var(--cv-surface-variant);
-  border-radius: var(--cv-radius-sm);
-  background: var(--cv-surface-container-low);
-  padding: var(--cv-space-2xl);
-}
-
 .cv-person-panel-list {
   @apply flex flex-col;
   gap: var(--cv-space-xl);
@@ -481,9 +533,12 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
   gap: var(--cv-space-md);
 }
 
-.cv-person-editor .cv-field-grid {
-  gap: var(--cv-space-3xl) var(--cv-space-7xl);
-  margin-bottom: 0;
+.cv-person-item__name-input {
+  flex: 0 1 auto;
+  width: 12rem;
+  min-width: 6rem;
+  max-width: 100%;
+  margin-right: var(--cv-space-lg);
 }
 
 .cv-person-section-header {
@@ -596,7 +651,7 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 
 .cv-profiles-empty,
 .cv-person-empty-panel {
-  @apply p-[var(--cv-space-5xl)] text-center;
+  @apply p-(--cv-space-5xl) text-center;
   color: var(--cv-on-surface-variant);
 }
 
@@ -604,5 +659,8 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
   @apply flex flex-col justify-center;
   gap: var(--cv-space-lg);
   min-height: 16rem;
+  border: var(--cv-border-width) solid var(--cv-surface-variant);
+  border-radius: var(--cv-radius-sm);
+  background: var(--cv-surface-container-low);
 }
 </style>

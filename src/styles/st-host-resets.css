@@ -1,0 +1,236 @@
+/**
+ * SillyTavern 宿主反压
+ *
+ * PrimeVue 已配置 `cssLayer: false`，这里保持 unlayered，让带作用域的类选择器
+ * 直接与 ST 未分层的全局标签样式竞争。这个文件只处理宿主污染反压，不承载
+ * 组件视觉定义或跨组件 fallback。
+ *
+ * 作用域锚点：
+ *   - `.cosmos-vision-root` —— Dialog 经 Teleport 后由 :pt 注入的根类
+ *   - `#cosmos_vision`       —— 扩展挂载容器
+ */
+
+/**
+ * 共享原生 checkbox 输入层几何纠偏
+ *
+ * 原生 input 在 PrimeVue Checkbox / ToggleSwitch 中只是透明命中层。
+ * ST 已有的视觉属性不重复反压，这里只清掉会偏移命中层的 margin / transform。
+ */
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-check-input {
+  @apply m-0;
+  transform: none;
+}
+
+/* 干掉 ST 给 checkbox 加的 ✓ 伪元素，避免覆盖在 ToggleSwitch handle 上 */
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-check-input::before {
+  content: none;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-toggleswitch-input {
+  @apply absolute inset-0 size-full overflow-hidden opacity-0;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+/**
+ * 反压 PrimeVue Checkbox 被 ST 全局 checkbox 样式污染
+ *
+ * MultiSelect 面板里的选项勾选框使用原生 checkbox 作为可访问性输入层，
+ * ST 的 `input[type='checkbox']` 会把它挤压成异常尺寸并带入浅色背景。
+ * 这里按 PrimeVue Checkbox 结构重置 input / box / icon，只作用于扩展作用域。
+ */
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox {
+  @apply relative inline-flex items-center justify-center;
+  width: var(--p-checkbox-width, 1.25rem);
+  height: var(--p-checkbox-height, 1.25rem);
+  flex: 0 0 auto;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox-input {
+  @apply absolute inset-0 size-full opacity-0;
+  z-index: 1;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox-box {
+  @apply inline-flex items-center justify-center shadow-none;
+  width: 100%;
+  height: 100%;
+  flex: 0 0 auto;
+  border: var(--cv-border-width) solid var(--p-checkbox-border-color, var(--cv-surface-variant));
+  border-radius: var(--p-checkbox-border-radius, var(--cv-radius-sm));
+  background: var(--p-checkbox-background, var(--cv-surface-container-high));
+  color: var(--p-checkbox-icon-color, var(--cv-on-surface));
+  transition:
+    background var(--p-checkbox-transition-duration, 0.2s),
+    border-color var(--p-checkbox-transition-duration, 0.2s),
+    color var(--p-checkbox-transition-duration, 0.2s);
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox-icon {
+  width: var(--p-checkbox-icon-size, 0.875rem);
+  height: var(--p-checkbox-icon-size, 0.875rem);
+  color: inherit;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox[data-p-checked='true'] .cv-prime-checkbox-box {
+  background: var(--p-checkbox-checked-background, var(--cv-primary-container));
+  border-color: var(--p-checkbox-checked-border-color, var(--cv-primary-container));
+  color: var(--p-checkbox-icon-checked-color, var(--cv-on-primary-container));
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox:not([data-p-disabled='true']):hover .cv-prime-checkbox-box {
+  border-color: var(--p-checkbox-hover-border-color, var(--cv-outline));
+}
+
+:is(#cosmos_vision, .cosmos-vision-root)
+  .cv-prime-checkbox[data-p-checked='true']:not([data-p-disabled='true']):hover
+  .cv-prime-checkbox-box {
+  background: var(--p-checkbox-checked-hover-background, var(--cv-primary-container));
+  border-color: var(--p-checkbox-checked-hover-border-color, var(--cv-primary-container));
+  color: var(--p-checkbox-icon-checked-hover-color, var(--cv-on-primary-container));
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox[data-p-disabled='true'] .cv-prime-checkbox-box {
+  background: var(
+    --p-checkbox-disabled-background,
+    color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent)
+  );
+  border-color: var(--p-checkbox-checked-disabled-border-color, var(--cv-surface-variant));
+  color: var(--p-checkbox-icon-disabled-color, var(--cv-on-surface-variant));
+}
+
+/**
+ * 反压 ST 全局 input / textarea 污染
+ *
+ * ST 主程序内联 <style> 注入了带 !important 的标签选择器：
+ *   input[type='text'|'number'|'switch'], input:not([type]), textarea:not([type='search']) {
+ *     background-color: var(--ui-color-sec) !important;
+ *     border: 固定描边 solid var(--ui-color-sec) !important;
+ *   }
+ * PrimeVue `.cv-prime-field` 压不过 ST 的标签级 + !important。
+ * 这里用作用域锚点 + !important 反压，把背景 / 边框 / 文字色还原到 PrimeVue token。
+ */
+.cosmos-vision-root input.cv-prime-field,
+#cosmos_vision input.cv-prime-field {
+  background: var(--p-inputtext-background) !important;
+  border-color: var(--p-inputtext-border-color) !important;
+  color: var(--p-inputtext-color) !important;
+}
+
+.cosmos-vision-root input.cv-prime-field.p-invalid,
+#cosmos_vision input.cv-prime-field.p-invalid {
+  border-color: var(--p-inputtext-invalid-border-color, var(--p-red-500)) !important;
+}
+
+.cosmos-vision-root textarea.cv-prime-textarea,
+#cosmos_vision textarea.cv-prime-textarea {
+  background: var(--p-textarea-background) !important;
+  border-color: var(--p-textarea-border-color) !important;
+  color: var(--p-textarea-color) !important;
+}
+
+.cosmos-vision-root textarea.cv-prime-textarea.p-invalid,
+#cosmos_vision textarea.cv-prime-textarea.p-invalid {
+  border-color: var(--p-textarea-invalid-border-color, var(--p-red-500)) !important;
+}
+
+.cosmos-vision-root input.cv-prime-field::placeholder,
+#cosmos_vision input.cv-prime-field::placeholder {
+  color: var(--p-inputtext-placeholder-color, var(--cv-on-surface-variant)) !important;
+  opacity: 0.65 !important;
+}
+
+.cosmos-vision-root textarea.cv-prime-textarea::placeholder,
+#cosmos_vision textarea.cv-prime-textarea::placeholder {
+  color: var(--p-textarea-placeholder-color, var(--cv-on-surface-variant)) !important;
+  opacity: 0.65 !important;
+}
+
+/* focus 状态：还原 PrimeVue focus token，避免被 ST `:focus` 规则覆盖 */
+.cosmos-vision-root input.cv-prime-field:focus,
+#cosmos_vision input.cv-prime-field:focus {
+  border-color: var(--p-inputtext-focus-border-color, var(--p-form-field-focus-border-color)) !important;
+  box-shadow: var(--p-inputtext-focus-ring-shadow) !important;
+}
+
+.cosmos-vision-root textarea.cv-prime-textarea:focus,
+#cosmos_vision textarea.cv-prime-textarea:focus {
+  border-color: var(--p-textarea-focus-border-color, var(--p-form-field-focus-border-color)) !important;
+  box-shadow: var(--p-textarea-focus-ring-shadow, var(--p-inputtext-focus-ring-shadow)) !important;
+}
+
+/**
+ * 反压 ST 全局 button 标签污染
+ *
+ * ST 会给 button 注入 background-image / box-shadow / text-transform /
+ * letter-spacing 等全局样式，这里只清理会破坏 PrimeVue 或扩展结构的宿主属性。
+ */
+.cosmos-vision-root
+  :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button),
+#cosmos_vision
+  :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button) {
+  @apply shrink-0 whitespace-nowrap;
+  background-image: none !important;
+  box-shadow: none !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+.cosmos-vision-root
+  :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button):not(
+    :disabled
+  ),
+#cosmos_vision
+  :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button):not(
+    :disabled
+  ) {
+  cursor: pointer !important;
+}
+
+/* 内联画廊缩略图 / 导航按钮：只反压 button 标签污染，保留自身视觉定义 */
+.cosmos-vision-root :is(.cv-inline-gallery-strip-item, .cv-inline-gallery-strip-nav),
+#cosmos_vision :is(.cv-inline-gallery-strip-item, .cv-inline-gallery-strip-nav) {
+  background-image: none !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+
+.cosmos-vision-root :is(.cv-inline-gallery-strip-item, .cv-inline-gallery-strip-nav):not(:disabled),
+#cosmos_vision :is(.cv-inline-gallery-strip-item, .cv-inline-gallery-strip-nav):not(:disabled) {
+  cursor: pointer !important;
+}
+
+/**
+ * 文字阴影消除
+ *
+ * SillyTavern 的“文字阴影”功能会给全局注入 text-shadow，影响扩展 UI 的易读性。
+ * 这里完全消除插件面板内的阴影，同时保留扩展入口按钮的宿主视觉。
+ */
+.cosmos-vision-root,
+.cosmos-vision-root *,
+#cosmos_vision :not(.cv-prime-button, .cv-prime-button *) {
+  text-shadow: none !important;
+}
+
+/**
+ * SettingsDialog 原生 button 反压
+ *
+ * 设置页内有少量原生 button 承载导航、折叠和关闭操作，需要先清掉宿主标签样式，
+ * 再交回各自 scoped CSS 定义。
+ */
+:where(.cosmos-vision-root .cv-shell button) {
+  background: transparent;
+  background-image: none;
+  border: 0;
+  outline: 0 none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-transform: none;
+  letter-spacing: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}

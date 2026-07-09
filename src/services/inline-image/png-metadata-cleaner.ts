@@ -22,6 +22,7 @@ interface ParsedPngChunks {
 
 /**
  * 清理 PNG 图像元数据
+ * 覆盖 NovelAI / ComfyUI 这类写入 PNG 文本块的提示词与工作流数据
  * @param source 原始图片 Blob
  * @returns 清理后的 PNG Blob
  */

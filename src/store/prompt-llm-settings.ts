@@ -28,6 +28,9 @@ export const promptLlmSettingsSchema = z.object({
   positivePromptExtractReplacement: z.string(),
   negativePromptExtractPattern: z.string(),
   negativePromptExtractReplacement: z.string(),
+  customIncludeBody: z.string(),
+  customExcludeBody: z.string(),
+  customIncludeHeaders: z.string(),
 });
 
 /**
@@ -57,6 +60,9 @@ export function recoverPromptLlmSettings(value: unknown): PromptLlmSettings {
     positivePromptExtractReplacement: read('positivePromptExtractReplacement', z.string()),
     negativePromptExtractPattern: read('negativePromptExtractPattern', z.string()),
     negativePromptExtractReplacement: read('negativePromptExtractReplacement', z.string()),
+    customIncludeBody: read('customIncludeBody', z.string()),
+    customExcludeBody: read('customExcludeBody', z.string()),
+    customIncludeHeaders: read('customIncludeHeaders', z.string()),
   };
 }
 

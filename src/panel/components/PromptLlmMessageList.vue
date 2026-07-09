@@ -1,5 +1,6 @@
 <template>
   <PromptEntryList
+    ref="entryList"
     v-model="messages"
     empty-text="暂无消息，点击下方按钮开始构建"
     :get-role="entry => (entry as PromptLlmMessage).role"
@@ -46,8 +47,8 @@
     modal
     dismissable-mask
     :header="editorTitle"
-    :style="EDITOR_DIALOG_STYLE"
-    :pt="EDITOR_DIALOG_PT"
+    :style="PROMPT_EDITOR_DIALOG_STYLE"
+    :pt="PROMPT_EDITOR_DIALOG_PT"
     @hide="closeMessageEditor"
   >
     <div v-if="editorDraft" class="cv-message-editor">
@@ -187,6 +188,7 @@ import {
   type PromptLlmMessageRole,
 } from '@/constants/novelai';
 import PromptEntryList from '@/panel/components/PromptEntryList.vue';
+import { PROMPT_EDITOR_DIALOG_PT, PROMPT_EDITOR_DIALOG_STYLE } from '@/panel/components/prompt-editor-dialog';
 import PromptLlmTriggerEditor from '@/panel/components/PromptLlmTriggerEditor.vue';
 import {
   MACRO_BUTTON_TOKENS,
@@ -249,17 +251,8 @@ const ROLE_OPTIONS = [
   { label: ROLE_LABELS.assistant, value: 'assistant' },
 ];
 
-const EDITOR_DIALOG_STYLE = {
-  width: '42rem',
-  maxHeight: 'min(42rem, calc(100dvh - 2rem))',
-  maxWidth: 'calc(100vw - 2rem)',
-} as const;
-
-const EDITOR_DIALOG_PT = {
-  content: { style: { display: 'flex', flexDirection: 'column', overflowY: 'auto' } },
-} as const;
-
 const messages = defineModel<PromptLlmMessage[]>({ required: true });
+const entryList = ref<InstanceType<typeof PromptEntryList> | null>(null);
 const entryStatusMap = ref<Record<string, ResolvedPromptSourceEntry>>({});
 const worldbookSourceOptions = ref<PromptWorldbookGroup[]>([]);
 const editorDraft = ref<PromptLlmMessageEditorDraft | null>(null);
@@ -354,10 +347,11 @@ async function loadWorldbookSources(): Promise<void> {
 }
 
 /**
- * 新增默认 LLM 条目
+ * 新增默认 LLM 条目，并滚动列表到底部
  */
 function addMessage(): void {
-  messages.value.push(createCustomPromptLlmMessage('user'));
+  messages.value = [...messages.value, createCustomPromptLlmMessage('user')];
+  entryList.value?.scrollToEnd();
 }
 
 /**
@@ -368,7 +362,7 @@ function deleteMessage(id: string): void {
   const index = messages.value.findIndex(message => message.id === id);
   if (index === -1) return;
   if (editorDraft.value?.id === id) closeMessageEditor();
-  messages.value.splice(index, 1);
+  messages.value = messages.value.filter(message => message.id !== id);
 }
 
 /**
@@ -397,9 +391,10 @@ function closeMessageEditor(): void {
 function saveMessageEditor(): void {
   const draft = editorDraft.value;
   if (!draft || !canSaveEditor.value) return;
-  const message = messages.value.find(item => item.id === draft.id);
-  if (!message) return closeMessageEditor();
-  Object.assign(message, buildSavedPromptLlmMessage(draft, worldbookSourceOptions.value));
+  const nextMessage = buildSavedPromptLlmMessage(draft, worldbookSourceOptions.value);
+  const nextMessages = messages.value.map(message => (message.id === draft.id ? { ...message, ...nextMessage } : message));
+  if (!nextMessages.some(message => message.id === draft.id)) return closeMessageEditor();
+  messages.value = nextMessages;
   closeMessageEditor();
 }
 

@@ -8,97 +8,85 @@
     </div>
 
     <div v-if="accounts.length" class="cv-account-list__items">
-      <div v-for="(account, index) in accounts" :key="account.id" class="cv-account-item">
-        <div class="cv-account-item__header" @click="toggleCollapse(account.id)">
-          <div class="cv-account-item__header-left">
-            <Button
-              :icon="isCollapsed(account.id) ? 'fa-solid fa-chevron-right' : 'fa-solid fa-chevron-down'"
+      <CollapsiblePanelItem
+        v-for="(account, index) in accounts"
+        :key="account.id"
+        :title="getAccountTitle(account, index)"
+        :collapsed="isCollapsed(account.id)"
+        :class="{ 'cv-account-item--disabled': !account.enabled }"
+        @toggle="toggleCollapse(account.id)"
+      >
+        <template #title>
+          <template v-if="editingAccountId === account.id">
+            <InputText
+              v-model="editingDraft"
+              class="cv-account-item__name-input"
               size="small"
-              text
-              rounded
-              :title="isCollapsed(account.id) ? '展开' : '收起'"
-              @click.stop="toggleCollapse(account.id)"
+              autofocus
+              @click.stop
+              @keydown.enter="finishEditing(account)"
+              @keydown.esc="finishEditing(account)"
             />
-            <template v-if="editingAccountId === account.id">
-              <InputText
-                v-model="account.name"
-                class="cv-account-item__name-input"
-                size="small"
-                placeholder="未命名"
-                autofocus
-                @click.stop
-                @keydown.enter="finishEditing"
-                @keydown.esc="finishEditing"
-              />
-            </template>
-            <template v-else>
-              <span class="cv-account-item__title" @click.stop>
-                <span class="cv-account-item__index">账号 {{ index + 1 }}</span>
-                <span v-if="account.name" class="cv-account-item__name">{{ account.name }}</span>
-                <span v-else class="cv-account-item__name-placeholder">未命名</span>
-              </span>
-            </template>
-            <Button
-              :icon="editingAccountId === account.id ? 'fa-solid fa-check' : 'fa-solid fa-pen'"
+            <CvMiniButton
+              icon="fa-solid fa-check"
               size="small"
-              text
-              rounded
-              :title="editingAccountId === account.id ? '完成' : '重命名'"
-              @click.stop="toggleEditing(account.id)"
+              title="完成"
+              @click.stop="finishEditing(account)"
             />
-          </div>
+          </template>
+          <template v-else>
+            <span class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)">
+              {{ getAccountTitle(account, index) }}
+            </span>
+            <CvMiniButton
+              icon="fa-solid fa-pen"
+              size="small"
+              title="重命名"
+              @click.stop="toggleEditing(account)"
+            />
+          </template>
+        </template>
 
-          <div class="cv-account-item__header-actions" @click.stop>
-            <Button
-              icon="fa-solid fa-arrow-up"
-              size="small"
-              text
-              rounded
-              :disabled="index === 0"
-              title="上移账号"
-              @click="moveAccount(index, index - 1)"
-            />
-            <Button
-              icon="fa-solid fa-arrow-down"
-              size="small"
-              text
-              rounded
-              :disabled="index === accounts.length - 1"
-              title="下移账号"
-              @click="moveAccount(index, index + 1)"
-            />
-            <ToggleSwitch v-model="account.enabled" :title="account.enabled ? '禁用账号' : '启用账号'" />
-            <Button
-              icon="fa-solid fa-trash"
-              size="small"
-              text
-              rounded
-              severity="danger"
-              title="删除账号"
-              @click="removeAccount(index)"
-            />
-          </div>
+        <template #actions>
+          <ToggleSwitch
+            v-model="account.enabled"
+            :title="account.enabled ? '禁用账号' : '启用账号'"
+            :dt="{ width: '2rem', height: '1.2rem', handle: { size: '0.8rem' } }"
+          />
+          <CvMiniButton
+            icon="fa-solid fa-arrow-up"
+            size="small"
+            :disabled="index === 0"
+            title="上移账号"
+            @click="moveAccount(index, index - 1)"
+          />
+          <CvMiniButton
+            icon="fa-solid fa-arrow-down"
+            size="small"
+            :disabled="index === accounts.length - 1"
+            title="下移账号"
+            @click="moveAccount(index, index + 1)"
+          />
+          <CvMiniButton
+            icon="fa-solid fa-trash"
+            size="small"
+            tone="danger"
+            title="删除账号"
+            @click="removeAccount(index)"
+          />
+        </template>
+
+        <div class="cv-account-item__body">
+          <label class="cv-account-field">
+            <span>NovelAI URL</span>
+            <InputText v-model="account.url" :placeholder="NOVELAI_DEFAULT_URL" />
+          </label>
+          <label class="cv-account-field">
+            <span>API Key</span>
+            <Password v-model="account.apiKey" class="w-full" :feedback="false" toggle-mask :input-class="'w-full'" />
+          </label>
         </div>
-
-        <Transition name="cv-collapse">
-          <div v-if="!isCollapsed(account.id)" class="cv-account-item__body">
-            <label class="cv-account-field">
-              <span>NovelAI URL</span>
-              <InputText v-model="account.url" :placeholder="NOVELAI_DEFAULT_URL" />
-            </label>
-            <label class="cv-account-field">
-              <span>API Key</span>
-              <Password
-                v-model="account.apiKey"
-                :feedback="false"
-                toggle-mask
-                :input-class="'w-full'"
-                :pt="PASSWORD_FIELD_PT"
-              />
-            </label>
-          </div>
-        </Transition>
-      </div>
+      </CollapsiblePanelItem>
     </div>
 
     <div v-else class="cv-account-list__empty">
@@ -112,14 +100,27 @@
 import { uuidv4 } from '@sillytavern/scripts/utils';
 
 import { createNovelAIAccount, NOVELAI_DEFAULT_URL, type NovelAIAccount } from '@/constants/novelai';
+import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
+import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 
 const accounts = defineModel<NovelAIAccount[]>({ required: true });
-const PASSWORD_FIELD_PT = {
-  root: { style: { width: '100%' } },
-} as const;
 
 const collapsedIds = ref<Set<string>>(new Set());
 const editingAccountId = ref<string | null>(null);
+/** 编辑草稿：进入编辑时预填入旧账号名，确认时写回 account.name */
+const editingDraft = ref<string>('');
+
+/**
+ * 获取账号标题
+ * @param account 账号对象
+ * @param index 账号序号
+ * @returns 账号标题
+ */
+function getAccountTitle(account: NovelAIAccount, index: number): string {
+  const prefix = `账号 ${index + 1}`;
+  if (account.name) return `${prefix} - ${account.name}`;
+  return `${prefix} - 未命名`;
+}
 
 /**
  * 判断账号是否处于收起状态
@@ -143,22 +144,27 @@ function toggleCollapse(accountId: string): void {
 }
 
 /**
- * 切换编辑模式
- * @param accountId 账号 id
+ * 进入重命名模式，将旧名字预填入草稿
+ * @param account 账号对象
  */
-function toggleEditing(accountId: string): void {
-  if (editingAccountId.value === accountId) {
-    editingAccountId.value = null;
-  } else {
-    editingAccountId.value = accountId;
+function toggleEditing(account: NovelAIAccount): void {
+  if (editingAccountId.value === account.id) {
+    finishEditing(account);
+    return;
   }
+  editingAccountId.value = account.id;
+  editingDraft.value = account.name;
 }
 
 /**
- * 完成编辑
+ * 完成编辑，将草稿写回账号名
+ * @param account 账号对象
  */
-function finishEditing(): void {
+function finishEditing(account: NovelAIAccount): void {
+  if (editingAccountId.value !== account.id) return;
+  account.name = editingDraft.value;
   editingAccountId.value = null;
+  editingDraft.value = '';
 }
 
 /**
@@ -221,76 +227,23 @@ function removeAccount(index: number): void {
 
 .cv-account-list__items {
   @apply flex flex-col;
-  gap: var(--cv-space-3xl);
-}
-
-.cv-account-item {
-  @apply flex flex-col;
-  border: var(--cv-border-width) solid var(--cv-surface-variant);
-  border-radius: var(--cv-radius);
-  background: var(--cv-surface-container);
-  overflow: hidden;
-}
-
-.cv-account-item__header {
-  @apply flex items-center justify-between;
-  gap: var(--cv-space-3xl);
-  padding: var(--cv-space-4xl) var(--cv-space-5xl);
-  cursor: pointer;
-  user-select: none;
-  transition: background-color 0.15s ease;
-}
-
-.cv-account-item__header:hover {
-  background: var(--cv-surface-container-high);
-}
-
-.cv-account-item__header-left {
-  @apply flex items-center;
-  gap: var(--cv-space-lg);
-  flex: 1;
-  min-width: 0;
-}
-
-.cv-account-item__title {
-  @apply flex items-center;
-  gap: var(--cv-space-md);
-  min-width: 0;
-}
-
-.cv-account-item__index {
-  @apply shrink-0;
-  color: var(--cv-on-surface);
-  font-weight: 600;
-}
-
-.cv-account-item__name {
-  color: var(--cv-on-surface);
-  font-weight: 500;
-}
-
-.cv-account-item__name-placeholder {
-  color: var(--cv-on-surface-variant);
-  font-style: italic;
-  opacity: 0.7;
+  gap: var(--cv-space-xl);
 }
 
 .cv-account-item__name-input {
-  flex: 1;
-  min-width: 8rem;
-  max-width: 20rem;
-}
-
-.cv-account-item__header-actions {
-  @apply inline-flex items-center;
-  gap: var(--cv-space-md);
+  flex: 0 1 auto;
+  width: 12rem;
+  min-width: 6rem;
+  max-width: 100%;
+  margin-right: var(--cv-space-lg);
 }
 
 .cv-account-item__body {
   @apply grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--cv-space-4xl);
-  padding: 0 var(--cv-space-5xl) var(--cv-space-5xl);
+  padding: var(--cv-space-2xl);
+  border-top: var(--cv-border-width) solid var(--cv-surface-variant);
 }
 
 .cv-account-field {
@@ -319,34 +272,11 @@ function removeAccount(index: number): void {
   font-size: 1.2rem;
 }
 
-/* 折叠过渡动画 */
-.cv-collapse-enter-active,
-.cv-collapse-leave-active {
-  transition: all 0.2s ease;
-  overflow: hidden;
-}
-
-.cv-collapse-enter-from,
-.cv-collapse-leave-to {
-  opacity: 0;
-  max-height: 0;
-}
-
-.cv-collapse-enter-to,
-.cv-collapse-leave-from {
-  opacity: 1;
-  max-height: 500px;
+.cv-account-item--disabled {
+  opacity: 0.62;
 }
 
 @media (max-width: 48rem) {
-  .cv-account-item__header {
-    @apply flex-col items-stretch;
-  }
-
-  .cv-account-item__header-actions {
-    @apply justify-end;
-  }
-
   .cv-account-item__body {
     grid-template-columns: 1fr;
   }

@@ -1,6 +1,5 @@
 import Aura from '@primeuix/themes/aura';
 import { definePreset } from '@primeuix/themes';
-import { sliderToken } from './primevue-tokens';
 
 const formFieldColor = {
   background: 'var(--cv-surface-container-high)',
@@ -45,6 +44,36 @@ const toggleButtonColor = {
 } as const;
 
 /**
+ * ToggleSwitch 颜色 token —— 显式挂到 light/dark,避免 Aura colorScheme 回退覆盖默认轨道色
+ */
+const toggleSwitchColor = {
+  root: {
+    background: 'var(--cv-surface-container-high)',
+    hoverBackground: 'var(--cv-surface-container)',
+    checkedBackground: 'var(--cv-primary-container)',
+    checkedHoverBackground: 'var(--cv-primary-container)',
+    disabledBackground: 'color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent)',
+    borderColor: 'transparent',
+    hoverBorderColor: 'transparent',
+    checkedBorderColor: 'transparent',
+    checkedHoverBorderColor: 'transparent',
+    invalidBorderColor: 'var(--p-red-500)',
+    shadow: 'none',
+  },
+  handle: {
+    background: 'var(--cv-surface-container-lowest)',
+    hoverBackground: 'var(--cv-surface-container-lowest)',
+    checkedBackground: 'var(--cv-on-primary-container)',
+    checkedHoverBackground: 'var(--cv-on-primary-container)',
+    disabledBackground: 'var(--cv-surface-container-lowest)',
+    color: 'var(--cv-on-surface-variant)',
+    hoverColor: 'var(--cv-on-surface)',
+    checkedColor: 'var(--cv-primary-container)',
+    checkedHoverColor: 'var(--cv-primary-container)',
+  },
+} as const;
+
+/**
  * PrimeVue 主题 preset
  */
 export const cosmosPrimePreset = definePreset(Aura, {
@@ -75,6 +104,11 @@ export const cosmosPrimePreset = definePreset(Aura, {
     },
   },
   components: {
+    inputtags: {
+      root: {
+        paddingY: 'var(--cv-space-xs)',
+      },
+    },
     select: {
       root: {
         paddingX: 'var(--p-form-field-padding-x)',
@@ -131,7 +165,79 @@ export const cosmosPrimePreset = definePreset(Aura, {
       },
     },
     textarea: { root: { borderRadius: 'var(--cv-radius-md)' } },
-    slider: sliderToken,
+    password: {
+      content: { gap: '0.5em' },
+      meter: { height: '0.75em' },
+    },
+    message: {
+      text: {
+        fontSize: 'var(--cv-font-size-sm)',
+        sm: { fontSize: 'var(--cv-font-size-xs)' },
+        lg: { fontSize: 'var(--cv-font-size-md)' },
+      },
+    },
+    slider: {
+      root: {
+        transitionDuration: 'var(--p-transition-duration, 0.2s)',
+      },
+      track: {
+        borderRadius: 'var(--cv-radius-full)',
+        size: '0.2667em',
+      },
+      range: {},
+      handle: {
+        width: '1.0667em',
+        height: '1.0667em',
+        borderRadius: '50%',
+        content: {
+          width: '0.4em',
+          height: '0.4em',
+          borderRadius: '50%',
+          shadow: 'none',
+        },
+        focusRing: {
+          width: 'var(--p-focus-ring-width, 0.1333em)',
+          style: 'var(--p-focus-ring-style, solid)',
+          color: 'var(--p-focus-ring-color, color-mix(in srgb, var(--cv-primary-container) 10%, transparent))',
+          offset: 'var(--p-focus-ring-offset, 0)',
+          shadow: 'var(--p-focus-ring-shadow, none)',
+        },
+      },
+      colorScheme: {
+        light: {
+          track: {
+            background: 'var(--cv-surface-variant)',
+          },
+          range: {
+            background: 'var(--cv-outline)',
+          },
+          handle: {
+            background: 'var(--cv-surface-container)',
+            hoverBackground: 'var(--cv-surface-container-high)',
+            content: {
+              background: 'var(--cv-on-surface)',
+              hoverBackground: 'var(--cv-on-surface)',
+            },
+          },
+        },
+        dark: {
+          track: {
+            background: 'var(--cv-surface-variant)',
+          },
+          range: {
+            background: 'var(--cv-outline)',
+          },
+          handle: {
+            background: 'var(--cv-surface-container)',
+            hoverBackground: 'var(--cv-surface-container-high)',
+            content: {
+              background: 'var(--cv-on-surface)',
+              hoverBackground: 'var(--cv-on-surface)',
+            },
+          },
+        },
+      },
+    },
     panel: {
       root: {
         background: 'transparent',
@@ -179,10 +285,9 @@ export const cosmosPrimePreset = definePreset(Aura, {
       },
     },
     toggleswitch: {
-      root: {
-        background: 'var(--cv-surface-container-high)',
-        checkedBackground: 'var(--cv-primary-container)',
-        checkedHoverBackground: 'var(--cv-primary-container)',
+      colorScheme: {
+        light: toggleSwitchColor,
+        dark: toggleSwitchColor,
       },
     },
     // ToggleButton:必须用 colorScheme.light/dark 显式覆盖 Aura 默认值。
@@ -194,6 +299,33 @@ export const cosmosPrimePreset = definePreset(Aura, {
       colorScheme: {
         light: toggleButtonColor,
         dark: toggleButtonColor,
+      },
+    },
+    accordion: {
+      panel: {
+        borderWidth: '0',
+        borderColor: 'transparent',
+      },
+      header: {
+        background: 'transparent',
+        hoverBackground: 'transparent',
+        activeBackground: 'transparent',
+        activeHoverBackground: 'transparent',
+        borderWidth: '0',
+        borderColor: 'transparent',
+        padding: 'var(--cv-space-2xl)',
+        focusRing: {
+          width: '2px',
+          style: 'solid',
+          color: 'var(--p-primary-color)',
+          offset: '2px',
+          shadow: 'none',
+        },
+      },
+      content: {
+        background: 'transparent',
+        borderWidth: '0',
+        padding: '0',
       },
     },
   },

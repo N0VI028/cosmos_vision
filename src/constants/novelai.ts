@@ -219,6 +219,12 @@ export interface PromptLlmSettings {
   negativePromptExtractPattern: string;
   /** 负面提示词正则替换模板 */
   negativePromptExtractReplacement: string;
+  /** 自定义源附加请求体参数(YAML 文本) */
+  customIncludeBody: string;
+  /** 自定义源排除请求体参数(YAML 文本) */
+  customExcludeBody: string;
+  /** 自定义源附加请求头(YAML 文本) */
+  customIncludeHeaders: string;
 }
 
 /** 提示词 LLM 运行时上下文 */

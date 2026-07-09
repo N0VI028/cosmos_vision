@@ -1,0 +1,33 @@
+.cv-macro-button-root {
+  width: max-content;
+  min-width: max-content;
+  /* 用 !important 压过 .p-button 的 padding，避免离场动画期间 dt scoped style 失效回退导致闪烁 */
+  padding: var(--cv-space-xs) var(--cv-space-lg) !important;
+}
+
+.cv-macro-trigger-button {
+  flex: 0 0 auto;
+}
+
+.cv-macro-option-button {
+  justify-content: flex-start;
+}
+
+.cv-macro-button-label {
+  font-size: var(--cv-font-size-2xs);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.cv-macro-popover {
+  width: max-content;
+  min-width: max-content;
+}
+
+.cv-macro-popover-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--cv-space-xs);
+  width: max-content;
+}

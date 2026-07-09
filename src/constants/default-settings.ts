@@ -4,7 +4,13 @@ import defaultPromptLlmPresetSettings, {
   DEFAULT_PROMPT_LLM_HISTORY_MESSAGE_ID,
   DEFAULT_PROMPT_LLM_PARTICIPANT_MESSAGE_ID,
 } from '@/constants/default-prompt-llm-preset';
-import { COMFYUI_CUSTOM_RESOLUTION_PRESET, COMFYUI_DEFAULT_SAMPLER, createDefaultComfyUILoraSettings, DEFAULT_COMFYUI_WORKFLOW_JSON, type ImageSource } from '@/constants/comfyui';
+import {
+  COMFYUI_CUSTOM_RESOLUTION_PRESET,
+  COMFYUI_DEFAULT_SAMPLER,
+  createComfyUILoraPresetSettings,
+  DEFAULT_COMFYUI_WORKFLOW_JSON,
+  type ImageSource,
+} from '@/constants/comfyui';
 import { createImagePromptPresetSettings } from '@/constants/image-prompt';
 import {
   createNovelAIVibePresetSettings,
@@ -125,7 +131,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     url: 'http://127.0.0.1:8188',
     workflowJson: DEFAULT_COMFYUI_WORKFLOW_JSON,
     checkpointName: '',
-    loras: createDefaultComfyUILoraSettings(),
+    loraPresets: createComfyUILoraPresetSettings(),
     positivePromptPresetId: DEFAULT_POSITIVE_PROMPT_PRESET_ID,
     negativePromptPresetId: DEFAULT_NEGATIVE_PROMPT_PRESET_ID,
     resolutionPreset: COMFYUI_CUSTOM_RESOLUTION_PRESET,
@@ -155,6 +161,9 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     positivePromptExtractReplacement: DEFAULT_PROMPT_EXTRACT_REPLACEMENT,
     negativePromptExtractPattern: DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN,
     negativePromptExtractReplacement: DEFAULT_PROMPT_EXTRACT_REPLACEMENT,
+    customIncludeBody: '',
+    customExcludeBody: '',
+    customIncludeHeaders: '',
   },
   promptLlmMessagePresets: defaultPromptLlmPresetSettings,
   promptProfiles: {

@@ -2,6 +2,7 @@ import type { ButtonDesignTokens } from '@primeuix/themes/types/button';
 import type { PopoverDesignTokens } from '@primeuix/themes/types/popover';
 import type { ButtonPassThroughOptions } from 'primevue/button';
 import type { PopoverPassThroughOptions } from 'primevue/popover';
+import './prompt-llm-macro-popover.css';
 import {
   PROMPT_LLM_FIXED_TAGS_TOKEN,
   PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN,
@@ -34,8 +35,6 @@ export const MACRO_BUTTON_TOKENS = {
   root: {
     borderRadius: 'var(--cv-radius-sm)',
     gap: '0',
-    paddingX: 'var(--cv-space-lg)',
-    paddingY: 'var(--cv-space-xs)',
     focusRing: { width: '0', style: 'none', offset: '0' },
     label: { fontWeight: '500' },
   },
@@ -61,31 +60,22 @@ export const MACRO_POPOVER_TOKENS = {
 } satisfies PopoverDesignTokens;
 
 export const MACRO_TRIGGER_BUTTON_PT = {
-  root: { class: 'cv-macro-trigger-button', style: { flex: '0 0 auto', width: 'max-content' } },
-  label: { style: { fontSize: 'var(--cv-font-size-2xs)', lineHeight: '1', whiteSpace: 'nowrap' } },
+  root: { class: 'cv-macro-button-root cv-macro-trigger-button' },
+  label: { class: 'cv-macro-button-label' },
 } satisfies ButtonPassThroughOptions;
 
 export const MACRO_OPTION_BUTTON_PT = {
   root: {
-    class: 'cv-macro-option-button',
-    style: { justifyContent: 'flex-start', width: 'max-content', minWidth: 'max-content' },
+    class: 'cv-macro-button-root cv-macro-option-button',
   },
-  label: { style: { fontSize: 'var(--cv-font-size-2xs)', lineHeight: '1', whiteSpace: 'nowrap' } },
+  label: { class: 'cv-macro-button-label' },
 } satisfies ButtonPassThroughOptions;
 
 export const MACRO_POPOVER_PT = {
   root: {
     class: 'cosmos-vision-root cv-macro-popover',
-    style: { width: 'max-content', minWidth: 'max-content' },
   },
   content: {
     class: 'cv-macro-popover-content',
-    style: {
-      alignItems: 'flex-start',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 'var(--cv-space-xs)',
-      width: 'max-content',
-    },
   },
 } satisfies PopoverPassThroughOptions;
