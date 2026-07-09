@@ -152,68 +152,13 @@
         </div>
       </div>
 
-      <div class="cv-lora-title-row">
-        <h2 class="cv-section-title">LoRA 库</h2>
-        <i
-          class="fa-solid fa-rotate cv-lora-refresh-icon"
-          :class="{ 'is-loading': isLoadingLoras }"
-          role="button"
-          tabindex="0"
-          aria-label="刷新 LoRA 库"
-          @click="fetchLoraOptions"
-          @keydown.enter="fetchLoraOptions"
-        />
-      </div>
-      <div class="cv-section-body">
-        <div class="cv-field">
-          <Fluid v-if="settings.comfyui.loras.length" class="cv-lora-list">
-            <div v-for="lora in settings.comfyui.loras" :key="lora.id" class="cv-lora-row">
-              <ToggleSwitch
-                v-model="lora.enabled"
-                class="cv-lora-toggle"
-                :aria-label="`${lora.name || '未命名 LoRA'} 启用状态`"
-              />
-              <Select
-                v-model="lora.name"
-                :options="loraOptions"
-                option-label="label"
-                option-value="value"
-                placeholder="选择 ComfyUI LoRA"
-                class="cv-lora-select w-full max-w-full"
-                :loading="isLoadingLoras"
-                aria-label="LoRA 文件"
-                filter
-              />
-              <InputNumber
-                v-model="lora.strength"
-                :min="-5"
-                :max="5"
-                :step="0.05"
-                :min-fraction-digits="0"
-                :max-fraction-digits="3"
-                :use-grouping="false"
-                placeholder="强度"
-                class="cv-lora-strength"
-                aria-label="LoRA 强度"
-              />
-              <Button
-                icon="fa-solid fa-trash"
-                severity="danger"
-                variant="outlined"
-                rounded
-                class="cv-lora-delete"
-                aria-label="删除 LoRA"
-                @click="removeLora(lora.id)"
-              />
-            </div>
-          </Fluid>
-          <div v-else class="cv-empty-lora-state">暂无 LoRA 覆盖</div>
-          <button type="button" class="cv-lora-add-button" @click="addLora">
-            <i class="fa-solid fa-plus" />
-            添加 LoRA
-          </button>
-        </div>
-      </div>
+      <ComfyUILoraPresetPanel
+        :preset-settings="settings.comfyui.loraPresets"
+        :lora-options="loraOptions"
+        :is-loading-loras="isLoadingLoras"
+        @update:preset-settings="settings.comfyui.loraPresets = $event"
+        @refresh-options="fetchLoraOptions"
+      />
 
       <h2 class="cv-section-title">生图提示词</h2>
       <div class="cv-section-body">
@@ -240,14 +185,14 @@ import {
   COMFYUI_MAX_SEED,
   COMFYUI_RESOLUTION_PRESETS,
   COMFYUI_SAMPLERS,
-  createComfyUILoraSetting,
-  createDefaultComfyUILoraSettings,
+  createComfyUILoraPresetSettings,
   DEFAULT_COMFYUI_WORKFLOW_JSON,
-  type ComfyUILoraSetting,
 } from '@/constants/comfyui';
 import { useResolutionPreset } from '@/composables/useResolutionPreset';
 import { fetchComfyUICheckpointNames, fetchComfyUILoraNames } from '@/services/comfyui/api';
+import { getActiveComfyUILoras } from '@/services/comfyui/lora-presets';
 import { getComfyUIWorkflowValidationError } from '@/services/comfyui/workflow';
+import ComfyUILoraPresetPanel from '@/panel/components/ComfyUILoraPresetPanel.vue';
 import { useSettingsStore } from '@/store/settings';
 import ImagePromptPresetPanel from '@/panel/components/ImagePromptPresetPanel.vue';
 import ComfyUITestTab from './ComfyUITestTab.vue';
@@ -296,7 +241,11 @@ const checkpointOptions = computed(() => buildTextOptions(checkpointNames.value,
 const loraOptions = computed(() =>
   buildTextOptions(
     loraNames.value,
-    settings.comfyui.loras.map(lora => lora.name),
+    (
+      settings.comfyui.loraPresets.presets.length
+        ? getActiveComfyUILoras(settings.comfyui.loraPresets)
+        : []
+    ).map(lora => lora.name),
   ),
 );
 const imageSizeLimits = COMFYUI_IMAGE_SIZE_LIMITS;
@@ -342,56 +291,18 @@ function appendTrimmedValues(target: Set<string>, values: readonly string[]): vo
 function fillDefaultWorkflowIfEmpty(): void {
   if (settings.comfyui.workflowJson.trim()) return;
   settings.comfyui.workflowJson = DEFAULT_COMFYUI_WORKFLOW_JSON;
-  if (!settings.comfyui.loras.length) replaceLoras(createDefaultComfyUILoraSettings());
+  if (!settings.comfyui.loraPresets.presets.length) {
+    settings.comfyui.loraPresets = createComfyUILoraPresetSettings();
+  }
 }
 
 /**
- * 恢复默认工作流与 LoRA 列表
+ * 恢复默认工作流与 LoRA 预设组
  */
 function restoreDefaultWorkflow(): void {
   settings.comfyui.workflowJson = DEFAULT_COMFYUI_WORKFLOW_JSON;
-  replaceLoras(createDefaultComfyUILoraSettings());
+  settings.comfyui.loraPresets = createComfyUILoraPresetSettings();
   toastr.success('已恢复默认工作流');
-}
-
-/**
- * 新增空白 LoRA 条目
- */
-function addLora(): void {
-  settings.comfyui.loras.push(createBlankLora());
-}
-
-/**
- * 删除指定 LoRA 条目
- * @param id LoRA 条目 ID
- */
-function removeLora(id: string): void {
-  const index = settings.comfyui.loras.findIndex(lora => lora.id === id);
-  if (index >= 0) settings.comfyui.loras.splice(index, 1);
-}
-
-/**
- * 替换 LoRA 设置列表
- * @param loras 新的 LoRA 设置列表
- */
-function replaceLoras(loras: ComfyUILoraSetting[]): void {
-  settings.comfyui.loras.splice(0, settings.comfyui.loras.length, ...loras);
-}
-
-/**
- * 创建空白 LoRA 设置
- * @returns 可编辑的 LoRA 设置
- */
-function createBlankLora(): ComfyUILoraSetting {
-  return createComfyUILoraSetting(createLoraId());
-}
-
-/**
- * 创建前端 LoRA 条目 ID
- * @returns LoRA 条目 ID
- */
-function createLoraId(): string {
-  return `comfyui-lora-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 /**
@@ -516,97 +427,6 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
   border-radius: var(--cv-radius);
 }
 
-.cv-lora-title-row {
-  @apply mb-[var(--cv-space-3xl)] flex items-end;
-  gap: var(--cv-space-md);
-}
-
-.cv-lora-title-row > .cv-section-title {
-  @apply mb-0;
-}
-
-.cv-lora-refresh-icon {
-  font-size: var(--cv-font-size-xs);
-  color: var(--cv-on-surface-variant);
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.cv-lora-refresh-icon:hover {
-  color: var(--p-primary-color);
-}
-
-.cv-lora-refresh-icon.is-loading {
-  animation: cv-lora-spin 0.8s linear infinite;
-}
-
-@keyframes cv-lora-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.cv-lora-add-button {
-  @apply mb-[var(--cv-space-lg)] flex w-full cursor-pointer items-center justify-center;
-  gap: var(--cv-space-sm);
-  padding: var(--cv-space-md) 0;
-  background: color-mix(in srgb, var(--cv-surface-container-low) 42%, transparent);
-  border: var(--cv-border-width) dashed var(--cv-surface-variant);
-  border-radius: var(--cv-radius-sm);
-  color: var(--cv-on-surface-variant);
-  transition: all 0.2s ease;
-  font-size: var(--cv-font-size-sm);
-}
-
-.cv-lora-add-button:hover {
-  background: var(--cv-surface-container-low);
-  color: var(--p-primary-color);
-  border-color: var(--cv-outline);
-}
-
-.cv-lora-list {
-  @apply flex flex-col;
-  gap: var(--cv-space-xl);
-}
-
-.cv-lora-row {
-  @apply grid items-center;
-  grid-template-columns: auto minmax(0, 1fr) 5.75rem auto;
-  gap: var(--cv-space-md);
-  padding-bottom: var(--cv-space-lg);
-  border-bottom: 1px solid var(--cv-surface-variant);
-}
-
-.cv-lora-row:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.cv-lora-toggle,
-.cv-lora-delete {
-  @apply self-center;
-}
-
-.cv-lora-select {
-  @apply min-w-0;
-}
-
-.cv-lora-strength {
-  @apply min-w-0 w-full;
-}
-
-.cv-lora-strength :deep(.cv-prime-field) {
-  @apply w-full text-center;
-}
-
-.cv-empty-lora-state {
-  @apply text-center;
-  color: var(--cv-on-surface-variant);
-  padding: var(--cv-space-xl);
-  border: var(--cv-border-width) dashed var(--cv-surface-variant);
-  border-radius: var(--cv-radius);
-}
-
 .cv-workflow-textarea {
   @apply resize-y overflow-y-auto;
   background: var(--cv-surface-variant);
@@ -618,13 +438,4 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
   font-size: var(--cv-font-size-sm);
 }
 
-@media (max-width: 32rem) {
-  .cv-lora-row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-  }
-
-  .cv-lora-strength {
-    grid-column: 2;
-  }
-}
 </style>

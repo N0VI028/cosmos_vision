@@ -19,7 +19,7 @@
         <div class="cv-image-download-dialog__field cv-image-download-dialog__field--row">
           <div class="cv-image-download-dialog__field-header">
             <span>清理 PNG 元数据</span>
-            <span class="cv-image-download-dialog__hint">移除NovelAI图片中的提示词等数据</span>
+            <span class="cv-image-download-dialog__hint">移除 NovelAI / ComfyUI 图片中的提示词、工作流等数据</span>
           </div>
           <ToggleSwitch v-model="options.cleanMetadata" />
         </div>

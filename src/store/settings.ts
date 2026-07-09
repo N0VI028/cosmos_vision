@@ -9,7 +9,9 @@ import {
   COMFYUI_RESOLUTION_PRESETS,
   COMFYUI_SAMPLERS,
   IMAGE_SOURCES,
+  createComfyUILoraPresetSettings,
   createComfyUILoraSetting,
+  type ComfyUILoraPresetSettings,
   type ComfyUILoraSetting,
   type ComfyUISettings,
 } from '@/constants/comfyui';
@@ -103,6 +105,19 @@ const comfyUILoraSchema = z.object({
   strength: z.number(),
   enabled: z.boolean(),
 });
+const comfyUILoraPresetSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().default(DEFAULT_PRESET_NAME),
+  loras: z.array(comfyUILoraSchema),
+});
+const comfyUILoraPresetSettingsBaseSchema = z.object({
+  activePresetId: z.string().min(1),
+  presets: z.array(comfyUILoraPresetSchema).min(1),
+});
+const comfyUILoraPresetSettingsSchema = comfyUILoraPresetSettingsBaseSchema.refine(
+  value => value.presets.some(preset => preset.id === value.activePresetId),
+  'activePresetId 必须指向已有 ComfyUI LoRA 预设',
+);
 
 const imagePromptPresetIdSchema = z.string().min(1);
 const imagePromptVibeRefSchema = z.object({
@@ -170,7 +185,7 @@ const comfyUISettingsSchema = z.object({
   url: z.string(),
   workflowJson: z.string(),
   checkpointName: z.string(),
-  loras: z.array(comfyUILoraSchema),
+  loraPresets: comfyUILoraPresetSettingsSchema,
   positivePromptPresetId: imagePromptPresetIdSchema,
   negativePromptPresetId: imagePromptPresetIdSchema,
   resolutionPreset: comfyUIResolutionPresetSchema,
@@ -281,6 +296,7 @@ function parseSettings(value: unknown): CosmosVisionSettings {
 function normalizeSettings(value: unknown): PlainRecord {
   const record = _.cloneDeep(toPlainRecord(value)) as PlainRecord;
   normalizeLegacyNovelAIGuidance(record);
+  normalizeLegacyComfyUILoraPresets(record);
   return _.defaultsDeep({}, record, DEFAULT_SETTINGS);
 }
 
@@ -303,6 +319,18 @@ function normalizeLegacyNovelAIGuidance(settings: PlainRecord): void {
   if ('guidance' in novelai || !('cfgScale' in novelai)) return;
   novelai.guidance = novelai.cfgScale;
   settings.novelai = novelai;
+}
+
+/**
+ * 兼容旧版 ComfyUI LoRA 单列表字段
+ * 旧字段 loras 只用于迁移，运行时统一使用 loraPresets
+ * @param settings 原始设置记录
+ */
+function normalizeLegacyComfyUILoraPresets(settings: PlainRecord): void {
+  const comfyui = toPlainRecord(settings.comfyui);
+  if ('loraPresets' in comfyui || !Array.isArray(comfyui.loras)) return;
+  comfyui.loraPresets = mapLegacyComfyUILorasToPresetSettings(recoverComfyUILoras(comfyui.loras));
+  settings.comfyui = comfyui;
 }
 
 /**
@@ -496,7 +524,7 @@ function recoverComfyUISettings(value: unknown): ComfyUISettings {
     url: read('url', z.string()),
     workflowJson: read('workflowJson', z.string()),
     checkpointName: read('checkpointName', z.string()),
-    loras: recoverComfyUILoras(record.loras),
+    loraPresets: recoverComfyUILoraPresetSettings(record.loraPresets, record.loras),
     positivePromptPresetId: read('positivePromptPresetId', imagePromptPresetIdSchema),
     negativePromptPresetId: read('negativePromptPresetId', imagePromptPresetIdSchema),
     resolutionPreset: read('resolutionPreset', comfyUIResolutionPresetSchema),
@@ -510,12 +538,52 @@ function recoverComfyUISettings(value: unknown): ComfyUISettings {
 }
 
 /**
+ * 从异常配置中恢复 ComfyUI LoRA 预设组
+ * @param value 原始 LoRA 预设组集合
+ * @param legacyLoras 旧版单列表 LoRA
+ * @returns 可安全使用的 LoRA 预设组集合
+ */
+function recoverComfyUILoraPresetSettings(value: unknown, legacyLoras: unknown): ComfyUILoraPresetSettings {
+  const result = comfyUILoraPresetSettingsBaseSchema.safeParse(value);
+  if (result.success) return normalizeComfyUILoraPresetSettings(result.data);
+  if (!Array.isArray(legacyLoras)) return _.cloneDeep(DEFAULT_SETTINGS.comfyui.loraPresets);
+  return mapLegacyComfyUILorasToPresetSettings(recoverComfyUILoras(legacyLoras));
+}
+
+/**
+ * 修复 ComfyUI LoRA 预设组的 activePresetId 引用
+ * @param settings 原始 LoRA 预设组集合
+ * @returns 可安全使用的 LoRA 预设组集合
+ */
+function normalizeComfyUILoraPresetSettings(settings: ComfyUILoraPresetSettings): ComfyUILoraPresetSettings {
+  const activePresetId = settings.presets.some(preset => preset.id === settings.activePresetId)
+    ? settings.activePresetId
+    : settings.presets[0].id;
+  return { ...settings, activePresetId };
+}
+
+/**
+ * 把旧版 LoRA 单列表映射到默认预设组
+ * @param loras 旧版 LoRA 列表
+ * @returns 新版 LoRA 预设组集合
+ */
+function mapLegacyComfyUILorasToPresetSettings(loras: ComfyUILoraSetting[]): ComfyUILoraPresetSettings {
+  const fallback = createComfyUILoraPresetSettings();
+  const [defaultPreset] = fallback.presets;
+  if (!defaultPreset) return fallback;
+  return {
+    activePresetId: fallback.activePresetId,
+    presets: [{ ...defaultPreset, loras }],
+  };
+}
+
+/**
  * 从异常配置中恢复 ComfyUI LoRA 列表
  * @param value 原始 LoRA 列表
  * @returns 可安全使用的 LoRA 列表
  */
 function recoverComfyUILoras(value: unknown): ComfyUILoraSetting[] {
-  if (!Array.isArray(value)) return _.cloneDeep(DEFAULT_SETTINGS.comfyui.loras);
+  if (!Array.isArray(value)) return [];
   return value.map((lora, index) => recoverComfyUILora(lora, index));
 }
 
@@ -526,7 +594,7 @@ function recoverComfyUILoras(value: unknown): ComfyUILoraSetting[] {
  * @returns 可安全使用的 LoRA 条目
  */
 function recoverComfyUILora(value: unknown, index: number): ComfyUILoraSetting {
-  const fallback = DEFAULT_SETTINGS.comfyui.loras[index] ?? createComfyUILoraSetting(`comfyui-lora-${index + 1}`);
+  const fallback = createComfyUILoraSetting(`comfyui-lora-${index + 1}`);
   const record = toPlainRecord(value);
   return {
     id: parseField(z.string().min(1), record.id, fallback.id),

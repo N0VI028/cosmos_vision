@@ -6,6 +6,7 @@ import {
 } from '@/constants/comfyui';
 import type { ImagePromptPresetSettings } from '@/constants/image-prompt';
 import { buildImagePromptPair, type ImagePromptPair } from '@/services/image-prompt/presets';
+import { getActiveComfyUILoras } from '@/services/comfyui/lora-presets';
 
 interface ComfyUIWorkflowNode {
   inputs?: Record<string, unknown>;
@@ -96,10 +97,11 @@ export function buildComfyUIResolvedRequestFromPrompts(
 ): ComfyUIResolvedRequest {
   const workflow = parseComfyUIWorkflow(settings.workflowJson);
   const context = buildWorkflowContext(settings, prompts);
+  const loras = getActiveComfyUILoras(settings.loraPresets);
 
   applyStandardWorkflowResolution(workflow, context);
   applyCheckpointOverride(workflow, settings.checkpointName);
-  const appliedLoras = applyLoraManagerOverride(workflow, settings.loras);
+  const appliedLoras = applyLoraManagerOverride(workflow, loras);
 
   return {
     workflow,

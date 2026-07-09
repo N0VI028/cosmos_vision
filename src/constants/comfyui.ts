@@ -50,6 +50,8 @@ export const COMFYUI_DEFAULT_SAMPLER = 'euler_ancestral';
 
 /** ComfyUI 可用的最大安全 seed */
 export const COMFYUI_MAX_SEED = Number.MAX_SAFE_INTEGER;
+export const DEFAULT_COMFYUI_LORA_PRESET_ID = 'comfyui-lora-default-preset';
+export const DEFAULT_COMFYUI_LORA_PRESET_NAME = '默认 LoRA 组';
 
 /** ComfyUI 默认工作流
  * 来自 https://github.com/willmiao/ComfyUI-Lora-Manager 的示例模板
@@ -83,6 +85,19 @@ export interface ComfyUILoraSetting {
   enabled: boolean;
 }
 
+/** ComfyUI LoRA 预设组 */
+export interface ComfyUILoraPreset {
+  id: string;
+  name: string;
+  loras: ComfyUILoraSetting[];
+}
+
+/** ComfyUI LoRA 预设组集合 */
+export interface ComfyUILoraPresetSettings {
+  activePresetId: string;
+  presets: ComfyUILoraPreset[];
+}
+
 /**
  * 创建 ComfyUI LoRA 条目
  * @param id LoRA 条目 ID
@@ -102,12 +117,48 @@ export function createComfyUILoraSetting(
   };
 }
 
+/**
+ * 创建单个 ComfyUI LoRA 预设组
+ * @param id 预设组 ID
+ * @param name 预设组名称
+ * @param loras 预设组内的 LoRA 列表
+ * @returns LoRA 预设组
+ */
+export function createComfyUILoraPreset(
+  id: string,
+  name: string,
+  loras: ComfyUILoraSetting[] = createDefaultComfyUILoraSettings(),
+): ComfyUILoraPreset {
+  return {
+    id,
+    name,
+    loras: loras.map(lora => ({ ...lora })),
+  };
+}
+
+/**
+ * 创建默认 ComfyUI LoRA 预设组集合
+ * @param id 默认预设组 ID
+ * @param name 默认预设组名称
+ * @returns LoRA 预设组集合
+ */
+export function createComfyUILoraPresetSettings(
+  id = DEFAULT_COMFYUI_LORA_PRESET_ID,
+  name = DEFAULT_COMFYUI_LORA_PRESET_NAME,
+): ComfyUILoraPresetSettings {
+  const preset = createComfyUILoraPreset(id, name);
+  return {
+    activePresetId: preset.id,
+    presets: [preset],
+  };
+}
+
 /** ComfyUI 子设置 */
 export interface ComfyUISettings extends ImagePromptPresetReferences {
   url: string;
   workflowJson: string;
   checkpointName: string;
-  loras: ComfyUILoraSetting[];
+  loraPresets: ComfyUILoraPresetSettings;
   resolutionPreset: ComfyUIResolutionPreset;
   width: number;
   height: number;
