@@ -104,6 +104,11 @@ export const cosmosPrimePreset = definePreset(Aura, {
     },
   },
   components: {
+    inputtags: {
+      root: {
+        paddingY: 'var(--cv-space-xs)',
+      },
+    },
     select: {
       root: {
         paddingX: 'var(--p-form-field-padding-x)',
@@ -160,6 +165,17 @@ export const cosmosPrimePreset = definePreset(Aura, {
       },
     },
     textarea: { root: { borderRadius: 'var(--cv-radius-md)' } },
+    password: {
+      content: { gap: '0.5em' },
+      meter: { height: '0.75em' },
+    },
+    message: {
+      text: {
+        fontSize: 'var(--cv-font-size-sm)',
+        sm: { fontSize: 'var(--cv-font-size-xs)' },
+        lg: { fontSize: 'var(--cv-font-size-md)' },
+      },
+    },
     slider: {
       root: {
         transitionDuration: 'var(--p-transition-duration, 0.2s)',

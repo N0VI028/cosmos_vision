@@ -65,15 +65,6 @@
   --p-button-lg-icon-only-width: 3em;
   --p-button-badge-size: 1em;
 
-  /* component: password */
-  --p-password-content-gap: 0.5em;
-  --p-password-meter-height: 0.75em;
-
-  /* component: message */
-  --p-message-text-font-size: var(--cv-font-size-sm);
-  --p-message-text-sm-font-size: var(--cv-font-size-xs);
-  --p-message-text-lg-font-size: var(--cv-font-size-md);
-
   /* component: select */
   --p-select-dropdown-width: 2.5em;
   --p-select-checkmark-gutter-start: -0.375em;
@@ -93,8 +84,6 @@
 
   /* PrimeVue 在 :root 已字面值化的组件圆角，需在作用域内逐项回写 */
   --p-button-border-radius: var(--cv-radius-full);
-  --p-inputtext-border-radius: var(--cv-radius-full);
-  --p-textarea-border-radius: var(--cv-radius-md);
   --p-select-border-radius: var(--cv-radius-full);
   --p-select-overlay-border-radius: var(--cv-radius-lg);
   --p-select-option-border-radius: var(--cv-radius-md);
@@ -103,8 +92,6 @@
   --p-multiselect-option-border-radius: var(--cv-radius-md);
   --p-multiselect-chip-border-radius: var(--cv-radius-full);
   --p-chip-border-radius: var(--cv-radius-full);
-  --p-password-border-radius: var(--cv-radius-full);
-  --p-inputnumber-border-radius: var(--cv-radius-full);
   --p-togglebutton-border-radius: var(--cv-radius-full);
   --p-message-border-radius: var(--cv-radius-lg);
 }
@@ -131,20 +118,6 @@
   --p-text-muted-color: var(--cv-on-surface-variant);
   --p-text-hover-color: var(--cv-on-surface);
   --p-text-hover-muted-color: var(--cv-on-surface);
-  --p-inputtext-background: var(--cv-surface-container-high);
-  --p-inputtext-border-color: var(--cv-surface-variant);
-  --p-inputtext-hover-border-color: var(--cv-outline);
-  --p-inputtext-focus-border-color: var(--cv-primary-container);
-  --p-inputtext-invalid-border-color: var(--p-red-500);
-  --p-inputtext-color: var(--cv-on-surface);
-  --p-inputtext-placeholder-color: var(--cv-on-surface-variant);
-  --p-textarea-background: var(--cv-surface-container-high);
-  --p-textarea-border-color: var(--cv-surface-variant);
-  --p-textarea-hover-border-color: var(--cv-outline);
-  --p-textarea-focus-border-color: var(--cv-primary-container);
-  --p-textarea-invalid-border-color: var(--p-red-500);
-  --p-textarea-color: var(--cv-on-surface);
-  --p-textarea-placeholder-color: var(--cv-on-surface-variant);
   --p-select-background: var(--cv-surface-container-high);
   --p-select-border-color: var(--cv-surface-variant);
   --p-select-hover-border-color: var(--cv-outline);
@@ -245,13 +218,6 @@
   --p-treetable-node-toggle-button-hover-background: var(--cv-surface-container-highest);
   --p-treetable-node-toggle-button-color: var(--cv-on-surface-variant);
   --p-treetable-node-toggle-button-hover-color: var(--cv-on-surface);
-}
-
-/**
- * Overlay 字号对齐触发器
- */
-.cosmos-vision-root.cv-prime-field-overlay {
-  font-size: var(--cv-font-size-sm);
 }
 
 /**

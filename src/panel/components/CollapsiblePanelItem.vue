@@ -15,9 +15,11 @@
           ]"
         />
         <div class="flex min-w-0 flex-auto items-center gap-(--cv-space-sm) overflow-hidden">
-          <span class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)">
-            {{ title }}
-          </span>
+          <slot name="title">
+            <span class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)">
+              {{ title }}
+            </span>
+          </slot>
           <slot name="title-extra" />
         </div>
         <div v-if="$slots.actions" class="flex items-center gap-(--cv-space-5xl) justify-end" @click.stop @keydown.stop>

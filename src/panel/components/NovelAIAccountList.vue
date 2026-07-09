@@ -16,24 +16,35 @@
         :class="{ 'cv-account-item--disabled': !account.enabled }"
         @toggle="toggleCollapse(account.id)"
       >
-        <template #title-extra>
-          <CvMiniButton
-            :icon="editingAccountId === account.id ? 'fa-solid fa-check' : 'fa-solid fa-pen'"
-            size="small"
-            :title="editingAccountId === account.id ? '完成' : '重命名'"
-            @click.stop="toggleEditing(account.id)"
-          />
-          <InputText
-            v-if="editingAccountId === account.id"
-            v-model="account.name"
-            class="cv-account-item__name-input"
-            size="small"
-            placeholder="未命名"
-            autofocus
-            @click.stop
-            @keydown.enter="finishEditing"
-            @keydown.esc="finishEditing"
-          />
+        <template #title>
+          <template v-if="editingAccountId === account.id">
+            <InputText
+              v-model="editingDraft"
+              class="cv-account-item__name-input"
+              size="small"
+              autofocus
+              @click.stop
+              @keydown.enter="finishEditing(account)"
+              @keydown.esc="finishEditing(account)"
+            />
+            <CvMiniButton
+              icon="fa-solid fa-check"
+              size="small"
+              title="完成"
+              @click.stop="finishEditing(account)"
+            />
+          </template>
+          <template v-else>
+            <span class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)">
+              {{ getAccountTitle(account, index) }}
+            </span>
+            <CvMiniButton
+              icon="fa-solid fa-pen"
+              size="small"
+              title="重命名"
+              @click.stop="toggleEditing(account)"
+            />
+          </template>
         </template>
 
         <template #actions>
@@ -96,6 +107,8 @@ const accounts = defineModel<NovelAIAccount[]>({ required: true });
 
 const collapsedIds = ref<Set<string>>(new Set());
 const editingAccountId = ref<string | null>(null);
+/** 编辑草稿：进入编辑时预填入旧账号名，确认时写回 account.name */
+const editingDraft = ref<string>('');
 
 /**
  * 获取账号标题
@@ -105,7 +118,6 @@ const editingAccountId = ref<string | null>(null);
  */
 function getAccountTitle(account: NovelAIAccount, index: number): string {
   const prefix = `账号 ${index + 1}`;
-  if (editingAccountId.value === account.id) return prefix;
   if (account.name) return `${prefix} - ${account.name}`;
   return `${prefix} - 未命名`;
 }
@@ -132,22 +144,27 @@ function toggleCollapse(accountId: string): void {
 }
 
 /**
- * 切换编辑模式
- * @param accountId 账号 id
+ * 进入重命名模式，将旧名字预填入草稿
+ * @param account 账号对象
  */
-function toggleEditing(accountId: string): void {
-  if (editingAccountId.value === accountId) {
-    editingAccountId.value = null;
-  } else {
-    editingAccountId.value = accountId;
+function toggleEditing(account: NovelAIAccount): void {
+  if (editingAccountId.value === account.id) {
+    finishEditing(account);
+    return;
   }
+  editingAccountId.value = account.id;
+  editingDraft.value = account.name;
 }
 
 /**
- * 完成编辑
+ * 完成编辑，将草稿写回账号名
+ * @param account 账号对象
  */
-function finishEditing(): void {
+function finishEditing(account: NovelAIAccount): void {
+  if (editingAccountId.value !== account.id) return;
+  account.name = editingDraft.value;
   editingAccountId.value = null;
+  editingDraft.value = '';
 }
 
 /**
@@ -214,9 +231,11 @@ function removeAccount(index: number): void {
 }
 
 .cv-account-item__name-input {
-  flex: 1;
-  min-width: 8rem;
-  max-width: 20rem;
+  flex: 0 1 auto;
+  width: 12rem;
+  min-width: 6rem;
+  max-width: 100%;
+  margin-right: var(--cv-space-lg);
 }
 
 .cv-account-item__body {
