@@ -1,5 +1,6 @@
 <template>
   <PromptEntryList
+    ref="entryList"
     v-model="entries"
     empty-text="暂无人物模板条目"
     :get-role="entry => getEntryKind(entry as PromptPersonTemplateEntry)"
@@ -28,7 +29,7 @@
       <Button icon="fa-solid fa-trash" severity="danger" text size="small" @click="removeEntry(entry.id)" />
     </template>
   </PromptEntryList>
-  <button type="button" class="cv-add-entry-btn-flat-wide" @click="openNewEntryEditor">
+  <button type="button" class="cv-add-entry-btn-flat-wide" @click="addEntry">
     <i class="fa-solid fa-plus" /> 添加条目
   </button>
   <Dialog
@@ -190,6 +191,7 @@ import {
   type PromptPersonTemplateEntryKind,
 } from '@/constants/novelai';
 import PromptEntryList from '@/panel/components/PromptEntryList.vue';
+import { createCustomPromptPersonTemplateEntry } from '@/services/prompt-profiles/runtime';
 import { PROMPT_EDITOR_DIALOG_PT, PROMPT_EDITOR_DIALOG_STYLE } from '@/panel/components/prompt-editor-dialog';
 import {
   MACRO_BUTTON_TOKENS,
@@ -259,6 +261,7 @@ const props = withDefaults(
 );
 
 const entries = defineModel<PromptPersonTemplateEntry[]>({ required: true });
+const entryList = ref<InstanceType<typeof PromptEntryList> | null>(null);
 const entryStatusMap = ref<Record<string, ResolvedPromptPersonTemplateEntry>>({});
 const worldbookSourceOptions = ref<PromptWorldbookGroup[]>([]);
 const editorDraft = ref<PromptSourceEditorDraft | null>(null);
@@ -266,7 +269,6 @@ const editorPreview = ref<ResolvedPromptPersonTemplateEntry | null>(null);
 const macroPopover = ref<MacroPopoverInstance | null>(null);
 const entryContentTextarea = ref<TextareaRef>(null);
 const entrySelectionRange = ref<TextRange | null>(null);
-const isCreatingEntry = ref(false);
 const isEditorVisible = ref(false);
 const isLoadingWorldbookSources = ref(false);
 
@@ -296,7 +298,6 @@ const canSaveEditor = computed(() => {
   return Boolean(draft && canSaveSourceEditor(draft));
 });
 const editorTitle = computed(() => {
-  if (isCreatingEntry.value) return '新增人物模板条目';
   if (!editorDraft.value) return '编辑人物模板条目';
   return `编辑 ${getPromptSourceEntryTitle(editorDraft.value)}`;
 });
@@ -364,19 +365,16 @@ async function loadWorldbookSources(): Promise<void> {
  * @param id 条目 ID
  */
 function removeEntry(id: string): void {
-  const index = entries.value.findIndex(entry => entry.id === id);
-  if (index !== -1) entries.value.splice(index, 1);
+  entries.value = entries.value.filter(entry => entry.id !== id);
   if (editorDraft.value?.id === id) closeEntryEditor();
 }
 
 /**
- * 打开新建模板条目弹窗
+ * 新增默认空自定义条目，并滚动列表到底部，内容由用户手动填写
  */
-function openNewEntryEditor(): void {
-  isCreatingEntry.value = true;
-  editorDraft.value = createEditorDraft();
-  entrySelectionRange.value = null;
-  isEditorVisible.value = true;
+function addEntry(): void {
+  entries.value = [...entries.value, createCustomPromptPersonTemplateEntry()];
+  entryList.value?.scrollToEnd();
 }
 
 /**
@@ -384,7 +382,6 @@ function openNewEntryEditor(): void {
  * @param entry 模板条目
  */
 function openEntryEditor(entry: PromptPersonTemplateEntry): void {
-  isCreatingEntry.value = false;
   editorDraft.value = createEditorDraft(entry);
   entrySelectionRange.value = null;
   isEditorVisible.value = true;
@@ -394,7 +391,6 @@ function openEntryEditor(entry: PromptPersonTemplateEntry): void {
  * 关闭模板条目编辑弹窗
  */
 function closeEntryEditor(): void {
-  isCreatingEntry.value = false;
   isEditorVisible.value = false;
   editorDraft.value = null;
   editorPreview.value = null;
@@ -408,12 +404,8 @@ function saveEntryEditor(): void {
   const draft = editorDraft.value;
   if (!draft || !canSaveEditor.value) return;
   const nextEntry = buildSavedEntry(draft);
-  const index = entries.value.findIndex(item => item.id === draft.id);
-  if (index === -1) {
-    entries.value.push(nextEntry);
-    return closeEntryEditor();
-  }
-  Object.assign(entries.value[index], nextEntry);
+  if (!entries.value.some(entry => entry.id === draft.id)) return closeEntryEditor();
+  entries.value = entries.value.map(entry => (entry.id === draft.id ? { ...entry, ...nextEntry } : entry));
   closeEntryEditor();
 }
 
