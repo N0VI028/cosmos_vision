@@ -35,8 +35,6 @@ export const MACRO_BUTTON_TOKENS = {
   root: {
     borderRadius: 'var(--cv-radius-sm)',
     gap: '0',
-    paddingX: 'var(--cv-space-lg)',
-    paddingY: 'var(--cv-space-xs)',
     focusRing: { width: '0', style: 'none', offset: '0' },
     label: { fontWeight: '500' },
   },

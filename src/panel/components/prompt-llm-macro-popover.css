@@ -1,6 +1,8 @@
 .cv-macro-button-root {
   width: max-content;
   min-width: max-content;
+  /* 用 !important 压过 .p-button 的 padding，避免离场动画期间 dt scoped style 失效回退导致闪烁 */
+  padding: var(--cv-space-xs) var(--cv-space-lg) !important;
 }
 
 .cv-macro-trigger-button {
