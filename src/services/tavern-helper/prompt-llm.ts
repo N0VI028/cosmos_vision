@@ -1,7 +1,7 @@
 import { DEFAULT_PROMPT_LLM_OUTPUT_FIELDS } from '@/constants/default-settings';
 import type { PromptLlmOutputFields, PromptLlmSettings } from '@/constants/novelai';
 import { findProxyPreset } from '@/services/sillytavern/openai-config';
-import { yaml } from '@sillytavern/lib';
+import yaml from 'yaml';
 import { z } from 'zod';
 
 export type { PromptLlmOutputFields } from '@/constants/novelai';
