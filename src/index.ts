@@ -14,7 +14,10 @@ import PrimeVue from 'primevue/config';
  * 在 ST 加载完成后挂载到 #extensions_settings,使用 jQuery 兼容 ST 的生命周期
  */
 const app = createApp(App);
-const primeUiLicense = import.meta.env.VITE_PRIMEUI_LICENSE?.trim() || undefined;
+
+// PrimeUI 许可证在构建时通过 vite.config.ts 的 define 注入
+declare const __PRIMEUI_LICENSE__: string;
+const primeUiLicense = __PRIMEUI_LICENSE__ || undefined;
 
 app.use(createPinia());
 

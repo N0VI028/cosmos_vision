@@ -23,6 +23,10 @@ const relative_sillytavern_path = process.env.ST_IMPORT_DEPTH
   : path.relative(path.join(__dirname, 'dist'), __dirname.substring(0, __dirname.lastIndexOf('public') + 6));
 
 export default defineConfig(({ mode }) => ({
+  define: {
+    // 直接替换整个表达式，避免运行时计算
+    '__PRIMEUI_LICENSE__': JSON.stringify(process.env.VITE_PRIMEUI_LICENSE || ''),
+  },
   plugins: [
     vue({
       features: {
