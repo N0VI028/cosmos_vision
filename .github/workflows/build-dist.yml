@@ -38,6 +38,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Verify environment variable
+        run: |
+          if [ -z "$VITE_PRIMEUI_LICENSE" ]; then
+            echo "❌ VITE_PRIMEUI_LICENSE is empty or not set"
+            exit 1
+          else
+            echo "✅ VITE_PRIMEUI_LICENSE is set (length: ${#VITE_PRIMEUI_LICENSE})"
+            echo "First 20 chars: ${VITE_PRIMEUI_LICENSE:0:20}..."
+          fi
+        env:
+          VITE_PRIMEUI_LICENSE: ${{ secrets.PRIMEUI_LICENSE }}
+
       - name: Build extension dist
         run: pnpm build
         env:
