@@ -1,6 +1,7 @@
 import { DEFAULT_PROMPT_LLM_OUTPUT_FIELDS } from '@/constants/default-settings';
 import type { PromptLlmOutputFields, PromptLlmSettings } from '@/constants/novelai';
 import { findProxyPreset } from '@/services/sillytavern/openai-config';
+import { yaml } from '@sillytavern/lib';
 import { z } from 'zod';
 
 export type { PromptLlmOutputFields } from '@/constants/novelai';
@@ -49,6 +50,12 @@ export interface TavernHelperCustomApiConfig {
   temperature?: 'same_as_preset' | 'unset' | number;
   top_p?: 'same_as_preset' | 'unset' | number;
   top_k?: 'same_as_preset' | 'unset' | number;
+  /** 自定义源附加请求体参数(仅 source==='custom' 时生效) */
+  custom_include_body?: Record<string, unknown>;
+  /** 自定义源排除请求体参数字段名 */
+  custom_exclude_body?: string[];
+  /** 自定义源附加请求头 */
+  custom_include_headers?: Record<string, unknown>;
 }
 
 /**
@@ -205,7 +212,77 @@ export function buildCustomApi(settings: PromptLlmSettings): TavernHelperCustomA
     api.key = parsedSettings.apiKey;
   }
 
+  if (parsedSettings.source === 'custom') {
+    applyCustomSourceFields(api, settings);
+  }
+
   return api;
+}
+
+/**
+ * 为自定义源解析并附加自定义请求体/请求头字段
+ * @param api 待填充的 custom_api 配置
+ * @param settings 提示词 LLM 配置
+ */
+function applyCustomSourceFields(api: TavernHelperCustomApiConfig, settings: PromptLlmSettings): void {
+  const includeBody = parseCustomYamlObject(settings.customIncludeBody, '包含请求体参数');
+  if (includeBody) api.custom_include_body = includeBody;
+
+  const excludeBody = parseCustomYamlStringArray(settings.customExcludeBody, '排除请求体参数');
+  if (excludeBody) api.custom_exclude_body = excludeBody;
+
+  const includeHeaders = parseCustomYamlObject(settings.customIncludeHeaders, '包含请求头');
+  if (includeHeaders) api.custom_include_headers = includeHeaders;
+}
+
+/**
+ * 解析 YAML 文本为对象,失败或类型不符时警告并返回 null
+ * @param text YAML 文本
+ * @param fieldLabel 字段中文名(用于日志)
+ * @returns 解析后的对象或 null
+ */
+function parseCustomYamlObject(text: string, fieldLabel: string): Record<string, unknown> | null {
+  const parsed = parseCustomYaml(text, fieldLabel);
+  if (parsed === undefined) return null;
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    console.warn(`[PromptLlm] 自定义字段「${fieldLabel}」需为键值对对象,已跳过`);
+    return null;
+  }
+  return parsed as Record<string, unknown>;
+}
+
+/**
+ * 解析 YAML 文本为字符串数组,失败或类型不符时警告并返回 null
+ * @param text YAML 文本
+ * @param fieldLabel 字段中文名(用于日志)
+ * @returns 解析后的字符串数组或 null
+ */
+function parseCustomYamlStringArray(text: string, fieldLabel: string): string[] | null {
+  const parsed = parseCustomYaml(text, fieldLabel);
+  if (parsed === undefined) return null;
+  if (!Array.isArray(parsed) || parsed.some(item => typeof item !== 'string')) {
+    console.warn(`[PromptLlm] 自定义字段「${fieldLabel}」需为字符串数组,已跳过`);
+    return null;
+  }
+  return parsed as string[];
+}
+
+/**
+ * 解析 YAML 文本,空文本返回 undefined,解析失败警告并返回 undefined
+ * @param text YAML 文本
+ * @param fieldLabel 字段中文名(用于日志)
+ * @returns 解析结果、null(空值)或 undefined(空文本/失败)
+ */
+function parseCustomYaml(text: string, fieldLabel: string): unknown {
+  const source = text.trim();
+  if (!source) return undefined;
+  try {
+    return yaml.parse(source);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '未知错误';
+    console.warn(`[PromptLlm] 自定义字段「${fieldLabel}」YAML 解析失败: ${message}`);
+    return undefined;
+  }
 }
 
 /**

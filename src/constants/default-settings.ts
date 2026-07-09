@@ -155,6 +155,9 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     positivePromptExtractReplacement: DEFAULT_PROMPT_EXTRACT_REPLACEMENT,
     negativePromptExtractPattern: DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN,
     negativePromptExtractReplacement: DEFAULT_PROMPT_EXTRACT_REPLACEMENT,
+    customIncludeBody: '',
+    customExcludeBody: '',
+    customIncludeHeaders: '',
   },
   promptLlmMessagePresets: defaultPromptLlmPresetSettings,
   promptProfiles: {
