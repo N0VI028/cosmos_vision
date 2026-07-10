@@ -66,6 +66,11 @@ declare global {
          */
         generateRaw(config: TavernHelperGenerateRawConfig): Promise<string>;
         /**
+         * 获取酒馆助手版本号
+         * @returns 语义版本字符串
+         */
+        getTavernHelperVersion(): string;
+        /**
          * 替换文本中的 ST 宏
          * @param text 原始文本
          * @returns 宏替换后的文本

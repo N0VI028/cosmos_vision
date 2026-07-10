@@ -5,6 +5,24 @@ export interface TavernHelperAvailabilityOptions {
   silent?: boolean;
 }
 
+export const MINIMUM_TAVERN_HELPER_VERSION = '4.8.13';
+
+/**
+ * 比较点分版本号是否达到最低要求
+ * @param currentVersion 当前版本号
+ * @param minimumVersion 最低版本号
+ */
+export function isVersionAtLeast(currentVersion: string, minimumVersion: string): boolean {
+  const currentParts = currentVersion.split('.').map(Number);
+  const minimumParts = minimumVersion.split('.').map(Number);
+  const length = Math.max(currentParts.length, minimumParts.length);
+  for (let index = 0; index < length; index += 1) {
+    const difference = (currentParts[index] ?? 0) - (minimumParts[index] ?? 0);
+    if (difference !== 0) return difference > 0;
+  }
+  return true;
+}
+
 /**
  * 检测 JS-Slash-Runner 是否已安装并注入 TavernHelper
  * 仅返回布尔,不弹 toast;用于 UI 条件渲染与降级判断
@@ -14,17 +32,35 @@ export function isJsSlashRunnerInstalled(): boolean {
 }
 
 /**
+ * 检测 JS-Slash-Runner 是否满足最低版本要求
+ * 版本不足或版本接口缺失时返回 false
+ */
+export function isTavernHelperSupported(): boolean {
+  if (!isJsSlashRunnerInstalled() || !TavernHelper) return false;
+  if (typeof TavernHelper.getTavernHelperVersion !== 'function') return false;
+  return isVersionAtLeast(TavernHelper.getTavernHelperVersion(), MINIMUM_TAVERN_HELPER_VERSION);
+}
+
+/**
  * 调用 TavernHelper 前的强校验
  * 缺失时通过 toastr 提示用户安装并启用 JS-Slash-Runner
  * @param options 检测选项
  * @returns true 表示可继续调用 TavernHelper.xxx()
  */
 export function ensureTavernHelper(options: TavernHelperAvailabilityOptions = {}): boolean {
-  if (isJsSlashRunnerInstalled()) return true;
+  if (isTavernHelperSupported()) return true;
   if (!options.silent) {
-    toastr.error('CosmosVision 需要"酒馆助手"扩展(JS-Slash-Runner),请先安装并启用');
+    toastr.error(getTavernHelperUnavailableMessage());
   }
   return false;
+}
+
+/**
+ * 获取 TavernHelper 不可用时的用户提示
+ */
+function getTavernHelperUnavailableMessage(): string {
+  if (!isJsSlashRunnerInstalled()) return 'CosmosVision 需要"酒馆助手"扩展(JS-Slash-Runner),请先安装并启用';
+  return `CosmosVision 需要酒馆助手 ${MINIMUM_TAVERN_HELPER_VERSION} 或更高版本,请先更新`;
 }
 
 /**
@@ -44,5 +80,5 @@ export function getTavernHelper(
  * 缺失时静默返回 null，用于日志预览等只读场景
  */
 export function getOptionalTavernHelper(): NonNullable<typeof TavernHelper> | null {
-  return isJsSlashRunnerInstalled() && TavernHelper ? TavernHelper : null;
+  return isTavernHelperSupported() && TavernHelper ? TavernHelper : null;
 }
