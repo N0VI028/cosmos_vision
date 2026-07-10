@@ -13,7 +13,7 @@ export interface InlinePromptSnapshot {
   comfyui?: ComfyUIRequestSnapshot;
 }
 
-interface InlineLightboxActions {
+export interface InlineLightboxActions {
   onDownload?: () => void | Promise<void>;
 }
 
@@ -111,7 +111,7 @@ export function handleInlineImageClick(
     ensureInlineImageOutsideDismiss();
     return;
   }
-  openLightbox(img.src, snapshot, actions);
+  openInlineImageLightbox(img.src, snapshot, actions);
   if (isTouch) wrap.classList.remove('cv-inline-img-active');
 }
 
@@ -360,7 +360,11 @@ function bindLightboxCopyButtons(overlay: HTMLElement, snapshot?: InlinePromptSn
  * @param src 图片地址
  * @param snapshot 提示词快照
  */
-function openLightbox(src: string, snapshot?: InlinePromptSnapshot, actions?: InlineLightboxActions): void {
+export function openInlineImageLightbox(
+  src: string,
+  snapshot?: InlinePromptSnapshot,
+  actions?: InlineLightboxActions,
+): void {
   const overlay = createLightboxDOM(src, snapshot, actions);
   document.body.appendChild(overlay);
   requestAnimationFrame(() => {

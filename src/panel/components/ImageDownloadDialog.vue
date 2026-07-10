@@ -2,7 +2,8 @@
   <Dialog
     v-model:visible="visible"
     modal
-    :base-z-index="downloadDialogBaseZIndex"
+    :auto-z-index="false"
+    :pt="downloadDialogPt"
     :closable="false"
     :close-on-escape="false"
     :draggable="false"
@@ -47,6 +48,7 @@
 
 <script setup lang="ts">
 import { useMediaQuery } from '@vueuse/core';
+import type { DialogPassThroughOptions } from 'primevue/dialog';
 
 import SubTabNav from '@/panel/components/SubTabNav.vue';
 import { DARK_CLASS } from '@/constants/default-settings';
@@ -75,10 +77,18 @@ const dialogClass = computed(() => [
   { [DARK_CLASS]: props.darkMode },
 ]);
 const dialogStyle = computed(() =>
-  isMobile.value ? { width: 'calc(100vw - 2rem)', maxWidth: '28rem' } : { width: '28rem', maxWidth: 'calc(100vw - 3rem)' },
+  isMobile.value
+    ? { width: 'calc(100vw - 2rem)', maxWidth: '28rem' }
+    : { width: '28rem', maxWidth: 'calc(100vw - 3rem)' },
 );
 const contentStyle = { overflow: 'hidden' } as const;
-const downloadDialogBaseZIndex = 100100;
+const DOWNLOAD_DIALOG_Z_INDEX = 100100;
+const downloadDialogPt = {
+  mask: {
+    class: 'cv-dialog-mask',
+    style: { zIndex: DOWNLOAD_DIALOG_Z_INDEX },
+  },
+} satisfies DialogPassThroughOptions;
 const formatTabs = [
   { value: 'png', label: 'PNG' },
   { value: 'jpg', label: 'JPG' },

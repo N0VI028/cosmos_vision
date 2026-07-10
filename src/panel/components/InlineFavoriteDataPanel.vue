@@ -60,16 +60,30 @@
         >
           <div class="cv-favorite-card">
             <div v-if="isSelecting" class="cv-favorite-select" @click.stop>
-              <Checkbox binary :model-value="isItemSelected(item.id)" :disabled="busy" @update:model-value="toggleItem(item.id)" />
+              <Checkbox
+                binary
+                :model-value="isItemSelected(item.id)"
+                :disabled="busy"
+                @update:model-value="toggleItem(item.id)"
+              />
             </div>
 
             <div class="cv-favorite-thumb-wrap">
-              <img :src="getPreviewUrl(item.id)" alt="" class="cv-favorite-thumb" />
+              <LightboxImage
+                :src="getPreviewUrl(item.id)"
+                :snapshot="item.promptSnapshot"
+                :download-action="() => $emit('download-items', [item.id])"
+                :disabled="isSelecting"
+                alt="收藏图片预览"
+                class="cv-favorite-thumb"
+              />
             </div>
 
             <div class="cv-favorite-card-body">
               <div class="cv-favorite-title">{{ formatInlineFavoriteImageLabel(item.createdAt) }}</div>
-              <div class="cv-favorite-meta">{{ stripPngExtension(item.characterKey) }} · {{ stripPngExtension(item.chatId) }}</div>
+              <div class="cv-favorite-meta">
+                {{ stripPngExtension(item.characterKey) }} · {{ stripPngExtension(item.chatId) }}
+              </div>
             </div>
 
             <div v-if="!isSelecting" class="cv-favorite-actions" @click.stop>
@@ -101,12 +115,7 @@
             size="small"
             @click="toggleSelectAll"
           />
-          <CvMiniButton
-            label="下载"
-            :disabled="!selectedCount || busy"
-            size="small"
-            @click="downloadSelected"
-          />
+          <CvMiniButton label="下载" :disabled="!selectedCount || busy" size="small" @click="downloadSelected" />
           <CvMiniButton
             label="删除"
             tone="error"
@@ -129,6 +138,7 @@ import Skeleton from 'primevue/skeleton';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import CvDataCard from '@/panel/components/CvDataCard.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
+import LightboxImage from '@/panel/components/LightboxImage.vue';
 import StaticPanel from '@/panel/components/StaticPanel.vue';
 import type { InlineImageFavoriteGroup, InlineImageFavoriteListItem } from '@/services/inline-image/favorites-cache';
 
@@ -170,7 +180,9 @@ const chatOptions = computed(() => buildChatOptions(filteredCharacterGroups.valu
 const visibleGroups = computed(() => filterGroupsByChat(filteredCharacterGroups.value, selectedChatId.value));
 const visibleItems = computed(() => flattenFavoriteItems(visibleGroups.value));
 const selectedCount = computed(() => selectedImageIds.value.length);
-const isAllSelected = computed(() => visibleItems.value.length > 0 && selectedCount.value === visibleItems.value.length);
+const isAllSelected = computed(
+  () => visibleItems.value.length > 0 && selectedCount.value === visibleItems.value.length,
+);
 const isSelectionToggleDisabled = computed(() => props.loading || props.busy || !visibleItems.value.length);
 
 watch(
@@ -315,14 +327,17 @@ function syncPreviewUrls(groups: InlineImageFavoriteGroup[]): void {
  * @returns ID 到 URL 的映射
  */
 function buildPreviewUrlMap(groups: InlineImageFavoriteGroup[]): Record<number, string> {
-  return groups.reduce((map, group) => {
-    group.records.forEach(record => {
-      const objectUrl = URL.createObjectURL(record.imageBlob);
-      objectUrls.add(objectUrl);
-      map[record.id] = objectUrl;
-    });
-    return map;
-  }, {} as Record<number, string>);
+  return groups.reduce(
+    (map, group) => {
+      group.records.forEach(record => {
+        const objectUrl = URL.createObjectURL(record.imageBlob);
+        objectUrls.add(objectUrl);
+        map[record.id] = objectUrl;
+      });
+      return map;
+    },
+    {} as Record<number, string>,
+  );
 }
 
 /**
@@ -369,7 +384,10 @@ function collectCharacterOptions(groups: InlineImageFavoriteGroup[]): FavoriteFi
  * @returns Select 选项
  */
 function buildChatOptions(groups: InlineImageFavoriteGroup[]): FavoriteFilterOption[] {
-  return [{ label: '全部聊天', value: ALL_CHAT_KEY }, ...groups.map(group => ({ label: stripPngExtension(group.chatId), value: group.id }))];
+  return [
+    { label: '全部聊天', value: ALL_CHAT_KEY },
+    ...groups.map(group => ({ label: stripPngExtension(group.chatId), value: group.id })),
+  ];
 }
 
 /**
@@ -402,7 +420,6 @@ function filterGroupsByChat(groups: InlineImageFavoriteGroup[], chatId: string):
 function flattenFavoriteItems(groups: InlineImageFavoriteGroup[]): InlineImageFavoriteListItem[] {
   return groups.flatMap(group => group.records).sort((left, right) => right.createdAt - left.createdAt);
 }
-
 </script>
 
 <style scoped>
@@ -538,6 +555,5 @@ function flattenFavoriteItems(groups: InlineImageFavoriteGroup[]): InlineImageFa
   .cv-favorite-grid {
     grid-template-columns: 1fr;
   }
-
 }
 </style>

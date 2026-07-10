@@ -56,9 +56,11 @@
           <span>{{ errorMessage }}</span>
         </div>
         <div class="cv-preview-stage" :class="{ 'has-image': Boolean(previewUrl) }">
-          <img
+          <LightboxImage
             v-if="previewUrl"
             :src="previewUrl"
+            :snapshot="previewPromptSnapshot"
+            :download-blob="previewBlob"
             :alt="previewAltText"
             class="cv-preview-viewer cv-preview-img"
             :style="PREVIEW_IMAGE_STYLE"
@@ -128,8 +130,11 @@
 </template>
 
 <script setup lang="ts">
+import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { useFocusedParagraphInput } from '@/composables/useFocusedParagraphInput';
 import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue';
+import LightboxImage from '@/panel/components/LightboxImage.vue';
+
 import {
   buildNovelAILlmPromptOverrides,
   buildNovelAIResolvedRequest,
@@ -167,17 +172,15 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const { settings } = useSettingsStore();
-const {
-  paragraphText: llmParagraphText,
-  hasFocusedParagraph,
-  buildTestContext,
-} = useFocusedParagraphInput();
+const { paragraphText: llmParagraphText, hasFocusedParagraph, buildTestContext } = useFocusedParagraphInput();
 
 const currentMode = ref<NovelAITestMode>('direct');
 const lastRunMode = ref<NovelAITestMode | null>(null);
 const testStatus = ref<TestStatus>('idle');
 const errorMessage = ref('');
 const previewUrl = ref('');
+const previewBlob = ref<Blob | null>(null);
+
 const directPositivePrompt = ref('1girl');
 const directNegativePrompt = ref('');
 const novelaiSnapshot = ref<NovelAIRequestSnapshot | null>(null);
@@ -221,6 +224,13 @@ const previewPlaceholderText = computed(() => {
   if (testStatus.value === 'running') return runningStateText.value;
   if (testStatus.value === 'error') return '本次测试未返回图像';
   return '测试结果将在这里显示';
+});
+const previewPromptSnapshot = computed<InlinePromptSnapshot | undefined>(() => {
+  if (!novelaiSnapshot.value) return undefined;
+  return {
+    positivePrompt: novelaiSnapshot.value.positivePrompt,
+    negativePrompt: novelaiSnapshot.value.negativePrompt,
+  };
 });
 const displayLlmLogParams = computed(() => {
   return llmLogParams.value ?? buildPromptLlmLogParams(settings.promptLlm);
@@ -322,7 +332,7 @@ async function runNovelAIWithOverrides(overrides: NovelAIPromptOverrides): Promi
   novelaiSnapshot.value = request.snapshot;
   const result = await generateNovelAIImageFromResolvedRequest(request);
   novelaiSnapshot.value = result.snapshot;
-  replacePreviewUrl(URL.createObjectURL(result.imageBlob));
+  replacePreviewImage(result.imageBlob);
 }
 
 /**
@@ -388,6 +398,7 @@ function resetTestResult(): void {
   llmSentPromptLog.value = '';
   llmLogParams.value = null;
   revokePreviewUrl();
+  previewBlob.value = null;
 }
 
 /**
@@ -401,12 +412,13 @@ function handleTestError(error: unknown): void {
 }
 
 /**
- * 替换当前预览图地址
- * @param nextUrl 新的图片地址
+ * 替换当前测试预览图片
+ * @param blob 新的图片数据
  */
-function replacePreviewUrl(nextUrl: string): void {
+function replacePreviewImage(blob: Blob): void {
   revokePreviewUrl();
-  previewUrl.value = nextUrl;
+  previewBlob.value = blob;
+  previewUrl.value = URL.createObjectURL(blob);
 }
 
 /**
@@ -549,7 +561,7 @@ onBeforeUnmount(revokePreviewUrl);
 }
 
 .param-value {
-  @apply break-all text-right;
+  @apply text-right break-all;
   color: var(--cv-on-surface);
 }
 
@@ -565,7 +577,7 @@ onBeforeUnmount(revokePreviewUrl);
 }
 
 .preview-content {
-  @apply m-0 overflow-y-auto whitespace-pre-wrap break-all;
+  @apply m-0 overflow-y-auto break-all whitespace-pre-wrap;
   background: var(--cv-surface-variant);
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   color: var(--cv-on-surface);

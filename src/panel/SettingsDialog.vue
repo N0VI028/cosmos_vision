@@ -707,8 +707,12 @@ function toggleSectionMenu(): void {
  * 滚动到指定 section
  */
 function scrollToSection(section: SectionInfo): void {
+  const container = scrollContainer.value;
+  if (!container) return;
+
   currentSection.value = section.title;
-  section.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const targetTop = section.element.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+  container.scrollTop = targetTop;
   showSectionMenu.value = false;
 }
 
