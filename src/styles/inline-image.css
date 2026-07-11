@@ -105,52 +105,38 @@
   transform: translateY(0) scale(1);
 }
 
-/* 被选中的段落: 覆盖整个段落的清透毛玻璃 (高度自适应) */
+/* 被选中段落仅作标记；视觉蒙版由整体选区壳覆盖，避免段间距缝隙 */
 .cv-inline-selected {
   @apply relative block w-full;
-  border-radius: var(--cv-radius-sm);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: none !important;
-
-  /* 允许子元素毛玻璃外溢，不剪切 */
   overflow: visible !important;
-
-  /* 保证宽度占满一整行，移除硬性 min-height 从而完全自适应段落的真实流动高度，避免选中抖动 */
   display: block !important;
   width: 100% !important;
 }
 
-/* 完美解决父级容器对溢出毛玻璃的裁剪问题 */
+/* 选区挂载容器允许整体蒙版溢出 */
 [mesid]:has(.cv-inline-selected),
 .mes_text:has(.cv-inline-selected) {
+  position: relative;
   overflow: visible !important;
 }
 
-.cv-inline-selected::before {
-  content: '';
+/* 连续选区整体蒙版：按首尾段落包围盒布局，天然覆盖段间距 */
+.cv-inline-selection-shell {
   position: absolute;
-  /* 垂直外扩适当微调以防超出已收缩高度的胶囊 */
-  inset: -0.3em 0 !important;
-  z-index: 1;
+  z-index: 2;
+  box-sizing: border-box;
   pointer-events: none;
-
-  /* 彻底去除所有多余边线，保持清透面板纯粹感 */
-  border: none !important;
-  border-radius: inherit;
-
-  /* 去除灰黑色背景，改用清澈的极淡白底折射透光（支持深浅色模式），毫无发灰发暗的补丁感 */
+  border-radius: var(--cv-radius-sm);
   background: rgba(255, 255, 255, 0.08) !important;
-
-  /* 强力毛玻璃覆盖整个被选中的段落，将底下原文字虚化为质感底纹 */
   -webkit-backdrop-filter: blur(3px) saturate(150%) !important;
   backdrop-filter: blur(3px) saturate(150%) !important;
-
-  /* 彻底去除任何立体阴影 */
   box-shadow: none !important;
-  transition: all 0.25s ease;
+  border: none !important;
+  transition: top 0.12s ease, left 0.12s ease, width 0.12s ease, height 0.12s ease;
 }
 
-/* 段落工具栏: 居中定位的透明包装器 */
+/* 段落工具栏: 相对选区壳居中 */
 .cv-inline-toolbar {
   @apply absolute flex items-center justify-center;
   top: 50%;

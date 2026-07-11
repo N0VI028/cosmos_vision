@@ -197,16 +197,108 @@ export function buildPromptLlmContextFromParagraph(
   targetP: HTMLElement,
   settings: Pick<PromptLlmSettings, 'historyFloorCount' | 'ignoreUserMessagesInHistory'>,
 ): PromptLlmContext {
-  const focusParagraph = extractCleanParagraphText(targetP);
-  if (!focusParagraph) {
-    throw new Error('未找到目标段落文本');
-  }
-  const historyParagraphs = buildPromptLlmHistoryParagraphs(targetP, settings);
+  return buildPromptLlmContextFromParagraphs([targetP], settings);
+}
+
+/**
+ * 将连续段落合并为焦点段落文本
+ * @param paragraphs 按 DOM 顺序的段落元素
+ * @returns 以单换行拼接的焦点文本
+ */
+export function mergeFocusParagraphText(paragraphs: HTMLElement[]): string {
+  return paragraphs.map(extractCleanParagraphText).filter(Boolean).join('\n');
+}
+
+/**
+ * 从连续选区构建 Prompt LLM 上下文
+ * 历史以锚点末段所在楼层为准，焦点为合并后的多段正文
+ * @param paragraphs 同一消息内连续段落（DOM 序）
+ * @param settings Prompt LLM 历史楼层设置
+ * @returns Prompt LLM 运行时上下文
+ */
+export function buildPromptLlmContextFromParagraphs(
+  paragraphs: HTMLElement[],
+  settings: Pick<PromptLlmSettings, 'historyFloorCount' | 'ignoreUserMessagesInHistory'>,
+): PromptLlmContext {
+  const focusParagraph = mergeFocusParagraphText(paragraphs);
+  if (!focusParagraph) throw new Error('未找到目标段落文本');
+  const anchor = paragraphs.at(-1);
+  if (!anchor) throw new Error('未找到目标段落文本');
   return {
-    historyParagraphs,
+    historyParagraphs: buildPromptLlmHistoryParagraphs(anchor, settings),
     focusParagraph,
     specialRequest: '',
   };
+}
+
+/**
+ * 获取目标段落所属消息内的聊天段落列表
+ * @param targetP 目标段落
+ * @returns 同消息 `.mes_text p` 元素（DOM 序）
+ */
+export function getMessageChatParagraphs(targetP: HTMLElement): HTMLElement[] {
+  const mesBlock = targetP.closest('[mesid]');
+  if (!(mesBlock instanceof HTMLElement)) return [];
+  return Array.from(mesBlock.querySelectorAll('.mes_text p')).filter(
+    (el): el is HTMLElement => el instanceof HTMLElement,
+  );
+}
+
+/**
+ * 判断两段落是否在同一消息内索引相邻
+ * @param a 段落 A
+ * @param b 段落 B
+ * @returns 是否相邻
+ */
+export function areChatParagraphsAdjacent(a: HTMLElement, b: HTMLElement): boolean {
+  if (findMessageId(a) !== findMessageId(b)) return false;
+  const siblings = getMessageChatParagraphs(a);
+  const indexA = siblings.indexOf(a);
+  const indexB = siblings.indexOf(b);
+  return indexA >= 0 && indexB >= 0 && Math.abs(indexA - indexB) === 1;
+}
+
+/**
+ * 判断段落列表是否为同一消息内的连续块
+ * @param paragraphs 段落列表
+ * @returns 是否连续
+ */
+export function areChatParagraphsContiguous(paragraphs: HTMLElement[]): boolean {
+  if (paragraphs.length <= 1) return true;
+  const sorted = sortChatParagraphsByDomOrder(paragraphs);
+  const siblings = getMessageChatParagraphs(sorted[0]!);
+  const indexes = sorted.map(p => siblings.indexOf(p));
+  if (indexes.some(index => index < 0)) return false;
+  return indexes.every((index, i) => i === 0 || index === indexes[i - 1]! + 1);
+}
+
+/**
+ * 按消息内 DOM 顺序排列段落
+ * @param paragraphs 段落列表
+ * @returns 排序后的新数组
+ */
+export function sortChatParagraphsByDomOrder(paragraphs: HTMLElement[]): HTMLElement[] {
+  if (paragraphs.length <= 1) return [...paragraphs];
+  const siblings = getMessageChatParagraphs(paragraphs[0]!);
+  return [...paragraphs].sort((a, b) => siblings.indexOf(a) - siblings.indexOf(b));
+}
+
+/**
+ * 读取当前焦点聊天段落（多选时返回锚点末段）
+ * @returns 当前带选中态的聊天段落,未找到返回 null
+ */
+export function getFocusedChatParagraph(): HTMLElement | null {
+  return getFocusedChatParagraphs().at(-1) ?? null;
+}
+
+/**
+ * 读取当前全部带选中态的聊天段落（DOM 序）
+ * @returns 选中段落数组
+ */
+export function getFocusedChatParagraphs(): HTMLElement[] {
+  return Array.from(document.querySelectorAll('.mes_text p.cv-inline-selected')).filter(
+    (el): el is HTMLElement => el instanceof HTMLElement,
+  );
 }
 
 /**
@@ -227,15 +319,6 @@ function buildPromptLlmHistoryParagraphs(
     ignoreUserMessages: settings.ignoreUserMessagesInHistory,
   });
   return [...previousMessages, ...currentParagraphs];
-}
-
-/**
- * 读取当前焦点聊天段落
- * @returns 当前带选中态的聊天段落,未找到返回 null
- */
-export function getFocusedChatParagraph(): HTMLElement | null {
-  const paragraph = document.querySelector('.mes_text p.cv-inline-selected');
-  return paragraph instanceof HTMLElement ? paragraph : null;
 }
 
 /**

@@ -132,10 +132,10 @@ import {
   type InlineTextInputOptions,
 } from '@/composables/useInlineImageGeneration';
 import {
-  extractCleanParagraphText,
   extractMessageParagraphs,
   findMessageId,
-  getFocusedChatParagraph,
+  getFocusedChatParagraphs,
+  mergeFocusParagraphText,
 } from '@/services/sillytavern/chat-dom';
 import { ensureTavernHelper } from '@/services/tavern-helper/availability';
 import {
@@ -324,23 +324,15 @@ function handleSettingsClick(): void {
  * 设置页只保留打开瞬间捕获的焦点楼层快照
  */
 function openSettings(): void {
-  const paragraph = getFocusedChatParagraph();
-  settingsFocusParagraphText.value = readFocusedParagraphText(paragraph);
-  settingsFocusMessageId.value = paragraph ? findMessageId(paragraph) : null;
-  settingsFocusMessageParagraphs.value = paragraph ? extractMessageParagraphs(paragraph) : [];
+  const paragraphs = getFocusedChatParagraphs();
+  const anchor = paragraphs.at(-1) ?? null;
+  settingsFocusParagraphText.value = mergeFocusParagraphText(paragraphs);
+  settingsFocusMessageId.value = anchor ? findMessageId(anchor) : null;
+  settingsFocusMessageParagraphs.value = anchor ? extractMessageParagraphs(anchor) : [];
   speedDialOpen.value = false;
   exitSelectionMode();
   ensureTavernHelper();
   settingsVisible.value = true;
-}
-
-/**
- * 读取当前焦点段落文本
- * @param paragraph 当前焦点段落
- * @returns 当前选中段落的纯文本快照
- */
-function readFocusedParagraphText(paragraph = getFocusedChatParagraph()): string {
-  return paragraph ? extractCleanParagraphText(paragraph) : '';
 }
 
 /**

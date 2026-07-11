@@ -3,11 +3,11 @@ import { computed, inject, onBeforeUnmount, onMounted, ref, type ComputedRef, ty
 import type { PromptLlmContext } from '@/constants/novelai';
 import { useSettingsStore } from '@/store/settings';
 import {
-  buildPromptLlmContextFromParagraph,
-  extractCleanParagraphText,
+  buildPromptLlmContextFromParagraphs,
   extractMessageParagraphs,
   findMessageId,
-  getFocusedChatParagraph,
+  getFocusedChatParagraphs,
+  mergeFocusParagraphText,
 } from '@/services/sillytavern/chat-dom';
 import { readPromptLlmHistoryMessages } from '@/services/tavern-helper/chat-history';
 
@@ -62,8 +62,8 @@ export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInp
    * @returns 可发送给 LLM 的上下文对象
    */
   function buildTestContext(): PromptLlmContext {
-    const focusedParagraph = getFocusedChatParagraph();
-    if (!focusedParagraph) {
+    const focusedParagraphs = getFocusedChatParagraphs();
+    if (!focusedParagraphs.length) {
       return buildManualPromptLlmContext(
         paragraphText.value,
         messageId.value,
@@ -71,22 +71,23 @@ export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInp
         settings.promptLlm,
       );
     }
-    return buildPromptLlmContextFromParagraph(focusedParagraph, settings.promptLlm);
+    return buildPromptLlmContextFromParagraphs(focusedParagraphs, settings.promptLlm);
   }
 
   /**
    * 同步当前焦点段落文本与楼层快照
    */
   function syncFocusedParagraph(): void {
-    const focusedParagraph = getFocusedChatParagraph();
-    hasFocusedChatParagraph.value = Boolean(focusedParagraph);
-    if (!focusedParagraph) {
+    const focusedParagraphs = getFocusedChatParagraphs();
+    hasFocusedChatParagraph.value = focusedParagraphs.length > 0;
+    if (!focusedParagraphs.length) {
       syncInitialFocusedParagraph();
       return;
     }
-    paragraphText.value = extractCleanParagraphText(focusedParagraph);
-    messageId.value = findMessageId(focusedParagraph);
-    messageParagraphs.value = extractMessageParagraphs(focusedParagraph);
+    const anchor = focusedParagraphs.at(-1)!;
+    paragraphText.value = mergeFocusParagraphText(focusedParagraphs);
+    messageId.value = findMessageId(anchor);
+    messageParagraphs.value = extractMessageParagraphs(anchor);
   }
 
   /**

@@ -3,7 +3,7 @@ import {
   createInlineGenerationSessionController,
   type InlineGenerationSession,
 } from '@/composables/inlineGenerationSession';
-import { preventInlineEventBubbling, removeInlineVueHost } from '@/composables/inlineImageDom';
+import { preventInlineEventBubbling } from '@/composables/inlineImageDom';
 import { createInlineImageGalleryRenderer } from '@/composables/inlineImageGalleryRenderer';
 import { cloneInlinePromptSnapshot, type InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { generateComfyUIImageFromPrompts, generateComfyUIImageFromResolvedRequest } from '@/services/comfyui/api';
@@ -19,9 +19,12 @@ import {
   buildNovelAIFinalPromptsFromEditable,
   readNovelAIEditablePrompts,
 } from '@/services/novelai/prompt-presets';
+import { createSelectionShellController } from '@/composables/inlineSelectionShell';
+import { nextParagraphSelection } from '@/composables/inlineParagraphSelection';
 import {
-  buildPromptLlmContextFromParagraph,
+  buildPromptLlmContextFromParagraphs,
   findChatParagraph,
+  sortChatParagraphsByDomOrder,
 } from '@/services/sillytavern/chat-dom';
 import {
   generatePromptFromRuntimeContext,
@@ -109,8 +112,11 @@ export function useInlineImageGeneration(
     getDarkMode: options.getDarkMode,
   });
 
-  /** 当前选中的段落 DOM 引用 */
-  const selectedParagraph = ref<HTMLElement | null>(null);
+  /** 当前活动选区（同一消息内连续段落，DOM 序） */
+  const selectedParagraphs = ref<HTMLElement[]>([]);
+
+  /** 连续选区整体蒙版壳控制器 */
+  const selectionShell = createSelectionShellController();
 
   /** 是否处于段落生图选择模式 */
   const isSelectionMode = ref(false);
@@ -158,7 +164,7 @@ export function useInlineImageGeneration(
     document.removeEventListener('pointerdown', handleSelectionPointerDown, true);
     document.removeEventListener('pointerup', handleSelectionPointerUp, true);
     isSelectionMode.value = false;
-    if (!options.preserveSelection) deselectParagraph();
+    if (!options.preserveSelection) clearSelection();
   }
 
   /**
@@ -201,13 +207,13 @@ export function useInlineImageGeneration(
     if (p) {
       // 阻止 pointerup 默认行为,从而避免产生 click 事件唤起手机键盘
       e.preventDefault();
-      toggleParagraphSelection(p);
+      setSelection(nextParagraphSelection(selectedParagraphs.value, p));
       return;
     }
 
     // 点击聊天区空白处取消选中
     if (target.closest('.mes_text, [mesid]')) {
-      deselectParagraph();
+      clearSelection();
     }
   }
 
@@ -217,7 +223,7 @@ export function useInlineImageGeneration(
    * @returns 是否跳过
    */
   function isIgnoredInlineTarget(target: HTMLElement): boolean {
-    return Boolean(target.closest('.cv-inline-toolbar, .cv-inline-img-wrap, .cv-speed-dial-container, a, button, input, textarea, [role="button"]'));
+    return Boolean(target.closest('.cv-inline-selection-shell, .cv-inline-toolbar, .cv-inline-img-wrap, .cv-speed-dial-container, a, button, input, textarea, [role="button"]'));
   }
 
   /**
@@ -230,44 +236,36 @@ export function useInlineImageGeneration(
   }
 
   /**
-   * 切换段落选中状态
-   * @param p 目标段落
+   * 设置活动选区并刷新蒙版与工具条
+   * @param paragraphs 新选区
    */
-  function toggleParagraphSelection(p: HTMLElement): void {
-    if (selectedParagraph.value === p) {
-      deselectParagraph();
-      return;
-    }
-    selectParagraph(p);
+  function setSelection(paragraphs: HTMLElement[]): void {
+    if (!isRuntimeEnabled() && paragraphs.length) return;
+    clearSelectionDom();
+    selectedParagraphs.value = sortChatParagraphsByDomOrder(paragraphs);
+    paintSelectionUi();
   }
 
   /**
-   * 选中段落并在其右上角显示浮窗生图按钮
+   * 清空活动选区
    */
-  function selectParagraph(p: HTMLElement): void {
-    if (!isRuntimeEnabled()) return;
-
-    deselectParagraph();
-
-    selectedParagraph.value = p;
-
-    p.classList.add('cv-inline-selected');
-
-    p.appendChild(createSelectionToolbar());
+  function clearSelection(): void {
+    clearSelectionDom();
+    selectedParagraphs.value = [];
   }
 
   /**
-   * 取消选中段落并移除浮窗按钮
+   * 清理选区 DOM 装饰（class / 蒙版壳 / 工具条）
    */
-  function deselectParagraph(): void {
-    if (!selectedParagraph.value) return;
+  function clearSelectionDom(): void {
+    selectionShell.clear(selectedParagraphs.value);
+  }
 
-    const toolbar = selectedParagraph.value.querySelector(':scope > .cv-inline-toolbar') as HTMLElement | null;
-    removeInlineVueHost(toolbar);
-
-    selectedParagraph.value.classList.remove('cv-inline-selected');
-
-    selectedParagraph.value = null;
+  /**
+   * 为当前选区画整体蒙版壳，并在壳内居中挂载生图按钮
+   */
+  function paintSelectionUi(): void {
+    selectionShell.paint(selectedParagraphs.value, createSelectionToolbar);
   }
 
   /**
@@ -286,22 +284,16 @@ export function useInlineImageGeneration(
     text.className = 'cv-inline-trigger-text';
     text.textContent = '生成图片';
 
-    // 创建右侧圆形主题色包围盒
     const iconWrap = document.createElement('span');
     iconWrap.className = 'cv-inline-trigger-icon-wrap';
-
     const icon = document.createElement('i');
     icon.className = 'fa-solid fa-paint-brush cv-inline-trigger-icon';
     iconWrap.appendChild(icon);
 
-    // 左边为黑色文字，右边为圆形 icon
     trigger.append(text, iconWrap);
-
     trigger.addEventListener('click', () => {
-      const paragraph = selectedParagraph.value;
-      if (paragraph) {
-        void handleGenerateWithFreshPrompt(paragraph);
-      }
+      const paragraphs = [...selectedParagraphs.value];
+      if (paragraphs.length) void handleGenerateWithFreshPrompt(paragraphs);
     });
 
     host.appendChild(trigger);
@@ -310,10 +302,11 @@ export function useInlineImageGeneration(
 
   /**
    * 重新让 LLM 生成提示词后生图
-   * @param paragraph 目标段落
+   * @param source 目标段落或连续段落列表
    */
-  async function handleGenerateWithFreshPrompt(paragraph = selectedParagraph.value): Promise<void> {
-    if (!paragraph) return;
+  async function handleGenerateWithFreshPrompt(source?: HTMLElement | HTMLElement[]): Promise<void> {
+    const paragraphs = resolveGenerationParagraphs(source);
+    if (!paragraphs.length) return;
     exitSelectionMode();
     const specialRequest = await requestTextInput({
       title: '本次临时追加要求',
@@ -321,7 +314,21 @@ export function useInlineImageGeneration(
       rows: 4,
     });
     if (specialRequest === null) return;
-    await runImageGeneration(paragraph, true, (session, onSnapshotResolved) => generateImageResultFromContext(paragraph, specialRequest, session, onSnapshotResolved));
+    const anchor = paragraphs.at(-1)!;
+    await runImageGeneration(anchor, true, (session, onSnapshotResolved) =>
+      generateImageResultFromContext(paragraphs, specialRequest, session, onSnapshotResolved),
+    );
+  }
+
+  /**
+   * 解析生图用的段落列表
+   * @param source 外部传入的段落或列表
+   * @returns 规范化后的段落数组
+   */
+  function resolveGenerationParagraphs(source?: HTMLElement | HTMLElement[]): HTMLElement[] {
+    if (Array.isArray(source)) return sortChatParagraphsByDomOrder(source);
+    if (source) return [source];
+    return [...selectedParagraphs.value];
   }
 
   /**
@@ -371,7 +378,7 @@ export function useInlineImageGeneration(
   /**
    * 执行一次完整的内联生图流程
    * 支持多段落并发:不同段落可同时发起生图,同一段落重复触发时保留最新请求
-   * @param paragraph 目标段落
+   * @param paragraph 锚点段落（选区末段）
    * @param requiresPromptLlm 是否需要先校验 Prompt LLM
    * @param task 实际生图任务
    */
@@ -493,20 +500,20 @@ export function useInlineImageGeneration(
   }
 
   /**
-   * 根据段落上下文重新生成提示词并生图
-   * @param paragraph 目标聊天段落
+   * 根据连续段落上下文重新生成提示词并生图
+   * @param paragraphs 选中的连续聊天段落
    * @param specialRequest 本次临时追加要求
    * @param session 生成会话
    * @param onSnapshotResolved LLM 成功后回调，传出提示词快照
    * @returns 图片与提示词快照
    */
   async function generateImageResultFromContext(
-    paragraph: HTMLElement,
+    paragraphs: HTMLElement[],
     specialRequest: string,
     session: InlineGenerationSession,
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
   ): Promise<InlineGenerationResult> {
-    const context = { ...buildPromptLlmContextFromParagraph(paragraph, settings.promptLlm), specialRequest };
+    const context = { ...buildPromptLlmContextFromParagraphs(paragraphs, settings.promptLlm), specialRequest };
     return settings.imageSource === 'comfyui'
       ? generateComfyUIImageResult(context, session, onSnapshotResolved)
       : generateNovelAIImageResult(context, session, onSnapshotResolved);
@@ -758,7 +765,7 @@ export function useInlineImageGeneration(
     isSelectionMode,
     toggleSelectionMode,
     exitSelectionMode,
-    deselectParagraph,
+    deselectParagraph: clearSelection,
     refreshGalleryTheme: () => imageGallery.refreshTheme(),
     cleanup,
   };
