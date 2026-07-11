@@ -145,57 +145,6 @@
   background: inherit !important;
 }
 
-/* InputTags / Chip：PrimeVue 当前缺少足够细的 token/PT 落点，先集中在 fallback 层。 */
-:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-inputtags, .cv-prime-inputtags-input) {
-  border-radius: calc((var(--cv-font-size-base) + var(--cv-space-2xl) * 2 + var(--cv-border-width) * 2) / 2) !important;
-}
-
-:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-inputtags-input {
-  background: var(--p-inputtext-background) !important;
-  border-color: var(--p-inputtext-border-color) !important;
-  color: var(--p-inputtext-color) !important;
-  min-height: calc(var(--cv-font-size-base) + var(--cv-space-lg) * 2 + var(--cv-border-width) * 2) !important;
-  padding: var(--cv-space-lg) var(--cv-space-5xl) !important;
-}
-
-:is(#cosmos_vision, .cosmos-vision-root) input.cv-prime-inputtags-input-field {
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  color: var(--p-inputtext-color) !important;
-  font-size: var(--cv-font-size-sm) !important;
-}
-
-:is(#cosmos_vision, .cosmos-vision-root) input.cv-prime-inputtags-input-field::placeholder {
-  color: var(--p-inputtext-placeholder-color, var(--cv-on-surface-variant)) !important;
-  opacity: 0.65 !important;
-}
-
-:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip, .cv-prime-inputtags-chip, .p-multiselect .p-chip) {
-  background: var(--p-chip-background) !important;
-  border: var(--cv-border-width) solid var(--p-primary-color) !important;
-  border-radius: var(--cv-radius-full) !important;
-  color: var(--p-chip-color) !important;
-  box-shadow: none !important;
-  font-size: var(--cv-font-size-xs) !important;
-  gap: var(--cv-space-xs) !important;
-  line-height: 1.2 !important;
-  min-height: 1.85em !important;
-  padding: 0.25em 0.6em !important;
-}
-
-:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip-label, .cv-prime-inputtags-chip-label, .p-multiselect .p-chip-label) {
-  color: inherit !important;
-}
-
-:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip-remove-icon, .cv-prime-inputtags-chip-remove, .p-multiselect .p-chip-remove-icon) {
-  color: var(--p-chip-remove-icon-color) !important;
-}
-
-:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip-remove-icon, .cv-prime-inputtags-chip-remove, .p-multiselect .p-chip-remove-icon):hover {
-  color: var(--cv-on-surface) !important;
-}
-
 #cosmos_vision .cv-prime-textarea,
 .cosmos-vision-root .cv-prime-textarea {
   border-radius: var(--cv-radius-md) !important;

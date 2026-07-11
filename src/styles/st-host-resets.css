@@ -146,6 +146,22 @@
   opacity: 0.65 !important;
 }
 
+/**
+ * InputTags 内嵌输入层反压
+ * 官方样式已设 transparent；这里只压 ST 全局 input 标签规则
+ */
+:is(#cosmos_vision, .cosmos-vision-root) input.cv-prime-inputtags-input-field {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: var(--p-inputtags-color, var(--p-inputtext-color)) !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) input.cv-prime-inputtags-input-field::placeholder {
+  color: var(--p-inputtext-placeholder-color, var(--cv-on-surface-variant)) !important;
+  opacity: 0.65 !important;
+}
+
 /* focus 状态：还原 PrimeVue focus token，避免被 ST `:focus` 规则覆盖 */
 .cosmos-vision-root input.cv-prime-field:focus,
 #cosmos_vision input.cv-prime-field:focus {

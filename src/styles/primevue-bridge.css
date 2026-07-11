@@ -92,6 +92,8 @@
   --p-multiselect-option-border-radius: var(--cv-radius-md);
   --p-multiselect-chip-border-radius: var(--cv-radius-full);
   --p-chip-border-radius: var(--cv-radius-full);
+  --p-inputtags-border-radius: var(--cv-radius-md);
+  --p-inputtags-item-border-radius: var(--cv-radius-full);
   --p-togglebutton-border-radius: var(--cv-radius-full);
   --p-message-border-radius: var(--cv-radius-lg);
 }
@@ -164,7 +166,20 @@
   --p-multiselect-option-group-color: var(--p-list-option-group-color);
   --p-multiselect-dropdown-color: var(--cv-on-surface-variant);
   --p-multiselect-clear-icon-color: var(--cv-on-surface-variant);
+  --p-inputtags-background: var(--cv-surface-container-high);
+  --p-inputtags-disabled-background: color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent);
+  --p-inputtags-filled-background: var(--cv-surface-container-high);
+  --p-inputtags-filled-hover-background: var(--cv-surface-container);
+  --p-inputtags-filled-focus-background: var(--cv-surface-container-high);
+  --p-inputtags-border-color: var(--cv-surface-variant);
+  --p-inputtags-hover-border-color: var(--cv-outline);
+  --p-inputtags-focus-border-color: var(--cv-primary-container);
+  --p-inputtags-invalid-border-color: var(--p-red-500);
+  --p-inputtags-color: var(--cv-on-surface);
+  --p-inputtags-disabled-color: var(--cv-on-surface-variant);
+  --p-inputtags-shadow: none;
   --p-chip-background: color-mix(in srgb, var(--p-primary-color) 12%, transparent);
+  --p-chip-focus-background: color-mix(in srgb, var(--p-primary-color) 18%, transparent);
   --p-chip-color: var(--p-primary-color);
   --p-chip-icon-color: var(--p-primary-color);
   --p-chip-remove-icon-color: var(--p-primary-color);
@@ -275,4 +290,32 @@
 .cosmos-vision-root .cv-prime-image-preview-mask,
 #cosmos_vision .cv-prime-image-preview-mask {
   border-radius: var(--cv-radius);
+}
+
+/**
+ * InputTags / Chip 结构补齐
+ * 圆角走 definePreset / bridge token；这里只补 token 未覆盖的结构尺寸与边框
+ */
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-inputtags {
+  min-height: calc(var(--cv-font-size-base) + var(--cv-space-lg) * 2 + var(--cv-border-width) * 2);
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) input.cv-prime-inputtags-input-field {
+  font-size: var(--cv-font-size-sm);
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip, .cv-prime-inputtags-chip) {
+  border: var(--cv-border-width) solid var(--p-primary-color);
+  box-shadow: none;
+  line-height: 1.2;
+  min-height: 1.85em;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip-label, .cv-prime-inputtags-chip-label) {
+  color: inherit;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root)
+  :is(.cv-prime-chip-remove-icon, .cv-prime-inputtags-chip-remove):hover {
+  color: var(--cv-on-surface);
 }

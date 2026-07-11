@@ -18,6 +18,27 @@ const formFieldColor = {
 } as const;
 
 /**
+ * Chip 颜色 token —— light/dark 共用，主色半透明底 + 主色文字
+ */
+const chipColor = {
+  root: {
+    background: 'color-mix(in srgb, var(--p-primary-color) 12%, transparent)',
+    focusBackground: 'color-mix(in srgb, var(--p-primary-color) 18%, transparent)',
+    color: 'var(--p-primary-color)',
+  },
+  icon: {
+    color: 'var(--p-primary-color)',
+  },
+  removeIcon: {
+    color: 'var(--p-primary-color)',
+    focusRing: {
+      color: 'color-mix(in srgb, var(--cv-primary-container) 24%, transparent)',
+      shadow: 'none',
+    },
+  },
+} as const;
+
+/**
  * ToggleButton 颜色 token —— light/dark 共用,颜色全部走 cv 自适应变量
  */
 const toggleButtonColor = {
@@ -104,9 +125,33 @@ export const cosmosPrimePreset = definePreset(Aura, {
     },
   },
   components: {
+    // InputTags 继承 form.field 颜色；圆角与 Textarea 一致
+    // 官方样式 padding-block = padding.y / 2，故 paddingY 需写 2 倍以对齐 form-field 垂直内边距
     inputtags: {
       root: {
-        paddingY: 'var(--cv-space-xs)',
+        paddingX: 'var(--cv-space-md)',
+        paddingY: 'calc(var(--cv-space-md) * 2)',
+        gap: 'var(--cv-space-xs)',
+        borderRadius: 'var(--cv-radius-md)',
+      },
+      item: {
+        borderRadius: 'var(--cv-radius-full)',
+      },
+    },
+    // Chip：非颜色尺寸走 root，颜色走 colorScheme 覆盖 Aura light-dark 默认值
+    chip: {
+      root: {
+        borderRadius: 'var(--cv-radius-full)',
+        paddingX: '0.6em',
+        paddingY: '0.25em',
+        gap: 'var(--cv-space-xs)',
+      },
+      label: {
+        fontSize: 'var(--cv-font-size-xs)',
+      },
+      colorScheme: {
+        light: chipColor,
+        dark: chipColor,
       },
     },
     select: {

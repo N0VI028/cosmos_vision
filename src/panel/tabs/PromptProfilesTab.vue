@@ -83,18 +83,11 @@
               <InputTags
                 v-model="person.triggerKeywords"
                 :allow-duplicate="false"
-                :pt="cosmosInputTagsPt"
                 add-on-blur
                 delimiter=","
                 class="cv-trigger-inputchips"
               />
               <div class="cv-field-hint">输入关键词，回车或逗号添加</div>
-              <span
-                v-if="person.triggerKeywords.length === 0 && person.insertMode !== 'keyword'"
-                class="cv-muted"
-              >
-                可选，可添加别名、简称或剧情关键词
-              </span>
             </div>
 
             <div class="cv-person-section-header">
@@ -244,7 +237,6 @@ import type { PromptPerson, PromptPersonInsertMode, PromptPersonKind } from '@/c
 import { useSettingsStore } from '@/store/settings';
 import { appendStaticTags } from '@/services/prompt-profiles/static-tags-draft';
 import { createPromptPerson } from '@/services/prompt-profiles/runtime';
-import { cosmosInputTagsPt } from '@/services/primevue/primevue-pt';
 import { getCurrentCharacterKey, getCurrentUserPersonaKey } from '@/services/tavern-helper/prompt-profiles-context';
 import {
   parsePromptPersonStaticTags,
@@ -640,11 +632,6 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 .cv-person-panel-list {
   @apply flex flex-col;
   gap: var(--cv-space-xl);
-}
-
-.cv-muted {
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-xs);
 }
 
 .cv-person-editor {

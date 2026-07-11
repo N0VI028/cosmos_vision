@@ -663,7 +663,7 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
 @reference '../../global.css';
 
 .cv-add-message-btn-flat-wide {
-  @apply mb-[var(--cv-space-5xl)] flex w-full cursor-pointer items-center justify-center;
+  @apply mb-(--cv-space-5xl) flex w-full cursor-pointer items-center justify-center;
   gap: var(--cv-space-sm);
   padding: var(--cv-space-md) 0;
   border: var(--cv-border-width) dashed var(--cv-surface-variant);
@@ -772,6 +772,12 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
   @apply grid w-full;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--cv-space-3xl) var(--cv-space-md);
+}
+
+/* 关键词 InputTags 是 Fluid 网格第 3 个子项，跨两列占满整行 */
+.cv-role-trigger-row :deep(.cv-trigger-keywords-field) {
+  @apply min-w-0;
+  grid-column: 1 / -1;
 }
 
 .cv-role-field {

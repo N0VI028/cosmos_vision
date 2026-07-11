@@ -76,9 +76,15 @@ const galleria = {
   thumbnailNextButton: galleriaNavButton,
   thumbnailNextIcon: galleriaNavIcon,
 } as const;
+const chip = {
+  root: { class: 'cv-prime-chip' },
+  label: { class: 'cv-prime-chip-label' },
+  removeIcon: { class: 'cv-prime-chip-remove-icon' },
+} as const;
 
 /**
  * InputTags Pass Through 集中配置
+ * 仅注入语义类锚点；视觉走 definePreset / bridge token
  */
 export const cosmosInputTagsPt = {
   root: { class: 'cv-prime-inputtags' },
@@ -94,6 +100,14 @@ export const cosmosInputTagsPt = {
     pcInputText: { root: { class: 'cv-prime-inputtags-input-field' } },
   },
 } satisfies InputTagsPassThroughOptions;
+
+/**
+ * PrimeVue 全局 PT 配置类型
+ * InputTags 已存在组件 API，但当前 PrimeVuePTOptions 尚未收录，故做交叉扩展
+ */
+type CosmosPrimePt = PrimeVuePTOptions & {
+  inputtags?: InputTagsPassThroughOptions;
+};
 
 /**
  * PrimeVue Pass Through 集中配置
@@ -118,14 +132,12 @@ export const cosmosPrimePt = {
     label: { class: 'cv-prime-field-text' },
     overlay: fieldOverlay,
     option,
-    pcChip: {
-      root: { class: 'cv-prime-chip' },
-      label: { class: 'cv-prime-chip-label' },
-      removeIcon: { class: 'cv-prime-chip-remove-icon' },
-    },
+    pcChip: chip,
     pcHeaderCheckbox: checkbox,
     pcOptionCheckbox: checkbox,
   },
+  chip,
+  inputtags: cosmosInputTagsPt,
   autocomplete: { overlay: fieldOverlay },
   checkbox,
   datepicker: { panel: overlay },
@@ -186,4 +198,4 @@ export const cosmosPrimePt = {
   treetable: {
     root: { class: 'cv-prime-treetable' },
   },
-} satisfies PrimeVuePTOptions;
+} satisfies CosmosPrimePt;
