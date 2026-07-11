@@ -20,7 +20,6 @@
       class="cv-trigger-inputchips"
     />
     <div class="cv-field-hint">输入关键词，回车或逗号添加</div>
-    <span v-if="triggerKeywords.length === 0" class="cv-muted">关键词触发模式至少需要一个关键词</span>
   </div>
 </template>
 
@@ -56,22 +55,11 @@ const triggerKeywordsModel = computed({
   @apply min-w-0;
 }
 
-.cv-trigger-keywords {
-  @apply flex min-w-0 flex-col;
-  grid-column: 1 / -1;
-  gap: var(--cv-space-sm);
-}
-
 .cv-trigger-mode-select {
   @apply w-full;
 }
 
 .cv-trigger-inputchips {
   @apply w-full;
-}
-
-.cv-muted {
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-xs);
 }
 </style>

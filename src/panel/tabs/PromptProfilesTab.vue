@@ -89,8 +89,11 @@
                 class="cv-trigger-inputchips"
               />
               <div class="cv-field-hint">输入关键词，回车或逗号添加</div>
-              <span v-if="person.triggerKeywords.length === 0" class="cv-muted">
-                {{ getKeywordHint(person) }}
+              <span
+                v-if="person.triggerKeywords.length === 0 && person.insertMode !== 'keyword'"
+                class="cv-muted"
+              >
+                可选，可添加别名、简称或剧情关键词
               </span>
             </div>
 
@@ -421,16 +424,6 @@ function removePerson(id: string): void {
   if (editingPersonId.value === id) editingPersonId.value = null;
   const index = settings.promptProfiles.profiles.findIndex(person => person.id === id);
   if (index !== -1) settings.promptProfiles.profiles.splice(index, 1);
-}
-
-/**
- * 读取关键词提示文本
- * @param person 人物配置
- * @returns 提示文本
- */
-function getKeywordHint(person: PromptPerson): string {
-  if (person.insertMode === 'keyword') return '关键词触发模式至少需要一个关键词';
-  return '可选，可添加别名、简称或剧情关键词';
 }
 
 /**
