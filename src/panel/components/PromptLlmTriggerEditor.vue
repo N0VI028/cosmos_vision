@@ -10,16 +10,16 @@
     />
   </label>
 
-  <div v-if="message.triggerMode === 'keyword'" class="cv-trigger-keywords">
+  <div v-if="message.triggerMode === 'keyword'" class="cv-field">
     <InputTags
       v-model="triggerKeywordsModel"
       :allow-duplicate="false"
       :pt="cosmosInputTagsPt"
       add-on-blur
       delimiter=","
-      placeholder="输入关键词，回车或逗号添加"
       class="cv-trigger-inputchips"
     />
+    <div class="cv-field-hint">输入关键词，回车或逗号添加</div>
     <span v-if="triggerKeywords.length === 0" class="cv-muted">关键词触发模式至少需要一个关键词</span>
   </div>
 </template>

@@ -114,6 +114,12 @@ declare global {
          */
         getPersonaAvatarPath(personaId?: 'current' | string): string | null;
         /**
+         * 获取角色头像路径
+         * @param name 角色名称或 current
+         * @returns 角色头像路径
+         */
+        getCharAvatarPath(name: 'current' | string): string | null;
+        /**
          * 获取 persona 内容
          * @param personaId persona 名称、头像 id 或 current
          * @returns persona 内容

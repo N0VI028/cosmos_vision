@@ -38,7 +38,9 @@
               />
             </template>
             <template v-else>
-              <span class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)">
+              <span
+                class="block min-w-0 flex-[0_1_auto] overflow-hidden font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
+              >
                 {{ person.name || '未命名人物' }}
               </span>
               <CvMiniButton
@@ -77,18 +79,20 @@
             </label>
 
             <h3 class="cv-person-section-title">关键词</h3>
-            <InputTags
-              v-model="person.triggerKeywords"
-              :allow-duplicate="false"
-              :pt="cosmosInputTagsPt"
-              add-on-blur
-              delimiter=","
-              placeholder="输入关键词，回车或逗号添加"
-              class="cv-trigger-inputchips"
-            />
-            <span v-if="person.triggerKeywords.length === 0" class="cv-muted">
-              {{ getKeywordHint(person) }}
-            </span>
+            <div class="cv-field">
+              <InputTags
+                v-model="person.triggerKeywords"
+                :allow-duplicate="false"
+                :pt="cosmosInputTagsPt"
+                add-on-blur
+                delimiter=","
+                class="cv-trigger-inputchips"
+              />
+              <div class="cv-field-hint">输入关键词，回车或逗号添加</div>
+              <span v-if="person.triggerKeywords.length === 0" class="cv-muted">
+                {{ getKeywordHint(person) }}
+              </span>
+            </div>
 
             <div class="cv-person-section-header">
               <h3 class="cv-person-section-title">固定 tag</h3>
@@ -131,14 +135,19 @@
     v-model:visible="isTagParseDialogVisible"
     class="cv-tag-parse-dialog"
     modal
-    :dismissable-mask="!isParsingTags"
-    :closable="!isParsingTags"
     :draggable="false"
     header="从资料解析固定 tag"
     :style="tagParseDialogStyle"
     @hide="closeParseTagsDialog"
   >
-    <div class="cv-tag-parse-panel">
+    <StaticTagsDraftResult
+      v-if="tagParseDraft"
+      v-model:draft="tagParseDraft"
+      @copy="copyTagDraft"
+      @replace="replaceStaticTags"
+      @append="appendToStaticTags"
+    />
+    <div v-else class="cv-tag-parse-panel">
       <button
         type="button"
         class="cv-tag-parse-option"
@@ -149,7 +158,7 @@
         <i class="fa-solid fa-layer-group" />
         <span class="cv-tag-parse-option-content">
           <span class="cv-tag-parse-option-title">发送人物模板条目</span>
-          <span class="cv-tag-parse-option-desc">使用当前人物的模板条目生成固定 tag</span>
+          <span class="cv-tag-parse-option-desc">使用当前人物的模板条目生成固定 tag 草稿</span>
         </span>
       </button>
 
@@ -164,10 +173,9 @@
           <i class="fa-solid fa-keyboard" />
           <span class="cv-tag-parse-option-content">
             <span class="cv-tag-parse-option-title">手动输入内容</span>
-            <span class="cv-tag-parse-option-desc">输入一段资料或描述后生成固定 tag</span>
+            <span class="cv-tag-parse-option-desc">输入资料或描述后生成固定 tag 草稿</span>
           </span>
         </button>
-
         <label v-if="tagParseMode === 'custom'" class="cv-field cv-tag-parse-input">
           <span>输入内容</span>
           <Textarea
@@ -179,13 +187,41 @@
           />
         </label>
       </div>
+
+      <div class="cv-tag-parse-custom-block">
+        <button
+          type="button"
+          class="cv-tag-parse-option"
+          :class="{ 'cv-tag-parse-option--active': tagParseMode === 'image' }"
+          :aria-pressed="tagParseMode === 'image'"
+          @click="selectTagParseMode('image')"
+        >
+          <i class="fa-solid fa-image" />
+          <span class="cv-tag-parse-option-content">
+            <span class="cv-tag-parse-option-title">从图片提取</span>
+            <span class="cv-tag-parse-option-desc">使用 WD Tagger 提取 Danbooru 风格标签草稿</span>
+          </span>
+        </button>
+        <WdTaggerSource
+          v-if="tagParseMode === 'image' && tagParseDialogPerson"
+          ref="taggerSource"
+          v-model:general-threshold="taggerGeneralThreshold"
+          v-model:character-threshold="taggerCharacterThreshold"
+          :person-kind="tagParseDialogPerson.kind"
+          class="cv-tag-parse-input"
+          @draft="showTagDraft"
+          @error="showTagParseError"
+          @parsing="updateTaggerParsing"
+        />
+      </div>
     </div>
+
     <template #footer>
       <div class="cv-tag-parse-actions">
-        <Button label="取消" text :disabled="isParsingTags" @click="closeParseTagsDialog" />
         <Button
-          label="确定"
-          icon="fa-solid fa-check"
+          v-if="!tagParseDraft && tagParseMode !== 'image'"
+          label="生成草稿"
+          icon="fa-solid fa-wand-magic-sparkles"
           :loading="isParsingTags"
           :disabled="!canConfirmTagParse"
           @click="confirmParseStaticTags"
@@ -198,9 +234,12 @@
 <script setup lang="ts">
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
+import StaticTagsDraftResult from '@/panel/components/StaticTagsDraftResult.vue';
+import WdTaggerSource from '@/panel/components/WdTaggerSource.vue';
 import PromptSourceEntryList from '@/panel/components/PromptSourceEntryList.vue';
 import type { PromptPerson, PromptPersonInsertMode, PromptPersonKind } from '@/constants/novelai';
 import { useSettingsStore } from '@/store/settings';
+import { appendStaticTags } from '@/services/prompt-profiles/static-tags-draft';
 import { createPromptPerson } from '@/services/prompt-profiles/runtime';
 import { cosmosInputTagsPt } from '@/services/primevue/primevue-pt';
 import { getCurrentCharacterKey, getCurrentUserPersonaKey } from '@/services/tavern-helper/prompt-profiles-context';
@@ -209,7 +248,7 @@ import {
   parsePromptPersonStaticTagsFromText,
 } from '@/services/tavern-helper/prompt-profiles-tags';
 
-type TagParseMode = 'template' | 'custom';
+type TagParseMode = 'template' | 'custom' | 'image';
 
 const INSERT_MODE_OPTIONS: Array<{ label: string; value: PromptPersonInsertMode }> = [
   { label: '始终触发', value: 'always' },
@@ -228,6 +267,11 @@ const isTagParseDialogVisible = ref(false);
 const tagParseDialogPerson = ref<PromptPerson | null>(null);
 const tagParseMode = ref<TagParseMode | null>(null);
 const tagParseInput = ref('');
+const tagParseDraft = ref('');
+const taggerGeneralThreshold = ref(0.35);
+const taggerCharacterThreshold = ref(0.85);
+const taggerSource = ref<{ cancel: () => void } | null>(null);
+let tagParseRequestId = 0;
 const showConfirm =
   inject<
     (options: {
@@ -397,6 +441,7 @@ function openParseTagsDialog(person: PromptPerson): void {
   tagParseDialogPerson.value = person;
   tagParseMode.value = null;
   tagParseInput.value = '';
+  tagParseDraft.value = '';
   isTagParseDialogVisible.value = true;
 }
 
@@ -412,7 +457,7 @@ function selectTagParseMode(mode: TagParseMode): void {
  * 关闭固定 tag 解析弹窗
  */
 function closeParseTagsDialog(): void {
-  if (isParsingTags.value) return;
+  taggerSource.value?.cancel();
   resetParseTagsDialog();
 }
 
@@ -420,10 +465,14 @@ function closeParseTagsDialog(): void {
  * 重置固定 tag 解析弹窗
  */
 function resetParseTagsDialog(): void {
+  tagParseRequestId += 1;
+  isParsingTags.value = false;
+  parsingPersonId.value = '';
   isTagParseDialogVisible.value = false;
   tagParseDialogPerson.value = null;
   tagParseMode.value = null;
   tagParseInput.value = '';
+  tagParseDraft.value = '';
 }
 
 /**
@@ -436,28 +485,34 @@ async function confirmParseStaticTags(): Promise<void> {
 }
 
 /**
- * 将所选资料解析为固定 tag
+ * 将所选资料解析为固定 tag 草稿
  * @param person 人物配置
  */
 async function parseStaticTags(person: PromptPerson): Promise<void> {
+  const requestId = ++tagParseRequestId;
   isParsingTags.value = true;
   parsingPersonId.value = person.id;
   try {
-    person.staticTags = await requestParsedStaticTags(person);
-    toastr.success('人物 tag 已解析');
-    resetParseTagsDialog();
+    const draft = await requestParsedStaticTags(person);
+    if (requestId !== tagParseRequestId || !isTagParseDialogVisible.value) return;
+    tagParseDraft.value = draft;
+    toastr.success('人物 tag 草稿已生成');
   } catch (error) {
-    toastr.error(error instanceof Error ? error.message : '人物 tag 解析失败');
+    if (requestId === tagParseRequestId) {
+      showTagParseError(error instanceof Error ? error.message : '人物 tag 解析失败');
+    }
   } finally {
-    isParsingTags.value = false;
-    parsingPersonId.value = '';
+    if (requestId === tagParseRequestId) {
+      isParsingTags.value = false;
+      parsingPersonId.value = '';
+    }
   }
 }
 
 /**
- * 按当前模式请求固定 tag
+ * 按当前模式请求固定 tag 草稿
  * @param person 人物配置
- * @returns 解析后的固定 tag
+ * @returns 解析后的固定 tag 草稿
  */
 function requestParsedStaticTags(person: PromptPerson): Promise<string> {
   if (tagParseMode.value === 'custom') {
@@ -471,6 +526,81 @@ function requestParsedStaticTags(person: PromptPerson): Promise<string> {
   return parsePromptPersonStaticTags(person, settings.promptLlm, settings.promptLlmMessagePresets);
 }
 
+/**
+ * 显示图片分析生成的草稿
+ * @param draft 可编辑 tag 草稿
+ */
+function showTagDraft(draft: string): void {
+  if (!draft.trim()) {
+    showTagParseError('未提取到符合当前阈值的标签，请降低阈值后重试');
+    return;
+  }
+  tagParseDraft.value = draft;
+  toastr.success('图片 tag 草稿已生成');
+}
+
+/**
+ * 同步图片分析状态
+ * @param value 当前是否请求中
+ */
+function updateTaggerParsing(value: boolean): void {
+  isParsingTags.value = value;
+  parsingPersonId.value = value ? (tagParseDialogPerson.value?.id ?? '') : '';
+}
+
+/**
+ * 显示解析错误
+ * @param message 可展示错误信息
+ */
+function showTagParseError(message: string): void {
+  toastr.error(message || '人物 tag 解析失败');
+}
+
+/**
+ * 复制当前草稿内容
+ * @param draft 用户编辑后的草稿
+ */
+async function copyTagDraft(draft: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(draft);
+    toastr.success('tag 草稿已复制');
+  } catch {
+    toastr.error('复制失败，请手动复制');
+  }
+}
+
+/**
+ * 用草稿替换锁定人物的固定 tag
+ * @param draft 用户编辑后的草稿
+ */
+function replaceStaticTags(draft: string): void {
+  const person = getLockedDialogPerson();
+  if (!person) return;
+  person.staticTags = draft.trim();
+  toastr.success('固定 tag 已替换');
+}
+
+/**
+ * 将草稿追加到锁定人物的固定 tag
+ * @param draft 用户编辑后的草稿
+ */
+function appendToStaticTags(draft: string): void {
+  const person = getLockedDialogPerson();
+  if (!person) return;
+  person.staticTags = appendStaticTags(person.staticTags, draft);
+  toastr.success('固定 tag 已追加');
+}
+
+/**
+ * 查找仍存在的弹窗锁定人物
+ * @returns 当前锁定人物或 null
+ */
+function getLockedDialogPerson(): PromptPerson | null {
+  const id = tagParseDialogPerson.value?.id;
+  const person = settings.promptProfiles.profiles.find(item => item.id === id) ?? null;
+  if (!person) toastr.error('人物已不存在，无法写入固定 tag');
+  return person;
+}
 /**
  * 获取当前人物关联角色名
  * @param person 当前人物
@@ -510,7 +640,7 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 }
 
 .cv-profiles-layout {
-  @apply mt-[var(--cv-space-5xl)] flex flex-col;
+  @apply mt-(--cv-space-5xl) flex flex-col;
   gap: var(--cv-space-4xl);
 }
 
