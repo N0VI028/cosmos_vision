@@ -6,20 +6,24 @@
       <div class="cv-section-body">
         <label class="cv-field">
           <span>路由模式</span>
-          <Select
-            v-model="settings.novelai.routingMode"
-            :options="routingModeOptions"
-            option-label="label"
-            option-value="value"
-          />
-          <div class="cv-field-hint">{{ routingModeHint }}</div>
+          <div class="cv-field-control">
+            <Select
+              v-model="settings.novelai.routingMode"
+              :options="routingModeOptions"
+              option-label="label"
+              option-value="value"
+            />
+            <div class="cv-field-hint">{{ routingModeHint }}</div>
+          </div>
         </label>
         <NovelAIAccountList v-model="settings.novelai.accounts" />
         <label class="cv-field">
           <span>CORS 代理 URL</span>
-          <InputText v-model="settings.novelai.corsProxy" placeholder="https://your-worker.workers.dev" />
-          <div class="cv-field-hint">{{ proxyPreview }}</div>
-          <div class="cv-field-warn">⚠ 代理需为"主机重写"型反向代理;第三方代理会看到你的 API Key,推荐自建。</div>
+          <div class="cv-field-control">
+            <InputText v-model="settings.novelai.corsProxy" placeholder="https://your-worker.workers.dev" />
+            <div class="cv-field-hint">{{ proxyPreview }}</div>
+            <div class="cv-field-warn">⚠ 代理需为"主机重写"型反向代理;第三方代理会看到你的 API Key,推荐自建。</div>
+          </div>
         </label>
 
         <SubscriptionCard />
@@ -116,7 +120,7 @@
           </div>
         </div>
         <div class="cv-field-grid">
-          <div class="cv-field cv-nai-sampler-field">
+          <div class="cv-field">
             <div class="cv-nai-field-title-row">
               <span>采样器</span>
               <ToggleButton
@@ -367,11 +371,6 @@ const proxyPreview = computed(() => {
 .cv-nai-title-actions {
   @apply ml-auto flex flex-wrap items-end justify-end;
   gap: var(--cv-space-xs);
-}
-
-.cv-nai-sampler-field {
-  @apply flex flex-col;
-  gap: var(--cv-space-lg);
 }
 
 .cv-nai-advanced-block {

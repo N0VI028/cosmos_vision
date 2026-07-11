@@ -80,36 +80,38 @@
           @update:model-value="updateSelectedPersonaKey"
         />
       </label>
-      <div v-if="editorDraft.kind === 'character_worldbook_entry'" class="cv-source-pair-row">
-        <label class="cv-field cv-source-pair-field">
-          <span>世界书</span>
-          <Select
-            :model-value="editorDraft.selectedWorldbookName"
-            :options="worldbookOptions"
-            option-label="label"
-            option-value="value"
-            placeholder="选择世界书"
-            class="cv-source-select"
-            :loading="isLoadingWorldbookSources"
-            @update:model-value="updateSelectedWorldbookName"
-          />
-        </label>
-        <label class="cv-field cv-source-pair-field">
-          <span>条目</span>
-          <Select
-            :model-value="editorDraft.selectedWorldbookEntryUid"
-            :options="worldbookEntryOptions"
-            option-label="label"
-            option-value="value"
-            placeholder="选择条目"
-            class="cv-source-select"
-            :disabled="worldbookEntryOptions.length === 0"
-            @update:model-value="updateSelectedWorldbookEntryUid"
-          />
-        </label>
-      </div>
-      <div v-if="isEditorWorldbookReferenceMissing()" class="cv-field-warn">
-        当前引用的世界书条目已失效，已保留原始值，请重新选择。
+      <div v-if="editorDraft.kind === 'character_worldbook_entry'" class="cv-field-control">
+        <div class="cv-source-pair-row">
+          <label class="cv-field cv-source-pair-field">
+            <span>世界书</span>
+            <Select
+              :model-value="editorDraft.selectedWorldbookName"
+              :options="worldbookOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="选择世界书"
+              class="cv-source-select"
+              :loading="isLoadingWorldbookSources"
+              @update:model-value="updateSelectedWorldbookName"
+            />
+          </label>
+          <label class="cv-field cv-source-pair-field">
+            <span>条目</span>
+            <Select
+              :model-value="editorDraft.selectedWorldbookEntryUid"
+              :options="worldbookEntryOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="选择条目"
+              class="cv-source-select"
+              :disabled="worldbookEntryOptions.length === 0"
+              @update:model-value="updateSelectedWorldbookEntryUid"
+            />
+          </label>
+        </div>
+        <div v-if="isEditorWorldbookReferenceMissing()" class="cv-field-warn">
+          当前引用的世界书条目已失效，已保留原始值，请重新选择。
+        </div>
       </div>
       <label class="cv-field">
           <span>条目名称</span>
@@ -121,7 +123,7 @@
         />
         <InputText v-else :model-value="editorReadonlyTitle" disabled />
       </label>
-      <div class="cv-field cv-message-editor-content-field">
+      <div class="cv-field">
         <div class="cv-field-header">
           <span>{{ editorDraft.kind === 'custom' ? '内容' : '资料预览' }}</span>
           <div v-if="editorDraft.kind === 'custom'" class="cv-source-tokens">
@@ -736,15 +738,6 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
   border-color: var(--cv-outline);
   box-shadow: 0 var(--cv-space-sm) var(--cv-space-3xl) color-mix(in srgb, var(--cv-on-surface) 10%, transparent);
 }
-.cv-field-header {
-  @apply flex w-full items-center justify-between;
-}
-.cv-field-header > span {
-  font-family: var(--cv-font-body);
-  font-size: var(--cv-font-size-base);
-  font-weight: 500;
-  color: var(--cv-on-surface);
-}
 .cv-source-tokens {
   @apply flex items-center;
   gap: var(--cv-space-xs);
@@ -805,9 +798,6 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
 }
 .cv-source-pair-field {
   @apply min-w-0;
-}
-.cv-message-editor-content-field {
-  @apply flex flex-col;
 }
 @media (max-width: 520px) {
   .cv-source-pair-row {

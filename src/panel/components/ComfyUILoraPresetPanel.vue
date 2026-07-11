@@ -12,7 +12,7 @@
     />
   </div>
   <div class="cv-section-body">
-    <div class="cv-field cv-lora-preset-field">
+    <div class="cv-field">
       <PresetSelector
         :presets="presetOptions"
         :active-preset-id="props.presetSettings.activePresetId"
@@ -333,10 +333,6 @@ function getFallbackPresetId(presets: ComfyUILoraPreset[], preferredId: string):
   to {
     transform: rotate(360deg);
   }
-}
-
-.cv-lora-preset-field {
-  gap: var(--cv-space-3xl);
 }
 
 .cv-lora-add-button {

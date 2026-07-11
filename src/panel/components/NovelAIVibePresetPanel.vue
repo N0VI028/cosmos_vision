@@ -1,5 +1,5 @@
 <template>
-  <div class="cv-field cv-vibe-preset-field">
+  <div class="cv-field">
     <PresetSelector
       :presets="presetOptions"
       :active-preset-id="props.presetSettings.activePresetId"
@@ -270,10 +270,3 @@ function reportError(fallback: string, error: unknown): void {
 }
 </script>
 
-<style scoped>
-@reference '../../global.css';
-
-.cv-vibe-preset-field {
-  gap: var(--cv-space-3xl);
-}
-</style>

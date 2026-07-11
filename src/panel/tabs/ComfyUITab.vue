@@ -6,8 +6,10 @@
       <div class="cv-section-body">
         <label class="cv-field">
           <span>ComfyUI URL</span>
-          <InputText v-model="settings.comfyui.url" placeholder="http://127.0.0.1:8188" />
-          <div class="cv-field-hint">浏览器直连本地 ComfyUI 时，请确认已允许当前来源的 CORS</div>
+          <div class="cv-field-control">
+            <InputText v-model="settings.comfyui.url" placeholder="http://127.0.0.1:8188" />
+            <div class="cv-field-hint">浏览器直连本地 ComfyUI 时，请确认已允许当前来源的 CORS</div>
+          </div>
         </label>
       </div>
     </template>
@@ -46,14 +48,16 @@
         </div>
         <label class="cv-field">
           <span>API 格式工作流 JSON</span>
-          <Textarea
-            v-model="settings.comfyui.workflowJson"
-            rows="4"
-            class="cv-workflow-textarea w-full"
-            :invalid="Boolean(workflowValidationError)"
-          />
-          <div class="cv-field-hint">请使用 ComfyUI 的 Save (API Format) 导出，再粘贴到这里</div>
-          <div v-if="workflowValidationError" class="cv-field-warn">{{ workflowValidationError }}</div>
+          <div class="cv-field-control">
+            <Textarea
+              v-model="settings.comfyui.workflowJson"
+              rows="4"
+              class="cv-workflow-textarea w-full"
+              :invalid="Boolean(workflowValidationError)"
+            />
+            <div class="cv-field-hint">请使用 ComfyUI 的 Save (API Format) 导出，再粘贴到这里</div>
+            <div v-if="workflowValidationError" class="cv-field-warn">{{ workflowValidationError }}</div>
+          </div>
         </label>
       </div>
 
@@ -61,28 +65,30 @@
       <div class="cv-section-body">
         <div class="cv-field">
           <span>Checkpoint 覆盖</span>
-          <div class="cv-model-row">
-            <Select
-              v-model="checkpointOverride"
-              :options="checkpointOptions"
-              option-label="label"
-              option-value="value"
-              placeholder="留空则沿用工作流内模型"
-              :loading="isLoadingCheckpoints"
-              show-clear
-              class="cv-model-input"
-            />
-            <Button
-              icon="fa-solid fa-rotate"
-              severity="secondary"
-              outlined
-              rounded
-              :loading="isLoadingCheckpoints"
-              aria-label="刷新 checkpoint 列表"
-              @click="fetchCheckpointOptions"
-            />
+          <div class="cv-field-control">
+            <div class="cv-model-row">
+              <Select
+                v-model="checkpointOverride"
+                :options="checkpointOptions"
+                option-label="label"
+                option-value="value"
+                placeholder="留空则沿用工作流内模型"
+                :loading="isLoadingCheckpoints"
+                show-clear
+                class="cv-model-input"
+              />
+              <Button
+                icon="fa-solid fa-rotate"
+                severity="secondary"
+                outlined
+                rounded
+                :loading="isLoadingCheckpoints"
+                aria-label="刷新 checkpoint 列表"
+                @click="fetchCheckpointOptions"
+              />
+            </div>
+            <div class="cv-field-hint">点击右侧按钮从 ComfyUI 拉取 checkpoint 列表，留空则不覆盖工作流</div>
           </div>
-          <div class="cv-field-hint">点击右侧按钮从 ComfyUI 拉取 checkpoint 列表，留空则不覆盖工作流</div>
         </div>
         <label class="cv-field">
           <span>尺寸预设</span>

@@ -77,14 +77,16 @@
     <h2 class="cv-section-title">重置数据</h2>
     <div class="cv-section-body">
       <div class="cv-field">
-        <Button
-          label="重置为默认设置"
-          icon="fa-solid fa-rotate-left"
-          severity="danger"
-          size="small"
-          @click="handleReset"
-        />
-        <div class="cv-field-hint">将所有设置恢复为默认值，此操作不可撤销</div>
+        <div class="cv-field-control">
+          <Button
+            label="重置为默认设置"
+            icon="fa-solid fa-rotate-left"
+            severity="danger"
+            size="small"
+            @click="handleReset"
+          />
+          <div class="cv-field-hint">将所有设置恢复为默认值，此操作不可撤销</div>
+        </div>
       </div>
     </div>
 </template>

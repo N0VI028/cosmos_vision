@@ -1,5 +1,5 @@
 <template>
-  <div class="cv-field cv-vibe-panel">
+  <div class="cv-field">
     <div class="cv-vibe-toolbar">
       <Button label="添加" icon="fa-solid fa-plus" size="small" :disabled="isAppendingFiles" @click="triggerFileInput" />
       <input
@@ -489,10 +489,6 @@ function handleVibeError(error: unknown, fallback: string): void {
 
 <style scoped>
 @reference '../../global.css';
-
-.cv-vibe-panel {
-  gap: var(--cv-space-2xl);
-}
 
 .cv-vibe-toolbar {
   @apply flex flex-col items-start justify-start;

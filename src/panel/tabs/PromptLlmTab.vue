@@ -67,20 +67,26 @@
         <template v-if="settings.promptLlm.source === 'custom'">
           <label class="cv-field">
             <span>包含请求体参数</span>
-            <Textarea v-model="settings.promptLlm.customIncludeBody" rows="3" class="w-full" />
-            <div class="cv-field-hint">YAML 格式，附加到请求 body 的字段（如 reasoning_effort: high），留空则不发送</div>
+            <div class="cv-field-control">
+              <Textarea v-model="settings.promptLlm.customIncludeBody" rows="3" class="w-full" />
+              <div class="cv-field-hint">YAML 格式，附加到请求 body 的字段（如 reasoning_effort: high），留空则不发送</div>
+            </div>
           </label>
 
           <label class="cv-field">
             <span>排除请求体参数</span>
-            <Textarea v-model="settings.promptLlm.customExcludeBody" rows="2" class="w-full" />
-            <div class="cv-field-hint">YAML 格式，从请求 body 移除的字段名数组（如 - logit_bias），留空则不发送</div>
+            <div class="cv-field-control">
+              <Textarea v-model="settings.promptLlm.customExcludeBody" rows="2" class="w-full" />
+              <div class="cv-field-hint">YAML 格式，从请求 body 移除的字段名数组（如 - logit_bias），留空则不发送</div>
+            </div>
           </label>
 
           <label class="cv-field">
             <span>包含请求头</span>
-            <Textarea v-model="settings.promptLlm.customIncludeHeaders" rows="2" class="w-full" />
-            <div class="cv-field-hint">YAML 格式，附加的 HTTP headers（如 X-Custom-Auth: token），留空则不发送</div>
+            <div class="cv-field-control">
+              <Textarea v-model="settings.promptLlm.customIncludeHeaders" rows="2" class="w-full" />
+              <div class="cv-field-hint">YAML 格式，附加的 HTTP headers（如 X-Custom-Auth: token），留空则不发送</div>
+            </div>
           </label>
         </template>
         

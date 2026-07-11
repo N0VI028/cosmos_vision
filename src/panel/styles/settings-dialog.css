@@ -443,6 +443,7 @@
   padding-bottom: var(--cv-space-8xl) !important;
 }
 
+/* 表单字段统一布局：纵向 label + 控件，跨 Tab/组件复用 */
 .cosmos-vision-root .cv-field {
   display: flex;
   flex-direction: column;
@@ -450,7 +451,14 @@
   margin-bottom: 0;
 }
 
-.cosmos-vision-root .cv-field > span {
+.cosmos-vision-root .cv-field-header {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cosmos-vision-root :is(.cv-field > span, .cv-field-header > span) {
   font-family: var(--cv-font-body);
   font-size: var(--cv-font-size-base);
   font-weight: 500;
@@ -473,6 +481,15 @@
   flex: 1;
 }
 
+/* 控件 + hint/warn：比 .cv-field 更紧的纵向间距 */
+.cosmos-vision-root .cv-field-control {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-space-sm);
+  min-width: 0;
+  width: 100%;
+}
+
 .cosmos-vision-root .cv-field-hint {
   font-family: var(--cv-font-label);
   font-size: var(--cv-font-size-xs);
@@ -485,7 +502,6 @@
 .cosmos-vision-root .cv-field-warn {
   font-size: var(--cv-font-size-xs);
   color: var(--p-red-500);
-  margin-top: calc(var(--cv-space-lg) * -1);
   line-height: 1.4;
 }
 

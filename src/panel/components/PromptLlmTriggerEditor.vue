@@ -12,14 +12,16 @@
 
   <div v-if="message.triggerMode === 'keyword'" class="cv-field cv-trigger-keywords-field">
     <span>触发词</span>
-    <InputTags
-      v-model="triggerKeywordsModel"
-      :allow-duplicate="false"
-      add-on-blur
-      delimiter=","
-      class="cv-trigger-inputchips"
-    />
-    <div class="cv-field-hint">输入关键词，回车或逗号添加</div>
+    <div class="cv-field-control">
+      <InputTags
+        v-model="triggerKeywordsModel"
+        :allow-duplicate="false"
+        add-on-blur
+        delimiter=","
+        class="cv-trigger-inputchips"
+      />
+      <div class="cv-field-hint">输入关键词，回车或逗号添加</div>
+    </div>
   </div>
 </template>
 

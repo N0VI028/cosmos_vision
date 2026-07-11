@@ -3,7 +3,7 @@
     <h2 v-if="showSectionTitle" class="cv-section-title">{{ section.sectionLabel }}</h2>
     <template v-if="showSectionTitle">
       <div class="cv-section-body">
-        <div class="cv-field cv-image-preset-field">
+        <div class="cv-field">
           <PresetSelector
             :presets="section.presets"
             :active-preset-id="section.activePresetId"
@@ -26,7 +26,7 @@
       </div>
     </template>
     <template v-else>
-      <div class="cv-field cv-image-preset-field">
+      <div class="cv-field">
         <span>{{ section.label }}</span>
         <PresetSelector
           :presets="section.presets"
@@ -374,10 +374,3 @@ function getFallbackPromptPresetId(presets: ImagePromptPreset[], preferredId: st
 }
 </script>
 
-<style scoped>
-@reference '../../global.css';
-
-.cv-image-preset-field {
-  gap: var(--cv-space-3xl);
-}
-</style>

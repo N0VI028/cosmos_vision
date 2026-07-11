@@ -6,15 +6,15 @@
         <div class="flex flex-col gap-(--cv-space-5xl)">
           <label class="cv-field">
             <span>发送的楼层数</span>
-            <InputNumber
-              v-model="settings.promptLlm.historyFloorCount"
-              :min="0"
-              :step="1"
-              :use-grouping="false"
-              show-buttons
-            />
-            <div class="cv-field-hint">
-              输入 0 时仅发送焦点段落所在楼层
+            <div class="cv-field-control">
+              <InputNumber
+                v-model="settings.promptLlm.historyFloorCount"
+                :min="0"
+                :step="1"
+                :use-grouping="false"
+                show-buttons
+              />
+              <div class="cv-field-hint">输入 0 时仅发送焦点段落所在楼层</div>
             </div>
           </label>
           <div class="cv-field">
@@ -66,13 +66,15 @@
     <h2 class="cv-section-title">Tag提取规则</h2>
     <div class="cv-section-body">
       <div class="cv-field">
-        <label class="cv-field-inline" style="margin-bottom: 0">
-          <ToggleSwitch v-model="settings.promptLlm.preferJsonSchemaExtraction" />
-          <span>优先 JSON Schema 解析</span>
-        </label>
-        <div class="cv-field-hint" style="margin-top: 0">
-          开启后请求 LLM 时会附带 JSON Schema，并按字段名读取对应侧提示词；某侧字段名留空时该侧不参与 JSON
-          提取，交给固定预设。渠道不支持或返回非 JSON 时回退到下方的正则提取规则。
+        <div class="cv-field-control">
+          <label class="cv-field-inline" style="margin-bottom: 0">
+            <ToggleSwitch v-model="settings.promptLlm.preferJsonSchemaExtraction" />
+            <span>优先 JSON Schema 解析</span>
+          </label>
+          <div class="cv-field-hint">
+            开启后请求 LLM 时会附带 JSON Schema，并按字段名读取对应侧提示词；某侧字段名留空时该侧不参与 JSON
+            提取，交给固定预设。渠道不支持或返回非 JSON 时回退到下方的正则提取规则。
+          </div>
         </div>
       </div>
       <div v-if="settings.promptLlm.preferJsonSchemaExtraction" class="cv-field-grid">

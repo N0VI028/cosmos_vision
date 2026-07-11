@@ -77,11 +77,11 @@
         </template>
 
         <div class="cv-account-item__body">
-          <label class="cv-account-field">
+          <label class="cv-field">
             <span>NovelAI URL</span>
             <InputText v-model="account.url" :placeholder="NOVELAI_DEFAULT_URL" />
           </label>
-          <label class="cv-account-field">
+          <label class="cv-field">
             <span>API Key</span>
             <Password v-model="account.apiKey" class="w-full" :feedback="false" toggle-mask :input-class="'w-full'" />
           </label>
@@ -244,18 +244,6 @@ function removeAccount(index: number): void {
   gap: var(--cv-space-4xl);
   padding: var(--cv-space-2xl);
   border-top: var(--cv-border-width) solid var(--cv-surface-variant);
-}
-
-.cv-account-field {
-  @apply mb-0 flex flex-col;
-  gap: var(--cv-space-3xl);
-}
-
-.cv-account-field > span {
-  font-family: var(--cv-font-body);
-  font-size: var(--cv-font-size-md);
-  font-weight: 500;
-  color: var(--cv-on-surface-variant);
 }
 
 .cv-account-list__empty {

@@ -80,14 +80,16 @@
 
             <h3 class="cv-person-section-title">关键词</h3>
             <div class="cv-field">
-              <InputTags
-                v-model="person.triggerKeywords"
-                :allow-duplicate="false"
-                add-on-blur
-                delimiter=","
-                class="cv-trigger-inputchips"
-              />
-              <div class="cv-field-hint">输入关键词，回车或逗号添加</div>
+              <div class="cv-field-control">
+                <InputTags
+                  v-model="person.triggerKeywords"
+                  :allow-duplicate="false"
+                  add-on-blur
+                  delimiter=","
+                  class="cv-trigger-inputchips"
+                />
+                <div class="cv-field-hint">输入关键词，回车或逗号添加</div>
+              </div>
             </div>
 
             <div class="cv-person-section-header">
@@ -103,9 +105,9 @@
               />
             </div>
             <div class="cv-field">
-              <Textarea v-model="person.staticTags" rows="3" auto-resize class="cv-full-textarea" />
-              <div class="cv-field-hint" style="margin-top: 0">
-                固定tag中的内容将在发送到LLM时，被强调原样保留在最终tag中
+              <div class="cv-field-control">
+                <Textarea v-model="person.staticTags" rows="3" auto-resize class="cv-full-textarea" />
+                <div class="cv-field-hint">固定tag中的内容将在发送到LLM时，被强调原样保留在最终tag中</div>
               </div>
             </div>
 
@@ -637,10 +639,6 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 .cv-person-editor {
   padding: var(--cv-space-2xl);
   border-top: var(--cv-border-width) solid var(--cv-surface-variant);
-}
-
-.cv-person-editor .cv-field {
-  gap: var(--cv-space-md);
 }
 
 .cv-person-item__name-input {

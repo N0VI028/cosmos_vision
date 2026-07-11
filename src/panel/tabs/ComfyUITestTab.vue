@@ -3,11 +3,13 @@
     <h2 class="cv-section-title">测试模式</h2>
     <div class="cv-section-body">
       <div class="cv-field">
-        <div class="cv-field-inline cv-mode-switch">
-          <span>{{ modeTitle }}</span>
-          <ToggleSwitch v-model="useLlmMode" />
+        <div class="cv-field-control">
+          <div class="cv-field-inline cv-mode-switch">
+            <span>{{ modeTitle }}</span>
+            <ToggleSwitch v-model="useLlmMode" />
+          </div>
+          <div class="cv-field-hint">{{ modeHint }}</div>
         </div>
-        <div class="cv-field-hint">{{ modeHint }}</div>
       </div>
 
       <FocusedParagraphField
