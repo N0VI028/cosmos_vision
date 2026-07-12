@@ -12,9 +12,9 @@
       />
     </label>
     <div class="cv-static-tags-draft-result__actions">
-      <Button label="复制" icon="fa-solid fa-copy" outlined :disabled="!hasDraft" @click="emit('copy', draft)" />
-      <Button label="替换固定 tag" severity="danger" outlined :disabled="!hasDraft" @click="emit('replace', draft)" />
-      <Button label="追加到固定 tag" icon="fa-solid fa-plus" :disabled="!hasDraft" @click="emit('append', draft)" />
+      <Button label="复制" outlined :disabled="!hasDraft" @click="emit('copy', draft)" />
+      <Button label="替换" severity="danger" outlined :disabled="!hasDraft" @click="emit('replace', draft)" />
+      <Button label="追加" :disabled="!hasDraft" @click="emit('append', draft)" />
     </div>
   </section>
 </template>
