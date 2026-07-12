@@ -16,6 +16,7 @@ import {
   removeRenderContainer,
 } from '@/services/inline-image/cv-render-container';
 import { getCurrentInlineFavoriteScope } from '@/services/sillytavern/chat-context';
+import { consumeSilentMessageWrite } from '@/services/inline-image/message-raw';
 import type { InlineFavoriteAnchor } from '@/services/sillytavern/chat-dom';
 import { event_types, eventSource } from '@sillytavern/script';
 import { useSettingsStore } from '@/store/settings';
@@ -27,6 +28,7 @@ export interface GalleryMountRuntime {
   element: HTMLElement;
   mountKey: GalleryMountSpec['mountKey'];
   anchor: InlineFavoriteAnchor;
+  generatedItem: GallerySessionItem | null;
 }
 
 /** 楼层粒度 runtime（对标 TH message runtime） */
@@ -80,6 +82,8 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
   const onMessageFloor = (messageId: unknown) => {
     const id = normalizeMessageId(messageId);
     if (id === null) return;
+    const silentWrite = consumeSilentMessageWrite(id);
+    if (silentWrite) return;
     scheduleJob({ kind: 'floor', messageId: id });
   };
 
@@ -152,14 +156,6 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
    */
   async function restoreAll(): Promise<void> {
     await enqueue(() => runJob({ kind: 'rerenderAll', clearSessions: false }));
-  }
-
-  /**
-   * 立即重扫指定楼层（外露给收藏 rekey）
-   * @param messageId 楼层
-   */
-  async function auditFloor(messageId: number): Promise<void> {
-    await enqueue(() => runJob({ kind: 'floor', messageId }));
   }
 
   /**
@@ -348,10 +344,27 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
       ];
       return;
     }
-    const mounts = existing.mounts.filter(item => item.key !== mount.key);
-    mounts.push(toMountRuntime(mount));
-    existing.mounts = mounts;
-    existing.reload_memo = createReloadMemo();
+    const current = existing.mounts.find(item => item.key === mount.key || item.element === mount.element);
+    if (current) {
+      current.mountKey = mount.mountKey;
+      current.anchor = toMountRuntime(mount).anchor;
+      current.generatedItem = session.items[0] ?? null;
+      return;
+    }
+    existing.mounts.push(toMountRuntime(mount));
+  }
+
+  /**
+   * 将临时画廊 mount 原地升级为收藏 slot，避免整层重扫导致聊天 DOM 闪烁
+   * @param key 当前 mount 键
+   * @param messageId 楼层 id
+   * @param slotId 收藏位点 id
+   */
+  function rekeyMountToSlot(key: string, messageId: number, slotId: string): void {
+    const runtime = runtimes.value.find(item => item.message_id === messageId);
+    const mount = runtime?.mounts.find(item => item.key === key);
+    if (!runtime || !mount || mount.mountKey.kind === 'slot') return;
+    mount.mountKey = { kind: 'slot', slotId };
   }
 
   /**
@@ -386,7 +399,7 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
     showGenerated,
     getHost,
     removeMount,
-    auditFloor,
+    rekeyMountToSlot,
   };
 });
 
@@ -437,6 +450,7 @@ function toMountRuntime(mount: GalleryMountSpec): GalleryMountRuntime {
     messageId: mount.messageId,
     element: markRaw(mount.element),
     mountKey: mount.mountKey,
+    generatedItem: null,
     anchor: {
       ...mount.anchor,
       target: markRaw(mount.anchor.target),

@@ -373,5 +373,10 @@ export const cosmosPrimePreset = definePreset(Aura, {
         padding: '0',
       },
     },
+    galleria: {
+      root: {
+        borderRadius: '0',
+      },
+    },
   },
 });

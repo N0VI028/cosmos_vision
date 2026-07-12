@@ -96,10 +96,20 @@ export function stripSlotShortcodes(text: string): string {
  * @returns 去掉后的 raw
  */
 export function removeSlotShortcode(raw: string, slotId: string): string {
-  const code = encodeSlotShortcode(slotId);
-  return listRawLines(raw)
-    .filter(line => line.trim() !== code)
-    .join(readLineBreak(raw));
+  const newline = readLineBreak(raw);
+  const escapedNewline = escapeRegExp(newline);
+  const code = escapeRegExp(encodeSlotShortcode(slotId));
+  const leading = new RegExp(`^[\t ]*${code}[\t ]*${escapedNewline}?`);
+  const middleOrEnd = new RegExp(`${escapedNewline}{1,2}[\t ]*${code}[\t ]*(?=${escapedNewline}|$)`, 'g');
+  return raw.replace(leading, '').replace(middleOrEnd, '');
+}
+/**
+ * 转义正则字面量
+ * @param value 原始文本
+ * @returns 可安全拼入正则的文本
+ */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**

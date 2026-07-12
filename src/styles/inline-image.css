@@ -133,7 +133,7 @@
   backdrop-filter: blur(3px) saturate(150%) !important;
   box-shadow: none !important;
   border: none !important;
-  transition: top 0.12s ease, left 0.12s ease, width 0.12s ease, height 0.12s ease;
+  transition: none;
 }
 
 /* 段落工具栏: 相对选区壳居中 */
@@ -156,7 +156,7 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: none;
 }
 
 /* 深色模式下的底座微调 */
@@ -365,9 +365,8 @@ body.dark .cv-inline-toolbar {
 /* 画廊外框：明暗模式共用同一底色变量，圆角统一裁切子元素，临时去除边框排查问题 */
 .cv-inline-favorite-content {
   width: 100%;
-  border-radius: 0.5em;
+  border-radius: var(--cv-radius-sm);
   overflow: hidden;
-  background: var(--cv-inline-gallery-surface, #FBF9F5);
   border: none !important;
   outline: none !important;
 }

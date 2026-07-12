@@ -11,6 +11,7 @@ import {
   loadMountGalleryItems,
   removeMountItem,
   revokeTrackedObjectUrls,
+  sessionItemToGalleryItem,
   toggleMountFavorite,
 } from '@/composables/inlineGalleryMountActions';
 import { buildInlineActionHostClass } from '@/composables/inlineImageDom';
@@ -45,12 +46,8 @@ async function reloadItems(): Promise<void> {
   loading.value = true;
   try {
     items.value = await loadMountGalleryItems(props.mount, objectUrls);
-    activeItemId.value = items.value.some(item => item.id === activeItemId.value)
-      ? activeItemId.value
-      : (items.value[0]?.id ?? '');
-    if (!items.value.length) {
-      removeMount(props.mount.key, props.mount.messageId);
-    }
+    activeItemId.value = items.value[0]?.id ?? '';
+    if (!items.value.length) removeMount(props.mount.key, props.mount.messageId);
   } catch (error) {
     console.error('[CosmosVision] 加载画廊项失败', error);
     items.value = [];
@@ -58,7 +55,6 @@ async function reloadItems(): Promise<void> {
     loading.value = false;
   }
 }
-
 /**
  * 切换焦点图
  * @param item 项
@@ -75,7 +71,6 @@ async function onToggleFavorite(item: InlineGalleryItem): Promise<void> {
   if (!settingsStore.savedSettings.enabled) return;
   try {
     await toggleMountFavorite(props.mount, item, items.value);
-    await reloadItems();
   } catch (error) {
     console.error('[CosmosVision] 切换段落图片收藏失败', error);
     toastr.error(error instanceof Error ? error.message : '切换段落图片收藏失败');
@@ -90,24 +85,43 @@ async function onRemoveItem(item: InlineGalleryItem): Promise<void> {
   if (!settingsStore.savedSettings.enabled) return;
   try {
     const keep = await removeMountItem(props.mount, item, items.value);
-    if (!keep) {
-      items.value = [];
-      return;
-    }
-    await reloadItems();
+    items.value = items.value.filter(candidate => candidate.id !== item.id);
+    activeItemId.value = resolveRemovedFocusId(items.value, activeItemId.value);
+    if (!keep) items.value = [];
   } catch (error) {
     console.error('[CosmosVision] 删除段落图片失败', error);
     toastr.error('删除段落图片失败');
   }
 }
 
-// 主题走 darkMode→hostClass；仅 mount key / 元素变更时重载 items（避免暗色切换时重建 Object URL）
+/**
+ * 解析删除后的焦点图片
+ * @param remaining 剩余图片
+ * @param currentId 当前焦点 ID
+ * @returns 下一焦点 ID
+ */
+function resolveRemovedFocusId(remaining: InlineGalleryItem[], currentId: string): string {
+  return remaining.some(item => item.id === currentId) ? currentId : (remaining[0]?.id ?? '');
+}
+/**
+ * 把新生成图片直接插入当前画廊并切换焦点
+ * @param item 新生成会话项
+ */
+function appendGeneratedItem(item: NonNullable<GalleryMountRuntime['generatedItem']>): void {
+  if (items.value.some(candidate => candidate.id === item.id)) return;
+  const galleryItem = sessionItemToGalleryItem(item, objectUrls);
+  items.value = [galleryItem, ...items.value];
+  activeItemId.value = galleryItem.id;
+}
+
 watch(
-  () => props.mount.key,
-  () => void reloadItems(),
-  { immediate: true },
+  () => props.mount.generatedItem,
+  item => {
+    if (item) appendGeneratedItem(item);
+  },
 );
 
+void reloadItems();
 onUnmounted(() => {
   revokeTrackedObjectUrls(objectUrls);
 });

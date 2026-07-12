@@ -55,8 +55,9 @@ export async function toggleMountFavorite(
 ): Promise<void> {
   const host = buildFavoriteHost(mount, items);
   if (typeof item.favoriteId === 'number') {
+    const favoriteId = item.favoriteId;
     await unfavoriteGalleryItem(host, item);
-    ensureUnfavoritedItemInSession(mount, item);
+    ensureUnfavoritedItemInSession(mount, item, favoriteId);
     toastr.success('已取消收藏');
     return;
   }
@@ -64,7 +65,7 @@ export async function toggleMountFavorite(
 }
 
 /**
- * 收藏成功后写回 session，并在 temp→slot 时延后 audit（避免旧 key patch 竞态出双图）
+ * 收藏成功后写回 session，并在 temp→slot 时原地更新 mount
  * @param mount 运行时
  * @param item 画廊项
  * @param host favorite host
@@ -86,22 +87,29 @@ async function favoriteAndUpgradeMount(
       rekeyTempSessionToSlot(mount.mountKey.tempId, slotId);
     }
   });
-  if (bound) toastr.success('已收藏图片，将长期存储');
+  if (bound) toastr.success('已收藏图片，将存储于浏览器中');
   const sessionKey = upgradedSlotId ? buildSlotSessionKey(upgradedSlotId) : mount.key;
   patchSessionItem(sessionKey, item.id, {
     favoriteId: item.favoriteId,
     slotId: item.slotId,
     createdAt: item.createdAt,
   });
-  if (upgradedSlotId) void useGalleryRuntimesStore().auditFloor(mount.messageId);
+  if (upgradedSlotId) {
+    useGalleryRuntimesStore().rekeyMountToSlot(mount.key, mount.messageId, upgradedSlotId);
+  }
 }
 
 /**
  * 取消收藏后把图保留在会话层，避免 reload 后消失
  * @param mount 运行时
  * @param item 画廊项
+ * @param favoriteId 取消前的收藏记录 id
  */
-function ensureUnfavoritedItemInSession(mount: GalleryMountRuntime, item: InlineGalleryItem): void {
+function ensureUnfavoritedItemInSession(
+  mount: GalleryMountRuntime,
+  item: InlineGalleryItem,
+  favoriteId: number,
+): void {
   item.favoriteId = null;
   const paragraph = mount.anchor.paragraph;
   if (!paragraph) {
@@ -116,13 +124,14 @@ function ensureUnfavoritedItemInSession(mount: GalleryMountRuntime, item: Inline
     promptSnapshot: item.promptSnapshot,
     createdAt: item.createdAt,
   };
-  // 若会话尚无此项，通过 append 挂回（同 slot 会并入 slot 覆盖层）
-  const existing =
+  // 优先复用收藏前的临时会话项，防止收藏/取消后同图被追加为副本。
+  const sessionItems =
     mount.mountKey.kind === 'slot'
-      ? listSlotSessionItems(mount.mountKey.slotId).some(candidate => candidate.id === item.id)
-      : listTempSessionItems(mount.mountKey.tempId).some(candidate => candidate.id === item.id);
+      ? listSlotSessionItems(mount.mountKey.slotId)
+      : listTempSessionItems(mount.mountKey.tempId);
+  const existing = sessionItems.find(candidate => candidate.favoriteId === favoriteId);
   if (existing) {
-    patchSessionItem(mount.key, item.id, { favoriteId: null });
+    patchSessionItem(mount.key, existing.id, { favoriteId: null });
     return;
   }
   appendGeneratedSessionItem(paragraph, sessionItem);
@@ -276,7 +285,7 @@ function createFavoriteItem(
  * @param objectUrls 集合
  * @returns 画廊项
  */
-function sessionItemToGalleryItem(
+export function sessionItemToGalleryItem(
   item: GallerySessionItem,
   objectUrls: Set<string>,
 ): InlineGalleryItem {

@@ -143,7 +143,7 @@ function syncActiveItemByIndex(props: Readonly<InlineGalleryGroupProps>, index: 
  * @returns 图片舞台 VNode
  */
 function renderFocusImage(props: Readonly<InlineGalleryGroupProps>, item: InlineGalleryItem): VNode {
-  return h('div', { class: 'cv-inline-favorite-stage' }, [
+  return h('div', { class: 'cv-inline-img-wrap cv-inline-favorite-stage' }, [
     renderGalleryImage(props, item),
     renderFavoriteToggle(props, item),
     renderRemoveToggle(props, item),
