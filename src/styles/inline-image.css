@@ -349,6 +349,7 @@ body.dark .cv-inline-toolbar {
 
 /* 移动端点击激活 / 按钮聚焦时浮现 */
 .cv-inline-img-wrap.cv-inline-img-active .cv-inline-img-actions,
+.cv-inline-favorite-stage.cv-inline-img-active .cv-inline-img-actions,
 .cv-inline-img-actions:focus-within {
   opacity: 1;
   pointer-events: auto;
@@ -356,7 +357,8 @@ body.dark .cv-inline-toolbar {
 
 /* 桌面端 hover 时浮现（仅限真正支持 hover 的设备，避免移动端 hover 粘滞） */
 @media (hover: hover) {
-  .cv-inline-img-wrap:hover .cv-inline-img-actions {
+  .cv-inline-img-wrap:hover .cv-inline-img-actions,
+  .cv-inline-favorite-stage:hover .cv-inline-img-actions {
     opacity: 1;
     pointer-events: auto;
   }
@@ -415,6 +417,7 @@ body.dark .cv-inline-toolbar {
 
 /* 移动端点击激活整张图片时，角钮随操作条一起浮现 */
 .cv-inline-img-wrap.cv-inline-img-active .cv-inline-corner-button,
+.cv-inline-favorite-stage.cv-inline-img-active .cv-inline-corner-button,
 .cv-inline-favorite-stage:hover .cv-inline-corner-button,
 .cv-inline-corner-button:focus-visible {
   opacity: 1;
@@ -423,7 +426,8 @@ body.dark .cv-inline-toolbar {
 
 /* 桌面端 hover 时浮现（仅限真正支持 hover 的设备，避免移动端 hover 粘滞） */
 @media (hover: hover) {
-  .cv-inline-img-wrap:hover .cv-inline-corner-button {
+  .cv-inline-img-wrap:hover .cv-inline-corner-button,
+  .cv-inline-favorite-stage:hover .cv-inline-corner-button {
     opacity: 1;
     pointer-events: auto;
   }
@@ -722,7 +726,6 @@ body.dark .cv-inline-toolbar {
   z-index: 4;
   min-height: 100%;
   margin: 0;
-  border-radius: var(--cv-radius);
   background: color-mix(in srgb, var(--cv-surface-container-high) 42%, transparent);
   -webkit-backdrop-filter: blur(0.35em);
   backdrop-filter: blur(0.35em);

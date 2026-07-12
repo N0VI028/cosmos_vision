@@ -143,7 +143,7 @@ function syncActiveItemByIndex(props: Readonly<InlineGalleryGroupProps>, index: 
  * @returns 图片舞台 VNode
  */
 function renderFocusImage(props: Readonly<InlineGalleryGroupProps>, item: InlineGalleryItem): VNode {
-  return h('div', { class: 'cv-inline-img-wrap cv-inline-favorite-stage' }, [
+  return h('div', { class: 'cv-inline-favorite-stage' }, [
     renderGalleryImage(props, item),
     renderFavoriteToggle(props, item),
     renderRemoveToggle(props, item),
@@ -175,7 +175,7 @@ function renderGalleryImage(props: Readonly<InlineGalleryGroupProps>, item: Inli
  */
 function openLightbox(event: MouseEvent, props: Readonly<InlineGalleryGroupProps>, item: InlineGalleryItem): void {
   const img = event.currentTarget as HTMLImageElement;
-  const wrap = img.closest('.cv-inline-img-wrap');
+  const wrap = img.closest('.cv-inline-favorite-stage') ?? img.closest('.cv-inline-img-wrap');
   if (wrap instanceof HTMLElement) {
     handleInlineImageClick(event, img, wrap, props.isRuntimeEnabled, item.promptSnapshot, {
       onDownload: () => props.downloadImage(item),

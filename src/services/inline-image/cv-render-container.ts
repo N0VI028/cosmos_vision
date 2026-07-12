@@ -79,12 +79,15 @@ function ensureMarkerBeforeContainer(element: HTMLElement, slotId: string): void
 }
 
 /**
- * 读取段落上的 cv-render 容器（相邻 after sibling）
+ * 读取段落上的 cv-render 容器（相邻 after sibling，跳过隐藏的短码 marker）
  * @param paragraph 宿主段落
  * @returns 容器或 null
  */
 export function findRenderContainerAfter(paragraph: HTMLElement): HTMLElement | null {
-  const next = paragraph.nextElementSibling;
+  let next = paragraph.nextElementSibling;
+  if (next instanceof HTMLElement && next.classList.contains(CV_SLOT_MARKER_CLASS)) {
+    next = next.nextElementSibling;
+  }
   return next instanceof HTMLElement && next.classList.contains(CV_RENDER_CLASS) ? next : null;
 }
 
