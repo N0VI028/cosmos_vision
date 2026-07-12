@@ -115,6 +115,8 @@
       </button>
     </div>
   </Teleport>
+  <!-- 短码 / 临时画廊：Teleport 到聊天内 cv-render -->
+  <InlineGalleryRuntimeHost />
 </template>
 
 <script setup lang="ts">
@@ -131,6 +133,7 @@ import {
   type InlinePromptPairInputValue,
   type InlineTextInputOptions,
 } from '@/composables/useInlineImageGeneration';
+import InlineGalleryRuntimeHost from '@/panel/components/InlineGalleryRuntimeHost.vue';
 import {
   extractMessageParagraphs,
   findMessageId,

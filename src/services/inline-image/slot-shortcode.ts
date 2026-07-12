@@ -33,7 +33,16 @@ export function encodeSlotShortcode(slotId: string): string {
  * @returns 是否已有该短码
  */
 export function hasSlotShortcode(text: string, slotId: string): boolean {
-  return text.includes(encodeSlotShortcode(slotId));
+  return listRawLines(text).some(line => line.trim() === encodeSlotShortcode(slotId));
+}
+
+/**
+ * 解析独立短码行
+ * @param text 待解析文本
+ * @returns slotId 或 null
+ */
+export function parseSlotMarkerLine(text: string): string | null {
+  return text.trim().match(SLOT_SHORTCODE_SINGLE)?.[1] ?? null;
 }
 
 /**
@@ -88,7 +97,9 @@ export function stripSlotShortcodes(text: string): string {
  */
 export function removeSlotShortcode(raw: string, slotId: string): string {
   const code = encodeSlotShortcode(slotId);
-  return raw.split(code).join('');
+  return listRawLines(raw)
+    .filter(line => line.trim() !== code)
+    .join(readLineBreak(raw));
 }
 
 /**
@@ -103,19 +114,68 @@ export function appendSlotShortcodeAt(raw: string, at: number, slotId: string): 
   if (!Number.isInteger(at) || at < 0 || at > raw.length) {
     throw new Error('短码插入偏移无效，无法绑定短码');
   }
-  const insert = encodeSlotShortcode(slotId);
+  const insert = buildMarkerInsertion(raw, at, slotId);
   const next = `${raw.slice(0, at)}${insert}${raw.slice(at)}`;
-  assertBodyUnchanged(raw, next);
+  assertBodyPreserved(raw, next, at, insert.length);
   return next;
 }
 
 /**
- * 校验定点写 raw 后剥离短码的正文不变
+ * 构建宿主后的独立短码行
+ * @param raw 消息原文
+ * @param at 宿主尾部偏移
+ * @param slotId 位点 id
+ * @returns 带必要换行的短码块
+ */
+function buildMarkerInsertion(raw: string, at: number, slotId: string): string {
+  const newline = readLineBreak(raw);
+  const before = raw.slice(0, at);
+  const after = raw.slice(at);
+  const prefix = before.endsWith(newline) ? newline : `${newline}${newline}`;
+  const suffix = readMarkerSuffix(after, newline);
+  return `${prefix}${encodeSlotShortcode(slotId)}${suffix}`;
+}
+
+/**
+ * 计算 marker 后所需分隔换行
+ * @param after 插入点后的原文
+ * @param newline 换行符
+ * @returns 后缀换行
+ */
+function readMarkerSuffix(after: string, newline: string): string {
+  if (!after) return '';
+  if (after.startsWith(`${newline}${newline}`)) return '';
+  return after.startsWith(newline) ? newline : `${newline}${newline}`;
+}
+
+/**
+ * 按原文换行风格拆行
+ * @param raw 消息原文
+ * @returns 行列表
+ */
+function listRawLines(raw: string): string[] {
+  return raw.split(/\r?\n/);
+}
+
+/**
+ * 读取原文换行风格
+ * @param raw 消息原文
+ * @returns 换行符
+ */
+function readLineBreak(raw: string): string {
+  return raw.includes('\r\n') ? '\r\n' : '\n';
+}
+
+/**
+ * 校验定点写入未改动原文两侧字符
  * @param before 写前 raw
  * @param after 写后 raw
+ * @param at 插入偏移
+ * @param insertedLength 插入长度
  */
-function assertBodyUnchanged(before: string, after: string): void {
-  if (stripSlotShortcodes(before) !== stripSlotShortcodes(after)) {
+function assertBodyPreserved(before: string, after: string, at: number, insertedLength: number): void {
+  const restored = `${after.slice(0, at)}${after.slice(at + insertedLength)}`;
+  if (restored !== before) {
     throw new Error('短码写入校验失败：正文发生了非预期变更');
   }
 }

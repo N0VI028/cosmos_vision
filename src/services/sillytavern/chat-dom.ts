@@ -1,5 +1,6 @@
 import type { PromptLlmContext, PromptLlmSettings } from '@/constants/novelai';
 import { chat } from '@sillytavern/script';
+import { stripSlotShortcodes } from '@/services/inline-image/slot-shortcode';
 import { readPromptLlmHistoryMessages } from '@/services/tavern-helper/chat-history';
 
 const MESSAGE_TEXT_BLOCK_SELECTOR = 'p, li, blockquote, pre, h1, h2, h3, h4, h5, h6';
@@ -165,7 +166,10 @@ function readMessageTextNode(node: Node): string {
  * @returns 是否应跳过该节点
  */
 function hasCosmosInlineClass(element: HTMLElement): boolean {
-  return Array.from(element.classList).some(className => className.startsWith('cv-inline') && className !== 'cv-inline-selected');
+  return Array.from(element.classList).some(className => {
+    if (className === 'cv-render') return true;
+    return className.startsWith('cv-inline') && className !== 'cv-inline-selected';
+  });
 }
 
 /**
@@ -369,12 +373,12 @@ export function createInlineFavoriteAnchor(paragraph: HTMLElement): InlineFavori
 }
 
 /**
- * 读取段落文本 hash
+ * 读取段落文本 hash（剥离 cv 短码，保证重挂与摘码前后一致）
  * @param paragraph 段落元素
  * @returns hash 字符串
  */
 export function getParagraphTextHash(paragraph: HTMLElement): string {
-  return createInlineTextHash(extractCleanParagraphText(paragraph));
+  return createInlineTextHash(stripSlotShortcodes(extractCleanParagraphText(paragraph)));
 }
 
 /**

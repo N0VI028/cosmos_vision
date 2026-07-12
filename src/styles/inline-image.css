@@ -321,6 +321,12 @@ body.dark .cv-inline-toolbar {
   margin: var(--cv-space-10xl) auto;
 }
 
+/* Teleport 承载容器：仅占位，视觉由内部 wrap 负责 */
+.cv-render {
+  display: block;
+  width: 100%;
+}
+
 .cv-inline-img-wrap img {
   display: block;
   width: 100%;

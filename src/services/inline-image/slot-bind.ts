@@ -5,7 +5,7 @@ import {
   appendSlotShortcodeAt,
   hasSlotShortcode,
   parseFirstSlotId,
-  parseLeadingSlotId,
+  parseSlotMarkerLine,
   removeSlotShortcode,
   stripSlotShortcodes,
 } from '@/services/inline-image/slot-shortcode';
@@ -70,7 +70,18 @@ export async function removeSlotShortcodeFromMessage(
 function findSlotIdForParagraphHost(raw: string, paragraph: HTMLElement): string | null {
   const at = locateParagraphHostEnd(raw, paragraph);
   if (at === null) return null;
-  return parseLeadingSlotId(raw.slice(at));
+  return findFollowingMarker(raw.slice(at));
+}
+
+/**
+ * 解析宿主后紧邻的独立短码行
+ * @param tail 宿主后的 raw
+ * @returns slotId 或 null
+ */
+function findFollowingMarker(tail: string): string | null {
+  const lines = tail.split(/\r?\n/);
+  const marker = lines.find(line => line.trim());
+  return marker ? parseSlotMarkerLine(marker) : null;
 }
 
 /**

@@ -4,8 +4,8 @@ import {
   type InlineGenerationSession,
 } from '@/composables/inlineGenerationSession';
 import { preventInlineEventBubbling } from '@/composables/inlineImageDom';
-import { createInlineImageGalleryRenderer } from '@/composables/inlineImageGalleryRenderer';
 import { cloneInlinePromptSnapshot, type InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
+import { useGalleryRuntimesStore } from '@/store/gallery-runtimes';
 import { generateComfyUIImageFromPrompts, generateComfyUIImageFromResolvedRequest } from '@/services/comfyui/api';
 import { buildComfyUIResolvedRequest, getComfyUIRequestError, type ComfyUIRequestSnapshot } from '@/services/comfyui/workflow';
 import {
@@ -121,16 +121,15 @@ export function useInlineImageGeneration(
   /** 是否处于段落生图选择模式 */
   const isSelectionMode = ref(false);
 
-  /** 段落图片画廊渲染器 */
-  const imageGallery = createInlineImageGalleryRenderer({
-    appContext,
-    getDarkMode: options.getDarkMode,
-    isRuntimeEnabled,
+  /** TH 风格画廊 runtime（cv-render + Teleport） */
+  const imageGallery = useGalleryRuntimesStore();
+  imageGallery.setHandlers({
     onGenerateWithSnapshot: handleGenerateWithFavoriteSnapshot,
     onGenerateWithFreshPrompt: handleGenerateWithFreshPrompt,
     onGenerateWithEditablePrompt: handleGenerateWithEditablePrompt,
     onDownloadImage: handleDownloadImage,
   });
+  imageGallery.start();
 
   /** 记录 pointerdown 的位置,用于区分点击和拖拽 */
   let pointerDownX = 0;
@@ -223,7 +222,7 @@ export function useInlineImageGeneration(
    * @returns 是否跳过
    */
   function isIgnoredInlineTarget(target: HTMLElement): boolean {
-    return Boolean(target.closest('.cv-inline-selection-shell, .cv-inline-toolbar, .cv-inline-img-wrap, .cv-speed-dial-container, a, button, input, textarea, [role="button"]'));
+    return Boolean(target.closest('.cv-inline-selection-shell, .cv-inline-toolbar, .cv-inline-img-wrap, .cv-render, .cv-speed-dial-container, a, button, input, textarea, [role="button"]'));
   }
 
   /**
