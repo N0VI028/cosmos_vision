@@ -61,10 +61,8 @@ export interface DataImportResult {
 export interface PortableInlineFavoriteRecord {
   characterKey: string;
   chatId: string;
-  globalParagraphIndex: number;
-  mesId?: string;
-  swipeId?: number;
-  paragraphTextHash?: string;
+  /** 段落位点 slotId（画廊锚点） */
+  slotId: string;
   imageData: string;
   imageType: string;
   promptSnapshot: InlinePromptSnapshot;

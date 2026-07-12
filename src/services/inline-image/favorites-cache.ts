@@ -2,9 +2,9 @@ import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 
 const DB_NAME = 'cosmos-vision-inline-image-favorites';
 const STORE_NAME = 'favorites';
-const DB_VERSION = 1;
+const DB_VERSION = 3;
 const SCOPE_INDEX = 'scope';
-const CREATED_AT_INDEX = 'createdAt';
+const SLOT_ID_INDEX = 'slotId';
 
 export interface InlineImageFavoriteScope {
   characterKey: string;
@@ -13,10 +13,8 @@ export interface InlineImageFavoriteScope {
 
 export interface InlineImageFavoriteRecord extends InlineImageFavoriteScope {
   id?: number;
-  globalParagraphIndex: number;
-  mesId?: string;
-  swipeId?: number;
-  paragraphTextHash?: string;
+  /** 段落位点短码 id（画廊锚点） */
+  slotId: string;
   imageBlob: Blob;
   promptSnapshot: InlinePromptSnapshot;
   createdAt: number;
@@ -42,6 +40,27 @@ export async function saveInlineImageFavorite(
   const db = await openInlineImageFavoriteDb();
   const request = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).add(record);
   return requestToPromise(request as IDBRequest<number>);
+}
+
+/**
+ * 按 slotId 读取收藏图，按 createdAt 从新到旧；可选限定角色/聊天作用域
+ * @param slotId 段落位点 id
+ * @param scope 可选收藏作用域，缺省时不过滤 scope
+ * @returns 收藏列表
+ */
+export async function listInlineImageFavoritesBySlot(
+  slotId: string,
+  scope?: InlineImageFavoriteScope | null,
+): Promise<InlineImageFavoriteListItem[]> {
+  if (!slotId) return [];
+  const db = await openInlineImageFavoriteDb();
+  const request = db
+    .transaction(STORE_NAME, 'readonly')
+    .objectStore(STORE_NAME)
+    .index(SLOT_ID_INDEX)
+    .getAll(slotId) as IDBRequest<InlineImageFavoriteRecord[]>;
+  const items = toInlineImageFavoriteListItems(await requestToPromise(request));
+  return sortInlineImageFavoriteRecords(scope ? items.filter(record => matchesFavoriteScope(record, scope)) : items);
 }
 
 /**
@@ -79,15 +98,17 @@ export async function exportInlineImageFavoriteRecords(): Promise<InlineImageFav
 export async function importInlineImageFavoriteRecords(records: InlineImageFavoriteRecord[]): Promise<number> {
   const db = await openInlineImageFavoriteDb();
   const store = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME);
-  const existing = (await requestToPromise(store.getAll() as IDBRequest<InlineImageFavoriteRecord[]>))
-    .filter(isInlineImageFavoriteListItem);
+  const existing = (await requestToPromise(store.getAll() as IDBRequest<InlineImageFavoriteRecord[]>)).filter(
+    isInlineImageFavoriteListItem,
+  );
   const existingIdByKey = new Map(existing.map(record => [buildFavoriteDedupKey(record), record.id]));
   let imported = 0;
   for (const record of records) {
     const existingId = existingIdByKey.get(buildFavoriteDedupKey(record));
-    const value = existingId !== undefined
-      ? { ...createImportFavoriteRecord(record), id: existingId }
-      : createImportFavoriteRecord(record);
+    const value =
+      existingId !== undefined
+        ? { ...createImportFavoriteRecord(record), id: existingId }
+        : createImportFavoriteRecord(record);
     await requestToPromise(store.put(value) as IDBRequest<number>);
     imported += 1;
   }
@@ -95,19 +116,12 @@ export async function importInlineImageFavoriteRecords(records: InlineImageFavor
 }
 
 /**
- * 构建收藏去重业务键(定位同一段落图片)
+ * 构建收藏去重业务键(同 scope 同 slot 同时间图)
  * @param record 收藏记录
  * @returns 去重键
  */
 function buildFavoriteDedupKey(record: InlineImageFavoriteRecord): string {
-  return [
-    record.characterKey,
-    record.chatId,
-    record.globalParagraphIndex,
-    record.mesId ?? '',
-    record.swipeId ?? '',
-    record.paragraphTextHash ?? '',
-  ].join('::');
+  return [record.characterKey, record.chatId, record.slotId, record.createdAt].join('::');
 }
 
 /**
@@ -119,10 +133,7 @@ function createImportFavoriteRecord(record: InlineImageFavoriteRecord): Omit<Inl
   return {
     characterKey: record.characterKey,
     chatId: record.chatId,
-    globalParagraphIndex: record.globalParagraphIndex,
-    mesId: record.mesId,
-    swipeId: record.swipeId,
-    paragraphTextHash: record.paragraphTextHash,
+    slotId: record.slotId,
     imageBlob: record.imageBlob,
     promptSnapshot: record.promptSnapshot,
     createdAt: record.createdAt,
@@ -185,8 +196,11 @@ async function readInlineImageFavoritesByScope(
 ): Promise<InlineImageFavoriteListItem[]> {
   const db = await openInlineImageFavoriteDb();
   const range = IDBKeyRange.only([scope.characterKey, scope.chatId]);
-  const request = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME)
-    .index(SCOPE_INDEX).getAll(range) as IDBRequest<InlineImageFavoriteRecord[]>;
+  const request = db
+    .transaction(STORE_NAME, 'readonly')
+    .objectStore(STORE_NAME)
+    .index(SCOPE_INDEX)
+    .getAll(range) as IDBRequest<InlineImageFavoriteRecord[]>;
   return toInlineImageFavoriteListItems(await requestToPromise(request));
 }
 
@@ -196,7 +210,9 @@ async function readInlineImageFavoritesByScope(
  */
 async function getAllInlineImageFavoriteRecords(): Promise<InlineImageFavoriteListItem[]> {
   const db = await openInlineImageFavoriteDb();
-  const request = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME)
+  const request = db
+    .transaction(STORE_NAME, 'readonly')
+    .objectStore(STORE_NAME)
     .getAll() as IDBRequest<InlineImageFavoriteRecord[]>;
   return toInlineImageFavoriteListItems(await requestToPromise(request));
 }
@@ -215,12 +231,13 @@ function prepareInlineImageFavoriteStore(db: IDBDatabase, transaction: IDBTransa
 }
 
 /**
- * 创建收藏查询索引
+ * 创建收藏查询索引（仅 scope + slotId；排序在内存按 createdAt）
  * @param store 收藏 object store
  */
 function createFavoriteIndexes(store: IDBObjectStore): void {
+  if (store.indexNames.contains('createdAt')) store.deleteIndex('createdAt');
   if (!store.indexNames.contains(SCOPE_INDEX)) store.createIndex(SCOPE_INDEX, ['characterKey', 'chatId']);
-  if (!store.indexNames.contains(CREATED_AT_INDEX)) store.createIndex(CREATED_AT_INDEX, 'createdAt');
+  if (!store.indexNames.contains(SLOT_ID_INDEX)) store.createIndex(SLOT_ID_INDEX, 'slotId');
 }
 
 /**
@@ -230,6 +247,16 @@ function createFavoriteIndexes(store: IDBObjectStore): void {
  */
 function toInlineImageFavoriteListItems(records: InlineImageFavoriteRecord[]): InlineImageFavoriteListItem[] {
   return records.filter(isInlineImageFavoriteListItem);
+}
+
+/**
+ * 判断收藏记录是否属于给定作用域
+ * @param record 收藏记录
+ * @param scope 角色/聊天作用域
+ * @returns 是否匹配
+ */
+function matchesFavoriteScope(record: InlineImageFavoriteRecord, scope: InlineImageFavoriteScope): boolean {
+  return record.characterKey === scope.characterKey && record.chatId === scope.chatId;
 }
 
 /**

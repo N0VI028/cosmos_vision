@@ -774,6 +774,8 @@ body.dark .cv-inline-toolbar {
 .cv-inline-generation-close-text {
   font-size: inherit;
   line-height: 1.2;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* 状态条内部元素样式 */

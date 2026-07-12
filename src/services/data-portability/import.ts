@@ -580,10 +580,7 @@ async function toInlineFavoriteRecord(record: PortableInlineFavoriteRecord): Pro
   return {
     characterKey: record.characterKey,
     chatId: record.chatId,
-    globalParagraphIndex: record.globalParagraphIndex,
-    mesId: record.mesId,
-    swipeId: record.swipeId,
-    paragraphTextHash: record.paragraphTextHash,
+    slotId: record.slotId,
     imageBlob: dataUrlToBlob(record.imageData, record.imageType),
     promptSnapshot: _.cloneDeep(record.promptSnapshot),
     createdAt: record.createdAt,
@@ -673,13 +670,19 @@ function isNovelAIModel(value: unknown): value is NovelAIVibeCacheRecord['model'
 }
 
 /**
- * 判断是否为 JSON 收藏图片记录
+ * 判断是否为 JSON 收藏图片记录（须含 slotId；缺字段视为畸形跳过）
  * @param value 外部值
  * @returns 是否匹配
  */
 function isPortableFavoriteRecord(value: unknown): value is PortableInlineFavoriteRecord {
   const record = toRecord(value);
-  return typeof record.imageData === 'string' && typeof record.characterKey === 'string' && typeof record.chatId === 'string';
+  return (
+    typeof record.imageData === 'string' &&
+    typeof record.characterKey === 'string' &&
+    typeof record.chatId === 'string' &&
+    typeof record.slotId === 'string' &&
+    record.slotId.length > 0
+  );
 }
 
 /**

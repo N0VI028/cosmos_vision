@@ -58,7 +58,7 @@
       >
         <div class="cv-mode-indicator-text">
           <i class="fa-solid fa-wand-magic-sparkles" />
-          <span>段落生图模式已激活</span>
+          <span>点击段落开始生图</span>
         </div>
       </div>
     </Transition>
@@ -144,6 +144,7 @@ import {
   createDefaultInlineImageDownloadOptions,
   type InlineImageDownloadOptions,
 } from '@/services/inline-image/download-options';
+import { ensurePromptStripRegex } from '@/services/inline-image/prompt-strip-regex';
 
 interface TextInputDialogSubmitValue {
   value: string;
@@ -424,6 +425,9 @@ function handleImageDownloadDialog(value: InlineImageDownloadOptions | null): vo
 }
 
 // ── 生命周期 ─────────────────────────────────────────────
+
+// 段落短码 prompt 剥离正则：load 注册；关插件保持开启
+void ensurePromptStripRegex();
 
 watch(
   () => savedSettings.enabled,

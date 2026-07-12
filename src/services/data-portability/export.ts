@@ -154,10 +154,7 @@ async function toPortableFavoriteRecord(record: Awaited<ReturnType<typeof export
   return {
     characterKey: record.characterKey,
     chatId: record.chatId,
-    globalParagraphIndex: record.globalParagraphIndex,
-    mesId: record.mesId,
-    swipeId: record.swipeId,
-    paragraphTextHash: record.paragraphTextHash,
+    slotId: record.slotId,
     imageData: await blobToDataUrl(record.imageBlob),
     imageType: record.imageBlob.type || 'image/png',
     promptSnapshot: _.cloneDeep(record.promptSnapshot),

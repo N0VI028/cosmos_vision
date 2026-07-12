@@ -12,7 +12,8 @@ import { defineComponent, h, nextTick, onMounted, watch } from 'vue';
 export interface InlineGalleryItem {
   id: string;
   favoriteId: number | null;
-  globalParagraphIndex: number;
+  /** 段落位点 slotId；临时项可为空 */
+  slotId: string | null;
   imageBlob: Blob;
   objectUrl: string;
   promptSnapshot: InlinePromptSnapshot;

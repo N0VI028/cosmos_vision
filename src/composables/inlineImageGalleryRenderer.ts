@@ -1,5 +1,9 @@
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
-import { cloneInlinePromptSnapshot } from '@/composables/inlineImageLightbox';
+import {
+  deleteFavoriteGalleryItem,
+  favoriteGalleryItem,
+  unfavoriteGalleryItem,
+} from '@/composables/inlineImageGalleryFavorite';
 import { buildInlineActionHostClass, preventInlineEventBubbling } from '@/composables/inlineImageDom';
 import {
   InlineGalleryGroupView,
@@ -10,26 +14,17 @@ import {
   createInlineImageMessageRenderRestorer,
   type InlineImageMessageRenderRestorer,
 } from '@/composables/inlineImageMessageRenderRestore';
+import { type InlineImageFavoriteListItem } from '@/services/inline-image/favorites-cache';
+import { resolveParagraphSlotId } from '@/services/inline-image/slot-bind';
 import {
-  deleteInlineImageFavorite,
-  listInlineImageFavorites,
-  saveInlineImageFavorite,
-  type InlineImageFavoriteListItem,
-  type InlineImageFavoriteRecord,
-} from '@/services/inline-image/favorites-cache';
-import {
-  isFavoriteRecordVisibleInCurrentChat,
-  shouldRenderFavoriteRecordAtAnchor,
-} from '@/services/inline-image/favorite-visibility';
+  collectMessageSlotGalleryMounts,
+  collectVisibleSlotGalleryMounts,
+  type SlotGalleryMountSpec,
+} from '@/services/inline-image/slot-gallery-restore';
 import { getCurrentInlineFavoriteScope } from '@/services/sillytavern/chat-context';
 import {
   createInlineFavoriteAnchor,
-  findInlineFavoriteFallbackTarget,
-  findMessageId,
-  findParagraphByGlobalIndex,
   getGlobalParagraphIndex,
-  getInlineFavoriteAnchor,
-  getParagraphTextHash,
   type InlineFavoriteAnchor,
 } from '@/services/sillytavern/chat-dom';
 import { event_types, eventSource } from '@sillytavern/script';
@@ -60,7 +55,10 @@ export interface InlineImageGalleryRenderer {
 }
 
 interface InlineGalleryGroup {
+  /** groups key：优先 slotId，临时画廊用 temp:${index} */
+  key: string;
   index: number;
+  slotId: string | null;
   anchor: InlineFavoriteAnchor;
   host: HTMLElement;
   items: InlineGalleryItem[];
@@ -68,7 +66,7 @@ interface InlineGalleryGroup {
 }
 
 interface InlineGalleryState extends InlineGalleryRendererOptions {
-  groups: Map<number, InlineGalleryGroup>;
+  groups: Map<string, InlineGalleryGroup>;
   objectUrls: Set<string>;
   messageRestorer: InlineImageMessageRenderRestorer | null;
   chatRestoreTimer: number | null;
@@ -128,9 +126,9 @@ function attachMessageRenderRestorer(state: InlineGalleryState): void {
   state.messageRestorer = createInlineImageMessageRenderRestorer({
     getRestoreToken: () => state.restoreToken,
     isDisposed: () => state.disposed,
-    mergeFavoriteRecords: (index, anchor, records) => mergeFavoriteRecordsIntoGroup(state, index, anchor, records),
-    readRecords: () => readFavoriteRecordsForCurrentScope(),
+    restoreBySlotMounts: mounts => mergeSlotGalleryMounts(state, mounts),
     remountGroups: anchors => remountRenderedGroups(state, anchors),
+    readMessageSlotMounts: messageIds => collectMessageSlotGalleryMounts(messageIds),
   });
 }
 
@@ -172,7 +170,7 @@ function disposeChatChangeRestore(state: InlineGalleryState): void {
 }
 
 /**
- * 从 IndexedDB 恢复当前聊天的收藏图
+ * 从 DOM 短码 + IDB slot 恢复当前聊天画廊
  * @param state 画廊状态
  */
 async function restoreGallery(state: InlineGalleryState): Promise<void> {
@@ -180,53 +178,41 @@ async function restoreGallery(state: InlineGalleryState): Promise<void> {
   const token = state.restoreToken + 1;
   state.restoreToken = token;
   cleanupGalleryHosts(state);
-  const scope = getCurrentInlineFavoriteScope();
-  if (!scope) return;
-  const records = await readFavoriteRecords(scope);
-  if (state.disposed || token !== state.restoreToken) return;
-  renderFavoriteRecords(state, records);
-}
-
-/**
- * 读取当前聊天作用域下的收藏记录
- * @returns 当前聊天收藏记录,作用域缺失时返回 null
- */
-async function readFavoriteRecordsForCurrentScope(): Promise<InlineImageFavoriteListItem[] | null> {
-  const scope = getCurrentInlineFavoriteScope();
-  return scope ? readFavoriteRecords(scope) : null;
-}
-
-/**
- * 读取收藏记录
- * @param scope 当前收藏作用域
- * @returns 收藏记录列表
- */
-async function readFavoriteRecords(
-  scope: Parameters<typeof listInlineImageFavorites>[0],
-): Promise<InlineImageFavoriteListItem[]> {
+  if (!getCurrentInlineFavoriteScope()) return;
+  let mounts: SlotGalleryMountSpec[] = [];
   try {
-    return await listInlineImageFavorites(scope);
+    mounts = await collectVisibleSlotGalleryMounts();
   } catch (error) {
     console.error('[CosmosVision] 读取段落图片收藏失败', error);
     toastr.error('读取段落图片收藏失败');
-    return [];
+  }
+  if (state.disposed || token !== state.restoreToken) return;
+  mergeSlotGalleryMounts(state, mounts);
+}
+
+/**
+ * 把短码扫描到的 slot 画廊挂到 DOM
+ * @param state 画廊状态
+ * @param mounts 挂载规格
+ */
+function mergeSlotGalleryMounts(state: InlineGalleryState, mounts: SlotGalleryMountSpec[]): void {
+  for (const mount of mounts) {
+    const group = ensureGroup(state, mount.index, mount.anchor, mount.slotId);
+    const items = mount.records
+      .filter(record => !hasFavoriteItem(group, record.id))
+      .map(record => createFavoriteItem(state, record, mount.slotId));
+    if (!items.length) {
+      remountGroupIfNeeded(state, group, mount.anchor);
+      continue;
+    }
+    group.items = sortGalleryItems([...group.items, ...items]);
+    group.activeItemId = resolveActiveItemId(group);
+    renderGroup(state, group);
   }
 }
 
 /**
- * 渲染恢复出的收藏记录
- * @param state 画廊状态
- * @param records 收藏记录
- */
-function renderFavoriteRecords(state: InlineGalleryState, records: InlineImageFavoriteListItem[]): void {
-  groupVisibleFavoriteRecords(records).forEach(group => {
-    const items = group.records.map(record => createFavoriteItem(state, record));
-    mountGroup(state, group.index, group.anchor, items, items[0]?.id ?? '');
-  });
-}
-
-/**
- * 展示本次会话新生成的图片
+ * 展示本次会话新生成的图片（仅 DOM，不写 raw / 默认不写 IDB）
  * @param state 画廊状态
  * @param paragraph 目标段落
  * @param result 生成结果
@@ -237,9 +223,10 @@ function showGeneratedImage(
   result: InlineGeneratedImageResult,
 ): void {
   const index = Math.max(0, getGlobalParagraphIndex(paragraph));
-  const anchor = getInlineFavoriteAnchor(index) ?? { target: paragraph, placement: 'after', paragraph };
-  const item = createTemporaryItem(state, index, result);
-  const group = ensureGroup(state, index, anchor);
+  const existingSlotId = resolveParagraphSlotId(paragraph) ?? findGroupSlotOnParagraph(state, paragraph);
+  const anchor = createInlineFavoriteAnchor(paragraph);
+  const item = createTemporaryItem(state, existingSlotId, result);
+  const group = ensureGroup(state, index, anchor, existingSlotId);
   group.items = sortGalleryItems([item, ...group.items]);
   group.activeItemId = item.id;
   renderGroup(state, group);
@@ -249,15 +236,20 @@ function showGeneratedImage(
  * 创建恢复收藏项
  * @param state 画廊状态
  * @param record 收藏记录
+ * @param slotId 位点 id
  * @returns 画廊项
  */
-function createFavoriteItem(state: InlineGalleryState, record: InlineImageFavoriteListItem): InlineGalleryItem {
+function createFavoriteItem(
+  state: InlineGalleryState,
+  record: InlineImageFavoriteListItem,
+  slotId: string,
+): InlineGalleryItem {
   const objectUrl = URL.createObjectURL(record.imageBlob);
   state.objectUrls.add(objectUrl);
   return {
     id: `favorite-${record.id}`,
     favoriteId: record.id,
-    globalParagraphIndex: record.globalParagraphIndex,
+    slotId,
     imageBlob: record.imageBlob,
     objectUrl,
     promptSnapshot: record.promptSnapshot,
@@ -268,13 +260,13 @@ function createFavoriteItem(state: InlineGalleryState, record: InlineImageFavori
 /**
  * 创建会话临时生成项
  * @param state 画廊状态
- * @param index 段落索引
+ * @param slotId 已有位点或 null
  * @param result 生成结果
  * @returns 画廊项
  */
 function createTemporaryItem(
   state: InlineGalleryState,
-  index: number,
+  slotId: string | null,
   result: InlineGeneratedImageResult,
 ): InlineGalleryItem {
   const objectUrl = URL.createObjectURL(result.imageBlob);
@@ -282,35 +274,12 @@ function createTemporaryItem(
   return {
     id: `temporary-${state.nextTemporaryId++}`,
     favoriteId: null,
-    globalParagraphIndex: index,
+    slotId,
     imageBlob: result.imageBlob,
     objectUrl,
     promptSnapshot: result.promptSnapshot,
     createdAt: Date.now(),
   };
-}
-
-/**
- * 合并收藏记录到已有或新建的画廊组
- * @param state 画廊状态
- * @param index 全局段落索引
- * @param anchor 当前段落锚点
- * @param records 收藏记录
- */
-function mergeFavoriteRecordsIntoGroup(
-  state: InlineGalleryState,
-  index: number,
-  anchor: InlineFavoriteAnchor,
-  records: InlineImageFavoriteListItem[],
-): void {
-  const group = ensureGroup(state, index, anchor);
-  const items = records
-    .filter(record => !hasFavoriteItem(group, record.id))
-    .map(record => createFavoriteItem(state, record));
-  if (!items.length) return;
-  group.items = sortGalleryItems([...group.items, ...items]);
-  group.activeItemId = resolveActiveItemId(group);
-  renderGroup(state, group);
 }
 
 /**
@@ -324,23 +293,31 @@ function hasFavoriteItem(group: InlineGalleryGroup, favoriteId: number): boolean
 }
 
 /**
- * 确保指定段落索引存在画廊组
+ * 确保指定段落位点存在画廊组
  * @param state 画廊状态
  * @param index 段落索引
  * @param anchor 挂载锚点
+ * @param slotId 位点 id 或 null
  * @returns 画廊组
  */
-function ensureGroup(state: InlineGalleryState, index: number, anchor: InlineFavoriteAnchor): InlineGalleryGroup {
-  const existing = state.groups.get(index);
+function ensureGroup(
+  state: InlineGalleryState,
+  index: number,
+  anchor: InlineFavoriteAnchor,
+  slotId: string | null,
+): InlineGalleryGroup {
+  const key = buildGroupKey(slotId, index);
+  const existing = state.groups.get(key) ?? findGroupByParagraph(state, anchor.paragraph);
   if (existing) {
     if (!canReuseGroupAnchor(existing.anchor, anchor)) {
       removeGroup(state, existing);
-      return mountGroup(state, index, anchor, [], '');
+      return mountGroup(state, index, anchor, slotId, [], '');
     }
     remountGroupIfNeeded(state, existing, anchor);
+    if (slotId && !existing.slotId) bindGroupSlot(state, existing, slotId);
     return existing;
   }
-  return mountGroup(state, index, anchor, [], '');
+  return mountGroup(state, index, anchor, slotId, [], '');
 }
 
 /**
@@ -348,6 +325,7 @@ function ensureGroup(state: InlineGalleryState, index: number, anchor: InlineFav
  * @param state 画廊状态
  * @param index 段落索引
  * @param anchor 挂载锚点
+ * @param slotId 位点 id
  * @param items 初始图片项
  * @param activeItemId 当前焦点项
  * @returns 画廊组
@@ -356,15 +334,41 @@ function mountGroup(
   state: InlineGalleryState,
   index: number,
   anchor: InlineFavoriteAnchor,
+  slotId: string | null,
   items: InlineGalleryItem[],
   activeItemId: string,
 ): InlineGalleryGroup {
   const host = createGalleryHost(state, anchor);
-  const group = { index, anchor, host, items: sortGalleryItems(items), activeItemId };
+  const group: InlineGalleryGroup = {
+    key: buildGroupKey(slotId, index),
+    index,
+    slotId,
+    anchor,
+    host,
+    items: sortGalleryItems(items),
+    activeItemId,
+  };
   group.activeItemId = resolveActiveItemId(group);
-  state.groups.set(index, group);
+  state.groups.set(group.key, group);
   renderGroup(state, group);
   return group;
+}
+
+/**
+ * 把临时组升级为 slot 键
+ * @param state 画廊状态
+ * @param group 画廊组
+ * @param slotId 位点 id
+ */
+function bindGroupSlot(state: InlineGalleryState, group: InlineGalleryGroup, slotId: string): void {
+  if (group.slotId === slotId) return;
+  state.groups.delete(group.key);
+  group.slotId = slotId;
+  group.key = buildSlotGroupKey(slotId);
+  group.items.forEach(item => {
+    if (!item.slotId) item.slotId = slotId;
+  });
+  state.groups.set(group.key, group);
 }
 
 /**
@@ -390,7 +394,6 @@ function createGalleryHost(state: InlineGalleryState, anchor: InlineFavoriteAnch
 function renderGroup(state: InlineGalleryState, group: InlineGalleryGroup): void {
   group.items = sortGalleryItems(group.items);
   group.activeItemId = resolveActiveItemId(group);
-  // 每次渲染同步 host 暗色类，确保切换日夜模式时立即生效
   group.host.className = buildInlineActionHostClass('cv-inline-img-wrap cv-inline-favorite-wrap', state.getDarkMode());
   const vnode = h(InlineGalleryGroupView, buildGroupProps(state, group));
   if (state.appContext) vnode.appContext = state.appContext;
@@ -400,11 +403,13 @@ function renderGroup(state: InlineGalleryState, group: InlineGalleryGroup): void
 /**
  * 重挂已存在的消息内画廊组
  * @param state 画廊状态
- * @param anchors 当前消息的段落锚点
+ * @param anchors 当前消息的段落锚点（index → anchor）
  */
 function remountRenderedGroups(state: InlineGalleryState, anchors: Map<number, InlineFavoriteAnchor>): void {
   state.groups.forEach(group => {
-    const anchor = anchors.get(group.index);
+    const byIndex = anchors.get(group.index);
+    const byParagraph = [...anchors.values()].find(anchor => anchor.paragraph === group.anchor.paragraph);
+    const anchor = byParagraph ?? byIndex;
     if (anchor && canReuseGroupAnchor(group.anchor, anchor)) remountGroupIfNeeded(state, group, anchor);
   });
 }
@@ -417,9 +422,7 @@ function remountRenderedGroups(state: InlineGalleryState, anchors: Map<number, I
  */
 function canReuseGroupAnchor(current: InlineFavoriteAnchor, next: InlineFavoriteAnchor): boolean {
   if (current.mesId && next.mesId && current.mesId !== next.mesId) return false;
-  if (typeof current.swipeId === 'number' && typeof next.swipeId === 'number') {
-    return current.swipeId === next.swipeId;
-  }
+  if (typeof current.swipeId === 'number' && typeof next.swipeId === 'number') return current.swipeId === next.swipeId;
   return true;
 }
 
@@ -434,7 +437,11 @@ function remountGroupIfNeeded(
   group: InlineGalleryGroup,
   anchor: InlineFavoriteAnchor,
 ): void {
-  if (group.host.isConnected && group.anchor.paragraph === anchor.paragraph) return;
+  if (anchor.paragraph) group.index = Math.max(0, getGlobalParagraphIndex(anchor.paragraph));
+  if (group.host.isConnected && group.anchor.paragraph === anchor.paragraph) {
+    group.anchor = anchor;
+    return;
+  }
   render(null, group.host);
   group.host.remove();
   group.anchor = anchor;
@@ -491,62 +498,18 @@ async function toggleFavorite(
   if (!state.isRuntimeEnabled()) return;
   const wasFavorited = typeof item.favoriteId === 'number';
   try {
-    if (wasFavorited) await unsetFavorite(item);
-    else item.favoriteId = await saveFavoriteItem(group, item);
+    if (wasFavorited) {
+      await unfavoriteGalleryItem(group, item);
+      toastr.success('已取消收藏');
+    } else {
+      const bound = await favoriteGalleryItem(group, item, slotId => bindGroupSlot(state, group, slotId));
+      if (bound) toastr.success('已收藏图片，将长期存储');
+    }
     syncFavoriteButtons(group.host, item);
-    toastr.success(wasFavorited ? '已取消收藏' : '已收藏图片，将长期存储');
   } catch (error) {
     console.error('[CosmosVision] 切换段落图片收藏失败', error);
-    toastr.error('切换段落图片收藏失败');
+    toastr.error(error instanceof Error ? error.message : '切换段落图片收藏失败');
   }
-}
-
-/**
- * 取消收藏但保留当前会话图片
- * @param item 画廊项
- */
-async function unsetFavorite(item: InlineGalleryItem): Promise<void> {
-  if (!item.favoriteId) return;
-  await deleteInlineImageFavorite(item.favoriteId);
-  item.favoriteId = null;
-}
-
-/**
- * 保存画廊项为收藏
- * @param group 画廊组
- * @param item 画廊项
- * @returns 收藏 ID
- */
-async function saveFavoriteItem(group: InlineGalleryGroup, item: InlineGalleryItem): Promise<number> {
-  item.createdAt = Date.now();
-  const record = buildFavoriteRecord(group, item);
-  if (!record) throw new Error('当前角色或聊天未就绪，暂时无法收藏图片');
-  return saveInlineImageFavorite(record);
-}
-
-/**
- * 构建 IndexedDB 收藏记录
- * @param group 画廊组
- * @param item 画廊项
- * @returns 收藏记录或 null
- */
-function buildFavoriteRecord(
-  group: InlineGalleryGroup,
-  item: InlineGalleryItem,
-): Omit<InlineImageFavoriteRecord, 'id'> | null {
-  const scope = getCurrentInlineFavoriteScope();
-  const paragraph = group.anchor.paragraph;
-  if (!scope || !paragraph) return null;
-  return {
-    ...scope,
-    globalParagraphIndex: item.globalParagraphIndex,
-    mesId: findMessageId(paragraph) ?? undefined,
-    swipeId: group.anchor.swipeId,
-    paragraphTextHash: getParagraphTextHash(paragraph),
-    imageBlob: item.imageBlob,
-    promptSnapshot: cloneInlinePromptSnapshot(item.promptSnapshot),
-    createdAt: item.createdAt,
-  };
 }
 
 /**
@@ -562,7 +525,7 @@ async function removeItem(
 ): Promise<void> {
   if (!state.isRuntimeEnabled()) return;
   try {
-    if (item.favoriteId) await deleteInlineImageFavorite(item.favoriteId);
+    if (item.favoriteId) await deleteFavoriteGalleryItem(group, item);
     removeItemFromGroup(state, group, item);
   } catch (error) {
     console.error('[CosmosVision] 删除段落图片失败', error);
@@ -596,7 +559,7 @@ function removeItemFromGroup(state: InlineGalleryState, group: InlineGalleryGrou
 function removeGroup(state: InlineGalleryState, group: InlineGalleryGroup): void {
   render(null, group.host);
   group.host.remove();
-  state.groups.delete(group.index);
+  state.groups.delete(group.key);
 }
 
 /**
@@ -676,60 +639,6 @@ async function downloadImage(state: InlineGalleryState, item: InlineGalleryItem)
 }
 
 /**
- * 按当前可见聊天内容聚合可恢复的收藏记录
- * @param records 收藏记录
- * @returns 聚合结果
- */
-function groupVisibleFavoriteRecords(records: InlineImageFavoriteListItem[]): Array<{
-  index: number;
-  anchor: InlineFavoriteAnchor;
-  records: InlineImageFavoriteListItem[];
-}> {
-  const groups = new Map<number, { anchor: InlineFavoriteAnchor; records: InlineImageFavoriteListItem[] }>();
-  records.forEach(record => {
-    const resolved = resolveVisibleFavoriteAnchor(record);
-    if (!resolved) return;
-    const group = groups.get(resolved.index);
-    if (group) group.records.push(record);
-    else groups.set(resolved.index, { anchor: resolved.anchor, records: [record] });
-  });
-  return Array.from(groups.entries()).map(([index, items]) => ({
-    index,
-    anchor: items.anchor,
-    records: sortFavoriteRecords(items.records),
-  }));
-}
-
-/**
- * 解析收藏记录在当前可见聊天中的挂载锚点
- * @param record 收藏记录
- * @returns 可见锚点与索引
- */
-function resolveVisibleFavoriteAnchor(
-  record: InlineImageFavoriteListItem,
-): { index: number; anchor: InlineFavoriteAnchor } | null {
-  const paragraph = findParagraphByGlobalIndex(record.globalParagraphIndex);
-  if (!paragraph) {
-    if (!isFavoriteRecordVisibleInCurrentChat(record)) return null;
-    const fallbackAnchor = findInlineFavoriteFallbackTarget();
-    return fallbackAnchor ? { index: record.globalParagraphIndex, anchor: fallbackAnchor } : null;
-  }
-  const anchor = createInlineFavoriteAnchor(paragraph);
-  return shouldRenderFavoriteRecordAtAnchor(record, anchor)
-    ? { index: record.globalParagraphIndex, anchor }
-    : null;
-}
-
-/**
- * 按收藏时间从新到旧排序
- * @param records 收藏记录
- * @returns 排序记录
- */
-function sortFavoriteRecords(records: InlineImageFavoriteListItem[]): InlineImageFavoriteListItem[] {
-  return [...records].sort((left, right) => right.createdAt - left.createdAt);
-}
-
-/**
  * 按创建时间从新到旧排序
  * @param items 画廊项
  * @returns 排序项
@@ -754,7 +663,59 @@ function resolveActiveItemId(group: Pick<InlineGalleryGroup, 'items' | 'activeIt
  * @returns 画廊组或 null
  */
 function getGroupByParagraph(state: InlineGalleryState, paragraph: HTMLElement): InlineGalleryGroup | null {
-  return state.groups.get(getGlobalParagraphIndex(paragraph)) ?? null;
+  return findGroupByParagraph(state, paragraph);
+}
+
+/**
+ * 在状态中按段落定位画廊组
+ * @param state 画廊状态
+ * @param paragraph 段落元素
+ * @returns 画廊组或 null
+ */
+function findGroupByParagraph(
+  state: InlineGalleryState,
+  paragraph: HTMLElement | null | undefined,
+): InlineGalleryGroup | null {
+  if (!paragraph) return null;
+  for (const group of state.groups.values()) {
+    if (group.anchor.paragraph === paragraph) return group;
+  }
+  const slotId = resolveParagraphSlotId(paragraph);
+  if (slotId) {
+    const bySlot = state.groups.get(buildSlotGroupKey(slotId));
+    if (bySlot) return bySlot;
+  }
+  return state.groups.get(buildTempGroupKey(Math.max(0, getGlobalParagraphIndex(paragraph)))) ?? null;
+}
+
+/**
+ * 读取段落上已挂画廊组的 slot
+ * @param state 画廊状态
+ * @param paragraph 段落
+ * @returns slotId 或 null
+ */
+function findGroupSlotOnParagraph(state: InlineGalleryState, paragraph: HTMLElement): string | null {
+  return findGroupByParagraph(state, paragraph)?.slotId ?? null;
+}
+
+/**
+ * 构建 groups map 键
+ * @param slotId 位点 id
+ * @param index 段落索引
+ * @returns map key
+ */
+function buildGroupKey(slotId: string | null, index: number): string {
+  return slotId ? buildSlotGroupKey(slotId) : buildTempGroupKey(index);
+}
+
+/** 构建 slot 画廊 key */
+function buildSlotGroupKey(slotId: string): string {
+  return `slot:${slotId}`;
+}
+
+/** 构建临时画廊 key */
+function buildTempGroupKey(index: number): string {
+  return `temp:${index}`;
 }
 
 /**

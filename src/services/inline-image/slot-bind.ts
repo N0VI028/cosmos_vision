@@ -1,0 +1,112 @@
+import { extractCleanParagraphText, findMessageId, getMessageChatParagraphs } from '@/services/sillytavern/chat-dom';
+import { locateHostEndInRaw } from '@/services/inline-image/host-locate';
+import { readChatMessageRaw, writeChatMessageRaw } from '@/services/inline-image/message-raw';
+import {
+  appendSlotShortcodeAt,
+  hasSlotShortcode,
+  parseFirstSlotId,
+  parseLeadingSlotId,
+  removeSlotShortcode,
+  stripSlotShortcodes,
+} from '@/services/inline-image/slot-shortcode';
+
+/**
+ * 从段落 DOM 解析已绑定的 slotId（优先短码）
+ * @param paragraph 段落元素
+ * @returns slotId 或 null
+ */
+export function resolveParagraphSlotId(paragraph: HTMLElement): string | null {
+  const fromDom = parseFirstSlotId(paragraph.textContent ?? '');
+  if (fromDom) return fromDom;
+  const messageId = findMessageId(paragraph);
+  if (!messageId) return null;
+  const raw = readChatMessageRaw(messageId);
+  if (!raw) return null;
+  return findSlotIdForParagraphHost(raw, paragraph);
+}
+
+/**
+ * 确保 raw 上该位点仅一枚短码；已有则跳过写入
+ * @param paragraph 宿主段落
+ * @param slotId 位点 id
+ */
+export async function ensureSlotShortcodeOnParagraph(paragraph: HTMLElement, slotId: string): Promise<void> {
+  const messageId = findMessageId(paragraph);
+  if (!messageId) throw new Error('未找到消息楼层，无法绑定短码');
+  const raw = readChatMessageRaw(messageId);
+  if (raw === null) throw new Error('读取消息原文失败，无法绑定短码');
+  if (hasSlotShortcode(raw, slotId)) return;
+  const at = locateParagraphHostEnd(raw, paragraph);
+  if (at === null) throw new Error('raw 中找不到宿主段落，无法绑定短码');
+  const next = appendSlotShortcodeAt(raw, at, slotId);
+  if (next === raw) return;
+  await writeChatMessageRaw(messageId, next, 'none');
+}
+
+/**
+ * 定点移除 raw 上指定 slot 短码
+ * @param paragraphOrMessageId 段落或楼层 ID
+ * @param slotId 位点 id
+ */
+export async function removeSlotShortcodeFromMessage(
+  paragraphOrMessageId: HTMLElement | string,
+  slotId: string,
+): Promise<void> {
+  const messageId =
+    typeof paragraphOrMessageId === 'string' ? paragraphOrMessageId : findMessageId(paragraphOrMessageId);
+  if (!messageId) throw new Error('未找到消息楼层，无法移除短码');
+  const raw = readChatMessageRaw(messageId);
+  if (raw === null) throw new Error('读取消息原文失败，无法移除短码');
+  if (!hasSlotShortcode(raw, slotId)) return;
+  await writeChatMessageRaw(messageId, removeSlotShortcode(raw, slotId), 'none');
+}
+
+/**
+ * 按宿主在 raw 中的尾部偏移解析已有 slot
+ * @param raw 消息 raw
+ * @param paragraph 段落
+ * @returns slotId 或 null
+ */
+function findSlotIdForParagraphHost(raw: string, paragraph: HTMLElement): string | null {
+  const at = locateParagraphHostEnd(raw, paragraph);
+  if (at === null) return null;
+  return parseLeadingSlotId(raw.slice(at));
+}
+
+/**
+ * 定位段落 host 在 raw 中的尾部插入点
+ * @param raw 消息原文
+ * @param paragraph 宿主段落
+ * @returns 尾部偏移或 null
+ */
+function locateParagraphHostEnd(raw: string, paragraph: HTMLElement): number | null {
+  const siblings = getMessageChatParagraphs(paragraph);
+  const siblingHosts = siblings.map(el => stripSlotShortcodes(extractCleanParagraphText(el)));
+  const paragraphIndex = siblings.indexOf(paragraph);
+  const host = paragraphIndex >= 0
+    ? siblingHosts[paragraphIndex]!
+    : stripSlotShortcodes(extractCleanParagraphText(paragraph));
+  if (!host) return null;
+  return locateHostEndInRaw(raw, {
+    host,
+    occurrence: countHostOccurrenceBefore(siblingHosts, paragraphIndex, host),
+    paragraphIndex,
+    siblingHosts,
+  });
+}
+
+/**
+ * 统计目标段之前相同 host 文本出现次数
+ * @param siblingHosts 同消息段文本
+ * @param paragraphIndex 目标索引
+ * @param host 宿主正文
+ * @returns 0-based occurrence
+ */
+function countHostOccurrenceBefore(siblingHosts: string[], paragraphIndex: number, host: string): number {
+  let count = 0;
+  const end = paragraphIndex >= 0 ? paragraphIndex : siblingHosts.length;
+  for (let i = 0; i < end; i += 1) {
+    if (siblingHosts[i] === host) count += 1;
+  }
+  return count;
+}
