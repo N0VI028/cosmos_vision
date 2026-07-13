@@ -1,3 +1,4 @@
+import { uuidv4 } from '@sillytavern/scripts/utils';
 import {
   pickGalleryMounts,
   pickMountFromSession,
@@ -492,7 +493,7 @@ function normalizeMessageId(messageId: unknown): number | null {
  * @returns uuid
  */
 function createReloadMemo(): string {
-  return crypto.randomUUID();
+  return uuidv4();
 }
 
 /**
