@@ -355,7 +355,7 @@ async function loadWorldbookSources(): Promise<void> {
     worldbookSourceOptions.value = options;
     reconcileEditorSourceDefaults();
   } catch (error) {
-    console.error('[PromptSourceEntryList]', error);
+    console.error('[CosmosVision] PromptSourceEntryList:', error);
     toastr.warning('世界书读取失败，仍可创建其他条目');
   } finally {
     if (requestId === worldbookSourceRequestId) isLoadingWorldbookSources.value = false;

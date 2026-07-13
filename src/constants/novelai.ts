@@ -249,11 +249,23 @@ export const PROMPT_LLM_MESSAGE_ROLES = ['system', 'user', 'assistant'] as const
 /** 提示词 LLM 消息角色 */
 export type PromptLlmMessageRole = (typeof PROMPT_LLM_MESSAGE_ROLES)[number];
 
-/** 提示词 LLM 消息触发模式 */
-export const PROMPT_LLM_MESSAGE_TRIGGER_MODES = ['always', 'keyword'] as const;
+/** 提示词 LLM 消息触发匹配模式 */
+export const PROMPT_LLM_MESSAGE_TRIGGER_MATCH_MODES = [
+  'always',
+  'all_match',
+  'any_match',
+  'all_mismatch',
+  'any_mismatch',
+] as const;
 
-/** 提示词 LLM 消息触发模式 */
-export type PromptLlmMessageTriggerMode = (typeof PROMPT_LLM_MESSAGE_TRIGGER_MODES)[number];
+/** 提示词 LLM 消息触发匹配模式 */
+export type PromptLlmMessageTriggerMatchMode = (typeof PROMPT_LLM_MESSAGE_TRIGGER_MATCH_MODES)[number];
+
+/** 提示词 LLM 条目可配置的生图来源触发值 */
+export const PROMPT_LLM_MESSAGE_TRIGGER_IMAGE_SOURCES = ['novelai', 'comfyui'] as const;
+
+/** 提示词 LLM 条目可配置的生图来源触发值 */
+export type PromptLlmMessageTriggerImageSource = (typeof PROMPT_LLM_MESSAGE_TRIGGER_IMAGE_SOURCES)[number];
 
 /** 人物类型 */
 export const PROMPT_PERSON_KINDS = ['user', 'character'] as const;
@@ -359,10 +371,14 @@ export interface PromptLlmMessage {
   content: string;
   /** 是否启用该条目 */
   enabled?: boolean;
-  /** 运行时触发模式 */
-  triggerMode?: PromptLlmMessageTriggerMode;
-  /** 关键词触发词列表 */
-  triggerKeywords?: string[];
+  /** 运行时触发匹配模式 */
+  triggerMatchMode?: PromptLlmMessageTriggerMatchMode;
+  /** 关键词触发组列表；每组内部任一命中，空组不参与 */
+  triggerKeywordGroups?: string[][];
+  /** 模型 ID 触发列表,空列表表示该维度不参与 */
+  triggerModels?: string[];
+  /** 生图来源触发列表,空列表表示该维度不参与 */
+  triggerImageSources?: PromptLlmMessageTriggerImageSource[];
   /** 外部来源引用,仅来源型条目使用 */
   reference?: PromptWorldbookSourceReference;
 }

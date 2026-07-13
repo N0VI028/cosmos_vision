@@ -29,7 +29,8 @@ import {
   createNovelAIAccount,
   NOVELAI_DEFAULT_ACCOUNT_ID,
   type CosmosVisionSettings,
-  type PromptLlmMessageTriggerMode,
+  type PromptLlmMessageTriggerImageSource,
+  type PromptLlmMessageTriggerMatchMode,
   type PromptLlmOutputFields,
 } from '@/constants/novelai';
 
@@ -41,8 +42,10 @@ export const DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID = defaultPromptLlmPresetSettin
 export const DEFAULT_PROMPT_LLM_MESSAGE_PRESET_NAME = defaultPromptLlmPreset.name;
 export const DEFAULT_PROMPT_LLM_MESSAGE_TITLE = '';
 export const DEFAULT_PROMPT_LLM_MESSAGE_ENABLED = true;
-export const DEFAULT_PROMPT_LLM_MESSAGE_TRIGGER_MODE: PromptLlmMessageTriggerMode = 'always';
-export const DEFAULT_PROMPT_LLM_MESSAGE_TRIGGER_KEYWORDS: string[] = [];
+export const DEFAULT_PROMPT_LLM_MESSAGE_TRIGGER_MATCH_MODE: PromptLlmMessageTriggerMatchMode = 'always';
+export const DEFAULT_PROMPT_LLM_MESSAGE_TRIGGER_KEYWORD_GROUPS: string[][] = [];
+export const DEFAULT_PROMPT_LLM_MESSAGE_TRIGGER_MODELS: string[] = [];
+export const DEFAULT_PROMPT_LLM_MESSAGE_TRIGGER_IMAGE_SOURCES: PromptLlmMessageTriggerImageSource[] = [];
 export const PROMPT_LLM_HISTORY_MESSAGE_ID = DEFAULT_PROMPT_LLM_HISTORY_MESSAGE_ID;
 export const PROMPT_LLM_HISTORY_MESSAGE_TITLE = '历史消息';
 export const PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID = DEFAULT_PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID;

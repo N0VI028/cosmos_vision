@@ -535,7 +535,9 @@ function isSourceMessage(message: PromptLlmMessage): boolean {
  * @returns 触发模式颜色类名
  */
 function getMessageTriggerToneClass(message: PromptLlmMessage): string {
-  return message.triggerMode === 'keyword' ? 'cv-message-indicator--keyword' : 'cv-message-indicator--always';
+  return message.triggerMatchMode === 'always' || !message.triggerMatchMode
+    ? 'cv-message-indicator--always'
+    : 'cv-message-indicator--keyword';
 }
 
 /**
@@ -776,8 +778,9 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
   gap: var(--cv-space-3xl) var(--cv-space-md);
 }
 
-/* 关键词 InputTags 是 Fluid 网格第 3 个子项，跨两列占满整行 */
-.cv-role-trigger-row :deep(.cv-trigger-keywords-field) {
+/* 匹配方式与条件区跨两列占满整行 */
+.cv-role-trigger-row :deep(.cv-trigger-match-field),
+.cv-role-trigger-row :deep(.cv-trigger-conditions-field) {
   @apply min-w-0;
   grid-column: 1 / -1;
 }

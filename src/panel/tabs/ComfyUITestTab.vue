@@ -154,7 +154,10 @@ import {
   requestPromptLlmRaw,
   type PromptLlmLogParams,
 } from '@/services/tavern-helper/prompt-llm-test';
-import { buildPromptLlmRuntimeRequestFromContext } from '@/services/prompt-llm/runtime-request';
+import {
+  buildPromptLlmRuntimeRequestFromContext,
+  buildPromptLlmTriggerContext,
+} from '@/services/prompt-llm/runtime-request';
 
 type TestMode = 'direct' | 'llm';
 type TestStatus = 'idle' | 'running' | 'success' | 'error';
@@ -329,6 +332,7 @@ function buildLlmModeRequest(schemaFields: ReturnType<typeof buildPromptLlmSchem
     settings.promptLlmMessagePresets,
     settings.promptProfiles,
     schemaFields,
+    buildPromptLlmTriggerContext(settings, 'comfyui'),
   );
 }
 

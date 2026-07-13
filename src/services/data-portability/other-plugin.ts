@@ -16,7 +16,7 @@ import {
   type PromptLlmMessagePreset,
   type PromptLlmMessagePresetSettings,
   type PromptLlmMessageRole,
-  type PromptLlmMessageTriggerMode,
+  type PromptLlmMessageTriggerMatchMode,
 } from '@/constants/novelai';
 import {
   PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN,
@@ -208,8 +208,13 @@ function createPromptLlmMessage(
     role,
     content,
     enabled: readBoolean(record.enabled, true),
-    triggerMode: readPromptLlmTriggerMode(record.triggerMode),
-    triggerKeywords: readPromptLlmTriggerKeywords(record.triggerWords),
+    triggerMatchMode: readPromptLlmTriggerMatchMode(record.triggerMode),
+    triggerKeywordGroups: (() => {
+      const keywords = readPromptLlmTriggerKeywords(record.triggerWords);
+      return keywords.length ? [keywords] : [];
+    })(),
+    triggerModels: [],
+    triggerImageSources: [],
   }];
 }
 
@@ -263,13 +268,17 @@ function readPromptLlmRole(value: unknown): PromptLlmMessageRole {
 }
 
 /**
- * 读取导入条目的触发模式
+ * 读取导入条目的触发匹配模式
  * @param value 原始触发模式
- * @returns 兼容后的触发模式
+ * @returns 兼容后的匹配模式
  */
-function readPromptLlmTriggerMode(value: unknown): PromptLlmMessageTriggerMode {
+function readPromptLlmTriggerMatchMode(value: unknown): PromptLlmMessageTriggerMatchMode {
   const normalized = readText(value).toLowerCase();
-  return normalized === 'keyword' || normalized === 'trigger' ? 'keyword' : 'always';
+  if (normalized === 'keyword' || normalized === 'trigger' || normalized === 'all_match') return 'all_match';
+  if (normalized === 'any_match') return 'any_match';
+  if (normalized === 'all_mismatch') return 'all_mismatch';
+  if (normalized === 'any_mismatch') return 'any_mismatch';
+  return 'always';
 }
 
 /**

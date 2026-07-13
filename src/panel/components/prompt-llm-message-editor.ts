@@ -17,10 +17,7 @@ import {
   createCustomPromptLlmMessage,
   createPromptLlmWorldbookMessage,
 } from '@/services/prompt-llm/message-source';
-import {
-  normalizePromptLlmMessageKeywords,
-  withPromptLlmMessageTriggerDefaults,
-} from '@/services/prompt-llm/message-trigger';
+import { withPromptLlmMessageTriggerDefaults } from '@/services/prompt-llm/message-trigger';
 import type { PromptWorldbookGroup } from '@/services/tavern-helper/worldbook-sources';
 
 /** 来源类型选项 */
@@ -80,6 +77,7 @@ export function createPromptLlmMessageEditorDraft(
 
 /**
  * 构建当前草稿的保存结果
+ * 经 withPromptLlmMessageTriggerDefaults 迁移旧扁平 keywords，避免写回时丢词
  * @param draft 编辑草稿
  * @param worldbooks 世界书列表
  * @returns 可写回消息
@@ -88,11 +86,14 @@ export function buildSavedPromptLlmMessage(
   draft: PromptLlmMessageEditorDraft,
   worldbooks: PromptWorldbookGroup[],
 ): PromptLlmMessage {
-  const message = buildPromptLlmMessageByKind(draft, worldbooks);
-  message.enabled = draft.enabled !== false;
-  message.triggerMode = draft.triggerMode;
-  message.triggerKeywords = normalizePromptLlmMessageKeywords(draft.triggerKeywords);
-  return message;
+  return withPromptLlmMessageTriggerDefaults({
+    ...buildPromptLlmMessageByKind(draft, worldbooks),
+    enabled: draft.enabled !== false,
+    triggerMatchMode: draft.triggerMatchMode,
+    triggerKeywordGroups: draft.triggerKeywordGroups,
+    triggerModels: draft.triggerModels,
+    triggerImageSources: draft.triggerImageSources,
+  });
 }
 
 /**

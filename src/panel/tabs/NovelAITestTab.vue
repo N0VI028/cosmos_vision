@@ -150,7 +150,10 @@ import {
   requestPromptLlmRaw,
   type PromptLlmLogParams,
 } from '@/services/tavern-helper/prompt-llm-test';
-import { buildPromptLlmRuntimeRequestFromContext } from '@/services/prompt-llm/runtime-request';
+import {
+  buildPromptLlmRuntimeRequestFromContext,
+  buildPromptLlmTriggerContext,
+} from '@/services/prompt-llm/runtime-request';
 
 type NovelAITestMode = 'direct' | 'llm';
 type TestStatus = 'idle' | 'running' | 'success' | 'error';
@@ -348,6 +351,7 @@ function buildLlmModeRequest() {
     settings.promptLlmMessagePresets,
     settings.promptProfiles,
     schemaFields,
+    buildPromptLlmTriggerContext(settings, 'novelai'),
   );
 }
 

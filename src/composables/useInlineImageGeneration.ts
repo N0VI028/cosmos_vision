@@ -27,6 +27,7 @@ import {
   sortChatParagraphsByDomOrder,
 } from '@/services/sillytavern/chat-dom';
 import {
+  buildPromptLlmTriggerContext,
   generatePromptFromRuntimeContext,
   generatePromptTextFromRuntimeContext,
 } from '@/services/prompt-llm/runtime-request';
@@ -574,7 +575,10 @@ export function useInlineImageGeneration(
         settings.promptLlmMessagePresets,
         settings.promptProfiles,
         schemaFields,
-        { generationId: session.promptGenerationId },
+        {
+          generationId: session.promptGenerationId,
+          triggerContext: buildPromptLlmTriggerContext(settings, 'novelai'),
+        },
       ),
     );
 
@@ -645,7 +649,10 @@ export function useInlineImageGeneration(
         settings.promptLlmMessagePresets,
         settings.promptProfiles,
         schemaFields,
-        { generationId: session.promptGenerationId },
+        {
+          generationId: session.promptGenerationId,
+          triggerContext: buildPromptLlmTriggerContext(settings, 'comfyui'),
+        },
       ),
     );
 

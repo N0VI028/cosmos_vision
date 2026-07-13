@@ -15,11 +15,7 @@ import {
   resolvePromptWorldbookSourceEntry,
   type ResolvedPromptSourceEntry,
 } from '@/services/tavern-helper/worldbook-sources';
-import {
-  normalizePromptLlmMessageKeywords,
-  normalizePromptLlmMessageTriggerMode,
-  withPromptLlmMessageTriggerDefaults,
-} from '@/services/prompt-llm/message-trigger';
+import { withPromptLlmMessageTriggerDefaults } from '@/services/prompt-llm/message-trigger';
 
 /**
  * 创建自定义 LLM 条目
@@ -69,16 +65,19 @@ export function createPromptLlmWorldbookMessage(
 }
 
 /**
- * 克隆普通 LLM 条目
+ * 克隆普通 LLM 条目并补齐触发字段
  * @param message 原始条目
  * @returns 克隆后的条目
  */
 export function clonePromptLlmMessage(message: PromptLlmMessage): PromptLlmMessage {
-  const copy = buildClonedPromptLlmMessage(message);
-  copy.enabled = message.enabled !== false;
-  copy.triggerMode = normalizePromptLlmMessageTriggerMode(message.triggerMode);
-  copy.triggerKeywords = normalizePromptLlmMessageKeywords(message.triggerKeywords);
-  return copy;
+  return withPromptLlmMessageTriggerDefaults({
+    ...buildClonedPromptLlmMessage(message),
+    enabled: message.enabled !== false,
+    triggerMatchMode: message.triggerMatchMode,
+    triggerKeywordGroups: message.triggerKeywordGroups,
+    triggerModels: message.triggerModels,
+    triggerImageSources: message.triggerImageSources,
+  });
 }
 
 /**

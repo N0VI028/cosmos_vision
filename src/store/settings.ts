@@ -20,7 +20,6 @@ import {
   DEFAULT_PRESET_NAME,
   DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
   DEFAULT_PROMPT_LLM_MESSAGE_TITLE,
-  DEFAULT_PROMPT_LLM_MESSAGE_TRIGGER_MODE,
   DEFAULT_SETTINGS,
 } from '@/constants/default-settings';
 import {
@@ -49,14 +48,18 @@ import {
   type NovelAIAccount,
   type NovelAISettings,
   PROMPT_LLM_MESSAGE_ROLES,
-  PROMPT_LLM_MESSAGE_TRIGGER_MODES,
+  PROMPT_LLM_MESSAGE_TRIGGER_MATCH_MODES,
   PROMPT_PERSON_INSERT_MODES,
   PROMPT_PERSON_KINDS,
   type PromptLlmMessagePresetSettings,
   type PromptProfilesSettings,
 } from '@/constants/novelai';
 import { normalizePromptLlmMessagePresets } from '@/services/prompt-llm/message-preset';
-import { normalizePromptLlmMessageKeywords } from '@/services/prompt-llm/message-trigger';
+import {
+  normalizePromptLlmMessageImageSources,
+  normalizePromptLlmMessageKeywordGroups,
+  normalizePromptLlmMessageModels,
+} from '@/services/prompt-llm/message-trigger';
 import { promptLlmSettingsSchema, recoverPromptLlmSettings } from '@/store/prompt-llm-settings';
 /** ST extension_settings 中本扩展的 key */
 const SETTINGS_KEY = 'cosmos_vision';
@@ -197,7 +200,7 @@ const comfyUISettingsSchema = z.object({
   seed: comfyUISeedSchema,
 });
 
-const promptLlmMessageTriggerModeSchema = z.enum(PROMPT_LLM_MESSAGE_TRIGGER_MODES);
+const promptLlmMessageTriggerMatchModeSchema = z.enum(PROMPT_LLM_MESSAGE_TRIGGER_MATCH_MODES);
 
 const promptWorldbookSourceReferenceSchema = z.object({
   worldbookName: z.string().optional(),
@@ -239,8 +242,17 @@ const promptLlmMessageSchema = z.object({
   role: z.enum(PROMPT_LLM_MESSAGE_ROLES),
   content: z.string(),
   enabled: z.boolean().default(DEFAULT_PROMPT_LLM_MESSAGE_ENABLED),
-  triggerMode: promptLlmMessageTriggerModeSchema.default(DEFAULT_PROMPT_LLM_MESSAGE_TRIGGER_MODE),
-  triggerKeywords: z.array(z.string()).default([]).transform(normalizePromptLlmMessageKeywords),
+  // 未知枚举降级为 undefined，由 withPromptLlmMessageTriggerDefaults 归一，避免拖垮整表
+  triggerMatchMode: promptLlmMessageTriggerMatchModeSchema.optional().catch(undefined),
+  triggerKeywordGroups: z
+    .array(z.array(z.string()))
+    .default([])
+    .transform(normalizePromptLlmMessageKeywordGroups),
+  triggerModels: z.array(z.string()).default([]).transform(normalizePromptLlmMessageModels),
+  triggerImageSources: z
+    .array(z.string())
+    .default([])
+    .transform(normalizePromptLlmMessageImageSources),
   reference: promptWorldbookSourceReferenceSchema.catch({}).optional(),
 });
 

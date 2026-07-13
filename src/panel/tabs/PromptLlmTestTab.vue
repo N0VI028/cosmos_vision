@@ -110,7 +110,10 @@ import {
   formatPromptLlmRequestLog,
   requestPromptLlmRaw,
 } from '@/services/tavern-helper/prompt-llm-test';
-import { buildPromptLlmRuntimeRequestFromContext } from '@/services/prompt-llm/runtime-request';
+import {
+  buildPromptLlmRuntimeRequestFromContext,
+  buildPromptLlmTriggerContext,
+} from '@/services/prompt-llm/runtime-request';
 
 const { settings } = useSettingsStore();
 const {
@@ -155,6 +158,8 @@ async function runTest(): Promise<void> {
       settings.promptLlm,
       settings.promptLlmMessagePresets,
       settings.promptProfiles,
+      undefined,
+      buildPromptLlmTriggerContext(settings),
     );
     sentPromptText.value = formatPromptLlmRequestLog(request);
     applyTestResponse(await requestPromptLlmRaw(request));
