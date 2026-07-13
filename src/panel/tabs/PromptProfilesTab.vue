@@ -78,19 +78,21 @@
               />
             </label>
 
-            <h3 class="cv-person-section-title">关键词</h3>
-            <div class="cv-field">
-              <div class="cv-field-control">
-                <InputTags
-                  v-model="person.triggerKeywords"
-                  :allow-duplicate="false"
-                  add-on-blur
-                  delimiter=","
-                  class="cv-trigger-inputchips"
-                />
-                <div class="cv-field-hint">输入关键词，回车或逗号添加</div>
+            <template v-if="person.insertMode === 'keyword'">
+              <h3 class="cv-person-section-title">关键词</h3>
+              <div class="cv-field">
+                <div class="cv-field-control">
+                  <InputTags
+                    v-model="person.triggerKeywords"
+                    :allow-duplicate="false"
+                    add-on-blur
+                    delimiter=","
+                    class="cv-trigger-inputchips"
+                  />
+                  <div class="cv-field-hint">输入关键词，回车或逗号添加</div>
+                </div>
               </div>
-            </div>
+            </template>
 
             <div class="cv-person-section-header">
               <h3 class="cv-person-section-title">固定 tag</h3>

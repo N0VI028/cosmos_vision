@@ -5,7 +5,6 @@
       :items="entries"
       :item-size="entryItemHeight"
       :scroll-height="scrollHeight"
-      :delay="150"
       class="cv-message-list-scroller custom-scrollbar"
       :pt="{
         content: { class: 'cv-message-list' }
