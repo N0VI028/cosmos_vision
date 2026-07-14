@@ -389,7 +389,7 @@ function buildStatusSlots(
   const retry = state.onRetry;
   const onClose = isRunning ? options.onCancel : remove;
   const closeLabel = MODE_CLOSE_LABEL[state.mode];
-  const buttonTone = state.mode === 'error' ? 'error' : 'neutral';
+  const buttonTone = state.mode === 'error' ? 'error' : 'primary';
 
   const slots: InlineGenerationStatusSlots = {
     default: () => {

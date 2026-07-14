@@ -27,13 +27,14 @@ defineOptions({ inheritAttrs: false });
 /**
  * 迷你按钮的色调类型
  * - neutral: 中性色，默认样式
+ * - primary: 主题色
  * - warn/warning: 警告色（橙色）
  * - danger/error: 危险色（红色）
  * - success: 成功色（绿色）
  * - info: 信息色（天蓝色）
  * - help: 帮助色（紫色）
  */
-type CvMiniButtonTone = 'neutral' | 'warn' | 'warning' | 'danger' | 'error' | 'success' | 'info' | 'help';
+type CvMiniButtonTone = 'neutral' | 'primary' | 'warn' | 'warning' | 'danger' | 'error' | 'success' | 'info' | 'help';
 
 /**
  * 迷你按钮的尺寸类型
@@ -60,6 +61,7 @@ const props = withDefaults(
 // 色调 → PrimeVue severity 映射
 const TONE_SEVERITY_MAP: Record<CvMiniButtonTone, ButtonProps['severity']> = {
   neutral: undefined,
+  primary: undefined,
   warn: 'warn',
   warning: 'warn',
   danger: 'danger',
@@ -72,6 +74,7 @@ const TONE_SEVERITY_MAP: Record<CvMiniButtonTone, ButtonProps['severity']> = {
 // 色调 → CSS 颜色变量映射
 const TONE_COLOR_MAP: Record<CvMiniButtonTone, string> = {
   neutral: 'var(--cv-on-surface-variant)',
+  primary: 'var(--p-primary-color)',
   warn: 'var(--p-orange-500)',
   warning: 'var(--p-orange-500)',
   danger: 'var(--p-red-500)',
