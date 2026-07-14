@@ -185,8 +185,8 @@ export interface NovelAISettings extends ImagePromptPresetReferences {
 
 /** NovelAI 角色提示词条目 */
 export interface CharacterPromptItem {
-  prompt: string;
-  uc: string;
+  positivePrompt: string;
+  negativePrompt: string;
   position: { x: number; y: number };
 }
 
@@ -223,9 +223,9 @@ export interface PromptLlmSettings {
   /** 角色数组 JSON 字段名 */
   characterPromptsJsonField: string;
   /** 角色正面提示词字段名 */
-  characterPromptJsonField: string;
+  characterPositivePromptJsonField: string;
   /** 角色负面提示词字段名 */
-  characterUcJsonField: string;
+  characterNegativePromptJsonField: string;
   /** 角色位置字段名 */
   characterPositionJsonField: string;
   /** 正面提示词正则提取规则 */
@@ -233,9 +233,9 @@ export interface PromptLlmSettings {
   /** 负面提示词正则提取规则 */
   negativePromptExtractPattern: string;
   /** 角色正面提示词正则 */
-  characterPromptExtractPattern: string;
+  characterPositivePromptExtractPattern: string;
   /** 角色负面提示词正则 */
-  characterUcExtractPattern: string;
+  characterNegativePromptExtractPattern: string;
   /** 角色 X 坐标正则 */
   characterPositionXExtractPattern: string;
   /** 角色 Y 坐标正则 */
@@ -263,8 +263,8 @@ export interface PromptLlmOutputFields {
   positive?: string;
   negative?: string;
   characterPrompts?: string;
-  characterPrompt?: string;
-  characterUc?: string;
+  characterPositivePrompt?: string;
+  characterNegativePrompt?: string;
   characterPosition?: string;
 }
 

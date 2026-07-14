@@ -3,6 +3,7 @@ import { preventInlineEventBubbling } from '@/composables/inlineImageDom';
 import { stopTavernHelperGeneration } from '@/services/tavern-helper/generation-control';
 import Message from 'primevue/message';
 import ProgressSpinner from 'primevue/progressspinner';
+import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import type { AppContext } from 'vue';
 import { h, render } from 'vue';
 
@@ -363,10 +364,9 @@ function renderStatus(
     {
       class: `cv-inline-generation-message cv-inline-generation-message--${state.mode}`,
       severity: MODE_SEVERITY[state.mode],
-      closable: true,
-      onClose: isRunning ? options.onCancel : remove,
+      closable: false,
     },
-    buildStatusSlots(state, isRunning, remove),
+    buildStatusSlots(state, isRunning, remove, options),
   );
   if (options.appContext) vnode.appContext = options.appContext;
   render(vnode, host);
@@ -377,52 +377,70 @@ function renderStatus(
  * @param state 当前状态
  * @param isRunning 是否正在运行
  * @param remove 移除方法
+ * @param options 状态条配置
  * @returns Message 插槽
  */
 function buildStatusSlots(
   state: InlineGenerationStatusState,
   isRunning: boolean,
   remove: () => void,
+  options: InlineGenerationStatusOptions,
 ): InlineGenerationStatusSlots {
-  if (!isRunning && state.onRetry) return buildRetryStatusSlots(state, remove);
+  const retry = state.onRetry;
+  const onClose = isRunning ? options.onCancel : remove;
+  const closeLabel = MODE_CLOSE_LABEL[state.mode];
+  const buttonTone = state.mode === 'error' ? 'error' : 'neutral';
+
   const slots: InlineGenerationStatusSlots = {
-    default: () => h('span', { class: 'cv-inline-generation-text' }, state.text),
-    closeicon: () => h('span', { class: 'cv-inline-generation-close-text' }, MODE_CLOSE_LABEL[state.mode]),
+    default: () => {
+      const children: any[] = [
+        h('span', { class: 'cv-inline-generation-text' }, state.text),
+      ];
+
+      // 按钮区域
+      const buttons: any[] = [];
+
+      // 如果有重试回调，并且当前不在运行中，添加重试按钮
+      if (!isRunning && retry) {
+        buttons.push(
+          h(
+            CvMiniButton,
+            {
+              label: '重试',
+              tone: buttonTone,
+              size: 'small',
+              onClick: () => {
+                remove();
+                retry();
+              },
+            }
+          )
+        );
+      }
+
+      // 添加取消或关闭按钮
+      buttons.push(
+        h(
+          CvMiniButton,
+          {
+            label: closeLabel,
+            tone: buttonTone,
+            size: 'small',
+            onClick: onClose,
+          }
+        )
+      );
+
+      // 将按钮放入一行
+      children.push(h('span', { class: 'cv-inline-button-row' }, buttons));
+
+      return h('span', { class: 'cv-inline-generation-error-row' }, children);
+    },
   };
+
   if (isRunning) {
     slots.icon = () => h(ProgressSpinner, { class: 'cv-inline-generation-spinner', strokeWidth: 4 });
   }
-  return slots;
-}
 
-/**
- * 构建错误重试状态的插槽
- * @param state 当前状态
- * @param remove 移除方法
- * @returns Message 插槽
- */
-function buildRetryStatusSlots(
-  state: InlineGenerationStatusState,
-  remove: () => void,
-): InlineGenerationStatusSlots {
-  const retry = state.onRetry;
-  return {
-    default: () =>
-      h('span', { class: 'cv-inline-generation-error-row' }, [
-        h('span', { class: 'cv-inline-generation-text' }, state.text),
-        h(
-          'button',
-          {
-            class: 'p-message-close-button cv-inline-generation-close-text',
-            type: 'button',
-            onClick: () => {
-              remove();
-              retry?.();
-            },
-          },
-          '重试',
-        ),
-      ]),
-    closeicon: () => h('span', { class: 'cv-inline-generation-close-text' }, MODE_CLOSE_LABEL[state.mode]),
-  };
+  return slots;
 }

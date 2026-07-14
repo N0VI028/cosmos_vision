@@ -48,11 +48,11 @@
             <div class="cv-direct-character-body">
               <div class="cv-field">
                 <span>角色正面提示词</span>
-                <Textarea v-model="character.prompt" rows="3" auto-resize class="cv-test-textarea w-full" />
+                <Textarea v-model="character.positivePrompt" rows="3" auto-resize class="cv-test-textarea w-full" />
               </div>
               <div class="cv-field">
                 <span>角色负面提示词</span>
-                <Textarea v-model="character.uc" rows="3" auto-resize class="cv-test-textarea w-full" />
+                <Textarea v-model="character.negativePrompt" rows="3" auto-resize class="cv-test-textarea w-full" />
               </div>
               <div class="cv-field-grid cv-direct-character-coordinates">
                 <label class="cv-field">
@@ -149,9 +149,9 @@
             >
               <div class="flex flex-col gap-(--cv-space-xl) p-(--cv-space-xl)">
                 <div class="preview-header">角色正面</div>
-                <pre class="preview-content">{{ item.prompt || '(空)' }}</pre>
+                <pre class="preview-content">{{ item.positivePrompt || '(空)' }}</pre>
                 <div class="preview-header">角色负面</div>
-                <pre class="preview-content">{{ item.uc || '(空)' }}</pre>
+                <pre class="preview-content">{{ item.negativePrompt || '(空)' }}</pre>
                 <div class="preview-header">坐标</div>
                 <pre class="preview-content">{{ formatCharacterPosition(item) }}</pre>
               </div>
@@ -246,8 +246,8 @@ interface ParamRow {
 
 interface DirectCharacterPromptDraft {
   id: number;
-  prompt: string;
-  uc: string;
+  positivePrompt: string;
+  negativePrompt: string;
   x: number;
   y: number;
 }
@@ -466,7 +466,7 @@ function createDirectPromptOverrides(): NovelAIPromptOverrides {
  * @returns 新角色草稿
  */
 function createDirectCharacterPrompt(): DirectCharacterPromptDraft {
-  return { id: ++nextDirectCharacterId, prompt: '', uc: '', x: 0.5, y: 0.5 };
+  return { id: ++nextDirectCharacterId, positivePrompt: '', negativePrompt: '', x: 0.5, y: 0.5 };
 }
 
 /**
@@ -507,8 +507,8 @@ function toggleDirectCharacter(id: number): void {
  */
 function toCharacterPromptItem(character: DirectCharacterPromptDraft): CharacterPromptItem {
   return {
-    prompt: character.prompt,
-    uc: character.uc,
+    positivePrompt: character.positivePrompt,
+    negativePrompt: character.negativePrompt,
     position: { x: character.x, y: character.y },
   };
 }
@@ -534,7 +534,7 @@ function buildVibeParamRows(vibes: NovelAIRequestSnapshot['vibes']): ParamRow[] 
  * @returns 标题文本
  */
 function getCharacterPromptTitle(item: CharacterPromptItem, index: number): string {
-  const preview = item.prompt.trim() || '(空)';
+  const preview = item.positivePrompt.trim() || '(空)';
   const short = preview.length > 40 ? `${preview.slice(0, 40)}…` : preview;
   return `角色 ${index + 1} · ${short}`;
 }

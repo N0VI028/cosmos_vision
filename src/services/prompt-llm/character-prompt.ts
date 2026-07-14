@@ -41,9 +41,15 @@ function normalizeJsonCharacter(value: unknown, settings: PromptLlmSettings): Ch
     console.warn('[CosmosVision] 忽略非对象角色提示词条目');
     return [];
   }
-  const prompt = readString(value, settings.characterPromptJsonField);
-  const uc = readString(value, settings.characterUcJsonField);
-  return [{ prompt, uc, position: normalizePosition(value[settings.characterPositionJsonField.trim()]) }];
+  const positivePrompt = readString(value, settings.characterPositivePromptJsonField);
+  const negativePrompt = readString(value, settings.characterNegativePromptJsonField);
+  return [
+    {
+      positivePrompt,
+      negativePrompt,
+      position: normalizePosition(value[settings.characterPositionJsonField.trim()]),
+    },
+  ];
 }
 
 /**
@@ -53,11 +59,15 @@ function normalizeJsonCharacter(value: unknown, settings: PromptLlmSettings): Ch
  * @returns 以正面命中为主的角色列表
  */
 function readRegexCharacterPrompts(rawText: string, settings: PromptLlmSettings): CharacterPromptItem[] {
-  const prompts = readRegexValues(rawText, settings.characterPromptExtractPattern);
-  const ucs = readRegexValues(rawText, settings.characterUcExtractPattern);
+  const prompts = readRegexValues(rawText, settings.characterPositivePromptExtractPattern);
+  const negatives = readRegexValues(rawText, settings.characterNegativePromptExtractPattern);
   const positions = readRegexPositions(rawText, settings);
-  warnUnusedMatches(ucs, positions, prompts.length);
-  return prompts.map((prompt, index) => ({ prompt, uc: ucs[index] ?? '', position: positions[index] ?? defaultPosition() }));
+  warnUnusedMatches(negatives, positions, prompts.length);
+  return prompts.map((positivePrompt, index) => ({
+    positivePrompt,
+    negativePrompt: negatives[index] ?? '',
+    position: positions[index] ?? defaultPosition(),
+  }));
 }
 
 /**
@@ -125,12 +135,16 @@ function normalizePosition(value: unknown): CharacterPromptItem['position'] {
 
 /**
  * 提示多余的负面或坐标匹配
- * @param ucs 负面匹配
+ * @param negatives 负面匹配
  * @param positions 坐标匹配
  * @param promptCount 正面匹配数
  */
-function warnUnusedMatches(ucs: string[], positions: CharacterPromptItem['position'][], promptCount: number): void {
-  if (ucs.length > promptCount) console.warn('[CosmosVision] 已忽略多余的角色负面提示词匹配');
+function warnUnusedMatches(
+  negatives: string[],
+  positions: CharacterPromptItem['position'][],
+  promptCount: number,
+): void {
+  if (negatives.length > promptCount) console.warn('[CosmosVision] 已忽略多余的角色负面提示词匹配');
   if (positions.length > promptCount) console.warn('[CosmosVision] 已忽略多余的角色坐标匹配');
 }
 

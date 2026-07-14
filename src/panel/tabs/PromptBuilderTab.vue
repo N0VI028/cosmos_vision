@@ -91,8 +91,8 @@
           <Divider />
           <div class="cv-field-grid">
             <label class="cv-field"><span>角色数组字段名</span><InputText v-model="settings.promptLlm.characterPromptsJsonField" /></label>
-            <label class="cv-field"><span>角色正面字段名</span><InputText v-model="settings.promptLlm.characterPromptJsonField" /></label>
-            <label class="cv-field"><span>角色负面字段名</span><InputText v-model="settings.promptLlm.characterUcJsonField" /></label>
+            <label class="cv-field"><span>角色正面字段名</span><InputText v-model="settings.promptLlm.characterPositivePromptJsonField" /></label>
+            <label class="cv-field"><span>角色负面字段名</span><InputText v-model="settings.promptLlm.characterNegativePromptJsonField" /></label>
             <label class="cv-field"><span>角色位置字段名</span><InputText v-model="settings.promptLlm.characterPositionJsonField" /></label>
           </div>
         </div>
@@ -153,7 +153,11 @@ interface PromptExtractRuleField {
 
 interface CharacterExtractRuleField {
   label: string;
-  patternKey: 'characterPromptExtractPattern' | 'characterUcExtractPattern' | 'characterPositionXExtractPattern' | 'characterPositionYExtractPattern';
+  patternKey:
+    | 'characterPositivePromptExtractPattern'
+    | 'characterNegativePromptExtractPattern'
+    | 'characterPositionXExtractPattern'
+    | 'characterPositionYExtractPattern';
   patternLabel: string;
   patternPlaceholder?: string;
 }
@@ -182,8 +186,18 @@ const PROMPT_EXTRACT_RULE_FIELDS = [
 ] as const satisfies ReadonlyArray<PromptExtractRuleField>;
 
 const CHARACTER_EXTRACT_RULE_FIELDS = [
-  { label: '角色正面', patternKey: 'characterPromptExtractPattern', patternLabel: '角色正面匹配正则', patternPlaceholder: '/"prompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g' },
-  { label: '角色负面', patternKey: 'characterUcExtractPattern', patternLabel: '角色负面匹配正则', patternPlaceholder: '/"uc"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g' },
+  {
+    label: '角色正面',
+    patternKey: 'characterPositivePromptExtractPattern',
+    patternLabel: '角色正面匹配正则',
+    patternPlaceholder: '/"positivePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g',
+  },
+  {
+    label: '角色负面',
+    patternKey: 'characterNegativePromptExtractPattern',
+    patternLabel: '角色负面匹配正则',
+    patternPlaceholder: '/"negativePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g',
+  },
   { label: '角色 X 位置', patternKey: 'characterPositionXExtractPattern', patternLabel: '角色 X 位置正则', patternPlaceholder: '/"x"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g' },
   { label: '角色 Y 位置', patternKey: 'characterPositionYExtractPattern', patternLabel: '角色 Y 位置正则', patternPlaceholder: '/"y"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g' },
 ] as const satisfies ReadonlyArray<CharacterExtractRuleField>;

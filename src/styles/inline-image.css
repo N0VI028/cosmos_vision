@@ -247,7 +247,7 @@ body.dark .cv-inline-toolbar {
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.4em;
+  gap: var(--cv-space-md);
 }
 
 /* 聊天气泡外的 PrimeVue 按钮不在 #cosmos_vision 作用域内，这里补一层最小化反压 */

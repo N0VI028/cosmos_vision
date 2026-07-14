@@ -55,8 +55,8 @@ function cloneNovelAIFinalPrompts(prompts: NovelAIFinalPrompts): NovelAIFinalPro
  */
 function cloneCharacterPromptItem(item: CharacterPromptItem): CharacterPromptItem {
   return {
-    prompt: item.prompt,
-    uc: item.uc,
+    positivePrompt: item.positivePrompt,
+    negativePrompt: item.negativePrompt,
     position: { x: item.position.x, y: item.position.y },
   };
 }
@@ -311,11 +311,11 @@ function buildCharacterItemMarkup(item: CharacterPromptItem, index: number): str
       <div class="cv-lightbox-character-body">
         <div class="cv-lightbox-character-field">
           <span class="cv-lightbox-character-label">角色正面</span>
-          <div class="cv-lightbox-prompt-content">${escapeHtml(item.prompt || '(空)')}</div>
+          <div class="cv-lightbox-prompt-content">${escapeHtml(item.positivePrompt || '(空)')}</div>
         </div>
         <div class="cv-lightbox-character-field">
           <span class="cv-lightbox-character-label">角色负面</span>
-          <div class="cv-lightbox-prompt-content">${escapeHtml(item.uc || '(空)')}</div>
+          <div class="cv-lightbox-prompt-content">${escapeHtml(item.negativePrompt || '(空)')}</div>
         </div>
         <div class="cv-lightbox-character-field">
           <span class="cv-lightbox-character-label">坐标</span>
@@ -333,7 +333,7 @@ function buildCharacterItemMarkup(item: CharacterPromptItem, index: number): str
  * @returns 标题文本
  */
 function getCharacterItemTitle(item: CharacterPromptItem, index: number): string {
-  const preview = item.prompt.trim() || '(空)';
+  const preview = item.positivePrompt.trim() || '(空)';
   const short = preview.length > 36 ? `${preview.slice(0, 36)}…` : preview;
   return `角色 ${index + 1} · ${short}`;
 }

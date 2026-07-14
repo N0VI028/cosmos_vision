@@ -72,8 +72,10 @@ export {
 };
 export const DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN = '/"positivePrompt"\\s*:\\s*"([^"]*)"/i';
 export const DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN = '/"negativePrompt"\\s*:\\s*"([^"]*)"/i';
-export const DEFAULT_CHARACTER_PROMPT_EXTRACT_PATTERN = '/"prompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g';
-export const DEFAULT_CHARACTER_UC_EXTRACT_PATTERN = '/"uc"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g';
+export const DEFAULT_CHARACTER_POSITIVE_PROMPT_EXTRACT_PATTERN =
+  '/"positivePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g';
+export const DEFAULT_CHARACTER_NEGATIVE_PROMPT_EXTRACT_PATTERN =
+  '/"negativePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g';
 export const DEFAULT_CHARACTER_POSITION_X_EXTRACT_PATTERN = '/"x"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g';
 export const DEFAULT_CHARACTER_POSITION_Y_EXTRACT_PATTERN = '/"y"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g';
 
@@ -82,8 +84,8 @@ export const DEFAULT_PROMPT_LLM_OUTPUT_FIELDS = {
   positive: 'positivePrompt',
   negative: 'negativePrompt',
   characterPrompts: 'characterPrompts',
-  characterPrompt: 'prompt',
-  characterUc: 'uc',
+  characterPositivePrompt: 'positivePrompt',
+  characterNegativePrompt: 'negativePrompt',
   characterPosition: 'position',
 } as const satisfies PromptLlmOutputFields;
 
@@ -169,13 +171,13 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     positivePromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.positive,
     negativePromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.negative,
     characterPromptsJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.characterPrompts,
-    characterPromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.characterPrompt,
-    characterUcJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.characterUc,
+    characterPositivePromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.characterPositivePrompt,
+    characterNegativePromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.characterNegativePrompt,
     characterPositionJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.characterPosition,
     positivePromptExtractPattern: DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN,
     negativePromptExtractPattern: DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN,
-    characterPromptExtractPattern: DEFAULT_CHARACTER_PROMPT_EXTRACT_PATTERN,
-    characterUcExtractPattern: DEFAULT_CHARACTER_UC_EXTRACT_PATTERN,
+    characterPositivePromptExtractPattern: DEFAULT_CHARACTER_POSITIVE_PROMPT_EXTRACT_PATTERN,
+    characterNegativePromptExtractPattern: DEFAULT_CHARACTER_NEGATIVE_PROMPT_EXTRACT_PATTERN,
     characterPositionXExtractPattern: DEFAULT_CHARACTER_POSITION_X_EXTRACT_PATTERN,
     characterPositionYExtractPattern: DEFAULT_CHARACTER_POSITION_Y_EXTRACT_PATTERN,
     customIncludeBody: '',

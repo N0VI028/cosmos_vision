@@ -395,9 +395,9 @@ function applyV4Prompts(
 function createV4CharacterPrompt(item: CharacterPromptItem) {
   const center = { ...item.position };
   return {
-    parameter: { prompt: item.prompt, uc: item.uc, center, enabled: true },
-    positiveCaption: { char_caption: item.prompt, centers: [center] },
-    negativeCaption: { char_caption: item.uc, centers: [center] },
+    parameter: { prompt: item.positivePrompt, uc: item.negativePrompt, center, enabled: true },
+    positiveCaption: { char_caption: item.positivePrompt, centers: [center] },
+    negativeCaption: { char_caption: item.negativePrompt, centers: [center] },
   };
 }
 

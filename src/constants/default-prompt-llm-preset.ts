@@ -101,7 +101,7 @@ export default {
 
 提示词标签之间以英文逗号分隔；数值强调以 \`::\` 收尾时，其后仍须补逗号。
 
-### UC 中的强化规则
+### negativePrompt 中的强化规则
 
 - \`{term}\` = 更强地避免
 - \`[term]\` = 较弱地避免
@@ -110,7 +110,7 @@ export default {
 
 - 重点后置 → 核心主体前置
 - 权重过猛 → 从轻量 \`{}\` 或 \`1.1::\` 开始
-- UC 误伤主体 → 缩短 UC
+- negativePrompt 误伤主体 → 缩短 negativePrompt
 - \`{ }\` 过度 → 过饱和 / 伪影
 
 </nai_syntax_rules>
@@ -311,12 +311,12 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
 6. 文本渲染（如需）：\`text, english text\` 等 + 文案意图；
 
 ### \`characterPrompts\` 数组（每个角色独立）：
-每个角色对象包含 \`prompt\`（正面）、\`uc\`（负面）和 \`position\`（画面坐标）：
-- \`prompt\`：只写该角色自身特征（不带数量）：
+每个角色对象包含 \`positivePrompt\`（正面）、\`negativePrompt\`（负面）和 \`position\`（画面坐标）：
+- \`positivePrompt\`：只写该角色自身特征（不带数量）：
   - 角色类型（\`girl\`、\`boy\`、\`other\`，不带数字）
   - 外观、服饰、表情、动作 / 姿势
   - 互动：\`source#\` / \`target#\` / \`mutual#\` + 动作标签
-- \`uc\`：防特征泄露，如 \`different hair color, different eye color, inconsistent outfit, wrong character, other character features\`
+- \`negativePrompt\`：防特征泄露，如 \`different hair color, different eye color, inconsistent outfit, wrong character, other character features\`
 - \`position\`：\`{ "x": number, "y": number }\`，均为 **0–1** 浮点（不要 0–4 网格）
   - \`x=0\` 最左、\`x=1\` 最右；\`y=0\` 最上、\`y=1\` 最下；中心 \`{ "x": 0.5, "y": 0.5 }\`
   - 常用：左/中/右 \`0.25\`/\`0.5\`/\`0.75\`；上/中/下同理
@@ -331,11 +331,11 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
 
 - 按主场景排除冲突内容，例如室内夜景可写：\`daytime, sunlight, outdoor, crowd\`；无眼镜场景可写：\`glasses\`
 - **禁止**质量词（系统统一注入）：\`lowres\`、\`worst quality\`、\`low quality\`、\`blurry\`、\`jpeg artifacts\` 等
-- 角色外形防串色、错装等写在各角色的 \`uc\`，不要堆进全局负面
+- 角色外形防串色、错装等写在各角色的 \`negativePrompt\`，不要堆进全局负面
 
 ### 冲突检查
 
-输出前内部检查 Prompt 与负面 / 角色 \`uc\` 是否冲突，优先保留用户段落中明确描述的内容。
+输出前内部检查 Prompt 与负面 / 角色 \`negativePrompt\` 是否冲突，优先保留用户段落中明确描述的内容。
 
 </nai_prompt_rules>
 
@@ -349,7 +349,7 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
   "positivePrompt": "全局提示词（人数 + 场景 + 光影，禁止质量词，禁止 | 分隔）",
   "negativePrompt": "画面不应出现的物体/元素（禁止质量词）",
   "characterPrompts": [
-    { "prompt": "角色特征提示词", "uc": "该角色不应混入的特征", "position": { "x": 0.5, "y": 0.5 } }
+    { "positivePrompt": "角色特征提示词", "negativePrompt": "该角色不应混入的特征", "position": { "x": 0.5, "y": 0.5 } }
   ]
 }
 
@@ -358,8 +358,8 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
   "positivePrompt": "全局提示词（人数 + 场景 + 光影，禁止质量词，禁止 | 分隔）",
   "negativePrompt": "画面不应出现的物体/元素（禁止质量词）",
   "characterPrompts": [
-    { "prompt": "角色 1 特征提示词", "uc": "角色 1 防特征泄露", "position": { "x": 0.25, "y": 0.5 } },
-    { "prompt": "角色 2 特征提示词", "uc": "角色 2 防特征泄露", "position": { "x": 0.75, "y": 0.5 } }
+    { "positivePrompt": "角色 1 特征提示词", "negativePrompt": "角色 1 防特征泄露", "position": { "x": 0.25, "y": 0.5 } },
+    { "positivePrompt": "角色 2 特征提示词", "negativePrompt": "角色 2 防特征泄露", "position": { "x": 0.75, "y": 0.5 } }
   ]
 }
 
@@ -371,7 +371,7 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
 5. 根据段落的情感氛围自动调整光影和色调
 6. 对关键动作和表情给予适当强调（\`{}\` 或 \`n:: ... ::\`；可用负数值）
 7. 每个 \`characterPrompts\` 元素都必须包含合法的 \`position: { x, y }\`，且 \`x\`/\`y\` 在 0–1 之间
-8. 人数标签只在 \`positivePrompt\`；角色 \`prompt\` 内禁止 \`1girl\`/\`2girls\` 等数量词
+8. 人数标签只在 \`positivePrompt\`；角色 \`positivePrompt\` 内禁止 \`1girl\`/\`2girls\` 等数量词
 9. 禁止在任何字段字符串中使用 \`|\` 多角色分隔
 
 </output_format>
@@ -387,7 +387,7 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
   "positivePrompt": "1girl, solo, {moonlight}, indoor, bedroom, window, sheer curtains, {night sky}, stars visible through window, cinematic lighting, soft volumetric light, melancholic atmosphere",
   "negativePrompt": "daytime, sunlight, outdoor, glasses, hat, bag, multiple girls, crowd",
   "characterPrompts": [
-    { "prompt": "girl, silver hair, long hair, hair down, {green eyes}, pale skin, black silk nightgown, {leaning against window}, looking out window, reflective mood", "uc": "different hair color, different eye color, wrong character", "position": { "x": 0.5, "y": 0.5 } }
+    { "positivePrompt": "girl, silver hair, long hair, hair down, {green eyes}, pale skin, black silk nightgown, {leaning against window}, looking out window, reflective mood", "negativePrompt": "different hair color, different eye color, wrong character", "position": { "x": 0.5, "y": 0.5 } }
   ]
 }
 
@@ -400,8 +400,8 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
   "positivePrompt": "2girls, outdoors, cherry blossom tree, {cherry blossoms}, falling petals, spring, {dappled sunlight}, warm lighting, joyful atmosphere, vibrant colors",
   "negativePrompt": "indoor, night, rain, winter, snow, 3girls, boy, animal, vehicle",
   "characterPrompts": [
-    { "prompt": "girl, short hair, sailor uniform, {running}, laughing, looking back, energetic, target#reaching for", "uc": "different hair color, wrong character, inconsistent outfit", "position": { "x": 0.35, "y": 0.5 } },
-    { "prompt": "girl, twintails, plaid skirt, {reaching out}, chasing, source#reaching for, smiling, playful", "uc": "different hair color, wrong character, inconsistent outfit", "position": { "x": 0.7, "y": 0.55 } }
+    { "positivePrompt": "girl, short hair, sailor uniform, {running}, laughing, looking back, energetic, target#reaching for", "negativePrompt": "different hair color, wrong character, inconsistent outfit", "position": { "x": 0.35, "y": 0.5 } },
+    { "positivePrompt": "girl, twintails, plaid skirt, {reaching out}, chasing, source#reaching for, smiling, playful", "negativePrompt": "different hair color, wrong character, inconsistent outfit", "position": { "x": 0.7, "y": 0.55 } }
   ]
 }
 

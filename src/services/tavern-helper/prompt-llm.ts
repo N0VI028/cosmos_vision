@@ -176,13 +176,17 @@ function buildPromptOutputProperty(name: string, fields: PromptLlmOutputFields):
     items: {
       type: 'object',
       properties: {
-        [fields.characterPrompt ?? 'prompt']: { type: 'string' },
-        [fields.characterUc ?? 'uc']: { type: 'string' },
+        [fields.characterPositivePrompt ?? 'positivePrompt']: { type: 'string' },
+        [fields.characterNegativePrompt ?? 'negativePrompt']: { type: 'string' },
         [fields.characterPosition ?? 'position']: {
           type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } }, required: ['x', 'y'], additionalProperties: false,
         },
       },
-      required: [fields.characterPrompt ?? 'prompt', fields.characterUc ?? 'uc', fields.characterPosition ?? 'position'],
+      required: [
+        fields.characterPositivePrompt ?? 'positivePrompt',
+        fields.characterNegativePrompt ?? 'negativePrompt',
+        fields.characterPosition ?? 'position',
+      ],
       additionalProperties: false,
     },
   };
@@ -455,8 +459,8 @@ function readPromptLlmOutputFields(settings: PromptLlmSettings): PromptLlmOutput
     positive,
     negative,
     characterPrompts,
-    characterPrompt: settings.characterPromptJsonField.trim(),
-    characterUc: settings.characterUcJsonField.trim(),
+    characterPositivePrompt: settings.characterPositivePromptJsonField.trim(),
+    characterNegativePrompt: settings.characterNegativePromptJsonField.trim(),
     characterPosition: settings.characterPositionJsonField.trim(),
   };
 }
