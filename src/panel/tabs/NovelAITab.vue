@@ -177,7 +177,7 @@
       <div class="cv-section-body">
           <label v-if="!isV3Model" class="cv-field-inline">
             <ToggleSwitch v-model="settings.novelai.autoCharacterCoords" />
-            <span>多角色自动安排位置</span>
+            <span>多角色提示词时自动安排位置</span>
           </label>
           <div class="cv-field-grid">
             <label class="cv-field">

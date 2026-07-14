@@ -56,6 +56,7 @@ export interface NovelAIPromptOverrides {
 export interface NovelAIFinalPrompts {
   positivePrompt: string;
   negativePrompt: string;
+  useCharacterCoords?: boolean;
   vibeReferences?: ImagePromptVibeRef[];
   vibeParameters?: NovelAIVibeParameters;
   characterPrompts?: CharacterPromptItem[];
@@ -372,7 +373,7 @@ function applyV4Prompts(
 ): void {
   const promptCharacters = prompts.characterPrompts ?? [];
   const characters = promptCharacters.map(createV4CharacterPrompt);
-  const useCoords = resolveUseCoords(promptCharacters.length, autoCharacterCoords);
+  const useCoords = prompts.useCharacterCoords ?? resolveUseCoords(promptCharacters.length, autoCharacterCoords);
   parameters.characterPrompts = characters.map(character => character.parameter);
   parameters.v4_prompt = {
     caption: { base_caption: prompts.positivePrompt, char_captions: characters.map(character => character.positiveCaption) },
@@ -482,6 +483,7 @@ function resolveFinalPrompts(
   extractSettings: PromptLlmExtractSettings,
   overrides?: NovelAIPromptOverrides,
 ): NovelAIFinalPrompts {
+  const characterPrompts = overrides?.characterPrompts ?? [];
   return {
     positivePrompt: buildPositivePrompt(
       settings,
@@ -497,7 +499,8 @@ function resolveFinalPrompts(
       overrides?.negativeLLMPrompt ?? '',
       overrides?.negativePromptMode ?? 'extract',
     ),
-    characterPrompts: overrides?.characterPrompts ?? [],
+    useCharacterCoords: resolveUseCoords(characterPrompts.length, settings.autoCharacterCoords),
+    characterPrompts,
     vibeReferences: getActiveNovelAIVibePresetRefs(settings.novelAIVibePresets),
   };
 }

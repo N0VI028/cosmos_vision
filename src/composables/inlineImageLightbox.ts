@@ -42,6 +42,7 @@ function cloneNovelAIFinalPrompts(prompts: NovelAIFinalPrompts): NovelAIFinalPro
   return {
     positivePrompt: prompts.positivePrompt,
     negativePrompt: prompts.negativePrompt,
+    useCharacterCoords: prompts.useCharacterCoords,
     characterPrompts: prompts.characterPrompts?.map(cloneCharacterPromptItem),
     vibeReferences: prompts.vibeParameters ? undefined : prompts.vibeReferences?.map(cloneImagePromptVibeRef),
     vibeParameters: prompts.vibeParameters ? cloneNovelAIVibeParameters(prompts.vibeParameters) : undefined,
@@ -289,7 +290,7 @@ function buildCharacterPromptsMarkup(snapshot?: InlinePromptSnapshot): string {
         <span class="cv-lightbox-prompt-title cv-lightbox-title-char">角色提示词（${characters.length}）</span>
       </div>
       <div class="cv-lightbox-character-list">
-        ${characters.map((item, index) => buildCharacterItemMarkup(item, index)).join('')}
+        ${characters.map((item, index) => buildCharacterItemMarkup(item, index, characters.length, snapshot?.novelai?.useCharacterCoords)).join('')}
       </div>
     </div>
   `;
@@ -299,9 +300,16 @@ function buildCharacterPromptsMarkup(snapshot?: InlinePromptSnapshot): string {
  * 构建单个角色提示词折叠项 HTML（默认折叠）
  * @param item 角色提示词
  * @param index 角色序号（从 0 起）
+ * @param characterCount 角色总数
+ * @param useCharacterCoords 是否使用手动坐标
  * @returns HTML 字符串
  */
-function buildCharacterItemMarkup(item: CharacterPromptItem, index: number): string {
+function buildCharacterItemMarkup(
+  item: CharacterPromptItem,
+  index: number,
+  characterCount: number,
+  useCharacterCoords?: boolean,
+): string {
   return `
     <div class="cv-lightbox-character-item cv-char-collapsed" data-char-index="${index}">
       <button type="button" class="cv-lightbox-character-toggle" aria-expanded="false">
@@ -319,7 +327,7 @@ function buildCharacterItemMarkup(item: CharacterPromptItem, index: number): str
         </div>
         <div class="cv-lightbox-character-field">
           <span class="cv-lightbox-character-label">坐标</span>
-          <div class="cv-lightbox-prompt-content">${escapeHtml(formatCharacterPosition(item))}</div>
+          <div class="cv-lightbox-prompt-content">${escapeHtml(formatCharacterPosition(item, characterCount, useCharacterCoords))}</div>
         </div>
       </div>
     </div>
@@ -341,9 +349,12 @@ function getCharacterItemTitle(item: CharacterPromptItem, index: number): string
 /**
  * 格式化角色坐标展示文本
  * @param item 角色提示词
+ * @param characterCount 角色总数
+ * @param useCharacterCoords 是否使用手动坐标
  * @returns 坐标文本
  */
-function formatCharacterPosition(item: CharacterPromptItem): string {
+function formatCharacterPosition(item: CharacterPromptItem, characterCount: number, useCharacterCoords?: boolean): string {
+  if (characterCount < 2 || useCharacterCoords === false) return 'Auto';
   return `x: ${item.position.x.toFixed(2)}, y: ${item.position.y.toFixed(2)}`;
 }
 

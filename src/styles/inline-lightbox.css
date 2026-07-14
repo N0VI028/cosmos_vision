@@ -5,7 +5,7 @@
  */
 
 .cv-lightbox-overlay {
-  @apply fixed left-0 top-0 z-[99999] flex h-screen w-screen items-center justify-center;
+  @apply fixed left-0 top-0 z-99999 flex h-screen w-screen items-center justify-center;
   top: 0;
   left: 0;
   z-index: 99999;
@@ -25,7 +25,7 @@
 }
 
 .cv-lightbox-toolbar {
-  @apply absolute z-[100001] flex items-center;
+  @apply absolute z-100001 flex items-center;
   top: max(1.5rem, env(safe-area-inset-top));
   right: max(1.5rem, env(safe-area-inset-right));
   z-index: 100001;
@@ -148,8 +148,7 @@
   @apply flex flex-col;
   gap: 1rem;
   max-height: min(52vh, 28rem);
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   opacity: 1;
   transition: opacity 0.2s ease;
 }
