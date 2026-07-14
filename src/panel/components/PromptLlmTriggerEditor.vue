@@ -169,18 +169,18 @@ const conditionMatchMode = computed<ConditionMatchMode>(() =>
 const triggerMatchModeHint = computed<string>(() => {
   const mode = conditionMatchMode.value;
   if (mode === 'all_match') {
-    return '所有配置的条件必须全都满足时才发送。未配置条件时默认不发送。';
+    return '所有配置的条件必须全都满足时才发送。单条关键词只要命中内部任意一个词语即为满足条件';
   }
   if (mode === 'any_match') {
-    return '配置的条件中只要有任意一个满足即发送。未配置条件时默认不发送。';
+    return '配置的条件中只要有任意一个满足即发送。单条关键词只要命中内部任意一个词语即为满足条件';
   }
   if (mode === 'all_mismatch') {
-    return '所有配置的条件必须全都不满足时才发送。未配置条件时默认不发送。';
+    return '所有配置的条件必须全都不满足时才发送。单条关键词只要命中内部任意一个词语即为满足条件';
   }
   if (mode === 'any_mismatch') {
-    return '配置的条件中只要有任意一个满足就不发送。未配置条件时默认不发送。';
+    return '配置的条件中只要有任意一个满足就不发送。单条关键词只要命中内部任意一个词语即为满足条件';
   }
-  return '未配置条件时默认不发送。';
+  return '未配置条件时默认不发送。单条关键词只要命中内部任意一个词语即为满足条件';
 });
 
 /** 外部草稿切换时重载条件行；编辑中以本地行为准 */
