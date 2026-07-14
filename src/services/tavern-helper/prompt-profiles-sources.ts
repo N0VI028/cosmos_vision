@@ -86,11 +86,7 @@ export function getPromptPersonWorldbookNames(): string[] {
  */
 export function getPromptPersonUserPersonaDescription(personaId: string): string {
   const persona = requirePromptProfilesPersona(personaId);
-  const content = buildUserPersonaDescription(persona);
-  if (!content) {
-    throw new Error(`用户人设 "${personaId}" 没有可用介绍`);
-  }
-  return content;
+  return buildUserPersonaDescription(persona);
 }
 
 /**
@@ -102,13 +98,12 @@ export async function getPromptPersonCharacterDescription(characterName: string)
   const tavernHelper = requirePromptProfilesTavernHelper();
   const rawCharacter = await tavernHelper.getCharacter(characterName);
   const description = normalizeText(rawCharacter.description);
-  if (description) return description;
+  if (description) {
+    return description;
+  }
 
   const charData = tavernHelper.getCharData(characterName);
   const fallbackDescription = readObjectString(charData, ['description', 'data.description']);
-  if (!fallbackDescription) {
-    throw new Error(`角色卡 "${characterName}" 没有可用描述`);
-  }
   return fallbackDescription;
 }
 
@@ -276,8 +271,8 @@ async function resolveCharacterWorldbookEntry(
   reference: PromptPersonSourceReference,
 ): Promise<ResolvedPromptPersonTemplateEntry> {
   return resolvePromptWorldbookSourceEntry(title, reference, {
-    includeDisabled: false,
-    allowEmptyContent: false,
+    includeDisabled: true,
+    allowEmptyContent: true,
   });
 }
 
@@ -288,8 +283,8 @@ async function resolveCharacterWorldbookEntry(
  */
 async function readPromptPersonWorldbookGroups(worldbookNames: Array<string | null>): Promise<PromptPersonWorldbookGroup[]> {
   return readPromptWorldbookGroupsWithOptions(worldbookNames, {
-    includeDisabled: false,
-    allowEmptyContent: false,
+    includeDisabled: true,
+    allowEmptyContent: true,
   });
 }
 

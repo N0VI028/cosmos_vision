@@ -55,6 +55,16 @@ export async function getPromptWorldbookSourceOptions(): Promise<PromptWorldbook
 }
 
 /**
+ * 获取指定世界书的条目选项
+ * @param worldbookName 世界书名称
+ * @returns 世界书条目列表
+ */
+export async function getPromptWorldbookSourceEntries(worldbookName: string): Promise<PromptWorldbookEntryOption[]> {
+  const worldbook = await readPromptWorldbookGroup(worldbookName.trim(), DEFAULT_WORLD_BOOK_RESOLVE_OPTIONS);
+  return worldbook?.entries ?? [];
+}
+
+/**
  * 解析世界书来源条目
  * @param title 条目标题
  * @param reference 世界书引用

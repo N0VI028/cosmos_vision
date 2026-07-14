@@ -9,12 +9,6 @@
       <span class="cv-source-indicator cv-indicator" />
       <span class="cv-source-kind">{{ getEntrySourceLabel(entry as PromptPersonTemplateEntry) }}</span>
       <span class="cv-source-title">{{ getEntryTitle(entry as PromptPersonTemplateEntry) }}</span>
-      <Tag
-        v-if="!isCustomEntry(entry as PromptPersonTemplateEntry) && !isEntryStatusReady(entry as PromptPersonTemplateEntry)"
-        class="cv-status-tag-mini"
-        :value="getEntryStatusText(entry as PromptPersonTemplateEntry)"
-        :severity="getEntryStatusSeverity(entry as PromptPersonTemplateEntry)"
-      />
     </template>
 
     <template #actions="{ entry }">
@@ -52,7 +46,6 @@
           option-value="value"
           placeholder="选择条目来源"
           class="cv-source-select"
-          :loading="isLoadingWorldbookSources"
           @update:model-value="updateEditorSource"
         />
       </label>
@@ -91,7 +84,7 @@
               option-value="value"
               placeholder="选择世界书"
               class="cv-source-select"
-              :loading="isLoadingWorldbookSources"
+              :loading="isLoadingWorldbookNames"
               @update:model-value="updateSelectedWorldbookName"
             />
           </label>
@@ -105,6 +98,7 @@
               placeholder="选择条目"
               class="cv-source-select"
               :disabled="worldbookEntryOptions.length === 0"
+              :loading="isLoadingWorldbookEntries"
               @update:model-value="updateSelectedWorldbookEntryUid"
             />
           </label>
@@ -167,7 +161,7 @@
         />
         <Textarea
           v-else
-          :model-value="editorPreviewText"
+          :model-value="editorPreviewPlaceholder ?? editorPreviewText"
           rows="6"
           disabled
           class="cv-message-editor-textarea custom-scrollbar"
@@ -182,7 +176,6 @@
     </template>
   </Dialog>
 </template>
-
 <script setup lang="ts">
 import Popover from 'primevue/popover';
 import {
@@ -208,15 +201,15 @@ import {
   buildTextSelectOptions,
   canSaveSourceEditor,
   createSourceEditorDraft,
+  getSourceEditorPreviewPlaceholder,
   syncDraftEntryFields as syncEditorDraftEntryFields,
   type PromptSourceEditorDraft,
 } from '@/panel/components/prompt-source-entry-editor';
 import {
   buildWorldbookEntryOptions,
-  buildWorldbookOptions,
+  buildWorldbookNameOptions,
   getWorldbookReferenceDisplayTitle,
   isWorldbookReferenceMissing,
-  pickWorldbookEntryUid,
 } from '@/panel/components/prompt-worldbook-source';
 import {
   getPromptPersonCharacterNames,
@@ -225,7 +218,8 @@ import {
   type ResolvedPromptPersonTemplateEntry,
 } from '@/services/tavern-helper/prompt-profiles-sources';
 import {
-  getPromptWorldbookSourceOptions,
+  getPromptWorldbookNames,
+  getPromptWorldbookSourceEntries,
   type PromptWorldbookGroup,
 } from '@/services/tavern-helper/worldbook-sources';
 import {
@@ -241,9 +235,6 @@ import {
   getPromptSourceEntryLabel,
   getPromptSourceEntryTitle,
   getPromptSourcePreviewText,
-  getPromptSourceStatusSeverity,
-  getPromptSourceStatusText,
-  isCustomPromptSourceEntry,
 } from '@/panel/components/prompt-source-entry-display';
 
 const props = withDefaults(
@@ -260,7 +251,7 @@ const props = withDefaults(
 
 const entries = defineModel<PromptPersonTemplateEntry[]>({ required: true });
 const entryList = ref<InstanceType<typeof PromptEntryList> | null>(null);
-const entryStatusMap = ref<Record<string, ResolvedPromptPersonTemplateEntry>>({});
+const worldbookNames = ref<string[]>([]);
 const worldbookSourceOptions = ref<PromptWorldbookGroup[]>([]);
 const editorDraft = ref<PromptSourceEditorDraft | null>(null);
 const editorPreview = ref<ResolvedPromptPersonTemplateEntry | null>(null);
@@ -268,12 +259,12 @@ const macroPopover = ref<MacroPopoverInstance | null>(null);
 const entryContentTextarea = ref<TextareaRef>(null);
 const entrySelectionRange = ref<TextRange | null>(null);
 const isEditorVisible = ref(false);
-const isLoadingWorldbookSources = ref(false);
+const isLoadingWorldbookNames = ref(false);
+const isLoadingWorldbookEntries = ref(false);
 
-let worldbookSourceRequestId = 0;
-let entryStatusRequestId = 0;
+let worldbookEntryRequestId = 0;
 let editorPreviewRequestId = 0;
-
+let loadedWorldbookName = '';
 const editorSourceOptions = computed(() => buildSourceOptions(props.kind, editorDraft.value?.kind));
 const characterOptions = computed(() =>
   buildTextSelectOptions([...getPromptPersonCharacterNames(), props.characterName]),
@@ -282,7 +273,7 @@ const personaOptions = computed(() =>
   buildTextSelectOptions([...getPromptPersonUserPersonaNames(), props.userPersonaKey]),
 );
 const worldbookOptions = computed(() =>
-  buildWorldbookOptions(worldbookSourceOptions.value, editorDraft.value?.selectedWorldbookName ?? ''),
+  buildWorldbookNameOptions(worldbookNames.value, editorDraft.value?.selectedWorldbookName ?? ''),
 );
 const worldbookEntryOptions = computed(() =>
   buildWorldbookEntryOptions(
@@ -300,17 +291,26 @@ const editorTitle = computed(() => {
   return `编辑 ${getPromptSourceEntryTitle(editorDraft.value)}`;
 });
 const editorPreviewText = computed(() => getPromptSourcePreviewText(editorPreview.value));
+const editorPreviewPlaceholder = computed(() => getSourceEditorPreviewPlaceholder(editorDraft.value));
 const editorReadonlyTitle = computed(() => getEditorReadonlyTitle(editorDraft.value));
 
-watch(entries, refreshEntryStatuses, { deep: true, immediate: true });
 watch(
-  () => isEditorVisible.value,
-  visible => {
-    if (visible || worldbookSourceOptions.value.length === 0) {
-      void loadWorldbookSources();
+  () => [isEditorVisible.value, editorDraft.value?.kind ?? ''] as const,
+  ([visible, kind]) => {
+    if (visible && kind === 'character_worldbook_entry') {
+      loadWorldbookNames();
     }
   },
-  { immediate: true },
+);
+watch(
+  () => [isEditorVisible.value, editorDraft.value?.kind ?? '', editorDraft.value?.selectedWorldbookName ?? ''] as const,
+  ([visible, kind, worldbookName]) => {
+    if (visible && kind === 'character_worldbook_entry' && worldbookName.trim()) {
+      void loadWorldbookEntries(worldbookName);
+      return;
+    }
+    clearWorldbookEntries();
+  },
 );
 watch(
   () =>
@@ -326,36 +326,55 @@ watch(
 );
 
 /**
- * 刷新外部资料条目状态
+ * 加载世界书名称
  */
-async function refreshEntryStatuses(): Promise<void> {
-  const requestId = ++entryStatusRequestId;
-  const statusEntries = await Promise.all(
-    entries.value
-      .filter(entry => !isCustomEntry(entry))
-      .map(async entry => [entry.id, await resolvePromptPersonTemplateEntry(entry)] as const),
-  );
-  if (requestId !== entryStatusRequestId) return;
-  entryStatusMap.value = Object.fromEntries(statusEntries);
+function loadWorldbookNames(): void {
+  if (worldbookNames.value.length > 0) return;
+  isLoadingWorldbookNames.value = true;
+  try {
+    worldbookNames.value = getPromptWorldbookNames();
+  } catch (error) {
+    console.error('[CosmosVision] PromptSourceEntryList:', error);
+  } finally {
+    isLoadingWorldbookNames.value = false;
+  }
 }
 
 /**
- * 加载全部世界书来源
+ * 加载当前选择世界书的条目
+ * @param worldbookName 世界书名称
  */
-async function loadWorldbookSources(): Promise<void> {
-  const requestId = ++worldbookSourceRequestId;
-  isLoadingWorldbookSources.value = true;
+async function loadWorldbookEntries(worldbookName: string): Promise<void> {
+  clearWorldbookEntries();
+  const requestId = ++worldbookEntryRequestId;
+  isLoadingWorldbookEntries.value = true;
   try {
-    const options = await getPromptWorldbookSourceOptions();
-    if (requestId !== worldbookSourceRequestId) return;
-    worldbookSourceOptions.value = options;
-    reconcileEditorSourceDefaults();
+    const entries = await getPromptWorldbookSourceEntries(worldbookName);
+    if (requestId !== worldbookEntryRequestId) {
+      return;
+    }
+    worldbookSourceOptions.value = [{ worldbookName, entries }];
+    loadedWorldbookName = worldbookName;
+    const draft = editorDraft.value;
+    if (draft?.selectedWorldbookName === worldbookName) syncDraftEntryFields(draft);
   } catch (error) {
-    console.error('[CosmosVision] PromptSourceEntryList:', error);
-    toastr.warning('世界书读取失败，仍可创建其他条目');
+    if (requestId === worldbookEntryRequestId) {
+      loadedWorldbookName = worldbookName;
+      console.error('[CosmosVision] PromptSourceEntryList:', error);
+      toastr.warning('世界书条目读取失败，请稍后重试');
+    }
   } finally {
-    if (requestId === worldbookSourceRequestId) isLoadingWorldbookSources.value = false;
+    if (requestId === worldbookEntryRequestId) isLoadingWorldbookEntries.value = false;
   }
+}
+
+/**
+ * 清空当前世界书条目缓存
+ */
+function clearWorldbookEntries(): void {
+  worldbookEntryRequestId++;
+  worldbookSourceOptions.value = [];
+  loadedWorldbookName = '';
 }
 
 /**
@@ -443,7 +462,7 @@ function updateSelectedWorldbookName(worldbookName: string): void {
   const draft = editorDraft.value;
   if (!draft) return;
   draft.selectedWorldbookName = worldbookName;
-  draft.selectedWorldbookEntryUid = pickWorldbookEntryUid(worldbookSourceOptions.value, worldbookName, null);
+  draft.selectedWorldbookEntryUid = null;
   syncDraftEntryFields(draft);
 }
 
@@ -542,6 +561,10 @@ async function refreshEditorPreview(): Promise<void> {
     editorPreview.value = null;
     return;
   }
+  if (getSourceEditorPreviewPlaceholder(draft)) {
+    editorPreview.value = null;
+    return;
+  }
   const requestId = ++editorPreviewRequestId;
   try {
     const resolved = await resolvePromptPersonTemplateEntry(buildSavedEntry(draft));
@@ -551,33 +574,6 @@ async function refreshEditorPreview(): Promise<void> {
     if (requestId !== editorPreviewRequestId) return;
     editorPreview.value = { status: 'missing', title: getPromptSourceEntryTitle(draft), content: '' };
   }
-}
-
-/**
- * 判断外部资料是否处于可用状态
- * @param entry 模板条目
- * @returns 是否可用
- */
-function isEntryStatusReady(entry: PromptPersonTemplateEntry): boolean {
-  return (entryStatusMap.value[entry.id]?.status ?? 'missing') === 'ready';
-}
-
-/**
- * 获取外部资料状态文案
- * @param entry 模板条目
- * @returns 状态文案
- */
-function getEntryStatusText(entry: PromptPersonTemplateEntry): string {
-  return getPromptSourceStatusText(entryStatusMap.value[entry.id]?.status ?? 'missing');
-}
-
-/**
- * 获取外部资料状态颜色
- * @param entry 模板条目
- * @returns PrimeVue Tag severity
- */
-function getEntryStatusSeverity(entry: PromptPersonTemplateEntry): 'success' | 'warn' | 'danger' {
-  return getPromptSourceStatusSeverity(entryStatusMap.value[entry.id]?.status ?? 'missing');
 }
 
 /**
@@ -605,15 +601,6 @@ function getEntryTitle(entry: PromptPersonTemplateEntry): string {
  */
 function getEntryKind(entry: PromptPersonTemplateEntry): PromptPersonTemplateEntryKind {
   return getPromptSourceEntryKind(entry);
-}
-
-/**
- * 判断是否为自定义条目
- * @param entry 模板条目
- * @returns 是否为自定义条目
- */
-function isCustomEntry(entry: PromptPersonTemplateEntry): boolean {
-  return isCustomPromptSourceEntry(entry);
 }
 
 /**
@@ -665,22 +652,13 @@ function applySourceDefaults(draft: PromptSourceEditorDraft): void {
 }
 
 /**
- * 世界书加载后补齐弹窗默认值
- */
-function reconcileEditorSourceDefaults(): void {
-  const draft = editorDraft.value;
-  if (!draft || draft.kind !== 'character_worldbook_entry') return;
-  applySourceDefaults(draft);
-  syncDraftEntryFields(draft);
-}
-
-/**
  * 判断编辑中的世界书引用是否已失效
  * @returns 是否失效
  */
 function isEditorWorldbookReferenceMissing(): boolean {
   const draft = editorDraft.value;
   if (!draft || draft.kind !== 'character_worldbook_entry') return false;
+  if (isLoadingWorldbookEntries.value || loadedWorldbookName !== draft.selectedWorldbookName) return false;
   return isWorldbookReferenceMissing(
     worldbookSourceOptions.value,
     draft.selectedWorldbookName,
@@ -770,12 +748,6 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
   height: 6px;
   background: var(--p-primary-color);
   box-shadow: 0 0 6px var(--p-primary-color);
-}
-.cv-status-tag-mini {
-  font-size: 0.65rem !important;
-  padding: 0.05rem 0.2rem !important;
-  height: auto !important;
-  line-height: 1 !important;
 }
 .cv-message-editor {
   @apply flex flex-col;

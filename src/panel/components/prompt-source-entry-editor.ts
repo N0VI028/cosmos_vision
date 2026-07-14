@@ -155,6 +155,21 @@ export function canSaveSourceEditor(draft: PromptSourceEditorDraft): boolean {
 }
 
 /**
+ * 获取未完成来源选择时的预览提示
+ * @param draft 编辑草稿
+ * @returns 提示文本或 null
+ */
+export function getSourceEditorPreviewPlaceholder(draft: PromptSourceEditorDraft | null): string | null {
+  if (!draft || draft.kind === 'custom') return null;
+  if (draft.kind === 'character_description' && !draft.selectedCharacterName.trim()) return '请选择角色卡后查看资料预览';
+  if (draft.kind === 'user_persona' && !draft.selectedPersonaKey.trim()) return '请选择用户人设后查看资料预览';
+  if (draft.kind !== 'character_worldbook_entry') return null;
+  if (!draft.selectedWorldbookName.trim()) return '请选择世界书后查看资料预览';
+  if (draft.selectedWorldbookEntryUid === null) return '请选择世界书条目后查看资料预览';
+  return null;
+}
+
+/**
  * 构建文本下拉选项
  * @param values 候选文本
  * @returns 下拉选项

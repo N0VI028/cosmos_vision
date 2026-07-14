@@ -20,6 +20,22 @@ export function buildWorldbookOptions(
 }
 
 /**
+ * 根据世界书名称构建下拉选项
+ * @param worldbookNames 世界书名称列表
+ * @param currentName 当前世界书名称
+ * @returns 世界书选项
+ */
+export function buildWorldbookNameOptions(
+  worldbookNames: string[],
+  currentName = '',
+): Array<{ label: string; value: string }> {
+  const normalizedNames = Array.from(new Set(worldbookNames.map(name => name.trim()).filter(Boolean)));
+  const options = normalizedNames.map(worldbookName => ({ label: worldbookName, value: worldbookName }));
+  const isMissing = currentName.trim() && !normalizedNames.includes(currentName);
+  return isMissing ? [{ label: `已失效：${currentName}`, value: currentName }, ...options] : options;
+}
+
+/**
  * 构建世界书条目下拉选项
  * @param worldbooks 世界书列表
  * @param worldbookName 世界书名称
@@ -93,8 +109,8 @@ export function isWorldbookReferenceMissing(
 ): boolean {
   const hasName = Boolean(worldbookName.trim());
   const hasUid = entryUid !== null;
-  if (!hasName && !hasUid) return false;
-  if (!hasName || !hasUid) return true;
+  if (!hasUid) return false;
+  if (!hasName) return true;
   const entries = getPromptWorldbookEntries(worldbooks, worldbookName);
   const nameExists = worldbooks.some(wb => wb.worldbookName === worldbookName.trim());
   return !nameExists || !entries.some(e => e.uid === entryUid);

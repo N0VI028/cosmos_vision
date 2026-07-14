@@ -55,11 +55,8 @@
 }
 
 .cv-lightbox-wrapper {
-  @apply flex flex-col items-center justify-center;
+  @apply flex flex-col items-center justify-center w-full h-full;
   position: relative;
-  width: 90%;
-  max-width: 900px;
-  height: 90%;
   gap: 0;
   transform: scale(0.95);
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -94,7 +91,7 @@
   box-sizing: border-box;
   width: 100%;
   gap: 1rem;
-  max-height: 70vh;
+  max-height: min(70vh, 70dvh);
   padding: 1.25rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px 16px 0 0;
@@ -113,7 +110,7 @@
 }
 
 .cv-lightbox-info-header {
-  @apply flex w-full items-center justify-between;
+  @apply flex w-full shrink-0 items-center justify-between;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   transition: border-bottom-color 0.2s ease;
@@ -145,10 +142,11 @@
 }
 
 .cv-lightbox-info-body {
-  @apply flex flex-col;
+  @apply flex min-h-0 flex-1 flex-col;
   gap: 1rem;
-  max-height: min(52vh, 28rem);
-  overflow: hidden;
+  padding-bottom: 0.5rem;
+  overflow-x: hidden;
+  overflow-y: auto;
   opacity: 1;
   transition: opacity 0.2s ease;
 }
@@ -156,6 +154,7 @@
 .cv-lightbox-info.cv-info-collapsed .cv-lightbox-info-body {
   opacity: 0;
   pointer-events: none;
+  overflow: hidden;
 }
 
 .cv-lightbox-info-body::-webkit-scrollbar {
@@ -240,40 +239,30 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: 12rem;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-.cv-lightbox-character-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.cv-lightbox-character-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.cv-lightbox-character-list::-webkit-scrollbar-thumb {
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.15);
+  /* 滚动交给 info-body，避免宽屏下列表底部被父级裁切后滚不到坐标 */
+  overflow: visible;
 }
 
 .cv-lightbox-character-item {
   flex-shrink: 0;
-  overflow: hidden;
+  /* 不用 overflow:hidden，否则 sticky 标题失效 */
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.2);
 }
 
 .cv-lightbox-character-toggle {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: flex;
   width: 100%;
   align-items: center;
   gap: 0.5rem;
   padding: 0.55rem 0.75rem;
   border: none;
-  background: transparent;
+  border-radius: 8px 8px 0 0;
+  background: rgba(28, 28, 34, 0.96);
   color: rgba(255, 255, 255, 0.85);
   font-size: 0.8rem;
   text-align: left;
@@ -281,8 +270,12 @@
   transition: background 0.2s ease;
 }
 
+.cv-lightbox-character-item.cv-char-collapsed .cv-lightbox-character-toggle {
+  border-radius: 8px;
+}
+
 .cv-lightbox-character-toggle:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(40, 40, 48, 0.98);
 }
 
 .cv-lightbox-character-chevron {
@@ -405,11 +398,6 @@
   }
 
   .cv-lightbox-info-body {
-    max-height: min(48dvh, calc(70dvh - 4.5rem - env(safe-area-inset-bottom)));
     padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
-  }
-
-  .cv-lightbox-character-list {
-    max-height: 10rem;
   }
 }
