@@ -182,6 +182,7 @@ const novelAISettingsSchema = z.object({
   negativePromptPresetId: imagePromptPresetIdSchema,
   addQualityTags: z.boolean(),
   ucPreset: novelAIUcPresetSchema,
+  autoCharacterCoords: z.boolean(),
 });
 
 const comfyUISettingsSchema = z.object({
@@ -483,6 +484,7 @@ function recoverNovelAISettings(value: unknown): NovelAISettings {
     negativePromptPresetId: read('negativePromptPresetId', imagePromptPresetIdSchema),
     addQualityTags: read('addQualityTags', z.boolean()),
     ucPreset: read('ucPreset', novelAIUcPresetSchema),
+    autoCharacterCoords: read('autoCharacterCoords', z.boolean()),
   };
 }
 

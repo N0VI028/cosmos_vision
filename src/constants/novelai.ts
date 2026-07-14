@@ -179,6 +179,15 @@ export interface NovelAISettings extends ImagePromptPresetReferences {
   noiseSchedule: NovelAINoiseSchedule;
   addQualityTags: boolean;
   ucPreset: NovelAIUcPreset;
+  /** 是否让 NovelAI 自动安排多角色坐标 */
+  autoCharacterCoords: boolean;
+}
+
+/** NovelAI 角色提示词条目 */
+export interface CharacterPromptItem {
+  prompt: string;
+  uc: string;
+  position: { x: number; y: number };
 }
 
 /** 提示词 LLM 子设置(用于段落生图时生成正负提示词) */
@@ -211,14 +220,26 @@ export interface PromptLlmSettings {
   positivePromptJsonField: string;
   /** 负面提示词 JSON 字段名 */
   negativePromptJsonField: string;
+  /** 角色数组 JSON 字段名 */
+  characterPromptsJsonField: string;
+  /** 角色正面提示词字段名 */
+  characterPromptJsonField: string;
+  /** 角色负面提示词字段名 */
+  characterUcJsonField: string;
+  /** 角色位置字段名 */
+  characterPositionJsonField: string;
   /** 正面提示词正则提取规则 */
   positivePromptExtractPattern: string;
-  /** 正面提示词正则替换模板 */
-  positivePromptExtractReplacement: string;
   /** 负面提示词正则提取规则 */
   negativePromptExtractPattern: string;
-  /** 负面提示词正则替换模板 */
-  negativePromptExtractReplacement: string;
+  /** 角色正面提示词正则 */
+  characterPromptExtractPattern: string;
+  /** 角色负面提示词正则 */
+  characterUcExtractPattern: string;
+  /** 角色 X 坐标正则 */
+  characterPositionXExtractPattern: string;
+  /** 角色 Y 坐标正则 */
+  characterPositionYExtractPattern: string;
   /** 自定义源附加请求体参数(YAML 文本) */
   customIncludeBody: string;
   /** 自定义源排除请求体参数(YAML 文本) */
@@ -241,6 +262,10 @@ export interface PromptLlmContext {
 export interface PromptLlmOutputFields {
   positive?: string;
   negative?: string;
+  characterPrompts?: string;
+  characterPrompt?: string;
+  characterUc?: string;
+  characterPosition?: string;
 }
 
 /** 提示词 LLM 消息角色 */

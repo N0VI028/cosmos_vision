@@ -72,38 +72,53 @@
             <span>优先 JSON Schema 解析</span>
           </label>
           <div class="cv-field-hint">
-            开启后请求 LLM 时会附带 JSON Schema，并按字段名读取对应侧提示词；某侧字段名留空时该侧不参与 JSON
-            提取，交给固定预设。渠道不支持或返回非 JSON 时回退到下方的正则提取规则。
+            开启后请求 LLM 时会附带 JSON Schema，并按字段名读取对应侧提示词；渠道未返回 JSON字段 时回退到下方的正则提取规则。若渠道报错请关闭此选项。
           </div>
         </div>
       </div>
-      <div v-if="settings.promptLlm.preferJsonSchemaExtraction" class="cv-field-grid">
-        <label class="cv-field">
-          <span>正面 JSON 字段名</span>
-          <InputText
-            v-model="settings.promptLlm.positivePromptJsonField"
-            :placeholder="DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.positive"
-          />
-        </label>
-        <label class="cv-field">
-          <span>负面 JSON 字段名</span>
-          <InputText
-            v-model="settings.promptLlm.negativePromptJsonField"
-            :placeholder="DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.negative"
-          />
-        </label>
-      </div>
-
-      <div v-for="field in promptExtractRuleFields" :key="field.label" class="cv-field-grid">
-        <label class="cv-field">
-          <span>{{ field.patternLabel }}</span>
-          <InputText v-model="settings.promptLlm[field.patternKey]" :placeholder="field.patternPlaceholder" />
-        </label>
-        <label class="cv-field">
-          <span>{{ field.replacementLabel }}</span>
-          <InputText v-model="settings.promptLlm[field.replacementKey]" :placeholder="field.replacementPlaceholder" />
-        </label>
-      </div>
+      <SelectButton v-model="extractMode" :options="extractModeOptions" option-label="label" option-value="value" size="small"/>
+      <template v-if="extractMode === 'json'">
+        <div>
+          <span class="cv-subsection-title">全局提示词</span>
+          <Divider />
+          <div class="cv-field-grid">
+            <label class="cv-field"><span>正面 JSON 字段名</span><InputText v-model="settings.promptLlm.positivePromptJsonField" /></label>
+            <label class="cv-field"><span>负面 JSON 字段名</span><InputText v-model="settings.promptLlm.negativePromptJsonField" /></label>
+          </div>
+        </div>
+        <div>
+          <span class="cv-subsection-title">NovelAI 角色提示词</span>
+          <Divider />
+          <div class="cv-field-grid">
+            <label class="cv-field"><span>角色数组字段名</span><InputText v-model="settings.promptLlm.characterPromptsJsonField" /></label>
+            <label class="cv-field"><span>角色正面字段名</span><InputText v-model="settings.promptLlm.characterPromptJsonField" /></label>
+            <label class="cv-field"><span>角色负面字段名</span><InputText v-model="settings.promptLlm.characterUcJsonField" /></label>
+            <label class="cv-field"><span>角色位置字段名</span><InputText v-model="settings.promptLlm.characterPositionJsonField" /></label>
+          </div>
+        </div>
+      </template>
+      <template v-else>
+        <div>
+          <span class="cv-subsection-title">全局提示词</span>
+          <Divider />
+          <div class="cv-field-grid">
+            <label v-for="field in promptExtractRuleFields" :key="field.label" class="cv-field">
+              <span>{{ field.patternLabel }}</span>
+              <InputText v-model="settings.promptLlm[field.patternKey]" :placeholder="field.patternPlaceholder" />
+            </label>
+          </div>
+        </div>
+        <div>
+          <span class="cv-subsection-title">NovelAI 角色提示词</span>
+          <Divider />
+          <div class="cv-field-grid items-end">
+            <label v-for="field in characterExtractRuleFields" :key="field.label" class="cv-field">
+              <span>{{ field.patternLabel }}</span>
+              <InputText v-model="settings.promptLlm[field.patternKey]" :placeholder="field.patternPlaceholder || '/角色:\\s*(.+)/g'" />
+            </label>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -116,10 +131,8 @@ import defaultPromptLlmPresetSettings from '@/constants/default-prompt-llm-prese
 import {
   DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID,
   DEFAULT_PROMPT_LLM_MESSAGE_PRESET_NAME,
-  DEFAULT_PROMPT_EXTRACT_REPLACEMENT,
   DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN,
   DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN,
-  DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
 } from '@/constants/default-settings';
 import { type PromptLlmMessage, type PromptLlmMessagePreset } from '@/constants/novelai';
 import {
@@ -134,11 +147,15 @@ import manifest from '../../../manifest.json';
 interface PromptExtractRuleField {
   label: string;
   patternKey: 'positivePromptExtractPattern' | 'negativePromptExtractPattern';
-  replacementKey: 'positivePromptExtractReplacement' | 'negativePromptExtractReplacement';
   patternPlaceholder: string;
-  replacementPlaceholder: string;
   patternLabel: string;
-  replacementLabel: string;
+}
+
+interface CharacterExtractRuleField {
+  label: string;
+  patternKey: 'characterPromptExtractPattern' | 'characterUcExtractPattern' | 'characterPositionXExtractPattern' | 'characterPositionYExtractPattern';
+  patternLabel: string;
+  patternPlaceholder?: string;
 }
 
 interface ConfirmOptions {
@@ -153,26 +170,33 @@ const PROMPT_EXTRACT_RULE_FIELDS = [
   {
     label: '正面提取规则',
     patternKey: 'positivePromptExtractPattern',
-    replacementKey: 'positivePromptExtractReplacement',
     patternPlaceholder: DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN,
-    replacementPlaceholder: DEFAULT_PROMPT_EXTRACT_REPLACEMENT,
     patternLabel: '正面匹配正则',
-    replacementLabel: '正面提取模板',
   },
   {
     label: '负面提取规则',
     patternKey: 'negativePromptExtractPattern',
-    replacementKey: 'negativePromptExtractReplacement',
     patternPlaceholder: DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN,
-    replacementPlaceholder: DEFAULT_PROMPT_EXTRACT_REPLACEMENT,
     patternLabel: '负面匹配正则',
-    replacementLabel: '负面提取模板',
   },
 ] as const satisfies ReadonlyArray<PromptExtractRuleField>;
+
+const CHARACTER_EXTRACT_RULE_FIELDS = [
+  { label: '角色正面', patternKey: 'characterPromptExtractPattern', patternLabel: '角色正面匹配正则', patternPlaceholder: '/"prompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g' },
+  { label: '角色负面', patternKey: 'characterUcExtractPattern', patternLabel: '角色负面匹配正则', patternPlaceholder: '/"uc"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g' },
+  { label: '角色 X 位置', patternKey: 'characterPositionXExtractPattern', patternLabel: '角色 X 位置正则', patternPlaceholder: '/"x"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g' },
+  { label: '角色 Y 位置', patternKey: 'characterPositionYExtractPattern', patternLabel: '角色 Y 位置正则', patternPlaceholder: '/"y"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g' },
+] as const satisfies ReadonlyArray<CharacterExtractRuleField>;
 
 const settingsStore = useSettingsStore();
 const { settings, applyImportedSettings } = settingsStore;
 const promptExtractRuleFields = [...PROMPT_EXTRACT_RULE_FIELDS];
+const characterExtractRuleFields: CharacterExtractRuleField[] = [...CHARACTER_EXTRACT_RULE_FIELDS];
+const extractMode = ref<'json' | 'regex'>('json');
+const extractModeOptions = [
+  { label: 'JSON 字段', value: 'json' },
+  { label: '正则', value: 'regex' },
+];
 
 const activePreset = computed(() => {
   const { activePresetId, presets } = settings.promptLlmMessagePresets;
@@ -465,5 +489,13 @@ function copyPresetMessage(message: PromptLlmMessage): PromptLlmMessage {
   color: var(--p-red-500);
   background: color-mix(in srgb, var(--p-red-500) 10%, transparent);
   outline: none;
+}
+
+.cv-subsection-title {
+  display: block;
+  font-size: var(--cv-font-size-2xs);
+  font-weight: 600;
+  color: var(--cv-on-surface-variant);
+  margin-top: var(--cv-space-lg);
 }
 </style>

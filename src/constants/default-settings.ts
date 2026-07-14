@@ -72,12 +72,19 @@ export {
 };
 export const DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN = '/"positivePrompt"\\s*:\\s*"([^"]*)"/i';
 export const DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN = '/"negativePrompt"\\s*:\\s*"([^"]*)"/i';
-export const DEFAULT_PROMPT_EXTRACT_REPLACEMENT = '$1';
+export const DEFAULT_CHARACTER_PROMPT_EXTRACT_PATTERN = '/"prompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g';
+export const DEFAULT_CHARACTER_UC_EXTRACT_PATTERN = '/"uc"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g';
+export const DEFAULT_CHARACTER_POSITION_X_EXTRACT_PATTERN = '/"x"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g';
+export const DEFAULT_CHARACTER_POSITION_Y_EXTRACT_PATTERN = '/"y"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g';
 
 /** 提示词 LLM JSON 输出默认字段(双侧齐全,作为占位与回退默认值) */
 export const DEFAULT_PROMPT_LLM_OUTPUT_FIELDS = {
   positive: 'positivePrompt',
   negative: 'negativePrompt',
+  characterPrompts: 'characterPrompts',
+  characterPrompt: 'prompt',
+  characterUc: 'uc',
+  characterPosition: 'position',
 } as const satisfies PromptLlmOutputFields;
 
 /** 图像生成来源默认值 */
@@ -129,6 +136,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     negativePromptPresetId: DEFAULT_NEGATIVE_PROMPT_PRESET_ID,
     addQualityTags: true,
     ucPreset: 'Heavy',
+    autoCharacterCoords: true,
   },
   comfyui: {
     url: 'http://127.0.0.1:8188',
@@ -160,10 +168,16 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     preferJsonSchemaExtraction: true,
     positivePromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.positive,
     negativePromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.negative,
+    characterPromptsJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.characterPrompts,
+    characterPromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.characterPrompt,
+    characterUcJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.characterUc,
+    characterPositionJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.characterPosition,
     positivePromptExtractPattern: DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN,
-    positivePromptExtractReplacement: DEFAULT_PROMPT_EXTRACT_REPLACEMENT,
     negativePromptExtractPattern: DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN,
-    negativePromptExtractReplacement: DEFAULT_PROMPT_EXTRACT_REPLACEMENT,
+    characterPromptExtractPattern: DEFAULT_CHARACTER_PROMPT_EXTRACT_PATTERN,
+    characterUcExtractPattern: DEFAULT_CHARACTER_UC_EXTRACT_PATTERN,
+    characterPositionXExtractPattern: DEFAULT_CHARACTER_POSITION_X_EXTRACT_PATTERN,
+    characterPositionYExtractPattern: DEFAULT_CHARACTER_POSITION_Y_EXTRACT_PATTERN,
     customIncludeBody: '',
     customExcludeBody: '',
     customIncludeHeaders: '',

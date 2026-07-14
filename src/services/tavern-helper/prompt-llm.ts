@@ -18,9 +18,7 @@ export interface PromptLlmOutput {
 /** Prompt LLM 正则提取配置 */
 export interface PromptLlmExtractSettings {
   positivePromptExtractPattern: string;
-  positivePromptExtractReplacement: string;
   negativePromptExtractPattern: string;
-  negativePromptExtractReplacement: string;
 }
 
 /** Prompt LLM 单侧提示词字段 */
@@ -105,19 +103,16 @@ const PROMPT_OUTPUT_LABELS = {
 const PROMPT_EXTRACT_FIELD_CONFIG = {
   positive: {
     patternKey: 'positivePromptExtractPattern',
-    replacementKey: 'positivePromptExtractReplacement',
     label: '正面提示词',
   },
   negative: {
     patternKey: 'negativePromptExtractPattern',
-    replacementKey: 'negativePromptExtractReplacement',
     label: '负面提示词',
   },
 } as const satisfies Record<
   PromptLlmPromptField,
   {
     patternKey: keyof PromptLlmExtractSettings;
-    replacementKey: keyof PromptLlmExtractSettings;
     label: string;
   }
 >;
@@ -125,7 +120,6 @@ const PROMPT_EXTRACT_FIELD_CONFIG = {
 interface PromptExtractRule {
   pattern: string;
   flags: string;
-  replacement: string;
 }
 
 /**
@@ -144,7 +138,7 @@ export function formatPromptLlmRawResult(rawResult: unknown): string {
  */
 function collectPromptOutputFields(fields: PromptLlmOutputFields | null): string[] {
   if (!fields) return [];
-  return [fields.positive, fields.negative].filter((name): name is string => Boolean(name?.trim()));
+  return [fields.positive, fields.negative, fields.characterPrompts].filter((name): name is string => Boolean(name?.trim()));
 }
 
 /**
@@ -161,17 +155,34 @@ export function buildJsonSchema(
     strict: true,
     value: {
       type: 'object',
-      properties: Object.fromEntries(
-        fieldList.map(name => [
-          name,
-          {
-            type: 'string',
-            description:
-              name === fields.positive ? '正向提示词,描述希望生成的视觉元素' : '负向提示词,描述不希望出现的元素',
-          },
-        ]),
-      ),
+      properties: Object.fromEntries(fieldList.map(name => [name, buildPromptOutputProperty(name, fields)])),
       required: fieldList,
+      additionalProperties: false,
+    },
+  };
+}
+
+/**
+ * 构建单个 JSON Schema 输出字段
+ * @param name 字段名
+ * @param fields 输出字段配置
+ * @returns Schema 属性定义
+ */
+function buildPromptOutputProperty(name: string, fields: PromptLlmOutputFields): Record<string, unknown> {
+  if (name !== fields.characterPrompts) return { type: 'string', description: name === fields.positive ? '正向提示词' : '负向提示词' };
+  return {
+    type: 'array',
+    description: 'NovelAI 角色提示词数组',
+    items: {
+      type: 'object',
+      properties: {
+        [fields.characterPrompt ?? 'prompt']: { type: 'string' },
+        [fields.characterUc ?? 'uc']: { type: 'string' },
+        [fields.characterPosition ?? 'position']: {
+          type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } }, required: ['x', 'y'], additionalProperties: false,
+        },
+      },
+      required: [fields.characterPrompt ?? 'prompt', fields.characterUc ?? 'uc', fields.characterPosition ?? 'position'],
       additionalProperties: false,
     },
   };
@@ -438,8 +449,16 @@ export function buildPromptLlmSchemaFields(settings: PromptLlmSettings): PromptL
 function readPromptLlmOutputFields(settings: PromptLlmSettings): PromptLlmOutputFields | null {
   const positive = settings.positivePromptJsonField.trim();
   const negative = settings.negativePromptJsonField.trim();
-  if (!positive && !negative) return null;
-  return { positive, negative };
+  const characterPrompts = settings.characterPromptsJsonField.trim();
+  if (!positive && !negative && !characterPrompts) return null;
+  return {
+    positive,
+    negative,
+    characterPrompts,
+    characterPrompt: settings.characterPromptJsonField.trim(),
+    characterUc: settings.characterUcJsonField.trim(),
+    characterPosition: settings.characterPositionJsonField.trim(),
+  };
 }
 
 /**
@@ -564,8 +583,7 @@ function extractPromptByRule(prompt: string, settings: PromptLlmExtractSettings,
   const config = PROMPT_EXTRACT_FIELD_CONFIG[field];
   const pattern = settings[config.patternKey].trim();
   if (!pattern) return '';
-  const replacement = settings[config.replacementKey].trim();
-  return applyPromptExtractRule(source, buildPromptExtractRule(pattern, replacement), config.label);
+  return applyPromptExtractRule(source, buildPromptExtractRule(pattern), config.label);
 }
 
 /**
@@ -577,23 +595,18 @@ function extractPromptByRule(prompt: string, settings: PromptLlmExtractSettings,
  */
 function applyPromptExtractRule(source: string, rule: PromptExtractRule, label: string): string {
   const regex = createPromptExtractRegex(rule, label);
-  const match = regex.exec(source);
-  if (!match) return '';
-  if (!rule.replacement) return match[0].trim();
-  regex.lastIndex = 0;
-  return match[0].replace(regex, rule.replacement).trim();
+  return regex.exec(source)?.[1]?.trim() ?? '';
 }
 
 /**
  * 构建规则对象
  * @param patternText 正则文本
- * @param replacement 替换模板
  * @returns 规则对象
  */
-function buildPromptExtractRule(patternText: string, replacement: string): PromptExtractRule {
+function buildPromptExtractRule(patternText: string): PromptExtractRule {
   const literal = parseRegexLiteral(patternText);
-  if (literal) return { ...literal, replacement };
-  return { pattern: patternText, flags: '', replacement };
+  if (literal) return literal;
+  return { pattern: patternText, flags: '' };
 }
 
 /**

@@ -203,6 +203,10 @@
               />
             </label>
           </div>
+          <label v-if="!isV3Model" class="cv-nai-check-option">
+            <Checkbox v-model="settings.novelai.autoCharacterCoords" binary />
+            <span>多角色自动安排位置</span>
+          </label>
           <label v-if="isV4OnlyModel" class="cv-nai-check-option cv-nai-legacy-option">
             <Checkbox v-model="settings.novelai.legacyPromptMode" binary />
             <span>旧版提示词条件模式（不推荐）</span>

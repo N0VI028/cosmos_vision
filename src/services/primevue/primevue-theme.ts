@@ -99,6 +99,13 @@ const toggleSwitchColor = {
  */
 export const cosmosPrimePreset = definePreset(Aura, {
   semantic: {
+    focusRing: {
+      width: '0',
+      style: 'none',
+      color: 'transparent',
+      offset: '0',
+      shadow: 'none',
+    },
     formField: {
       paddingX: 'var(--cv-space-5xl)',
       paddingY: 'var(--cv-space-lg)',
@@ -111,13 +118,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
         paddingY: 'var(--cv-space-lg)',
       },
       borderRadius: 'var(--cv-radius-full)',
-      focusRing: {
-        width: '0',
-        style: 'none',
-        color: 'transparent',
-        offset: '0',
-        shadow: 'none',
-      },
     },
     colorScheme: {
       light: { formField: formFieldColor },
@@ -376,6 +376,11 @@ export const cosmosPrimePreset = definePreset(Aura, {
     galleria: {
       root: {
         borderRadius: '0',
+      },
+    },
+    divider: {
+      root: {
+        borderColor: 'var(--cv-surface-variant)',
       },
     },
   },

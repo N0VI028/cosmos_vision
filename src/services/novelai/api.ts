@@ -2,6 +2,7 @@ import type { ImagePromptPresetSettings } from '@/constants/image-prompt';
 import type { ImagePromptVibeRef } from '@/constants/novelai-vibe';
 import type {
   NovelAIAccount,
+  CharacterPromptItem,
   NovelAIModel,
   NovelAINoiseSchedule,
   NovelAISampler,
@@ -23,6 +24,7 @@ import {
   type NovelAIPromptMode,
 } from '@/services/novelai/prompt-presets';
 import { readPreferredPromptLlmOutput, type PromptLlmExtractSettings } from '@/services/tavern-helper/prompt-llm';
+import { readCharacterPrompts } from '@/services/prompt-llm/character-prompt';
 import { extractFirstImage } from '@/services/novelai/zip';
 import { getNovelAIRequestAccounts } from '@/services/novelai/router';
 import {
@@ -48,6 +50,7 @@ export interface NovelAIPromptOverrides {
   negativeLLMPrompt?: string;
   positivePromptMode?: NovelAIPromptMode;
   negativePromptMode?: NovelAIPromptMode;
+  characterPrompts?: CharacterPromptItem[];
 }
 
 export interface NovelAIFinalPrompts {
@@ -55,6 +58,7 @@ export interface NovelAIFinalPrompts {
   negativePrompt: string;
   vibeReferences?: ImagePromptVibeRef[];
   vibeParameters?: NovelAIVibeParameters;
+  characterPrompts?: CharacterPromptItem[];
 }
 
 export interface NovelAIRequestSnapshot {
@@ -175,8 +179,9 @@ export function buildNovelAILlmPromptOverrides(
   rawResponse: string,
 ): NovelAIPromptOverrides {
   const output = readPreferredPromptLlmOutput(rawResponse, settings);
-  if (output) return buildDirectPromptOverrides(output.positivePrompt, output.negativePrompt);
-  return buildExtractPromptOverrides(rawResponse);
+  const characterPrompts = readCharacterPrompts(rawResponse, settings);
+  if (output) return buildDirectPromptOverrides(output.positivePrompt, output.negativePrompt, characterPrompts);
+  return { ...buildExtractPromptOverrides(rawResponse), characterPrompts };
 }
 
 /**
@@ -236,12 +241,17 @@ function buildExtractPromptOverrides(rawResponse: string): NovelAIPromptOverride
  * @param negativePrompt 负面提示词
  * @returns 提示词覆写
  */
-function buildDirectPromptOverrides(positivePrompt: string, negativePrompt: string): NovelAIPromptOverrides {
+function buildDirectPromptOverrides(
+  positivePrompt: string,
+  negativePrompt: string,
+  characterPrompts: CharacterPromptItem[],
+): NovelAIPromptOverrides {
   return {
     positiveLLMPrompt: positivePrompt,
     negativeLLMPrompt: negativePrompt,
     positivePromptMode: 'direct',
     negativePromptMode: 'direct',
+    characterPrompts,
   };
 }
 
@@ -282,7 +292,7 @@ function buildPayload(settings: NovelAISettings, prompts: NovelAIFinalPrompts, s
 function buildParameters(settings: NovelAISettings, prompts: NovelAIFinalPrompts, seed: number): Record<string, unknown> {
   const parameters = createBaseParameters(settings, prompts, seed);
   if (isNovelAIV3Model(settings.model)) applyV3Parameters(parameters, settings);
-  if (isNovelAIV4Model(settings.model)) applyV4Prompts(parameters, prompts);
+  if (isNovelAIV4Model(settings.model)) applyV4Prompts(parameters, prompts, settings.autoCharacterCoords);
   if (prompts.vibeParameters) Object.assign(parameters, prompts.vibeParameters);
   return parameters;
 }
@@ -353,18 +363,51 @@ function applyV3Parameters(parameters: Record<string, unknown>, settings: NovelA
  * @param parameters 官方 parameters
  * @param prompts 最终提示词
  */
-function applyV4Prompts(parameters: Record<string, unknown>, prompts: NovelAIFinalPrompts): void {
+function applyV4Prompts(
+  parameters: Record<string, unknown>,
+  prompts: NovelAIFinalPrompts,
+  autoCharacterCoords: boolean,
+): void {
+  const promptCharacters = prompts.characterPrompts ?? [];
+  const characters = promptCharacters.map(createV4CharacterPrompt);
+  const useCoords = resolveUseCoords(promptCharacters.length, autoCharacterCoords);
+  parameters.characterPrompts = characters.map(character => character.parameter);
+  parameters.use_coords = useCoords;
   parameters.v4_prompt = {
-    caption: { base_caption: prompts.positivePrompt, char_captions: [] },
-    use_coords: false,
-    use_order: false,
+    caption: { base_caption: prompts.positivePrompt, char_captions: characters.map(character => character.positiveCaption) },
+    use_coords: useCoords,
+    use_order: Boolean(characters.length),
   };
   parameters.v4_negative_prompt = {
-    caption: { base_caption: prompts.negativePrompt, char_captions: [] },
-    use_coords: false,
-    use_order: false,
+    caption: { base_caption: prompts.negativePrompt, char_captions: characters.map(character => character.negativeCaption) },
+    use_coords: useCoords,
+    use_order: Boolean(characters.length),
     legacy_uc: false,
   };
+}
+
+/**
+ * 将内部角色条目转换为 NovelAI V4 字段
+ * @param item 角色提示词
+ * @returns 参数与正负 caption
+ */
+function createV4CharacterPrompt(item: CharacterPromptItem) {
+  const center = { ...item.position };
+  return {
+    parameter: { prompt: item.prompt, uc: item.uc, center, enabled: true },
+    positiveCaption: { char_caption: item.prompt, centers: [center] },
+    negativeCaption: { char_caption: item.uc, centers: [center] },
+  };
+}
+
+/**
+ * 决定是否让 NovelAI 使用手动坐标
+ * @param count 有效角色数
+ * @param auto 自动坐标开关
+ * @returns use_coords 请求值
+ */
+function resolveUseCoords(count: number, auto: unknown): boolean {
+  return count >= 2 && auto === false;
 }
 
 /**
@@ -453,6 +496,7 @@ function resolveFinalPrompts(
       overrides?.negativeLLMPrompt ?? '',
       overrides?.negativePromptMode ?? 'extract',
     ),
+    characterPrompts: overrides?.characterPrompts ?? [],
     vibeReferences: getActiveNovelAIVibePresetRefs(settings.novelAIVibePresets),
   };
 }
