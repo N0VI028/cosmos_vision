@@ -12,7 +12,7 @@
         :class="ROLE_ICONS[(entry as PromptLlmMessage).role]"
         :title="ROLE_LABELS[(entry as PromptLlmMessage).role]"
       />
-      <span class="cv-message-role-sr">{{ ROLE_LABELS[(entry as PromptLlmMessage).role] }}</span>
+      <span class="sr-only">{{ ROLE_LABELS[(entry as PromptLlmMessage).role] }}</span>
       <span v-if="isSourceMessage(entry as PromptLlmMessage)" class="cv-message-source-kind">
         {{ getMessageSourceLabel(entry as PromptLlmMessage) }}
       </span>
@@ -37,9 +37,7 @@
     </template>
   </PromptEntryList>
 
-  <button type="button" class="cv-add-message-btn-flat-wide" @click="addMessage">
-    <i class="fa-solid fa-plus" /> 新建条目
-  </button>
+  <CvAddEntryButton label="新建条目" @click="addMessage" />
 
   <Dialog
     v-model:visible="isEditorVisible"
@@ -188,6 +186,7 @@ import {
   type PromptLlmMessageRole,
 } from '@/constants/novelai';
 import PromptEntryList from '@/panel/components/PromptEntryList.vue';
+import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
 import { PROMPT_EDITOR_DIALOG_PT, PROMPT_EDITOR_DIALOG_STYLE } from '@/panel/components/prompt-editor-dialog';
 import PromptLlmTriggerEditor from '@/panel/components/PromptLlmTriggerEditor.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
@@ -390,7 +389,9 @@ function saveMessageEditor(): void {
   const draft = editorDraft.value;
   if (!draft || !canSaveEditor.value) return;
   const nextMessage = buildSavedPromptLlmMessage(draft, worldbookSourceOptions.value);
-  const nextMessages = messages.value.map(message => (message.id === draft.id ? { ...message, ...nextMessage } : message));
+  const nextMessages = messages.value.map(message =>
+    message.id === draft.id ? { ...message, ...nextMessage } : message,
+  );
   if (!nextMessages.some(message => message.id === draft.id)) return closeMessageEditor();
   messages.value = nextMessages;
   closeMessageEditor();
@@ -478,7 +479,11 @@ function selectMessageToken(token: string): void {
 function insertMessageToken(token: string): void {
   const draft = editorDraft.value;
   if (!draft || draft.kind !== 'custom') return;
-  const range = readTextareaInsertRange(getMessageContentTextareaElement(), messageSelectionRange.value, draft.customContent);
+  const range = readTextareaInsertRange(
+    getMessageContentTextareaElement(),
+    messageSelectionRange.value,
+    draft.customContent,
+  );
   const nextValue = replaceTextRange(draft.customContent, range, token);
   updateDraftField('customContent', nextValue);
   focusMessageContentTextarea(range.start + token.length);
@@ -662,25 +667,6 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
 <style scoped>
 @reference '../../global.css';
 
-.cv-add-message-btn-flat-wide {
-  @apply mb-(--cv-space-5xl) flex w-full cursor-pointer items-center justify-center;
-  gap: var(--cv-space-sm);
-  padding: var(--cv-space-md) 0;
-  border: var(--cv-border-width) dashed var(--cv-surface-variant);
-  border-radius: var(--cv-radius-sm);
-  background: color-mix(in srgb, var(--cv-surface-container-low) 42%, transparent);
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-sm);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.cv-add-message-btn-flat-wide:hover {
-  border-color: var(--cv-outline);
-  background: var(--cv-surface-container-low);
-  color: var(--p-primary-color);
-  box-shadow: 0 var(--cv-space-sm) var(--cv-space-3xl) color-mix(in srgb, var(--cv-on-surface) 10%, transparent);
-}
-
 .cv-message-indicator {
   @apply shrink-0 rounded-full;
   width: 6px;
@@ -699,7 +685,7 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
 
 .cv-message-source-kind {
   flex: 0 0 auto;
-  color: color-mix(in srgb, var(--cv-on-surface) 55%, transparent);
+  color: var(--cv-on-surface-variant);
   font-size: var(--cv-font-size-2xs);
   font-weight: 600;
   letter-spacing: 0;
@@ -711,23 +697,6 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
   flex: 0 0 auto;
   color: color-mix(in srgb, var(--cv-on-surface) 55%, transparent);
   font-size: var(--cv-font-size-sm);
-}
-
-/** 保留角色文本供无障碍读屏，但视觉隐藏 */
-.cv-message-role-sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.cv-message-source-kind {
-  color: var(--cv-on-surface-variant);
 }
 
 .cv-message-title {

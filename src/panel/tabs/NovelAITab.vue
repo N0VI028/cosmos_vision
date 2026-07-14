@@ -110,13 +110,7 @@
                 />
               </div>
             </div>
-            <InputNumber
-              v-model="settings.novelai.guidance"
-              :min="0"
-              :max="10"
-              :step="0.1"
-              :min-fraction-digits="1"
-            />
+            <InputNumber v-model="settings.novelai.guidance" :min="0" :max="10" :step="0.1" :min-fraction-digits="1" />
           </div>
         </div>
         <div class="cv-field-grid">
@@ -181,7 +175,10 @@
 
       <h2 class="cv-section-title">高级设置</h2>
       <div class="cv-section-body">
-        <div class="cv-nai-advanced-block">
+          <label v-if="!isV3Model" class="cv-field-inline">
+            <ToggleSwitch v-model="settings.novelai.autoCharacterCoords" />
+            <span>多角色自动安排位置</span>
+          </label>
           <div class="cv-field-grid">
             <label class="cv-field">
               <span>提示词引导重缩放</span>
@@ -203,17 +200,11 @@
               />
             </label>
           </div>
-          <label v-if="!isV3Model" class="cv-nai-check-option">
-            <Checkbox v-model="settings.novelai.autoCharacterCoords" binary />
-            <span>多角色自动安排位置</span>
-          </label>
           <label v-if="isV4OnlyModel" class="cv-nai-check-option cv-nai-legacy-option">
             <Checkbox v-model="settings.novelai.legacyPromptMode" binary />
             <span>旧版提示词条件模式（不推荐）</span>
           </label>
-        </div>
       </div>
-
     </template>
 
     <!-- 预设 Tab -->
@@ -375,11 +366,6 @@ const proxyPreview = computed(() => {
 .cv-nai-title-actions {
   @apply ml-auto flex flex-wrap items-end justify-end;
   gap: var(--cv-space-xs);
-}
-
-.cv-nai-advanced-block {
-  @apply flex flex-col;
-  gap: var(--cv-space-xl);
 }
 
 .cv-nai-mini-toggle {

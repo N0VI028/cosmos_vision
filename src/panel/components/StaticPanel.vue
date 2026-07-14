@@ -7,7 +7,7 @@
       </div>
     </header>
     <div class="cv-section-body cv-static-panel-body">
-      <div class="cv-static-panel-scroll">
+      <div class="cv-static-panel-content">
         <slot />
       </div>
     </div>
@@ -17,7 +17,7 @@
 <script setup lang="ts">
 /**
  * 非折叠的常驻数据模块
- * 用于数据管理页：标题 + 操作按钮 + 限高可滚动的内容区
+ * 用于数据管理页：标题 + 操作按钮 + 内容区
  */
 defineProps<{ title: string }>();
 </script>
@@ -48,9 +48,7 @@ defineProps<{ title: string }>();
   margin-bottom: 0;
 }
 
-/* 圆角底色内容块，超出限高则内部滚动 */
-.cv-static-panel-scroll {
-  @apply overflow-y-auto;
-  max-height: var(--cv-static-panel-max-h, 26rem);
+.cv-static-panel-content {
+  min-width: 0;
 }
 </style>

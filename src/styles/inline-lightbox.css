@@ -147,6 +147,9 @@
 .cv-lightbox-info-body {
   @apply flex flex-col;
   gap: 1rem;
+  max-height: min(52vh, 28rem);
+  overflow-x: hidden;
+  overflow-y: auto;
   opacity: 1;
   transition: opacity 0.2s ease;
 }
@@ -154,6 +157,23 @@
 .cv-lightbox-info.cv-info-collapsed .cv-lightbox-info-body {
   opacity: 0;
   pointer-events: none;
+}
+
+.cv-lightbox-info-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cv-lightbox-info-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cv-lightbox-info-body::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.cv-lightbox-info-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .cv-lightbox-prompt-group {
@@ -201,6 +221,111 @@
   border-radius: 50%;
   background-color: #ef4444;
   box-shadow: 0 0 8px #ef4444;
+}
+
+.cv-lightbox-title-char {
+  color: #c4b5fd;
+}
+
+.cv-lightbox-title-char::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #8b5cf6;
+  box-shadow: 0 0 8px #8b5cf6;
+}
+
+.cv-lightbox-character-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 12rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.cv-lightbox-character-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cv-lightbox-character-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cv-lightbox-character-list::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.cv-lightbox-character-item {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.cv-lightbox-character-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.cv-lightbox-character-toggle:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.cv-lightbox-character-chevron {
+  flex-shrink: 0;
+  width: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.7rem;
+}
+
+.cv-lightbox-character-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cv-lightbox-character-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 0.75rem 0.75rem;
+}
+
+.cv-lightbox-character-item.cv-char-collapsed .cv-lightbox-character-body {
+  display: none;
+}
+
+.cv-lightbox-character-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.cv-lightbox-character-label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cv-lightbox-character-body .cv-lightbox-prompt-content {
+  max-height: 4.5rem;
 }
 
 .cv-lightbox-copy-btn {
@@ -280,8 +405,11 @@
   }
 
   .cv-lightbox-info-body {
-    max-height: calc(70vh - 4.5rem);
-    max-height: calc(70dvh - 4.5rem - env(safe-area-inset-bottom));
+    max-height: min(48dvh, calc(70dvh - 4.5rem - env(safe-area-inset-bottom)));
     padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  }
+
+  .cv-lightbox-character-list {
+    max-height: 10rem;
   }
 }

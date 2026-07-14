@@ -65,6 +65,8 @@ export interface NovelAIRequestSnapshot {
   endpoint: string;
   positivePrompt: string;
   negativePrompt: string;
+  /** 从 LLM 解析并发送给 NovelAI 的角色提示词 */
+  characterPrompts: CharacterPromptItem[];
   model: NovelAIModel;
   width: number;
   height: number;
@@ -202,6 +204,7 @@ function buildRequestSnapshot(
     endpoint: account ? buildEndpoint(account.url) : '未选择可用账号',
     positivePrompt: prompts.positivePrompt,
     negativePrompt: prompts.negativePrompt,
+    characterPrompts: prompts.characterPrompts ?? [],
     model: settings.model,
     width: settings.width,
     height: settings.height,
@@ -321,7 +324,6 @@ function createBaseParameters(settings: NovelAISettings, prompts: NovelAIFinalPr
     cfg_rescale: settings.promptGuidanceRescale,
     noise_schedule: getEffectiveNoiseSchedule(settings),
     legacy_v3_extend: false,
-    use_coords: false,
     legacy_uc: false,
     normalize_reference_strength_multiple: true,
     inpaintImg2ImgStrength: 1,
@@ -372,7 +374,6 @@ function applyV4Prompts(
   const characters = promptCharacters.map(createV4CharacterPrompt);
   const useCoords = resolveUseCoords(promptCharacters.length, autoCharacterCoords);
   parameters.characterPrompts = characters.map(character => character.parameter);
-  parameters.use_coords = useCoords;
   parameters.v4_prompt = {
     caption: { base_caption: prompts.positivePrompt, char_captions: characters.map(character => character.positiveCaption) },
     use_coords: useCoords,

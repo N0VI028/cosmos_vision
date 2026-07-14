@@ -426,7 +426,7 @@ function flattenFavoriteItems(groups: InlineImageFavoriteGroup[]): InlineImageFa
 @reference '../../global.css';
 
 .cv-favorite-panel {
-  --cv-static-panel-max-h: 36rem;
+  --cv-favorite-grid-max-h: 36rem;
 }
 
 .cv-favorite-filter-row {
@@ -453,7 +453,8 @@ function flattenFavoriteItems(groups: InlineImageFavoriteGroup[]): InlineImageFa
 }
 
 .cv-favorite-grid {
-  @apply grid;
+  @apply grid overflow-y-auto;
+  max-height: var(--cv-favorite-grid-max-h, 36rem);
   gap: var(--cv-space-4xl);
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }

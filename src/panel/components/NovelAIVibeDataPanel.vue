@@ -1,5 +1,5 @@
 <template>
-  <StaticPanel title="Vibe 数据">
+  <StaticPanel title="Vibe 数据" class="cv-vibe-panel">
     <template #actions>
       <CvMiniButton
         :label="isSelecting ? '取消选择' : '选择'"
@@ -289,6 +289,10 @@ function formatCreatedAt(createdAt: number): string {
 <style scoped>
 @reference '../../global.css';
 
+.cv-vibe-panel {
+  --cv-vibe-grid-max-h: 36rem;
+}
+
 .cv-vibe-summary {
   @apply flex flex-wrap items-center justify-between;
   gap: var(--cv-space-md);
@@ -302,7 +306,8 @@ function formatCreatedAt(createdAt: number): string {
 }
 
 .cv-vibe-grid {
-  @apply grid;
+  @apply grid overflow-y-auto;
+  max-height: var(--cv-vibe-grid-max-h, 36rem);
   gap: var(--cv-space-4xl);
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -391,8 +396,7 @@ function formatCreatedAt(createdAt: number): string {
 }
 
 .cv-vibe-batch-bar {
-  @apply sticky flex flex-wrap items-center justify-between;
-  bottom: 0;
+  @apply flex flex-wrap items-center justify-between;
   gap: var(--cv-space-md);
   margin-top: var(--cv-space-4xl);
   padding: var(--cv-space-4xl) 0 0;

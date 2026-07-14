@@ -1,4 +1,5 @@
 import type { ImageSource } from '@/constants/comfyui';
+import type { CharacterPromptItem } from '@/constants/novelai';
 import type { ImagePromptVibeRef } from '@/constants/novelai-vibe';
 import type { ComfyUIRequestSnapshot } from '@/services/comfyui/workflow';
 import type { NovelAIFinalPrompts } from '@/services/novelai/api';
@@ -41,8 +42,22 @@ function cloneNovelAIFinalPrompts(prompts: NovelAIFinalPrompts): NovelAIFinalPro
   return {
     positivePrompt: prompts.positivePrompt,
     negativePrompt: prompts.negativePrompt,
+    characterPrompts: prompts.characterPrompts?.map(cloneCharacterPromptItem),
     vibeReferences: prompts.vibeParameters ? undefined : prompts.vibeReferences?.map(cloneImagePromptVibeRef),
     vibeParameters: prompts.vibeParameters ? cloneNovelAIVibeParameters(prompts.vibeParameters) : undefined,
+  };
+}
+
+/**
+ * 克隆单个 NovelAI 角色提示词
+ * @param item 原始角色提示词
+ * @returns 纯对象角色提示词
+ */
+function cloneCharacterPromptItem(item: CharacterPromptItem): CharacterPromptItem {
+  return {
+    prompt: item.prompt,
+    uc: item.uc,
+    position: { x: item.position.x, y: item.position.y },
   };
 }
 
@@ -203,6 +218,7 @@ function buildLightboxMarkup(src: string, snapshot?: InlinePromptSnapshot, actio
         <div class="cv-lightbox-info-body">
           ${buildPromptGroupMarkup('pos', '正向提示词', snapshot?.positivePrompt || '无正向提示词')}
           ${buildPromptGroupMarkup('neg', '负面提示词', snapshot?.negativePrompt || '无负面提示词')}
+          ${buildCharacterPromptsMarkup(snapshot)}
         </div>
       </div>
     </div>
@@ -260,6 +276,78 @@ function buildPromptGroupMarkup(kind: 'pos' | 'neg', title: string, text: string
 }
 
 /**
+ * 构建角色提示词区域 HTML（有角色时才渲染）
+ * @param snapshot 提示词快照
+ * @returns HTML 字符串
+ */
+function buildCharacterPromptsMarkup(snapshot?: InlinePromptSnapshot): string {
+  const characters = snapshot?.novelai?.characterPrompts ?? [];
+  if (!characters.length) return '';
+  return `
+    <div class="cv-lightbox-prompt-group cv-lightbox-character-section">
+      <div class="cv-lightbox-prompt-header">
+        <span class="cv-lightbox-prompt-title cv-lightbox-title-char">角色提示词（${characters.length}）</span>
+      </div>
+      <div class="cv-lightbox-character-list">
+        ${characters.map((item, index) => buildCharacterItemMarkup(item, index)).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * 构建单个角色提示词折叠项 HTML（默认折叠）
+ * @param item 角色提示词
+ * @param index 角色序号（从 0 起）
+ * @returns HTML 字符串
+ */
+function buildCharacterItemMarkup(item: CharacterPromptItem, index: number): string {
+  return `
+    <div class="cv-lightbox-character-item cv-char-collapsed" data-char-index="${index}">
+      <button type="button" class="cv-lightbox-character-toggle" aria-expanded="false">
+        <i class="fa-solid fa-chevron-right cv-lightbox-character-chevron"></i>
+        <span class="cv-lightbox-character-title">${escapeHtml(getCharacterItemTitle(item, index))}</span>
+      </button>
+      <div class="cv-lightbox-character-body">
+        <div class="cv-lightbox-character-field">
+          <span class="cv-lightbox-character-label">角色正面</span>
+          <div class="cv-lightbox-prompt-content">${escapeHtml(item.prompt || '(空)')}</div>
+        </div>
+        <div class="cv-lightbox-character-field">
+          <span class="cv-lightbox-character-label">角色负面</span>
+          <div class="cv-lightbox-prompt-content">${escapeHtml(item.uc || '(空)')}</div>
+        </div>
+        <div class="cv-lightbox-character-field">
+          <span class="cv-lightbox-character-label">坐标</span>
+          <div class="cv-lightbox-prompt-content">${escapeHtml(formatCharacterPosition(item))}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * 生成角色折叠标题（序号 + 正面提示词预览）
+ * @param item 角色提示词
+ * @param index 角色序号
+ * @returns 标题文本
+ */
+function getCharacterItemTitle(item: CharacterPromptItem, index: number): string {
+  const preview = item.prompt.trim() || '(空)';
+  const short = preview.length > 36 ? `${preview.slice(0, 36)}…` : preview;
+  return `角色 ${index + 1} · ${short}`;
+}
+
+/**
+ * 格式化角色坐标展示文本
+ * @param item 角色提示词
+ * @returns 坐标文本
+ */
+function formatCharacterPosition(item: CharacterPromptItem): string {
+  return `x: ${item.position.x.toFixed(2)}, y: ${item.position.y.toFixed(2)}`;
+}
+
+/**
  * 转义 Lightbox 内插文本
  * @param value 原始文本
  * @returns 安全 HTML 文本
@@ -284,6 +372,7 @@ function bindLightboxEvents(overlay: HTMLElement, snapshot?: InlinePromptSnapsho
   bindLightboxDownload(overlay, actions);
   bindLightboxToggle(overlay);
   bindLightboxCopyButtons(overlay, snapshot);
+  bindCharacterItemToggles(overlay);
 }
 
 /**
@@ -353,6 +442,36 @@ function bindLightboxCopyButtons(overlay: HTMLElement, snapshot?: InlinePromptSn
   const copyNeg = overlay.querySelector('.cv-copy-neg');
   copyPos?.addEventListener('click', e => copyText(snapshot?.positivePrompt || '', e.currentTarget as HTMLElement));
   copyNeg?.addEventListener('click', e => copyText(snapshot?.negativePrompt || '', e.currentTarget as HTMLElement));
+}
+
+/**
+ * 绑定角色提示词单项折叠按钮（默认折叠）
+ * @param overlay Lightbox 根元素
+ */
+function bindCharacterItemToggles(overlay: HTMLElement): void {
+  overlay.querySelectorAll('.cv-lightbox-character-item').forEach(node => {
+    const item = node as HTMLElement;
+    const toggle = item.querySelector('.cv-lightbox-character-toggle') as HTMLElement | null;
+    toggle?.addEventListener('click', e => {
+      e.stopPropagation();
+      toggleCharacterItem(item, toggle);
+    });
+  });
+}
+
+/**
+ * 切换单个角色提示词的折叠状态
+ * @param item 角色项容器
+ * @param toggle 折叠按钮
+ */
+function toggleCharacterItem(item: HTMLElement, toggle: HTMLElement): void {
+  const collapsed = item.classList.toggle('cv-char-collapsed');
+  toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  const chevron = toggle.querySelector('.cv-lightbox-character-chevron');
+  if (chevron) {
+    chevron.classList.toggle('fa-chevron-right', collapsed);
+    chevron.classList.toggle('fa-chevron-down', !collapsed);
+  }
 }
 
 /**

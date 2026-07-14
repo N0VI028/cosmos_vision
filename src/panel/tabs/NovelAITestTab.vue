@@ -27,6 +27,63 @@
           <span>负面提示词</span>
           <Textarea v-model="directNegativePrompt" rows="3" auto-resize class="cv-test-textarea w-full" />
         </div>
+        <div class="cv-direct-character-list">
+          <CollapsiblePanelItem
+            v-for="(character, index) in directCharacterPrompts"
+            :key="character.id"
+            :title="`角色 ${index + 1}`"
+            :collapsed="!expandedDirectCharacterIds.has(character.id)"
+            @toggle="toggleDirectCharacter(character.id)"
+          >
+            <template #actions>
+              <Button
+                icon="fa-solid fa-trash"
+                severity="danger"
+                text
+                size="small"
+                aria-label="删除角色"
+                @click="removeDirectCharacter(character.id)"
+              />
+            </template>
+            <div class="cv-direct-character-body">
+              <div class="cv-field">
+                <span>角色正面提示词</span>
+                <Textarea v-model="character.prompt" rows="3" auto-resize class="cv-test-textarea w-full" />
+              </div>
+              <div class="cv-field">
+                <span>角色负面提示词</span>
+                <Textarea v-model="character.uc" rows="3" auto-resize class="cv-test-textarea w-full" />
+              </div>
+              <div class="cv-field-grid cv-direct-character-coordinates">
+                <label class="cv-field">
+                  <span>X坐标</span>
+                  <InputNumber
+                    v-model="character.x"
+                    :min="0"
+                    :max="1"
+                    :step="0.05"
+                    :max-fraction-digits="2"
+                    :allow-empty="false"
+                  />
+                </label>
+                <label class="cv-field">
+                  <span>Y坐标</span>
+                  <InputNumber
+                    v-model="character.y"
+                    :min="0"
+                    :max="1"
+                    :step="0.05"
+                    :max-fraction-digits="2"
+                    :allow-empty="false"
+                  />
+                </label>
+              </div>
+            </div>
+          </CollapsiblePanelItem>
+        </div>
+        <div class="cv-direct-character-actions">
+          <CvAddEntryButton label="添加角色" @click="addDirectCharacter" />
+        </div>
       </template>
     </div>
 
@@ -81,6 +138,26 @@
           <pre class="preview-content">{{ novelaiSnapshot.positivePrompt || '(空)' }}</pre>
           <div class="preview-header">负面提示词</div>
           <pre class="preview-content">{{ novelaiSnapshot.negativePrompt || '(空)' }}</pre>
+          <div class="preview-header">角色提示词（{{ novelaiSnapshot.characterPrompts.length }}）</div>
+          <div v-if="novelaiSnapshot.characterPrompts.length" class="flex flex-col gap-(--cv-space-lg)">
+            <CollapsiblePanelItem
+              v-for="(item, index) in novelaiSnapshot.characterPrompts"
+              :key="index"
+              :title="getCharacterPromptTitle(item, index)"
+              :collapsed="!expandedCharacterIndexes.has(index)"
+              @toggle="toggleCharacterPrompt(index)"
+            >
+              <div class="flex flex-col gap-(--cv-space-xl) p-(--cv-space-xl)">
+                <div class="preview-header">角色正面</div>
+                <pre class="preview-content">{{ item.prompt || '(空)' }}</pre>
+                <div class="preview-header">角色负面</div>
+                <pre class="preview-content">{{ item.uc || '(空)' }}</pre>
+                <div class="preview-header">坐标</div>
+                <pre class="preview-content">{{ formatCharacterPosition(item) }}</pre>
+              </div>
+            </CollapsiblePanelItem>
+          </div>
+          <div v-else class="cv-empty-state p-(--cv-space-2xl)">无角色提示词</div>
         </div>
         <div v-else class="cv-empty-state">尚未生成最终提示词</div>
       </div>
@@ -132,6 +209,9 @@
 <script setup lang="ts">
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { useFocusedParagraphInput } from '@/composables/useFocusedParagraphInput';
+import type { CharacterPromptItem } from '@/constants/novelai';
+import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
+import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
 import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue';
 import LightboxImage from '@/panel/components/LightboxImage.vue';
 
@@ -164,11 +244,20 @@ interface ParamRow {
   code?: boolean;
 }
 
+interface DirectCharacterPromptDraft {
+  id: number;
+  prompt: string;
+  uc: string;
+  x: number;
+  y: number;
+}
+
 interface Props {
   serviceName?: string;
 }
 
 const PREVIEW_IMAGE_STYLE = { width: '100%', display: 'block' } as const;
+let nextDirectCharacterId = 0;
 
 const props = withDefaults(defineProps<Props>(), {
   serviceName: 'NovelAI',
@@ -186,7 +275,10 @@ const previewBlob = ref<Blob | null>(null);
 
 const directPositivePrompt = ref('1girl');
 const directNegativePrompt = ref('');
+const directCharacterPrompts = ref<DirectCharacterPromptDraft[]>([]);
+const expandedDirectCharacterIds = ref(new Set<number>());
 const novelaiSnapshot = ref<NovelAIRequestSnapshot | null>(null);
+const expandedCharacterIndexes = ref(new Set<number>());
 const llmRawResponse = ref('');
 const llmSentPromptLog = ref('');
 const llmLogParams = ref<PromptLlmLogParams | null>(null);
@@ -365,6 +457,59 @@ function createDirectPromptOverrides(): NovelAIPromptOverrides {
     negativeLLMPrompt: directNegativePrompt.value,
     positivePromptMode: 'direct',
     negativePromptMode: 'direct',
+    characterPrompts: directCharacterPrompts.value.map(toCharacterPromptItem),
+  };
+}
+
+/**
+ * 创建手动角色提示词草稿
+ * @returns 新角色草稿
+ */
+function createDirectCharacterPrompt(): DirectCharacterPromptDraft {
+  return { id: ++nextDirectCharacterId, prompt: '', uc: '', x: 0.5, y: 0.5 };
+}
+
+/**
+ * 添加手动角色提示词
+ */
+function addDirectCharacter(): void {
+  const character = createDirectCharacterPrompt();
+  directCharacterPrompts.value.push(character);
+  expandedDirectCharacterIds.value = new Set([...expandedDirectCharacterIds.value, character.id]);
+}
+
+/**
+ * 删除手动角色提示词
+ * @param id 角色草稿标识
+ */
+function removeDirectCharacter(id: number): void {
+  directCharacterPrompts.value = directCharacterPrompts.value.filter(character => character.id !== id);
+  const expanded = new Set(expandedDirectCharacterIds.value);
+  expanded.delete(id);
+  expandedDirectCharacterIds.value = expanded;
+}
+
+/**
+ * 切换手动角色提示词折叠状态
+ * @param id 角色草稿标识
+ */
+function toggleDirectCharacter(id: number): void {
+  const expanded = new Set(expandedDirectCharacterIds.value);
+  if (expanded.has(id)) expanded.delete(id);
+  else expanded.add(id);
+  expandedDirectCharacterIds.value = expanded;
+}
+
+/**
+ * 转换手动角色提示词为请求参数
+ * @param character 角色草稿
+ * @returns NovelAI 角色提示词
+ */
+function toCharacterPromptItem(character: DirectCharacterPromptDraft): CharacterPromptItem {
+  return {
+    prompt: character.prompt,
+    uc: character.uc,
+    position: { x: character.x, y: character.y },
   };
 }
 
@@ -383,6 +528,38 @@ function buildVibeParamRows(vibes: NovelAIRequestSnapshot['vibes']): ParamRow[] 
 }
 
 /**
+ * 生成角色提示词折叠标题
+ * @param item 角色提示词
+ * @param index 角色序号
+ * @returns 标题文本
+ */
+function getCharacterPromptTitle(item: CharacterPromptItem, index: number): string {
+  const preview = item.prompt.trim() || '(空)';
+  const short = preview.length > 40 ? `${preview.slice(0, 40)}…` : preview;
+  return `角色 ${index + 1} · ${short}`;
+}
+
+/**
+ * 格式化角色坐标
+ * @param item 角色提示词
+ * @returns 坐标展示文本
+ */
+function formatCharacterPosition(item: CharacterPromptItem): string {
+  return `x: ${item.position.x.toFixed(2)}, y: ${item.position.y.toFixed(2)}`;
+}
+
+/**
+ * 切换角色提示词折叠状态
+ * @param index 角色序号
+ */
+function toggleCharacterPrompt(index: number): void {
+  const next = new Set(expandedCharacterIndexes.value);
+  if (next.has(index)) next.delete(index);
+  else next.add(index);
+  expandedCharacterIndexes.value = next;
+}
+
+/**
  * 格式化数值列表
  * @param values 数值列表
  * @returns 展示文本
@@ -398,6 +575,7 @@ function resetTestResult(): void {
   testStatus.value = 'idle';
   errorMessage.value = '';
   novelaiSnapshot.value = null;
+  expandedCharacterIndexes.value = new Set();
   llmRawResponse.value = '';
   llmSentPromptLog.value = '';
   llmLogParams.value = null;
@@ -465,6 +643,25 @@ onBeforeUnmount(revokePreviewUrl);
 .cv-action-row {
   margin-top: var(--cv-space-5xl);
   margin-bottom: 0;
+}
+
+.cv-direct-character-list {
+  @apply flex flex-col;
+  gap: var(--cv-space-xl);
+}
+
+.cv-direct-character-body {
+  @apply flex flex-col;
+  gap: var(--cv-space-xl);
+  padding: var(--cv-space-xl);
+}
+
+.cv-direct-character-actions {
+  display: flow-root;
+}
+
+.cv-direct-character-coordinates {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .cv-log-container {

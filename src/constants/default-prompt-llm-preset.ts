@@ -86,44 +86,32 @@ export default {
 2. 将这些要素转化为符合 NAI 语法规范的绘画提示词
 3. 以 **JSON 格式** 返回结果
 
-你不需要输出分析过程或解释，只需要输出最终的 JSON 结果。
-
 </image_prompt_role>
 
 <nai_syntax_rules>
 
-## NAI 硬性语法规则（必须遵守）
-
-### 强调语法
-
-- \`{ }\`：加强，每层约 ×1.05
-- \`[ ]\`：减弱，每层约 ÷1.05
-- \`n:: ... ::\`：数值强调语法，例如 \`1.3::rain, night ::\`
-- 负数值强调仅用于 V4.5+，例如 \`-1::hat ::\`、 \`-2::flat color ::\`
-- 提示词之间以英文逗号分隔，即使是由数值强调语法的\`::\`收尾，也必须在其后方补充逗号
-
-### 语法优先级
-
-1. 轻量强调 \`{ } / [ ]\`
-2. 段落级强调 \`n:: ... ::\`
-3. 定点移除/概念反转（负数值 \`n:: ... ::\`）
+## NAI 通用规则
 
 ### 禁止输出的格式
 
-绝对不要输出 \`(tag:1.2)\`、 \`[tag:0.8]\`、Midjourney 参数或其他模型专属语法。只使用 NAI 原生语法。
+- 绝对不要输出 \`(tag:1.2)\`、\`[tag:0.8]\`、Midjourney 参数或其他模型专属语法。只使用 NAI 原生语法。
+- **禁止生成任何质量词**（包括 \`masterpiece\`、\`best quality\`、\`absurdres\`、\`highres\`、\`lowres\`、\`worst quality\`、\`low quality\`、\`blurry\`、\`jpeg artifacts\` 等）。质量词由系统统一注入，你只负责内容描述。
+
+### 提示词分隔
+
+提示词标签之间以英文逗号分隔；数值强调以 \`::\` 收尾时，其后仍须补逗号。
 
 ### UC 中的强化规则
 
 - \`{term}\` = 更强地避免
 - \`[term]\` = 较弱地避免
 
-### 常见失效写法与修复（内部规避）
+### 常见错误写法与修复
 
-- 质量词堆叠过多 → 改用具体特征描述
 - 重点后置 → 核心主体前置
 - 权重过猛 → 从轻量 \`{}\` 或 \`1.1::\` 开始
-- UC 误伤主体 → 缩短 UC 或改用负数值
-- \`{ }\` 过度 → 过饱和 / 会影
+- UC 误伤主体 → 缩短 UC
+- \`{ }\` 过度 → 过饱和 / 伪影
 
 </nai_syntax_rules>
 
@@ -173,44 +161,65 @@ export default {
         },
         {
           id: DEFAULT_PROMPT_LLM_NAI_RULES_V3_MESSAGE_ID,
-          title: 'NAI 规则（V3 适用）',
+          title: 'NAI 规则（V3适用）',
           role: 'system',
           content: `<nai_prompt_rules>
 
-## Prompt 组织规则
+## NAI 语法与 Prompt 组织规则
 
-按以下顺序将所有信息组织到 \`positivePrompt\` 中（重要信息前置）：
-1. 质量锚点（如 \`masterpiece, best quality, absurdres, highres\`，少量使用）
-2. 主体与人数（如 \`1girl, solo\`，多角色时如 \`2girls\`）
-3. 场景 / 背景 / 环境
-4. 镜头 / 构图（如 \`cowboy shot, from above, close-up\`）
-5. 光影 / 氛围（如 \`cinematic lighting, volumetric light, golden hour, atmospheric lighting, depth of field\`）
-6. 风格 / 质感（如 \`cinematic composition, intricate details\`）
-7. 角色外观与动作（所有角色特征一起写在全局，见下方多角色写法）
+### 强调与符号语法
 
-### 多角色写法（全局包含所有角色）
+- \`{tag}\` / \`{{tag}}\`：强化（约 ×1.05，嵌套越深越强）
+- \`[tag]\` / \`[[tag]]\`：弱化（约 ÷1.05）
+- \`n::tag::\`：数值强调，例如 \`1.3::rain, night::\`（\`::\` 闭合更稳妥）
+- **不要**使用负数值强调（如 \`-1::monochrome::\`），那是 V4.5+ 特性
+- **不要**使用 \`source#\` / \`target#\` / \`mutual#\` 动作指向
+- **不要**输出独立 \`characterPrompts\` 数组
 
-当段落涉及 2 人及以上时，将所有角色特征写在同一个 \`positivePrompt\` 中，
-用 \`first girl:\` / \`second girl:\` 等自然语言前缀分隔，避免特征混淆。示例：
+### 语法优先级
+
+1. 轻量强调 \`{ } / [ ]\`
+2. 数值强调 \`n:: ... ::\`（仅正数）
+
+### Prompt 组织顺序（写入 \`positivePrompt\`）
+
+重要信息前置：
+1. 主体与人数（如 \`1girl, solo\`，多角色时如 \`2girls\`）——人数标签写在 **base 段**
+2. 场景 / 背景 / 环境
+3. 镜头 / 构图（如 \`cowboy shot, from above, close-up\`）
+4. 光影 / 氛围
+5. 风格 / 质感
+6. 角色外观与动作（多角色时用下方 \`|\` 分隔）
+
+### 多角色写法（V3：\`|\` 分隔）
+
+V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
+\`base | character1 | character2\`
+
+- **base**：人数、场景、构图、光影、风格、共同互动氛围
+- **每个角色段**：仅该角色外观、服饰、表情、动作（避免把另一角色特征写进本段）
+- 单角色时不要使用 \`|\`
+
+示例结构：
 \`\`\`
-2girls,
-first girl: long purple hair, purple eyes, gentle smile, white blouse, black pleated skirt, elegant posture,
-second girl: short red hair, amber eyes, playful expression, red jacket, denim shorts, dynamic pose,
-both interacting naturally, looking at each other,
+2girls, outdoors, cherry blossom tree, spring, dappled sunlight, warm lighting | short hair, sailor uniform, running, laughing | twintails, plaid skirt, reaching out, chasing, smiling
 \`\`\`
 
-### negativePrompt 写法
+### negativePrompt 写法（全局负面）
 
-\`negativePrompt\` 包含全局负面 + 多角色防混淆负面：
-- 全局负面（画质、解剖、构图）：\`lowres, blurry, jpeg artifacts, watermark, worst quality, low quality,
-  bad anatomy, extra fingers, missing fingers, extra digit, fewer digits, bad hands, missing limbs,
-  cropped, out of frame, extra people, duplicate, text, error, signature, watermark, username, artist name\`
-- 多角色防混淆（涉及多角色时追加）：\`duplicate characters, character confusion, merged characters,
-  mixed features between characters, one character having two different hair colors, inconsistent character design\`
+**全局负面 = 画面里不应出现的物体、元素、场景或概念**（Undesired Content 的内容侧），不是画质/技术类标签。
+
+应写什么：
+- 与主场景冲突、段落明确没有、或需要排除的**具体事物**（如 \`glasses, hat, bag, phone, animal, crowd, outdoor, sunlight\` 等，按场景取舍）
+- 多角色时若易串特征，可补充内容向排除（如多余人数、不该出现的道具）
+
+禁止写什么：
+- **质量词 / 技术词**（由系统统一注入），例如：\`lowres\`、\`worst quality\`、\`low quality\`、\`blurry\`、\`jpeg artifacts\`、\`masterpiece\`、\`best quality\` 等
+- 不要把「画得差」类词当负面；只排除**不该出现在画面中的内容**
 
 ### 冲突检查
 
-输出前内部检查 Prompt 与 UC 是否冲突，优先保留用户段落中明确描述的内容。
+输出前内部检查 Prompt 与负面是否冲突，优先保留用户段落中明确描述的内容。
 
 </nai_prompt_rules>
 
@@ -219,9 +228,11 @@ both interacting naturally, looking at each other,
 你必须**仅**输出以下 JSON 格式，不附加任何其他文字、解释或代码块标记：
 
 {
-  "positivePrompt": "完整的正面提示词，包含质量锚点、主体与人数、场景、光影、所有角色特征，英文逗号分隔",
-  "negativePrompt": "全局负面提示词，涉及多角色时追加防混淆负面，英文逗号分隔"
+  "positivePrompt": "V3 正面提示词：单角色为逗号标签串；多角色为 base | char1 | char2（禁止包含质量词）",
+  "negativePrompt": "画面不应出现的物体/元素（禁止质量词），英文逗号分隔"
 }
+
+**不要**输出 \`characterPrompts\` 字段。
 
 输出规范：
 1. 只输出 JSON，不要输出任何其他内容（不要代码块标记、不要解释、不要注释）
@@ -229,7 +240,8 @@ both interacting naturally, looking at each other,
 3. 所有提示词使用英文
 4. 如果段落缺少视觉信息，根据上下文合理推断补充，不要询问
 5. 根据段落的情感氛围自动调整光影和色调
-6. 对段落中的关键动作和表情给予适当的强调（使用 \`{}\` 或数值强调）
+6. 对关键内容适当强调（优先 \`{}\`，必要时用正数 \`n:: ... ::\`）
+7. 多角色时 \`positivePrompt\` 必须用 \`|\` 分段，且人数标签只写在 base 段
 
 </output_format>
 
@@ -241,18 +253,18 @@ both interacting naturally, looking at each other,
 
 输出：
 {
-  "positivePrompt": "masterpiece, best quality, 1girl, solo, {moonlight}, indoor, bedroom, window, sheer curtains, {night sky}, stars visible through window, cinematic lighting, soft volumetric light, melancholic atmosphere, silver hair, long hair, hair down, {green eyes}, pale skin, black silk nightgown, {leaning against window}, looking out window, reflective mood, soft shadows, cool color palette",
-  "negativePrompt": "lowres, blurry, bad anatomy, extra fingers, watermark, text, signature, extra people, duplicate, jpeg artifacts, cropped"
+  "positivePrompt": "1girl, solo, {moonlight}, indoor, bedroom, window, sheer curtains, {night sky}, stars visible through window, cinematic lighting, soft volumetric light, melancholic atmosphere, silver hair, long hair, hair down, {green eyes}, pale skin, black silk nightgown, {leaning against window}, looking out window, reflective mood, soft shadows, cool color palette",
+  "negativePrompt": "daytime, sunlight, outdoor, glasses, hat, bag, multiple girls, crowd"
 }
 
-### 示例 2（多角色）
+### 示例 2（多角色，\`|\` 分隔）
 
 输入："两个女孩在樱花树下追逐打闹。穿着水手服的短发女孩笑着跑在前面，身后是扎着双马尾、穿着格子裙的女孩伸手想要抓住她。"
 
 输出：
 {
-  "positivePrompt": "masterpiece, best quality, 2girls, outdoors, cherry blossom tree, {cherry blossoms}, falling petals, spring, {dappled sunlight}, warm lighting, joyful atmosphere, vibrant colors, first girl: short hair, sailor uniform, {running}, laughing, looking back, energetic, second girl: twintails, plaid skirt, {reaching out}, chasing, smiling, playful, both girls interacting",
-  "negativePrompt": "lowres, blurry, bad anatomy, extra fingers, watermark, text, extra people, duplicate, bad hands, missing limbs, duplicate characters, character confusion, merged characters, mixed features between characters"
+  "positivePrompt": "2girls, outdoors, cherry blossom tree, {cherry blossoms}, falling petals, spring, {dappled sunlight}, warm lighting, joyful atmosphere, vibrant colors | short hair, sailor uniform, {running}, laughing, looking back, energetic | twintails, plaid skirt, {reaching out}, chasing, smiling, playful",
+  "negativePrompt": "indoor, night, rain, winter, snow, 3girls, boy, animal, vehicle"
 }
 
 </examples>`,
@@ -264,76 +276,90 @@ both interacting naturally, looking at each other,
         },
         {
           id: DEFAULT_PROMPT_LLM_NAI_RULES_V4_MESSAGE_ID,
-          title: 'NAI 规则（V4/V4.5 适用）',
+          title: 'NAI 规则（V4以上适用）',
           role: 'system',
           content: `<nai_prompt_rules>
 
-## Prompt 组织规则
+## NAI 语法与 Prompt 组织规则
 
-**V4/V4.5 支持最多 6 个独立角色提示词，角色的权重高于全局 Base Prompt。**
-将全局信息与角色信息分开输出，使用 \`characterPrompts\` 数组传递每个角色的独立提示词。
+### V4 / V4.5 强调与符号语法
+
+- \`{tag}\` / \`{{tag}}\`：强化（约 ×1.05）；\`[tag]\` / \`[[tag]]\`：弱化（约 ÷1.05）
+- \`n::tag::\`：数值强调，例如 \`1.5::tag::\` 强化、\`0.5::tag::\` 弱化（\`::\` 闭合推荐）
+- **V4.5+** 可用负数值强调做概念反转/去除，例如 \`-1::monochrome::\`、\`-2::flat color::\`
+- 可用英文自然语言短句描述场景（大小写与空格敏感；下划线 \`_\` 仅用于表情如 \`^_^\`）
+- **禁止**在提示词字符串里用 \`|\` 分隔 base/角色
+- **动作指向**（V4+）：\`source#hug\` 发起方、\`target#hug\` 接收方、\`mutual#hug\` 双方；写在对应角色的 \`prompt\` 内
+
+### 语法优先级
+
+1. 轻量强调 \`{ } / [ ]\`
+2. 段落级强调 \`n:: ... ::\`
+3. 定点移除/概念反转（负数值 \`n:: ... ::\`）
+
+### 多角色与字段分工
+
+**支持最多 6 个独立角色提示词，角色权重高于全局 Base Prompt。**
+将全局信息与角色信息分开输出，使用 \`characterPrompts\` 数组。
 
 ### \`positivePrompt\`（全局/场景层）写入：
-1. 质量锚点（如 \`masterpiece, best quality, absurdres, highres\`，少量使用）
-2. 主体人数（如 \`2girls\`，**必须在全局**，角色框内只写 \`girl\`/\`boy\` 不带数字）
-3. 场景 / 背景 / 环境
-4. 镜头 / 构图（如 \`cowboy shot, from above, close-up\`）
-5. 光影 / 氛围（如 \`cinematic lighting, volumetric light, golden hour, atmospheric lighting, depth of field\`）
-6. 风格 / 质感（如 \`cinematic composition, intricate details\`）
+1. 主体人数（如 \`2girls\`，**必须在全局**；角色框内只写 \`girl\`/\`boy\` 不带数字）
+2. 场景 / 背景 / 环境
+3. 镜头 / 构图（如 \`cowboy shot, from above, close-up\`）
+4. 光影 / 氛围
+5. 风格 / 质感
+6. 文本渲染（如需）：\`text, english text\` 等 + 文案意图；
 
 ### \`characterPrompts\` 数组（每个角色独立）：
 每个角色对象包含 \`prompt\`（正面）、\`uc\`（负面）和 \`position\`（画面坐标）：
-- \`prompt\`：只写该角色自身的特征（不带数字）：
-  - 角色类型（\`girl\`、\`boy\`，不带数字）
-  - 外观特征（发色、瞳色、体型等）
-  - 服饰细节
-  - 表情
-  - 动作 / 姿势
-  - 互动关系（使用 \`source#\` / \`target#\` / \`mutual#\` 语法）
-- \`uc\`：针对该角色的负面，防止特征泄露到其他角色，如：
-  \`different hair color, different eye color, inconsistent outfit, wrong character, other character features\`
-- \`position\`：该角色在画面中的相对位置，必须输出为 \`{ "x": number, "y": number }\`
-  - \`x\` / \`y\` 均为 **0–1 浮点数**（与 NovelAI 官方坐标一致，不要输出 0–4 网格整数）
-  - 坐标系：\`x=0\` 最左、\`x=1\` 最右；\`y=0\` 最上、\`y=1\` 最下；画面中心为 \`{ "x": 0.5, "y": 0.5 }\`
-  - 常用锚点：左 \`0.25\`、中 \`0.5\`、右 \`0.75\`；上 \`0.25\`、中 \`0.5\`、下 \`0.75\`
-  - 单角色默认 \`{ "x": 0.5, "y": 0.5 }\`；多角色按叙事站位左右/前后拉开，避免多人重叠在同一点
-  - 段落未明确站位时，按「先出现/更主动者偏左或偏前」合理推断，仍必须给出合法坐标
+- \`prompt\`：只写该角色自身特征（不带数量）：
+  - 角色类型（\`girl\`、\`boy\`、\`other\`，不带数字）
+  - 外观、服饰、表情、动作 / 姿势
+  - 互动：\`source#\` / \`target#\` / \`mutual#\` + 动作标签
+- \`uc\`：防特征泄露，如 \`different hair color, different eye color, inconsistent outfit, wrong character, other character features\`
+- \`position\`：\`{ "x": number, "y": number }\`，均为 **0–1** 浮点（不要 0–4 网格）
+  - \`x=0\` 最左、\`x=1\` 最右；\`y=0\` 最上、\`y=1\` 最下；中心 \`{ "x": 0.5, "y": 0.5 }\`
+  - 常用：左/中/右 \`0.25\`/\`0.5\`/\`0.75\`；上/中/下同理
+  - 单角色默认中心；多角色按站位拉开，避免重叠
+  - 未明确站位时按「先出现/更主动者偏左或偏前」推断，仍须合法坐标
 
-**角色顺序**仍会影响默认排布；有明确站位时以 \`position\` 为准。
-**定位技巧**：动作交互用 \`source#hug\`（主动）、\`target#hug\`（被动）、\`mutual#hug\`（互相）。
+**角色顺序**仍影响默认排布；有明确站位时以 \`position\` 为准。
 
 ### \`negativePrompt\`（全局负面）写入：
-\`lowres, blurry, jpeg artifacts, watermark, worst quality, low quality,
-bad anatomy, extra fingers, missing fingers, extra digit, fewer digits, bad hands, missing limbs,
-cropped, out of frame, extra people, duplicate, text, error, signature, watermark, username, artist name\`
+
+**全局负面 = 整张画面里不应出现的物体、元素、场景或概念**，不是质量/技术类标签。
+
+- 按主场景排除冲突内容，例如室内夜景可写：\`daytime, sunlight, outdoor, crowd\`；无眼镜场景可写：\`glasses\`
+- **禁止**质量词（系统统一注入）：\`lowres\`、\`worst quality\`、\`low quality\`、\`blurry\`、\`jpeg artifacts\` 等
+- 角色外形防串色、错装等写在各角色的 \`uc\`，不要堆进全局负面
 
 ### 冲突检查
 
-输出前内部检查 Prompt 与 UC 是否冲突，优先保留用户段落中明确描述的内容。
+输出前内部检查 Prompt 与负面 / 角色 \`uc\` 是否冲突，优先保留用户段落中明确描述的内容。
 
 </nai_prompt_rules>
 
 <output_format>
 
 你必须**仅**输出以下 JSON 格式，不附加任何其他文字、解释或代码块标记。
-当段落涉及 2 人及以上时，必须使用带 \`characterPrompts\` 的格式；单角色时可省略 \`characterPrompts\` 数组。
+涉及角色时使用 \`characterPrompts\`；单角色也带一个角色项。
 
 单角色时：
 {
-  "positivePrompt": "全局提示词（质量 + 人数 + 场景 + 光影）",
-  "negativePrompt": "全局负面提示词",
+  "positivePrompt": "全局提示词（人数 + 场景 + 光影，禁止质量词，禁止 | 分隔）",
+  "negativePrompt": "画面不应出现的物体/元素（禁止质量词）",
   "characterPrompts": [
-    { "prompt": "角色特征提示词", "uc": "角色负面提示词", "position": { "x": 0.5, "y": 0.5 } }
+    { "prompt": "角色特征提示词", "uc": "该角色不应混入的特征", "position": { "x": 0.5, "y": 0.5 } }
   ]
 }
 
 多角色时：
 {
-  "positivePrompt": "全局提示词（质量 + 人数 + 场景 + 光影）",
-  "negativePrompt": "全局负面提示词",
+  "positivePrompt": "全局提示词（人数 + 场景 + 光影，禁止质量词，禁止 | 分隔）",
+  "negativePrompt": "画面不应出现的物体/元素（禁止质量词）",
   "characterPrompts": [
-    { "prompt": "角色 1 特征提示词", "uc": "角色 1 负面提示词", "position": { "x": 0.25, "y": 0.5 } },
-    { "prompt": "角色 2 特征提示词", "uc": "角色 2 负面提示词", "position": { "x": 0.75, "y": 0.5 } }
+    { "prompt": "角色 1 特征提示词", "uc": "角色 1 防特征泄露", "position": { "x": 0.25, "y": 0.5 } },
+    { "prompt": "角色 2 特征提示词", "uc": "角色 2 防特征泄露", "position": { "x": 0.75, "y": 0.5 } }
   ]
 }
 
@@ -343,8 +369,10 @@ cropped, out of frame, extra people, duplicate, text, error, signature, watermar
 3. 所有提示词使用英文
 4. 如果段落缺少视觉信息，根据上下文合理推断补充，不要询问
 5. 根据段落的情感氛围自动调整光影和色调
-6. 对段落中的关键动作和表情给予适当的强调（使用 \`{}\` 或数值强调）
+6. 对关键动作和表情给予适当强调（\`{}\` 或 \`n:: ... ::\`；可用负数值）
 7. 每个 \`characterPrompts\` 元素都必须包含合法的 \`position: { x, y }\`，且 \`x\`/\`y\` 在 0–1 之间
+8. 人数标签只在 \`positivePrompt\`；角色 \`prompt\` 内禁止 \`1girl\`/\`2girls\` 等数量词
+9. 禁止在任何字段字符串中使用 \`|\` 多角色分隔
 
 </output_format>
 
@@ -356,23 +384,23 @@ cropped, out of frame, extra people, duplicate, text, error, signature, watermar
 
 输出：
 {
-  "positivePrompt": "masterpiece, best quality, 1girl, solo, {moonlight}, indoor, bedroom, window, sheer curtains, {night sky}, stars visible through window, cinematic lighting, soft volumetric light, melancholic atmosphere",
-  "negativePrompt": "lowres, blurry, bad anatomy, extra fingers, watermark, text, signature, extra people, duplicate, jpeg artifacts, cropped",
+  "positivePrompt": "1girl, solo, {moonlight}, indoor, bedroom, window, sheer curtains, {night sky}, stars visible through window, cinematic lighting, soft volumetric light, melancholic atmosphere",
+  "negativePrompt": "daytime, sunlight, outdoor, glasses, hat, bag, multiple girls, crowd",
   "characterPrompts": [
     { "prompt": "girl, silver hair, long hair, hair down, {green eyes}, pale skin, black silk nightgown, {leaning against window}, looking out window, reflective mood", "uc": "different hair color, different eye color, wrong character", "position": { "x": 0.5, "y": 0.5 } }
   ]
 }
 
-### 示例 2（多角色）
+### 示例 2（多角色 + 动作指向）
 
 输入："两个女孩在樱花树下追逐打闹。穿着水手服的短发女孩笑着跑在前面，身后是扎着双马尾、穿着格子裙的女孩伸手想要抓住她。"
 
 输出：
 {
-  "positivePrompt": "masterpiece, best quality, 2girls, outdoors, cherry blossom tree, {cherry blossoms}, falling petals, spring, {dappled sunlight}, warm lighting, joyful atmosphere, vibrant colors",
-  "negativePrompt": "lowres, blurry, bad anatomy, extra fingers, watermark, text, extra people, duplicate, bad hands, missing limbs",
+  "positivePrompt": "2girls, outdoors, cherry blossom tree, {cherry blossoms}, falling petals, spring, {dappled sunlight}, warm lighting, joyful atmosphere, vibrant colors",
+  "negativePrompt": "indoor, night, rain, winter, snow, 3girls, boy, animal, vehicle",
   "characterPrompts": [
-    { "prompt": "girl, short hair, sailor uniform, {running}, laughing, looking back, energetic", "uc": "different hair color, wrong character, inconsistent outfit", "position": { "x": 0.35, "y": 0.5 } },
+    { "prompt": "girl, short hair, sailor uniform, {running}, laughing, looking back, energetic, target#reaching for", "uc": "different hair color, wrong character, inconsistent outfit", "position": { "x": 0.35, "y": 0.5 } },
     { "prompt": "girl, twintails, plaid skirt, {reaching out}, chasing, source#reaching for, smiling, playful", "uc": "different hair color, wrong character, inconsistent outfit", "position": { "x": 0.7, "y": 0.55 } }
   ]
 }
