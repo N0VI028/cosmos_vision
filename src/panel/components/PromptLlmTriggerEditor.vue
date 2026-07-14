@@ -26,7 +26,7 @@
   <div v-if="showConditionEditor" class="cv-field cv-trigger-conditions-field">
     <span>触发条件</span>
 
-    <div v-if="!conditionRows.length" class="cv-field-hint">{{ triggerMatchModeHint }}</div>
+    <div class="cv-field-hint">{{ triggerMatchModeHint }}</div>
 
     <div v-for="(row, index) in conditionRows" :key="row.id" class="cv-trigger-condition-row">
       <Select
