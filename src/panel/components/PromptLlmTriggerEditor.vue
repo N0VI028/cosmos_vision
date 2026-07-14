@@ -26,7 +26,7 @@
   <div v-if="showConditionEditor" class="cv-field cv-trigger-conditions-field">
     <span>触发条件</span>
 
-    <div v-if="!conditionRows.length" class="cv-field-hint">无条件时四种匹配方式均不发送；始终触发忽略条件</div>
+    <div v-if="!conditionRows.length" class="cv-field-hint">{{ triggerMatchModeHint }}</div>
 
     <div v-for="(row, index) in conditionRows" :key="row.id" class="cv-trigger-condition-row">
       <Select
@@ -138,10 +138,10 @@ const TOP_MODE_OPTIONS: Array<{ label: string; value: TopMode }> = [
 ];
 
 const CONDITION_MATCH_MODE_OPTIONS: Array<{ label: string; value: ConditionMatchMode }> = [
-  { label: '全部命中', value: 'all_match' },
-  { label: '任一命中', value: 'any_match' },
-  { label: '全部未命中', value: 'all_mismatch' },
-  { label: '任一未命中', value: 'any_mismatch' },
+  { label: '全部符合', value: 'all_match' },
+  { label: '任一符合', value: 'any_match' },
+  { label: '全部不符合', value: 'all_mismatch' },
+  { label: '任一不符合', value: 'any_mismatch' },
 ];
 
 const DEFAULT_CONDITION_MATCH_MODE: ConditionMatchMode = 'all_match';
@@ -162,6 +162,26 @@ const showConditionEditor = computed(() => topMode.value === 'condition');
 const conditionMatchMode = computed<ConditionMatchMode>(() =>
   matchMode.value === 'always' ? DEFAULT_CONDITION_MATCH_MODE : matchMode.value,
 );
+
+/**
+ * 获取当前匹配模式在无条件时的逻辑描述提示文本
+ */
+const triggerMatchModeHint = computed<string>(() => {
+  const mode = conditionMatchMode.value;
+  if (mode === 'all_match') {
+    return '所有配置的条件必须全都满足时才发送。未配置条件时默认不发送。';
+  }
+  if (mode === 'any_match') {
+    return '配置的条件中只要有任意一个满足即发送。未配置条件时默认不发送。';
+  }
+  if (mode === 'all_mismatch') {
+    return '所有配置的条件必须全都不满足时才发送。未配置条件时默认不发送。';
+  }
+  if (mode === 'any_mismatch') {
+    return '配置的条件中只要有任意一个满足就不发送。未配置条件时默认不发送。';
+  }
+  return '未配置条件时默认不发送。';
+});
 
 /** 外部草稿切换时重载条件行；编辑中以本地行为准 */
 watch(

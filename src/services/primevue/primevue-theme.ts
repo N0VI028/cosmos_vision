@@ -112,9 +112,9 @@ export const cosmosPrimePreset = definePreset(Aura, {
       },
       borderRadius: 'var(--cv-radius-full)',
       focusRing: {
-        width: '0.1333em',
-        style: 'solid',
-        color: 'color-mix(in srgb, var(--cv-primary-container) 10%, transparent)',
+        width: '0',
+        style: 'none',
+        color: 'transparent',
         offset: '0',
         shadow: 'none',
       },
@@ -380,3 +380,18 @@ export const cosmosPrimePreset = definePreset(Aura, {
     },
   },
 });
+
+/**
+ * 迷你按钮的 root Design Tokens 定义（支持传入动态的尺寸配置）
+ */
+export const getMiniButtonRootTokens = (sizeConfig: { gap: string; iconOnlyWidth: string }) => ({
+  borderRadius: '0',
+  gap: sizeConfig.gap,
+  paddingX: '0',
+  paddingY: '0',
+  iconOnlyWidth: sizeConfig.iconOnlyWidth,
+  focusRing: { width: '0', style: 'none', offset: '0' },
+  label: { fontWeight: '500' },
+} as const);
+
+

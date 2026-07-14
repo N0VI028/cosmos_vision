@@ -10,13 +10,8 @@
 }
 
 .cv-macro-option-button {
-  justify-content: flex-start;
-}
-
-.cv-macro-button-label {
-  font-size: var(--cv-font-size-2xs);
-  line-height: 1;
-  white-space: nowrap;
+  width: 100% !important;
+  justify-content: flex-start !important;
 }
 
 .cv-macro-popover {
@@ -31,3 +26,4 @@
   gap: var(--cv-space-xs);
   width: max-content;
 }
+

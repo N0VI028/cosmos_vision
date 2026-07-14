@@ -19,6 +19,8 @@
 import type { ButtonDesignTokens } from '@primeuix/themes/types/button';
 import type { ButtonProps } from 'primevue/button';
 import { computed } from 'vue';
+import { getMiniButtonRootTokens } from '@/services/primevue/primevue-theme';
+
 
 defineOptions({ inheritAttrs: false });
 
@@ -101,15 +103,7 @@ function buildButtonTokens(color: string, size: CvMiniButtonSize): ButtonDesignT
       : { iconOnlyWidth: '2em', gap: 'var(--cv-space-md)' };
 
   return {
-    root: {
-      borderRadius: '0',
-      gap: sizeConfig.gap,
-      paddingX: '0',
-      paddingY: '0',
-      iconOnlyWidth: sizeConfig.iconOnlyWidth,
-      focusRing: { width: '0', style: 'none', offset: '0' },
-      label: { fontWeight: '500' },
-    },
+    root: getMiniButtonRootTokens(sizeConfig) as any,
     text: {
       primary: textTone,
       warn: textTone,

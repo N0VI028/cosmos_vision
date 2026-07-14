@@ -127,11 +127,10 @@
         <div class="cv-field-header">
           <span>{{ editorDraft.kind === 'custom' ? '内容' : '资料预览' }}</span>
           <div v-if="editorDraft.kind === 'custom'" class="cv-source-tokens">
-            <Button
+            <CvMiniButton
               label="插入宏"
-              variant="text"
-              :dt="MACRO_BUTTON_TOKENS"
-              :pt="MACRO_TRIGGER_BUTTON_PT"
+              size="small"
+              class="cv-macro-button-root cv-macro-trigger-button"
               @pointerdown.prevent="rememberEntrySelection"
               @click.stop="toggleMacroPopover"
             />
@@ -141,13 +140,12 @@
               :dt="MACRO_POPOVER_TOKENS"
               :pt="MACRO_POPOVER_PT"
             >
-              <Button
+              <CvMiniButton
                 v-for="option in PROMPT_PERSON_TOKEN_OPTIONS"
                 :key="option.token"
                 :label="option.label"
-                variant="text"
-                :dt="MACRO_BUTTON_TOKENS"
-                :pt="MACRO_OPTION_BUTTON_PT"
+                size="small"
+                class="cv-macro-button-root cv-macro-option-button"
                 @pointerdown.prevent="rememberEntrySelection"
                 @click.stop="selectEntryToken(option.token)"
               />
@@ -195,13 +193,11 @@ import {
 import PromptEntryList from '@/panel/components/PromptEntryList.vue';
 import { createCustomPromptPersonTemplateEntry } from '@/services/prompt-profiles/runtime';
 import { PROMPT_EDITOR_DIALOG_PT, PROMPT_EDITOR_DIALOG_STYLE } from '@/panel/components/prompt-editor-dialog';
+import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import {
-  MACRO_BUTTON_TOKENS,
-  MACRO_OPTION_BUTTON_PT,
   MACRO_POPOVER_BASE_Z_INDEX,
   MACRO_POPOVER_PT,
   MACRO_POPOVER_TOKENS,
-  MACRO_TRIGGER_BUTTON_PT,
   type MacroPopoverInstance,
   PROMPT_PERSON_TOKEN_OPTIONS,
 } from '@/panel/components/prompt-llm-macro-popover';

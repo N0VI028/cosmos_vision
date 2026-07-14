@@ -1,8 +1,7 @@
-import type { ButtonDesignTokens } from '@primeuix/themes/types/button';
 import type { PopoverDesignTokens } from '@primeuix/themes/types/popover';
-import type { ButtonPassThroughOptions } from 'primevue/button';
 import type { PopoverPassThroughOptions } from 'primevue/popover';
 import './prompt-llm-macro-popover.css';
+
 import {
   PROMPT_LLM_FIXED_TAGS_TOKEN,
   PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN,
@@ -31,22 +30,6 @@ export interface MacroPopoverInstance {
 
 export const MACRO_POPOVER_BASE_Z_INDEX = 3200;
 
-export const MACRO_BUTTON_TOKENS = {
-  root: {
-    borderRadius: 'var(--cv-radius-sm)',
-    gap: '0',
-    focusRing: { width: '0', style: 'none', offset: '0' },
-    label: { fontWeight: '500' },
-  },
-  text: {
-    primary: {
-      color: 'var(--p-primary-color)',
-      hoverBackground: 'var(--cv-surface-container)',
-      activeBackground: 'var(--cv-surface-container)',
-    },
-  },
-} satisfies ButtonDesignTokens;
-
 export const MACRO_POPOVER_TOKENS = {
   root: {
     background: 'var(--cv-surface-container-high)',
@@ -58,18 +41,6 @@ export const MACRO_POPOVER_TOKENS = {
   },
   content: { padding: 'var(--cv-space-sm)' },
 } satisfies PopoverDesignTokens;
-
-export const MACRO_TRIGGER_BUTTON_PT = {
-  root: { class: 'cv-macro-button-root cv-macro-trigger-button' },
-  label: { class: 'cv-macro-button-label' },
-} satisfies ButtonPassThroughOptions;
-
-export const MACRO_OPTION_BUTTON_PT = {
-  root: {
-    class: 'cv-macro-button-root cv-macro-option-button',
-  },
-  label: { class: 'cv-macro-button-label' },
-} satisfies ButtonPassThroughOptions;
 
 export const MACRO_POPOVER_PT = {
   root: {
