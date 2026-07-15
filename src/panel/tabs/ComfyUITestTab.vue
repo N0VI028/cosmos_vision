@@ -135,7 +135,7 @@ import { useFocusedParagraphInput } from '@/composables/useFocusedParagraphInput
 import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue';
 import LightboxImage from '@/panel/components/LightboxImage.vue';
 
-import { generateComfyUIImageFromResolvedRequest } from '@/services/comfyui/api';
+import { generateComfyUIImagesFromResolvedRequest } from '@/services/comfyui/api';
 import {
   buildComfyUIResolvedRequest,
   type ComfyUILoraSnapshot,
@@ -232,15 +232,21 @@ const displayLlmLogParams = computed(() => {
 
 const snapshotRows = computed<ParamRow[]>(() => {
   if (!requestSnapshot.value) return [];
+  const snapshot = requestSnapshot.value;
   return [
-    { label: '接口地址', value: `${requestSnapshot.value.endpoint}/prompt`, code: true },
-    { label: '工作流类型', value: '标准工作流' },
-    { label: '图像尺寸', value: `${requestSnapshot.value.width}x${requestSnapshot.value.height}` },
-    { label: '步数', value: String(requestSnapshot.value.steps) },
-    { label: 'CFG', value: String(requestSnapshot.value.cfgScale) },
-    { label: '采样器类型', value: requestSnapshot.value.sampler, code: true },
-    { label: 'Seed', value: String(requestSnapshot.value.seed) },
-    { label: '启用 LoRA', value: formatSnapshotLoras(requestSnapshot.value.loras), code: true },
+    { label: '接口地址', value: `${snapshot.endpoint}/prompt`, code: true },
+    { label: '输出节点', value: snapshot.imageOutputNodeId, code: true },
+    {
+      label: '提示词绑定',
+      value: formatPromptBindings(snapshot.promptBindings),
+      code: true,
+    },
+    {
+      label: 'Seed',
+      value: formatSeedValues(snapshot.seedValues),
+      code: true,
+    },
+    { label: '启用 LoRA', value: formatSnapshotLoras(snapshot.loras), code: true },
   ];
 });
 
@@ -270,6 +276,26 @@ function formatSnapshotLoras(loras: ComfyUILoraSnapshot[]): string {
 }
 
 /**
+ * 格式化提示词绑定列表
+ * @param bindings 绑定目标
+ * @returns UI 展示文本
+ */
+function formatPromptBindings(bindings: ComfyUIRequestSnapshot['promptBindings']): string {
+  if (!bindings.length) return '无';
+  return bindings.map(item => `${item.nodeId}.${item.inputName}=${item.binding}`).join(', ');
+}
+
+/**
+ * 格式化 seed 解析结果
+ * @param seeds seed 目标
+ * @returns UI 展示文本
+ */
+function formatSeedValues(seeds: ComfyUIRequestSnapshot['seedValues']): string {
+  if (!seeds.length) return '无';
+  return seeds.map(item => `${item.nodeId}.${item.inputName}:${item.mode}=${item.value}`).join(', ');
+}
+
+/**
  * 执行当前模式的测试
  */
 async function runTest(): Promise<void> {
@@ -280,7 +306,10 @@ async function runTest(): Promise<void> {
   try {
     const request = currentMode.value === 'llm' ? await runLlmModeTest() : runDirectModeTest();
     requestSnapshot.value = request.snapshot;
-    replacePreviewImage(await generateComfyUIImageFromResolvedRequest(settings.comfyui, request));
+    const blobs = await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request);
+    // TODO: 后续改为多图测试结果，当前仅展示指定输出节点的第一张图片
+    if (!blobs.length) throw new Error('指定输出节点未返回任何图片');
+    replacePreviewImage(blobs[0]);
     testStatus.value = 'success';
     toastr.success(successStateText.value);
   } catch (error) {

@@ -1,7 +1,7 @@
 import type { ImageSource } from '@/constants/comfyui';
 import type { CharacterPromptItem } from '@/constants/novelai';
 import type { ImagePromptVibeRef } from '@/constants/novelai-vibe';
-import type { ComfyUIRequestSnapshot } from '@/services/comfyui/workflow';
+import type { ComfyUIRequestSnapshot } from '@/services/comfyui/types';
 import type { NovelAIFinalPrompts } from '@/services/novelai/api';
 import type { NovelAIVibeParameters } from '@/services/novelai/vibe-types';
 
@@ -98,7 +98,12 @@ function cloneNovelAIVibeParameters(parameters: NovelAIVibeParameters): NovelAIV
  */
 function cloneComfyUIRequestSnapshot(snapshot: ComfyUIRequestSnapshot): ComfyUIRequestSnapshot {
   return {
-    ...snapshot,
+    endpoint: snapshot.endpoint,
+    positivePrompt: snapshot.positivePrompt,
+    negativePrompt: snapshot.negativePrompt,
+    imageOutputNodeId: snapshot.imageOutputNodeId,
+    promptBindings: snapshot.promptBindings.map(item => ({ ...item })),
+    seedValues: snapshot.seedValues.map(item => ({ ...item })),
     loras: snapshot.loras.map(lora => ({ name: lora.name, strength: lora.strength })),
   };
 }

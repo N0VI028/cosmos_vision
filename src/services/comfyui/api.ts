@@ -5,28 +5,18 @@ import type { ImagePromptPresetSettings } from '@/constants/image-prompt';
 import {
   buildComfyUIResolvedRequest,
   buildComfyUIResolvedRequestFromPrompts,
-  normalizeComfyUIUrl,
-  type ComfyUIResolvedRequest,
-  type ComfyUIWorkflow,
-} from '@/services/comfyui/workflow';
+} from '@/services/comfyui/request';
+import { normalizeComfyUIUrl } from '@/services/comfyui/parse';
+import { extractHistoryImages, type ComfyUIHistoryEntry } from '@/services/comfyui/history';
+import type {
+  ComfyUIHistoryImage,
+  ComfyUIResolvedRequest,
+  ComfyUIWorkflow,
+} from '@/services/comfyui/types';
 import type { ImagePromptPair } from '@/services/image-prompt/presets';
 
 interface ComfyUIPromptResponse {
   prompt_id?: string;
-}
-
-interface ComfyUIHistoryImage {
-  filename: string;
-  subfolder?: string;
-  type?: string;
-}
-
-interface ComfyUIHistoryEntry {
-  outputs?: Record<string, { images?: ComfyUIHistoryImage[] }>;
-  status?: {
-    status_str?: string;
-    messages?: unknown[];
-  };
 }
 
 interface ComfyUICheckpointLoaderInfo {
@@ -52,10 +42,78 @@ export interface ComfyUIRequestOptions {
 }
 
 /**
- * 使用共享生图预设与正负提示词请求 ComfyUI 图片
+ * 使用共享生图预设与正负提示词请求 ComfyUI 图片列表
  * @param settings ComfyUI 设置
  * @param presetSettings 共享生图提示词预设
- * @param overrides 正负提示词覆写
+ * @param prompts 正负提示词覆写
+ * @param options 请求控制选项
+ * @returns 指定输出节点的全部图片 Blob，按返回顺序
+ */
+export async function generateComfyUIImages(
+  settings: ComfyUISettings,
+  presetSettings: ImagePromptPresetSettings,
+  prompts: ImagePromptPair,
+  options: ComfyUIRequestOptions = {},
+): Promise<Blob[]> {
+  return generateComfyUIImagesFromResolvedRequest(
+    settings,
+    buildComfyUIResolvedRequest(settings, presetSettings, prompts),
+    options,
+  );
+}
+
+/**
+ * 使用最终正负提示词请求 ComfyUI 图片列表
+ * @param settings ComfyUI 设置
+ * @param prompts 已完成拼接的正负提示词
+ * @param options 请求控制选项
+ * @returns 指定输出节点的全部图片 Blob
+ */
+export async function generateComfyUIImagesFromPrompts(
+  settings: ComfyUISettings,
+  prompts: ImagePromptPair,
+  options: ComfyUIRequestOptions = {},
+): Promise<Blob[]> {
+  return generateComfyUIImagesFromResolvedRequest(
+    settings,
+    buildComfyUIResolvedRequestFromPrompts(settings, prompts),
+    options,
+  );
+}
+
+/**
+ * 发送已解析的 ComfyUI 请求并下载全部输出图片
+ * @param settings ComfyUI 设置
+ * @param request 已解析请求
+ * @param options 请求控制选项
+ * @returns 指定输出节点的全部图片 Blob
+ */
+export async function generateComfyUIImagesFromResolvedRequest(
+  settings: ComfyUISettings,
+  request: ComfyUIResolvedRequest,
+  options: ComfyUIRequestOptions = {},
+): Promise<Blob[]> {
+  const baseUrl = normalizeComfyUIUrl(settings.url);
+  const promptId = await queueComfyUIPrompt(baseUrl, request.workflow, options.signal);
+  const cleanupAbort = bindComfyUIAbort(baseUrl, options.signal);
+  try {
+    const images = await waitForComfyUIHistoryImages(
+      baseUrl,
+      promptId,
+      request.imageOutputNodeId,
+      options.signal,
+    );
+    return downloadComfyUIImages(baseUrl, images, options.signal);
+  } finally {
+    cleanupAbort();
+  }
+}
+
+/**
+ * 兼容旧入口：返回指定输出节点的第一张图片
+ * @param settings ComfyUI 设置
+ * @param presetSettings 共享生图提示词预设
+ * @param prompts 正负提示词
  * @param options 请求控制选项
  * @returns 首张输出图片 Blob
  */
@@ -65,17 +123,14 @@ export async function generateComfyUIImage(
   prompts: ImagePromptPair,
   options: ComfyUIRequestOptions = {},
 ): Promise<Blob> {
-  return generateComfyUIImageFromResolvedRequest(
-    settings,
-    buildComfyUIResolvedRequest(settings, presetSettings, prompts),
-    options,
-  );
+  const blobs = await generateComfyUIImages(settings, presetSettings, prompts, options);
+  return requireFirstBlob(blobs);
 }
 
 /**
- * 使用最终正负提示词请求 ComfyUI 图片
+ * 兼容旧入口：使用最终提示词返回第一张图片
  * @param settings ComfyUI 设置
- * @param prompts 已完成拼接的正负提示词
+ * @param prompts 最终提示词
  * @param options 请求控制选项
  * @returns 首张输出图片 Blob
  */
@@ -84,11 +139,24 @@ export async function generateComfyUIImageFromPrompts(
   prompts: ImagePromptPair,
   options: ComfyUIRequestOptions = {},
 ): Promise<Blob> {
-  return generateComfyUIImageFromResolvedRequest(
-    settings,
-    buildComfyUIResolvedRequestFromPrompts(settings, prompts),
-    options,
-  );
+  const blobs = await generateComfyUIImagesFromPrompts(settings, prompts, options);
+  return requireFirstBlob(blobs);
+}
+
+/**
+ * 兼容旧入口：发送已解析请求并返回第一张图片
+ * @param settings ComfyUI 设置
+ * @param request 已解析请求
+ * @param options 请求控制选项
+ * @returns 首张输出图片 Blob
+ */
+export async function generateComfyUIImageFromResolvedRequest(
+  settings: ComfyUISettings,
+  request: ComfyUIResolvedRequest,
+  options: ComfyUIRequestOptions = {},
+): Promise<Blob> {
+  const blobs = await generateComfyUIImagesFromResolvedRequest(settings, request, options);
+  return requireFirstBlob(blobs);
 }
 
 /**
@@ -128,29 +196,6 @@ export async function fetchComfyUILoraNames(settings: ComfyUISettings): Promise<
 }
 
 /**
- * 发送已解析的 ComfyUI 请求
- * @param settings ComfyUI 设置
- * @param request 已解析请求
- * @param options 请求控制选项
- * @returns 首张输出图片 Blob
- */
-export async function generateComfyUIImageFromResolvedRequest(
-  settings: ComfyUISettings,
-  request: ComfyUIResolvedRequest,
-  options: ComfyUIRequestOptions = {},
-): Promise<Blob> {
-  const baseUrl = normalizeComfyUIUrl(settings.url);
-  const promptId = await queueComfyUIPrompt(baseUrl, request.workflow, options.signal);
-  const cleanupAbort = bindComfyUIAbort(baseUrl, options.signal);
-  try {
-    const image = await waitForComfyUIHistoryImage(baseUrl, promptId, options.signal);
-    return fetchComfyUIImage(baseUrl, image, options.signal);
-  } finally {
-    cleanupAbort();
-  }
-}
-
-/**
  * 向 ComfyUI 提交工作流
  * @param baseUrl ComfyUI 基础地址
  * @param workflow 已解析工作流
@@ -176,29 +221,31 @@ async function queueComfyUIPrompt(baseUrl: string, workflow: ComfyUIWorkflow, si
 }
 
 /**
- * 轮询历史记录直到拿到首张图片
+ * 轮询历史记录直到指定输出节点返回图片
  * @param baseUrl ComfyUI 基础地址
  * @param promptId prompt_id
+ * @param imageOutputNodeId 指定输出节点
  * @param signal 取消信号
- * @returns 第一张图片元数据
+ * @returns 图片元数据列表
  */
-async function waitForComfyUIHistoryImage(
+async function waitForComfyUIHistoryImages(
   baseUrl: string,
   promptId: string,
+  imageOutputNodeId: string,
   signal?: AbortSignal,
-): Promise<ComfyUIHistoryImage> {
+): Promise<ComfyUIHistoryImage[]> {
   for (let index = 0; index < COMFYUI_MAX_POLL_COUNT; index += 1) {
     throwIfComfyUIAborted(signal);
-    const result = await fetchComfyUIHistoryResult(baseUrl, promptId, signal);
+    const result = await fetchComfyUIHistoryResult(baseUrl, promptId, imageOutputNodeId, signal);
     if (result.executionError) throw new Error(result.executionError);
-    if (result.image) return result.image;
+    if (result.images) return result.images;
     await sleep(COMFYUI_POLL_INTERVAL_MS, signal);
   }
   throw new Error('ComfyUI 生成超时，请检查队列状态或工作流执行结果');
 }
 
 interface ComfyUIHistoryPollResult {
-  image: ComfyUIHistoryImage | null;
+  images: ComfyUIHistoryImage[] | null;
   executionError: string | null;
 }
 
@@ -206,12 +253,14 @@ interface ComfyUIHistoryPollResult {
  * 读取当前 prompt 的历史轮询结果
  * @param baseUrl ComfyUI 基础地址
  * @param promptId prompt_id
+ * @param imageOutputNodeId 指定输出节点
  * @param signal 取消信号
  * @returns 当前轮询结果
  */
 async function fetchComfyUIHistoryResult(
   baseUrl: string,
   promptId: string,
+  imageOutputNodeId: string,
   signal?: AbortSignal,
 ): Promise<ComfyUIHistoryPollResult> {
   let response: Response;
@@ -224,24 +273,28 @@ async function fetchComfyUIHistoryResult(
   const history = await readJsonResponse<unknown>(response, 'ComfyUI /history');
   const entry = readHistoryEntry(history, promptId);
   return {
-    image: extractHistoryImage(entry),
+    images: extractHistoryImages(entry, imageOutputNodeId),
     executionError: extractHistoryExecutionError(entry),
   };
 }
 
 /**
- * 从历史记录里提取首张图片
- * @param entry 当前 prompt 的历史条目
- * @returns 图片元数据或 null
+ * 按顺序下载图片列表
+ * @param baseUrl ComfyUI 基础地址
+ * @param images 图片元数据
+ * @param signal 取消信号
+ * @returns Blob 列表
  */
-function extractHistoryImage(entry: ComfyUIHistoryEntry | null): ComfyUIHistoryImage | null {
-  if (!entry?.outputs) return null;
-
-  return (
-    Object.values(entry.outputs)
-      .flatMap(output => output.images ?? [])
-      .find(image => Boolean(image.filename)) ?? null
-  );
+async function downloadComfyUIImages(
+  baseUrl: string,
+  images: ComfyUIHistoryImage[],
+  signal?: AbortSignal,
+): Promise<Blob[]> {
+  const blobs: Blob[] = [];
+  for (const image of images) {
+    blobs.push(await fetchComfyUIImage(baseUrl, image, signal));
+  }
+  return blobs;
 }
 
 /**
@@ -281,12 +334,10 @@ function readHistoryEntry(history: unknown, promptId: string): ComfyUIHistoryEnt
  */
 function extractHistoryStatusMessage(messages: unknown[] | undefined): string | null {
   if (!Array.isArray(messages)) return null;
-
   for (const message of messages) {
     const detail = readHistoryStatusMessage(message);
     if (detail) return detail;
   }
-
   return null;
 }
 
@@ -368,7 +419,7 @@ function readModelFolderName(value: unknown): string | null {
 }
 
 /**
- * 下载首张图片
+ * 下载单张图片
  * @param baseUrl ComfyUI 基础地址
  * @param image 图片元数据
  * @param signal 取消信号
@@ -432,6 +483,16 @@ function throwIfComfyUIAborted(signal?: AbortSignal): void {
  */
 function createComfyUIAbortError(): Error {
   return new Error('已取消生成');
+}
+
+/**
+ * 要求至少一张图片并返回第一张
+ * @param blobs 图片列表
+ * @returns 第一张图片
+ */
+function requireFirstBlob(blobs: Blob[]): Blob {
+  if (!blobs.length) throw new Error('指定输出节点未返回任何图片');
+  return blobs[0];
 }
 
 /**

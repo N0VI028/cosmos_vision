@@ -29,7 +29,7 @@ export const DATA_PORTABILITY_SECTIONS: DataPortabilitySectionDefinition[] = [
   { id: 'basicSettings', label: '基础偏好', description: '启用状态与图像来源', defaultSelected: true },
   { id: 'novelAISettings', label: 'NovelAI 配置', description: '模型、尺寸、采样与路由设置', defaultSelected: true },
   { id: 'novelAISecrets', label: 'NovelAI 密钥', description: '账号 API Key 与跨域代理', defaultSelected: true, sensitive: true },
-  { id: 'comfyUISettings', label: 'ComfyUI 配置', description: 'Url地址、工作流与采样设置', defaultSelected: true },
+  { id: 'comfyUISettings', label: 'ComfyUI 配置', description: 'URL、工作流与 LoRA 预设', defaultSelected: true },
   { id: 'imagePromptPresets', label: '固定提示词预设', description: '正面/负面生图固定提示词', defaultSelected: true },
   { id: 'novelAIVibeBundle', label: 'NovelAI Vibe', description: 'Vibe 引用、缓存与缩略图', defaultSelected: true, media: true },
   { id: 'promptLlmSettings', label: 'LLM 配置', description: '来源、模型参数、API Key 与提取规则', defaultSelected: true, sensitive: true },

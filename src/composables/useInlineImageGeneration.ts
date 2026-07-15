@@ -6,8 +6,12 @@ import {
 import { preventInlineEventBubbling } from '@/composables/inlineImageDom';
 import { cloneInlinePromptSnapshot, type InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { useGalleryRuntimesStore } from '@/store/gallery-runtimes';
-import { generateComfyUIImageFromPrompts, generateComfyUIImageFromResolvedRequest } from '@/services/comfyui/api';
-import { buildComfyUIResolvedRequest, getComfyUIRequestError, type ComfyUIRequestSnapshot } from '@/services/comfyui/workflow';
+import {
+  generateComfyUIImagesFromPrompts,
+  generateComfyUIImagesFromResolvedRequest,
+} from '@/services/comfyui/api';
+import { buildComfyUIResolvedRequest, getComfyUIRequestError } from '@/services/comfyui/workflow';
+import type { ComfyUIRequestSnapshot } from '@/services/comfyui/types';
 import {
   buildNovelAIResolvedRequest,
   buildNovelAILlmPromptOverrides,
@@ -79,15 +83,15 @@ interface InlineImageGenerationOptions {
   getDarkMode: () => boolean;
 }
 
-interface InlineGenerationResult {
-  imageBlob: Blob;
+interface InlineGenerationBatchResult {
+  imageBlobs: Blob[];
   promptSnapshot: InlinePromptSnapshot;
 }
 
 type InlineGenerationTask = (
   session: InlineGenerationSession,
   onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
-) => Promise<InlineGenerationResult>;
+) => Promise<InlineGenerationBatchResult>;
 
 
 /**
@@ -428,19 +432,24 @@ export function useInlineImageGeneration(
   }
 
   /**
-   * 应用生成结果并插入图片
+   * 应用生成结果并按顺序插入全部图片
    * @param paragraph 目标段落
-   * @param result 生成结果
+   * @param result 批量生成结果
    * @param session 生成会话
    */
   function applyGenerationResult(
     paragraph: HTMLElement,
-    result: InlineGenerationResult,
+    result: InlineGenerationBatchResult,
     session: InlineGenerationSession,
   ): void {
     generationSession.ensureActive(session);
     session.status.remove();
-    imageGallery.showGenerated(paragraph, result);
+    for (const imageBlob of result.imageBlobs) {
+      imageGallery.showGenerated(paragraph, {
+        imageBlob,
+        promptSnapshot: result.promptSnapshot,
+      });
+    }
   }
 
   /**
@@ -491,9 +500,9 @@ export function useInlineImageGeneration(
   async function runImageStep(
     session: InlineGenerationSession,
     retrySnapshot: InlinePromptSnapshot,
-    task: () => Promise<InlineGenerationResult>,
+    task: () => Promise<InlineGenerationBatchResult>,
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
-  ): Promise<InlineGenerationResult> {
+  ): Promise<InlineGenerationBatchResult> {
     onSnapshotResolved?.(retrySnapshot);
     session.status.setStatus('正在生成图片...');
     return task();
@@ -512,7 +521,7 @@ export function useInlineImageGeneration(
     specialRequest: string,
     session: InlineGenerationSession,
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
-  ): Promise<InlineGenerationResult> {
+  ): Promise<InlineGenerationBatchResult> {
     const context = { ...buildPromptLlmContextFromParagraphs(paragraphs, settings.promptLlm), specialRequest };
     return settings.imageSource === 'comfyui'
       ? generateComfyUIImageResult(context, session, onSnapshotResolved)
@@ -527,13 +536,13 @@ export function useInlineImageGeneration(
   async function generateImageResultFromSnapshot(
     snapshot: InlinePromptSnapshot,
     session: InlineGenerationSession,
-  ): Promise<InlineGenerationResult> {
+  ): Promise<InlineGenerationBatchResult> {
     session.status.setStatus('正在生成图片...');
     const imageSource = snapshot.imageSource ?? settings.imageSource;
     if (imageSource === 'comfyui') {
       return {
         promptSnapshot: snapshot,
-        imageBlob: await generateComfyUIImageFromPrompts(settings.comfyui, snapshot.comfyui ?? snapshot, {
+        imageBlobs: await generateComfyUIImagesFromPrompts(settings.comfyui, snapshot.comfyui ?? snapshot, {
           signal: session.controller.signal,
         }),
       };
@@ -541,9 +550,11 @@ export function useInlineImageGeneration(
 
     return {
       promptSnapshot: snapshot,
-      imageBlob: await generateNovelAIImageFromPrompts(settings.novelai, snapshot.novelai ?? snapshot, {
-        signal: session.controller.signal,
-      }),
+      imageBlobs: [
+        await generateNovelAIImageFromPrompts(settings.novelai, snapshot.novelai ?? snapshot, {
+          signal: session.controller.signal,
+        }),
+      ],
     };
   }
 
@@ -567,7 +578,7 @@ export function useInlineImageGeneration(
     context: PromptLlmContext,
     session: InlineGenerationSession,
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
-  ): Promise<InlineGenerationResult> {
+  ): Promise<InlineGenerationBatchResult> {
     const rawResponse = await runPromptLlmStep(session, schemaFields =>
       generatePromptTextFromRuntimeContext(
         context,
@@ -598,7 +609,7 @@ export function useInlineImageGeneration(
           const result = await generateNovelAIImageFromResolvedRequest(request, { signal: session.controller.signal });
           return {
             promptSnapshot: createNovelAISnapshot(result.prompts),
-            imageBlob: result.imageBlob,
+            imageBlobs: [result.imageBlob],
           };
         } finally {
           if (hasPromotedTemporaryVibes(request.prompts.vibeReferences, temporarySourceHashes)) {
@@ -641,7 +652,7 @@ export function useInlineImageGeneration(
     context: PromptLlmContext,
     session: InlineGenerationSession,
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
-  ): Promise<InlineGenerationResult> {
+  ): Promise<InlineGenerationBatchResult> {
     const prompts = await runPromptLlmStep(session, schemaFields =>
       generatePromptFromRuntimeContext(
         context,
@@ -662,7 +673,7 @@ export function useInlineImageGeneration(
       createComfyUISnapshot(request.snapshot),
       async () => ({
         promptSnapshot: createComfyUISnapshot(request.snapshot),
-        imageBlob: await generateComfyUIImageFromResolvedRequest(settings.comfyui, request, {
+        imageBlobs: await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request, {
           signal: session.controller.signal,
         }),
       }),

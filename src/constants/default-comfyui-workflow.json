@@ -26,7 +26,12 @@
     },
     "class_type": "KSampler",
     "_meta": {
-      "title": "K采样器"
+      "title": "K采样器",
+      "cosmosVision": {
+        "seedModes": {
+          "seed": "randomize"
+        }
+      }
     }
   },
   "4": {
@@ -74,7 +79,10 @@
     },
     "class_type": "PreviewImage",
     "_meta": {
-      "title": "预览图像"
+      "title": "预览图像",
+      "cosmosVision": {
+        "imageOutput": true
+      }
     }
   },
   "55": {
@@ -150,7 +158,12 @@
     },
     "class_type": "Prompt (LoraManager)",
     "_meta": {
-      "title": "Prompt (LoraManager)"
+      "title": "Prompt (LoraManager)",
+      "cosmosVision": {
+        "promptBindings": {
+          "text": "positive"
+        }
+      }
     }
   },
   "66": {
@@ -163,7 +176,12 @@
     },
     "class_type": "Prompt (LoraManager)",
     "_meta": {
-      "title": "Prompt (LoraManager)"
+      "title": "Prompt (LoraManager)",
+      "cosmosVision": {
+        "promptBindings": {
+          "text": "negative"
+        }
+      }
     }
   }
 }

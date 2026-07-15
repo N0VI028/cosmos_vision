@@ -5,8 +5,6 @@ import defaultPromptLlmPresetSettings, {
   DEFAULT_PROMPT_LLM_PARTICIPANT_MESSAGE_ID,
 } from '@/constants/default-prompt-llm-preset';
 import {
-  COMFYUI_CUSTOM_RESOLUTION_PRESET,
-  COMFYUI_DEFAULT_SAMPLER,
   createComfyUILoraPresetSettings,
   DEFAULT_COMFYUI_WORKFLOW_JSON,
   type ImageSource,
@@ -143,17 +141,9 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
   comfyui: {
     url: 'http://127.0.0.1:8188',
     workflowJson: DEFAULT_COMFYUI_WORKFLOW_JSON,
-    checkpointName: '',
     loraPresets: createComfyUILoraPresetSettings(),
     positivePromptPresetId: DEFAULT_POSITIVE_PROMPT_PRESET_ID,
     negativePromptPresetId: DEFAULT_NEGATIVE_PROMPT_PRESET_ID,
-    resolutionPreset: COMFYUI_CUSTOM_RESOLUTION_PRESET,
-    width: 832,
-    height: 1216,
-    steps: 23,
-    cfgScale: 5,
-    sampler: COMFYUI_DEFAULT_SAMPLER,
-    seed: null,
   },
   promptLlm: {
     proxyPreset: '',

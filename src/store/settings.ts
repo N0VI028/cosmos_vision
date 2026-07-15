@@ -3,11 +3,6 @@ import { saveSettingsDebounced } from '@sillytavern/script';
 import { useLocalStorage } from '@vueuse/core';
 import { z } from 'zod';
 import {
-  COMFYUI_CUSTOM_RESOLUTION_PRESET,
-  COMFYUI_IMAGE_SIZE_LIMITS,
-  COMFYUI_MAX_SEED,
-  COMFYUI_RESOLUTION_PRESETS,
-  COMFYUI_SAMPLERS,
   IMAGE_SOURCES,
   createComfyUILoraPresetSettings,
   createComfyUILoraSetting,
@@ -95,13 +90,6 @@ const novelAIAccountSchema = z.object({
   apiKey: z.string(),
   enabled: z.boolean().default(true),
 });
-const comfyUISamplerSchema = z.enum(optionValues(COMFYUI_SAMPLERS));
-const comfyUIResolutionPresetSchema = z.union([
-  z.enum(optionValues(COMFYUI_RESOLUTION_PRESETS)),
-  z.literal(COMFYUI_CUSTOM_RESOLUTION_PRESET),
-]);
-const comfyUIImageSizeSchema = z.number().int().min(COMFYUI_IMAGE_SIZE_LIMITS.min).max(COMFYUI_IMAGE_SIZE_LIMITS.max);
-const comfyUISeedSchema = z.number().int().min(0).max(COMFYUI_MAX_SEED).nullable();
 const comfyUILoraSchema = z.object({
   id: z.string().min(1),
   name: z.string(),
@@ -188,17 +176,9 @@ const novelAISettingsSchema = z.object({
 const comfyUISettingsSchema = z.object({
   url: z.string(),
   workflowJson: z.string(),
-  checkpointName: z.string(),
   loraPresets: comfyUILoraPresetSettingsSchema,
   positivePromptPresetId: imagePromptPresetIdSchema,
   negativePromptPresetId: imagePromptPresetIdSchema,
-  resolutionPreset: comfyUIResolutionPresetSchema,
-  width: comfyUIImageSizeSchema,
-  height: comfyUIImageSizeSchema,
-  steps: z.number(),
-  cfgScale: z.number(),
-  sampler: comfyUISamplerSchema,
-  seed: comfyUISeedSchema,
 });
 
 const promptLlmMessageTriggerMatchModeSchema = z.enum(PROMPT_LLM_MESSAGE_TRIGGER_MATCH_MODES);
@@ -537,17 +517,9 @@ function recoverComfyUISettings(value: unknown): ComfyUISettings {
   return {
     url: read('url', z.string()),
     workflowJson: read('workflowJson', z.string()),
-    checkpointName: read('checkpointName', z.string()),
     loraPresets: recoverComfyUILoraPresetSettings(record.loraPresets, record.loras),
     positivePromptPresetId: read('positivePromptPresetId', imagePromptPresetIdSchema),
     negativePromptPresetId: read('negativePromptPresetId', imagePromptPresetIdSchema),
-    resolutionPreset: read('resolutionPreset', comfyUIResolutionPresetSchema),
-    width: read('width', comfyUIImageSizeSchema),
-    height: read('height', comfyUIImageSizeSchema),
-    steps: read('steps', z.number()),
-    cfgScale: read('cfgScale', z.number()),
-    sampler: read('sampler', comfyUISamplerSchema),
-    seed: read('seed', comfyUISeedSchema),
   };
 }
 

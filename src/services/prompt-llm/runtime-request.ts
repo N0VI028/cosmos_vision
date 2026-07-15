@@ -81,7 +81,7 @@ function readPromptLlmTriggerModelId(
   settings: Pick<CosmosVisionSettings, 'novelai' | 'comfyui'>,
   imageSource: ImageSource,
 ): string {
-  if (imageSource === 'comfyui') return settings.comfyui.checkpointName.trim();
+  if (imageSource === 'comfyui') return '';
   return settings.novelai.model.trim();
 }
 
