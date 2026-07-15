@@ -1,27 +1,27 @@
 <template>
-  <div class="cv-workflow-editor" :class="{ 'is-fullscreen': fullscreen }">
+  <div
+    :class="[
+      'flex flex-col gap-(--cv-space-xl)',
+      { 'fixed inset-0 z-1200 overflow-auto bg-(--cv-background) p-(--cv-space-5xl)': fullscreen },
+    ]"
+  >
+    <DefineIconButton v-slot="{ $slots, title, disabled }">
+      <button
+        type="button"
+        class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-(--cv-radius-sm) border-solid border-(--cv-outline) bg-(--cv-surface-container-lowest) text-(--cv-on-surface) opacity-(--cv-opacity-0-78) transition-[opacity,background-color,border-color] duration-150 ease-in-out hover:border-(--cv-primary-container) hover:bg-(--cv-surface-container-lowest) hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--cv-primary-container) disabled:cursor-wait disabled:opacity-55"
+        :title="title"
+        :aria-label="title"
+        :disabled="disabled"
+      >
+        <component :is="$slots.default" />
+      </button>
+    </DefineIconButton>
     <ComfyUIWorkflowToolbar
       :show-advanced-json="showAdvancedJson"
-      :fullscreen="fullscreen"
-      :schema-loading="schemaLoading"
-      :status-text="statusText"
+      :status-text="statusTone !== 'info' ? statusText : undefined"
       :status-tone="statusTone"
       @import="emit('import')"
-      @restore-default="emit('restore-default')"
       @toggle-json="showAdvancedJson = !showAdvancedJson"
-      @refresh-schema="refreshSchema(true)"
-      @fit-view="canvasRef?.fitView()"
-      @toggle-fullscreen="fullscreen = !fullscreen"
-    />
-
-    <div v-if="parseError" class="cv-field-warn">{{ parseError }}</div>
-
-    <ComfyUIWorkflowCanvas
-      v-if="workflow"
-      ref="canvasRef"
-      :layout="layout"
-      :selected-node-id="selectedNodeId"
-      @select="selectedNodeId = $event"
     />
 
     <label v-if="showAdvancedJson" class="cv-field">
@@ -30,13 +30,64 @@
         <Textarea
           :model-value="modelValue"
           rows="8"
-          class="cv-workflow-textarea w-full"
+          class="w-full resize-y overflow-y-auto rounded-(--cv-radius) border-solid border-(--cv-outline) bg-(--cv-surface-variant) p-(--cv-space-xl) font-mono text-(--cv-font-size-sm)"
           :invalid="Boolean(parseError)"
           @update:model-value="onJsonEdit"
         />
         <div class="cv-field-hint">请使用 ComfyUI 的 Save (API Format) 导出</div>
       </div>
     </label>
+
+    <div v-if="parseError" class="cv-field-warn">{{ parseError }}</div>
+
+    <div v-if="workflow" class="relative">
+      <ComfyUIWorkflowCanvas
+        ref="canvasRef"
+        :layout="layout"
+        :selected-node-id="selectedNodeId"
+        @select="selectedNodeId = $event"
+      />
+      <Transition
+        enter-active-class="transition duration-300 ease"
+        enter-from-class="opacity-0 -translate-y-[4px]"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition duration-300 ease"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 -translate-y-[4px]"
+      >
+        <div
+          v-if="showSyncStatus && statusText && statusTone === 'info'"
+          class="pointer-events-none absolute top-(--cv-space-lg) left-(--cv-space-lg) z-2 flex items-center gap-(--cv-space-sm) px-(--cv-space-lg) py-(--cv-space-sm) text-(length:--cv-font-size-xs)"
+        >
+          <i class="fa-solid fa-circle-info" aria-hidden="true" />
+          <span>{{ statusText }}</span>
+        </div>
+      </Transition>
+      <div class="absolute top-(--cv-space-lg) right-(--cv-space-lg) z-2 flex gap-(--cv-space-sm)">
+        <ReuseIconButton
+          title="同步节点定义"
+          :disabled="schemaLoading"
+          @click="refreshSchema(true)"
+        >
+          <i class="fa-solid fa-rotate" :class="{ 'fa-spin': schemaLoading }" aria-hidden="true" />
+        </ReuseIconButton>
+        <ReuseIconButton
+          title="适配视图"
+          @click="canvasRef?.fitView()"
+        >
+          <i class="fa-solid fa-expand" aria-hidden="true" />
+        </ReuseIconButton>
+        <ReuseIconButton
+          :title="fullscreen ? '退出全屏' : '全屏编辑'"
+          @click="fullscreen = !fullscreen"
+        >
+          <i
+            :class="fullscreen ? 'fa-solid fa-compress' : 'fa-solid fa-up-right-and-down-left-from-center'"
+            aria-hidden="true"
+          />
+        </ReuseIconButton>
+      </div>
+    </div>
 
     <ComfyUIWorkflowInspector
       v-if="workflow"
@@ -63,12 +114,7 @@ import type { ComfyUILoraPresetSettings } from '@/constants/comfyui';
 import { getActiveComfyUILoraPreset } from '@/services/comfyui/lora-presets';
 import { writeLoraPresetToNode } from '@/services/comfyui/lora-adapter';
 import { layoutWorkflow } from '@/services/comfyui/layout';
-import {
-  readImageOutputNodeId,
-  setImageOutputNode,
-  setPromptBinding,
-  setSeedMode,
-} from '@/services/comfyui/meta';
+import { readImageOutputNodeId, setImageOutputNode, setPromptBinding, setSeedMode } from '@/services/comfyui/meta';
 import {
   fetchComfyUIObjectInfo,
   getCachedComfyUIObjectInfo,
@@ -76,15 +122,16 @@ import {
   mapInputControls,
 } from '@/services/comfyui/object-info';
 import { parseComfyUIWorkflow, serializeComfyUIWorkflow } from '@/services/comfyui/parse';
-import type {
-  ComfyUIObjectInfoMap,
-  ComfyUIWorkflow,
-  PromptBinding,
-  SeedMode,
-} from '@/services/comfyui/types';
+import type { ComfyUIObjectInfoMap, ComfyUIWorkflow, PromptBinding, SeedMode } from '@/services/comfyui/types';
+import { createReusableTemplate } from '@vueuse/core';
 import ComfyUIWorkflowCanvas from '@/panel/components/comfyui/ComfyUIWorkflowCanvas.vue';
 import ComfyUIWorkflowInspector from '@/panel/components/comfyui/ComfyUIWorkflowInspector.vue';
 import ComfyUIWorkflowToolbar from '@/panel/components/comfyui/ComfyUIWorkflowToolbar.vue';
+
+const [DefineIconButton, ReuseIconButton] = createReusableTemplate<{
+  title: string;
+  disabled?: boolean;
+}>();
 
 const props = defineProps<{
   modelValue: string;
@@ -98,7 +145,6 @@ const emit = defineEmits<{
   'update:modelValue': [value: string];
   'update:lora-preset-settings': [settings: ComfyUILoraPresetSettings];
   import: [];
-  'restore-default': [];
   'refresh-lora-options': [];
 }>();
 
@@ -109,6 +155,25 @@ const fullscreen = ref(false);
 const schemaLoading = ref(false);
 const objectInfo = ref<ComfyUIObjectInfoMap | null>(null);
 const schemaError = ref<string | null>(null);
+
+const showSyncStatus = ref(false);
+let syncStatusTimer: number | null = null;
+
+/**
+ * 触发同步状态显示，在指定秒数后自动隐藏
+ */
+function triggerSyncStatusShow(): void {
+  // 如果当前已有定时器，先清除
+  if (syncStatusTimer) {
+    clearTimeout(syncStatusTimer);
+  }
+  showSyncStatus.value = true;
+  // 设置 3 秒后关闭显示
+  syncStatusTimer = window.setTimeout(() => {
+    showSyncStatus.value = false;
+    syncStatusTimer = null;
+  }, 3000);
+}
 
 const parseState = computed(() => {
   try {
@@ -125,9 +190,7 @@ const workflow = computed(() => parseState.value.workflow);
 const parseError = computed(() => parseState.value.error);
 
 const layout = computed(() => {
-  return workflow.value
-    ? layoutWorkflow(workflow.value)
-    : { nodes: [], edges: [], width: 1, height: 1 };
+  return workflow.value ? layoutWorkflow(workflow.value) : { nodes: [], edges: [], width: 1, height: 1 };
 });
 
 const selectedNode = computed(() => {
@@ -155,9 +218,9 @@ const outputUnverified = computed(() => !objectInfo.value);
 
 const statusText = computed(() => {
   if (parseError.value) return parseError.value;
-  if (schemaError.value) return `Schema 离线降级: ${schemaError.value}`;
-  if (objectInfo.value) return `Schema 已加载（${Object.keys(objectInfo.value).length} 类节点）`;
-  return 'Schema 未加载，使用基础控件';
+  if (schemaError.value) return `节点定义离线：${schemaError.value}`;
+  if (objectInfo.value) return `已同步节点定义（${Object.keys(objectInfo.value).length} 类）`;
+  return '未同步节点定义，使用基础控件';
 });
 
 const statusTone = computed(() => {
@@ -175,7 +238,7 @@ function commitWorkflow(next: ComfyUIWorkflow): void {
 }
 
 /**
- * 高级 JSON 文本编辑
+ * JSON 文本编辑
  * @param value 新文本
  */
 function onJsonEdit(value: string | undefined): void {
@@ -227,7 +290,7 @@ function updateSeedMode(inputName: string, mode: SeedMode | null): void {
 function setImageOutput(nodeId: string): void {
   if (!workflow.value) return;
   if (objectInfo.value && !outputCandidates.value.includes(nodeId)) {
-    toastr.warning('在线 schema 未将该节点标记为输出节点');
+    toastr.warning('当前节点定义未将该节点标记为输出节点');
     return;
   }
   const next = structuredClone(workflow.value) as ComfyUIWorkflow;
@@ -250,7 +313,7 @@ function onLoraPresetUpdate(settings: ComfyUILoraPresetSettings): void {
 }
 
 /**
- * 刷新 object_info schema
+ * 从 ComfyUI 同步节点定义
  * @param force 是否强制刷新
  */
 async function refreshSchema(force = false): Promise<void> {
@@ -263,10 +326,10 @@ async function refreshSchema(force = false): Promise<void> {
   try {
     objectInfo.value = await fetchComfyUIObjectInfo(props.comfyuiUrl, force);
     schemaError.value = null;
-    if (force) toastr.success('已刷新 ComfyUI object_info');
+    if (force) toastr.success('已从 ComfyUI 同步节点定义');
   } catch (error) {
     objectInfo.value = getCachedComfyUIObjectInfo(props.comfyuiUrl);
-    schemaError.value = error instanceof Error ? error.message : '获取 schema 失败';
+    schemaError.value = error instanceof Error ? error.message : '同步节点定义失败';
     if (force) toastr.warning(schemaError.value);
   } finally {
     schemaLoading.value = false;
@@ -299,33 +362,20 @@ watch(fullscreen, value => {
   document.body.classList.toggle('cv-workflow-editor-open', value);
 });
 
+watch(
+  objectInfo,
+  newVal => {
+    if (newVal && statusTone.value === 'info') {
+      triggerSyncStatusShow();
+    }
+  },
+  { immediate: true },
+);
+
 onBeforeUnmount(() => {
   document.body.classList.remove('cv-workflow-editor-open');
+  if (syncStatusTimer) {
+    clearTimeout(syncStatusTimer);
+  }
 });
 </script>
-
-<style scoped>
-@reference '../../../global.css';
-
-.cv-workflow-editor {
-  @apply flex flex-col;
-  gap: var(--cv-space-xl);
-}
-
-.cv-workflow-editor.is-fullscreen {
-  @apply fixed inset-0 z-1200 overflow-auto;
-  background: var(--cv-background);
-  padding: var(--cv-space-5xl);
-}
-
-.cv-workflow-textarea {
-  @apply resize-y overflow-y-auto;
-  background: var(--cv-surface-variant);
-  border: var(--cv-border-width) solid var(--cv-outline);
-  color: var(--cv-on-surface);
-  border-radius: var(--cv-radius);
-  padding: var(--cv-space-xl);
-  font-family: Consolas, Monaco, monospace;
-  font-size: var(--cv-font-size-sm);
-}
-</style>

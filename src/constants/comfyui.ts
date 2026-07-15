@@ -11,6 +11,8 @@ export const IMAGE_SOURCES = [
 export const COMFYUI_MAX_SEED = Number.MAX_SAFE_INTEGER;
 export const DEFAULT_COMFYUI_LORA_PRESET_ID = 'comfyui-lora-default-preset';
 export const DEFAULT_COMFYUI_LORA_PRESET_NAME = '默认 LoRA 组';
+export const DEFAULT_COMFYUI_WORKFLOW_PRESET_ID = 'comfyui-workflow-default';
+export const DEFAULT_COMFYUI_WORKFLOW_PRESET_NAME = '默认工作流';
 
 /** ComfyUI 默认工作流
  * 来自 https://github.com/willmiao/ComfyUI-Lora-Manager 的示例模板
@@ -47,6 +49,43 @@ export interface ComfyUILoraPreset {
 export interface ComfyUILoraPresetSettings {
   activePresetId: string;
   presets: ComfyUILoraPreset[];
+}
+
+/** ComfyUI 工作流预设 */
+export interface ComfyUIWorkflowPreset {
+  id: string;
+  name: string;
+  workflowJson: string;
+}
+
+/** ComfyUI 工作流预设集合 */
+export interface ComfyUIWorkflowPresetSettings {
+  activePresetId: string;
+  presets: ComfyUIWorkflowPreset[];
+}
+
+/**
+ * 创建 ComfyUI 工作流预设
+ * @param id 预设 ID
+ * @param name 预设名称
+ * @param workflowJson 工作流 JSON
+ * @returns 工作流预设
+ */
+export function createComfyUIWorkflowPreset(
+  id: string,
+  name: string,
+  workflowJson = DEFAULT_COMFYUI_WORKFLOW_JSON,
+): ComfyUIWorkflowPreset {
+  return { id, name, workflowJson };
+}
+
+/**
+ * 创建默认 ComfyUI 工作流预设集合
+ * @returns 工作流预设集合
+ */
+export function createComfyUIWorkflowPresetSettings(): ComfyUIWorkflowPresetSettings {
+  const preset = createComfyUIWorkflowPreset(DEFAULT_COMFYUI_WORKFLOW_PRESET_ID, DEFAULT_COMFYUI_WORKFLOW_PRESET_NAME);
+  return { activePresetId: preset.id, presets: [preset] };
 }
 
 /**
@@ -104,9 +143,9 @@ export function createComfyUILoraPresetSettings(
   };
 }
 
-/** ComfyUI 子设置：工作流 JSON 为参数唯一来源 */
+/** ComfyUI 子设置：当前工作流预设为参数唯一来源 */
 export interface ComfyUISettings extends ImagePromptPresetReferences {
   url: string;
-  workflowJson: string;
+  workflowPresets: ComfyUIWorkflowPresetSettings;
   loraPresets: ComfyUILoraPresetSettings;
 }

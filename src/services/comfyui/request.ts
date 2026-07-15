@@ -9,17 +9,10 @@ import {
   validateImageOutput,
   validatePromptBindings,
 } from '@/services/comfyui/meta';
-import {
-  getComfyUIWorkflowValidationError,
-  normalizeComfyUIUrl,
-  parseComfyUIWorkflow,
-} from '@/services/comfyui/parse';
+import { getComfyUIWorkflowValidationError, normalizeComfyUIUrl, parseComfyUIWorkflow } from '@/services/comfyui/parse';
 import { applySeedModes } from '@/services/comfyui/seed-runtime';
-import type {
-  ComfyUIRequestSnapshot,
-  ComfyUIResolvedRequest,
-  ComfyUIWorkflow,
-} from '@/services/comfyui/types';
+import { getActiveComfyUIWorkflowJson } from '@/services/comfyui/workflow-presets';
+import type { ComfyUIRequestSnapshot, ComfyUIResolvedRequest, ComfyUIWorkflow } from '@/services/comfyui/types';
 
 /**
  * 按共享生图预设解析并构建 ComfyUI 最终请求
@@ -33,10 +26,7 @@ export function buildComfyUIResolvedRequest(
   presetSettings: ImagePromptPresetSettings,
   prompts: ImagePromptPair,
 ): ComfyUIResolvedRequest {
-  return buildComfyUIResolvedRequestFromPrompts(
-    settings,
-    buildImagePromptPair(presetSettings, settings, prompts),
-  );
+  return buildComfyUIResolvedRequestFromPrompts(settings, buildImagePromptPair(presetSettings, settings, prompts));
 }
 
 /**
@@ -49,11 +39,12 @@ export function buildComfyUIResolvedRequestFromPrompts(
   settings: ComfyUISettings,
   prompts: ImagePromptPair,
 ): ComfyUIResolvedRequest {
-  const source = parseAndValidateWorkflow(settings.workflowJson);
+  const workflowJson = getActiveComfyUIWorkflowJson(settings.workflowPresets);
+  const source = parseAndValidateWorkflow(workflowJson);
   const { positivePrompt, negativePrompt } = requirePromptPair(prompts);
   const workflow = structuredClone(source) as ComfyUIWorkflow;
   applyPromptBindings(workflow, positivePrompt, negativePrompt);
-  const seedValues = applySeedModes(workflow, settings.workflowJson);
+  const seedValues = applySeedModes(workflow, workflowJson);
   const imageOutputNodeId = readImageOutputNodeId(workflow)!;
   const promptBindings = readPromptBindings(workflow);
   const loras = readLoraSnapshotsFromWorkflow(workflow);
@@ -107,12 +98,10 @@ function requirePromptPair(prompts: ImagePromptPair): ImagePromptPair {
  * @param settings ComfyUI 设置
  * @returns 校验错误或 null
  */
-export function getComfyUIRequestError(
-  settings: Pick<ComfyUISettings, 'url' | 'workflowJson'>,
-): string | null {
+export function getComfyUIRequestError(settings: Pick<ComfyUISettings, 'url' | 'workflowPresets'>): string | null {
   try {
     normalizeComfyUIUrl(settings.url);
-    return getComfyUIWorkflowValidationError(settings.workflowJson);
+    return getComfyUIWorkflowValidationError(getActiveComfyUIWorkflowJson(settings.workflowPresets));
   } catch (error) {
     return error instanceof Error ? error.message : 'ComfyUI 配置校验失败';
   }
@@ -124,11 +113,7 @@ export function getComfyUIRequestError(
  * @param positivePrompt 正向提示词
  * @param negativePrompt 负向提示词
  */
-function applyPromptBindings(
-  workflow: ComfyUIWorkflow,
-  positivePrompt: string,
-  negativePrompt: string,
-): void {
+function applyPromptBindings(workflow: ComfyUIWorkflow, positivePrompt: string, negativePrompt: string): void {
   for (const target of readPromptBindings(workflow)) {
     const node = workflow[target.nodeId];
     if (!node) continue;

@@ -3,15 +3,17 @@
     <div class="cv-workflow-input__header">
       <span class="cv-workflow-input__label">{{ control.label }}</span>
       <div class="cv-workflow-input__actions">
-        <Select
+        <Chip
           v-if="showPromptBinding"
-          :model-value="control.promptBinding ?? 'none'"
-          :options="promptBindingOptions"
-          option-label="label"
-          option-value="value"
-          class="cv-workflow-input__mini-select"
-          @update:model-value="onPromptBindingChange"
-        />
+          class="cv-workflow-input__binding-chip"
+          :class="`is-${control.promptBinding ?? 'none'}`"
+          @click="togglePromptBinding"
+        >
+          <span class="flex items-center gap-1.5 cursor-pointer">
+            <i :class="bindingIcon" aria-hidden="true" />
+            <span>{{ bindingLabel }}</span>
+          </span>
+        </Chip>
         <Select
           v-if="showSeedMode"
           :model-value="control.seedMode ?? 'fixed'"
@@ -101,6 +103,25 @@ const showPromptBinding = computed(() => {
   return props.control.kind === 'text' || props.control.kind === 'textarea';
 });
 
+/**
+ * 获取当前提示词绑定的显示文本
+ */
+const bindingLabel = computed(() => {
+  const value = props.control.promptBinding ?? 'none';
+  const option = promptBindingOptions.find(opt => opt.value === value);
+  return option ? option.label : '不绑定';
+});
+
+/**
+ * 获取当前提示词绑定的 FontAwesome 图标类名
+ */
+const bindingIcon = computed(() => {
+  const value = props.control.promptBinding ?? 'none';
+  if (value === 'positive') return 'fa-solid fa-circle-plus';
+  if (value === 'negative') return 'fa-solid fa-circle-minus';
+  return 'fa-solid fa-link-slash';
+});
+
 const showSeedMode = computed(() => {
   return props.control.kind === 'number' && Boolean(props.control.controlAfterGenerate || props.control.seedMode);
 });
@@ -146,15 +167,19 @@ function onTextChange(value: string | undefined): void {
 }
 
 /**
- * 切换提示词绑定
- * @param value 绑定值
+ * 循环切换提示词绑定状态：未绑定 -> 正向提示词 -> 负向提示词 -> 未绑定
  */
-function onPromptBindingChange(value: string | null | undefined): void {
-  if (!value || value === 'none') {
-    emit('update:prompt-binding', null);
-    return;
+function togglePromptBinding(): void {
+  const current = props.control.promptBinding ?? 'none';
+  let next: PromptBinding | null = null;
+  if (current === 'none') {
+    next = 'positive';
+  } else if (current === 'positive') {
+    next = 'negative';
+  } else {
+    next = null;
   }
-  emit('update:prompt-binding', value as PromptBinding);
+  emit('update:prompt-binding', next);
 }
 
 /**
@@ -202,6 +227,54 @@ function onSeedModeChange(value: string | null | undefined): void {
 
 .cv-workflow-input__mini-select {
   min-width: 7rem;
+}
+
+.cv-workflow-input__binding-chip {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  font-size: var(--cv-font-size-2xs);
+  padding: 0.15rem 0.5rem;
+}
+
+:deep(.cv-workflow-input__binding-chip) {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  font-size: var(--cv-font-size-2xs);
+  padding: 0.15rem 0.5rem;
+  line-height: 1.2;
+  min-height: auto;
+}
+
+:deep(.cv-workflow-input__binding-chip.is-none) {
+  background: var(--cv-surface-container-low) !important;
+  border-color: var(--cv-outline) !important;
+  color: var(--cv-on-surface-variant) !important;
+}
+
+:deep(.cv-workflow-input__binding-chip.is-none:hover) {
+  background: var(--cv-surface-container-high) !important;
+}
+
+:deep(.cv-workflow-input__binding-chip.is-positive) {
+  background: color-mix(in srgb, var(--p-primary-color) 12%, transparent) !important;
+  border-color: var(--p-primary-color) !important;
+  color: var(--p-primary-color) !important;
+}
+
+:deep(.cv-workflow-input__binding-chip.is-positive:hover) {
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent) !important;
+}
+
+:deep(.cv-workflow-input__binding-chip.is-negative) {
+  background: color-mix(in srgb, #f59e0b 12%, transparent) !important;
+  border-color: #f59e0b !important;
+  color: #f59e0b !important;
+}
+
+:deep(.cv-workflow-input__binding-chip.is-negative:hover) {
+  background: color-mix(in srgb, #f59e0b 20%, transparent) !important;
 }
 
 .cv-workflow-input__link {

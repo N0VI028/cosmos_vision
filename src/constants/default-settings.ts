@@ -6,7 +6,7 @@ import defaultPromptLlmPresetSettings, {
 } from '@/constants/default-prompt-llm-preset';
 import {
   createComfyUILoraPresetSettings,
-  DEFAULT_COMFYUI_WORKFLOW_JSON,
+  createComfyUIWorkflowPresetSettings,
   type ImageSource,
 } from '@/constants/comfyui';
 import { createImagePromptPresetSettings } from '@/constants/image-prompt';
@@ -64,16 +64,11 @@ export const DEFAULT_POSITIVE_PROMPT_PRESET_ID = 'novelai-positive-current-prese
 export const DEFAULT_NEGATIVE_PROMPT_PRESET_ID = 'novelai-negative-current-preset';
 export const DEFAULT_POSITIVE_PROMPT_PRESET_NAME = '默认正面预设';
 export const DEFAULT_NEGATIVE_PROMPT_PRESET_NAME = '默认负面预设';
-export {
-  DEFAULT_NOVELAI_VIBE_PRESET_ID,
-  DEFAULT_NOVELAI_VIBE_PRESET_NAME,
-};
+export { DEFAULT_NOVELAI_VIBE_PRESET_ID, DEFAULT_NOVELAI_VIBE_PRESET_NAME };
 export const DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN = '/"positivePrompt"\\s*:\\s*"([^"]*)"/i';
 export const DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN = '/"negativePrompt"\\s*:\\s*"([^"]*)"/i';
-export const DEFAULT_CHARACTER_POSITIVE_PROMPT_EXTRACT_PATTERN =
-  '/"positivePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g';
-export const DEFAULT_CHARACTER_NEGATIVE_PROMPT_EXTRACT_PATTERN =
-  '/"negativePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g';
+export const DEFAULT_CHARACTER_POSITIVE_PROMPT_EXTRACT_PATTERN = '/"positivePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g';
+export const DEFAULT_CHARACTER_NEGATIVE_PROMPT_EXTRACT_PATTERN = '/"negativePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g';
 export const DEFAULT_CHARACTER_POSITION_X_EXTRACT_PATTERN = '/"x"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g';
 export const DEFAULT_CHARACTER_POSITION_Y_EXTRACT_PATTERN = '/"y"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g';
 
@@ -140,7 +135,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
   },
   comfyui: {
     url: 'http://127.0.0.1:8188',
-    workflowJson: DEFAULT_COMFYUI_WORKFLOW_JSON,
+    workflowPresets: createComfyUIWorkflowPresetSettings(),
     loraPresets: createComfyUILoraPresetSettings(),
     positivePromptPresetId: DEFAULT_POSITIVE_PROMPT_PRESET_ID,
     negativePromptPresetId: DEFAULT_NEGATIVE_PROMPT_PRESET_ID,

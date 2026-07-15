@@ -1,5 +1,11 @@
 <template>
-  <div ref="rootEl" class="cv-workflow-canvas" @wheel.prevent="onWheel" @pointerdown="onPointerDown">
+  <div
+    ref="rootEl"
+    class="cv-workflow-canvas"
+    :style="canvasStyle"
+    @wheel.prevent="onWheel"
+    @pointerdown="onPointerDown"
+  >
     <div class="cv-workflow-canvas__viewport" :style="viewportStyle">
       <svg class="cv-workflow-canvas__edges" :width="layout.width" :height="layout.height">
         <path
@@ -51,6 +57,26 @@ const viewportStyle = computed(() => ({
   width: `${props.layout.width}px`,
   height: `${props.layout.height}px`,
 }));
+
+/**
+ * 计算画布背景网格的样式
+ * 根据当前缩放比例动态计算大网格和细网格的颜色、大小与偏移量
+ */
+const canvasStyle = computed(() => {
+  const showMinorGrid = scale.value > 0.35;
+  const showMajorGrid = scale.value > 0.15;
+
+  const majorColor = showMajorGrid ? 'color-mix(in srgb, var(--cv-outline) 14%, transparent)' : 'transparent';
+  const minorColor = showMinorGrid ? 'color-mix(in srgb, var(--cv-outline) 6%, transparent)' : 'transparent';
+
+  return {
+    '--cv-offset-x': `${offsetX.value}px`,
+    '--cv-offset-y': `${offsetY.value}px`,
+    '--cv-scale': scale.value,
+    '--cv-grid-major-color': majorColor,
+    '--cv-grid-minor-color': minorColor,
+  };
+});
 
 /**
  * 适配视图到容器
@@ -165,6 +191,21 @@ watch(
   border: var(--cv-border-width) solid var(--cv-outline);
   border-radius: var(--cv-radius);
   background: var(--cv-surface-container-low);
+  background-image:
+    linear-gradient(var(--cv-grid-major-color, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, var(--cv-grid-major-color, transparent) 1px, transparent 1px),
+    linear-gradient(var(--cv-grid-minor-color, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, var(--cv-grid-minor-color, transparent) 1px, transparent 1px);
+  background-size:
+    calc(100px * var(--cv-scale, 1)) calc(100px * var(--cv-scale, 1)),
+    calc(100px * var(--cv-scale, 1)) calc(100px * var(--cv-scale, 1)),
+    calc(20px * var(--cv-scale, 1)) calc(20px * var(--cv-scale, 1)),
+    calc(20px * var(--cv-scale, 1)) calc(20px * var(--cv-scale, 1));
+  background-position:
+    var(--cv-offset-x, 0px) var(--cv-offset-y, 0px),
+    var(--cv-offset-x, 0px) var(--cv-offset-y, 0px),
+    var(--cv-offset-x, 0px) var(--cv-offset-y, 0px),
+    var(--cv-offset-x, 0px) var(--cv-offset-y, 0px);
   cursor: grab;
   touch-action: none;
 }

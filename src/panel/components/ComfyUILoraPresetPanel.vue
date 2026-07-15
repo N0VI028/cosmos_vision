@@ -12,7 +12,7 @@
     />
   </div>
   <div class="cv-section-body">
-    <div class="cv-field">
+    <div class="cv-field p-0!">
       <PresetSelector
         :presets="presetOptions"
         :active-preset-id="props.presetSettings.activePresetId"
