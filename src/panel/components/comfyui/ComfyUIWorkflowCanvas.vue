@@ -250,9 +250,7 @@ watch(
 @reference '../../../global.css';
 
 .cv-workflow-canvas {
-  @apply relative overflow-hidden;
-  min-height: 16rem;
-  height: 18rem;
+  @apply relative overflow-hidden w-full h-full;
   border: var(--cv-border-width) solid var(--cv-outline);
   border-radius: var(--cv-radius);
   background: var(--cv-surface-container-low);

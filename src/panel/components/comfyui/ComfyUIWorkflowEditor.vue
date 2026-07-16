@@ -1,116 +1,165 @@
 <template>
-  <div
-    :class="[
-      'flex flex-col gap-(--cv-space-xl)',
-      { 'fixed inset-0 z-1200 overflow-auto bg-(--cv-background) p-(--cv-space-5xl)': fullscreen },
-    ]"
-  >
-    <DefineIconButton v-slot="{ $slots, title, disabled }">
-      <button
-        type="button"
-        class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-(--cv-radius-sm) border-solid border-(--cv-outline) bg-(--cv-surface-container-lowest) text-(--cv-on-surface) opacity-(--cv-opacity-0-78) transition-[opacity,background-color,border-color] duration-150 ease-in-out hover:border-(--cv-primary-container) hover:bg-(--cv-surface-container-lowest) hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--cv-primary-container) disabled:cursor-wait disabled:opacity-55"
-        :title="title"
-        :aria-label="title"
-        :disabled="disabled"
-      >
-        <component :is="$slots.default" />
-      </button>
-    </DefineIconButton>
-    <ComfyUIWorkflowToolbar
-      :show-advanced-json="showAdvancedJson"
-      :status-text="statusTone !== 'info' ? statusText : undefined"
-      :status-tone="statusTone"
-      @import="emit('import')"
-      @toggle-json="showAdvancedJson = !showAdvancedJson"
-    />
+  <Teleport to="body" :disabled="!fullscreen">
+    <div
+      :class="[
+        'cv-workflow-editor-container',
+        fullscreen
+          ? 'fixed inset-0 z-99999 overflow-hidden bg-(--cv-background) p-(--cv-space-lg) flex flex-col gap-(--cv-space-lg)'
+          : 'flex flex-col gap-(--cv-space-xl)'
+      ]"
+    >
+      <DefineIconButton v-slot="{ $slots, title, disabled }">
+        <button
+          type="button"
+          class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-(--cv-radius-sm) border-solid border-(--cv-outline) bg-(--cv-surface-container-lowest) text-(--cv-on-surface) opacity-(--cv-opacity-0-78) transition-[opacity,background-color,border-color] duration-150 ease-in-out hover:border-(--cv-primary-container) hover:bg-(--cv-surface-container-lowest) hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--cv-primary-container) disabled:cursor-wait disabled:opacity-55"
+          :title="title"
+          :aria-label="title"
+          :disabled="disabled"
+        >
+          <component :is="$slots.default" />
+        </button>
+      </DefineIconButton>
 
-    <label v-if="showAdvancedJson" class="cv-field">
-      <span>API 格式工作流 JSON</span>
-      <div class="cv-field-control">
-        <Textarea
-          :model-value="modelValue"
-          rows="8"
-          class="w-full resize-y overflow-y-auto rounded-(--cv-radius) border-solid border-(--cv-outline) bg-(--cv-surface-variant) p-(--cv-space-xl) font-mono text-(--cv-font-size-sm)"
-          :invalid="Boolean(parseError)"
-          @update:model-value="onJsonEdit"
+      <!-- 非全屏下才渲染 toolbar 和 JSON 编辑 textarea -->
+      <template v-if="!fullscreen">
+        <ComfyUIWorkflowToolbar
+          :show-advanced-json="showAdvancedJson"
+          :status-text="statusTone !== 'info' ? statusText : undefined"
+          :status-tone="statusTone"
+          @import="emit('import')"
+          @toggle-json="showAdvancedJson = !showAdvancedJson"
         />
-        <div class="cv-field-hint">请使用 ComfyUI 的 Save (API Format) 导出</div>
-      </div>
-    </label>
 
-    <div v-if="parseError" class="cv-field-warn">{{ parseError }}</div>
+        <label v-if="showAdvancedJson" class="cv-field">
+          <span>API 格式工作流 JSON</span>
+          <div class="cv-field-control">
+            <Textarea
+              :model-value="modelValue"
+              rows="8"
+              class="w-full resize-y overflow-y-auto rounded-(--cv-radius) border-solid border-(--cv-outline) bg-(--cv-surface-variant) p-(--cv-space-xl) font-mono text-(--cv-font-size-sm)"
+              :invalid="Boolean(parseError)"
+              @update:model-value="onJsonEdit"
+            />
+            <div class="cv-field-hint">请使用 ComfyUI 的 Save (API Format) 导出</div>
+          </div>
+        </label>
 
-    <div v-if="workflow" class="relative">
-      <ComfyUIWorkflowCanvas
-        ref="canvasRef"
-        :layout="layout"
-        :selected-node-id="selectedNodeId"
-        :workflow="workflow"
-        @select="selectedNodeId = $event"
-      />
-      <Transition
-        enter-active-class="transition duration-300 ease"
-        enter-from-class="opacity-0 -translate-y-[4px]"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition duration-300 ease"
-        leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 -translate-y-[4px]"
-      >
-        <div
-          v-if="showSyncStatus && statusText && statusTone === 'info'"
-          class="pointer-events-none absolute top-(--cv-space-lg) left-(--cv-space-lg) z-2 flex items-center gap-(--cv-space-sm) px-(--cv-space-lg) py-(--cv-space-sm) text-(length:--cv-font-size-xs)"
+        <div v-if="parseError" class="cv-field-warn">{{ parseError }}</div>
+      </template>
+
+      <div v-if="workflow" class="cv-workflow-canvas-wrapper relative">
+        <ComfyUIWorkflowCanvas
+          ref="canvasRef"
+          :layout="layout"
+          :selected-node-id="selectedNodeId"
+          :workflow="workflow"
+          @select="selectedNodeId = $event"
+        />
+
+        <!-- 统一状态提示，全屏下悬浮于 Canvas 左上角 -->
+        <!-- 如果是 info 成功提示，非全屏下也悬浮展示；非全屏下的 error/warn 已经通过 toolbar 展现了 -->
+        <Transition
+          enter-active-class="transition duration-300 ease"
+          enter-from-class="opacity-0 -translate-y-[4px]"
+          enter-to-class="opacity-100 translate-y-0"
+          leave-active-class="transition duration-300 ease"
+          leave-from-class="opacity-100 translate-y-0"
+          leave-to-class="opacity-0 -translate-y-[4px]"
         >
-          <i class="fa-solid fa-circle-info" aria-hidden="true" />
-          <span>{{ statusText }}</span>
+          <div
+            v-if="isStatusFloatingVisible"
+            class="pointer-events-none absolute top-(--cv-space-lg) left-(--cv-space-lg) z-2 flex items-center gap-(--cv-space-sm) px-(--cv-space-lg) py-(--cv-space-sm) text-(length:--cv-font-size-xs) bg-(--cv-surface-container-high) text-(--cv-on-surface) rounded border border-solid border-(--cv-outline) shadow-md"
+          >
+            <i
+              v-if="statusTone === 'error'"
+              class="fa-solid fa-circle-xmark text-[var(--p-red-500)]"
+              aria-hidden="true"
+            />
+            <i
+              v-else-if="statusTone === 'warn'"
+              class="fa-solid fa-triangle-exclamation text-[var(--p-orange-500)]"
+              aria-hidden="true"
+            />
+            <i
+              v-else
+              class="fa-solid fa-circle-info text-(--cv-primary)"
+              aria-hidden="true"
+            />
+            <span>{{ statusText }}</span>
+          </div>
+        </Transition>
+
+        <div class="absolute top-(--cv-space-lg) right-(--cv-space-lg) z-2 flex gap-(--cv-space-sm)">
+          <ReuseIconButton
+            title="同步节点定义"
+            :disabled="schemaLoading"
+            @click="refreshSchema(true)"
+          >
+            <i class="fa-solid fa-rotate" :class="{ 'fa-spin': schemaLoading }" aria-hidden="true" />
+          </ReuseIconButton>
+          <ReuseIconButton
+            title="适配视图"
+            @click="canvasRef?.fitView()"
+          >
+            <i class="fa-solid fa-expand" aria-hidden="true" />
+          </ReuseIconButton>
+          <ReuseIconButton
+            :title="fullscreen ? '退出全屏' : '全屏编辑'"
+            @click="fullscreen = !fullscreen"
+          >
+            <i
+              :class="fullscreen ? 'fa-solid fa-compress' : 'fa-solid fa-up-right-and-down-left-from-center'"
+              aria-hidden="true"
+            />
+          </ReuseIconButton>
         </div>
-      </Transition>
-      <div class="absolute top-(--cv-space-lg) right-(--cv-space-lg) z-2 flex gap-(--cv-space-sm)">
-        <ReuseIconButton
-          title="同步节点定义"
-          :disabled="schemaLoading"
-          @click="refreshSchema(true)"
-        >
-          <i class="fa-solid fa-rotate" :class="{ 'fa-spin': schemaLoading }" aria-hidden="true" />
-        </ReuseIconButton>
-        <ReuseIconButton
-          title="适配视图"
-          @click="canvasRef?.fitView()"
-        >
-          <i class="fa-solid fa-expand" aria-hidden="true" />
-        </ReuseIconButton>
-        <ReuseIconButton
-          :title="fullscreen ? '退出全屏' : '全屏编辑'"
-          @click="fullscreen = !fullscreen"
-        >
-          <i
-            :class="fullscreen ? 'fa-solid fa-compress' : 'fa-solid fa-up-right-and-down-left-from-center'"
-            aria-hidden="true"
-          />
-        </ReuseIconButton>
-      </div>
-    </div>
 
-    <ComfyUIWorkflowInspector
-      v-if="workflow"
-      :node-id="selectedNodeId"
-      :node="selectedNode"
-      :controls="selectedControls"
-      :can-set-output="canSetSelectedOutput"
-      :output-unverified="outputUnverified"
-      :lora-preset-settings="loraPresetSettings"
-      :lora-options="loraOptions"
-      :is-loading-loras="isLoadingLoras"
-      @set-image-output="setImageOutput"
-      @update:input="updateInput"
-      @update:prompt-binding="updatePromptBinding"
-      @update:seed-mode="updateSeedMode"
-      @update:lora-preset-settings="onLoraPresetUpdate"
-      @refresh-lora-options="emit('refresh-lora-options')"
-    />
-  </div>
+        <!-- 全屏专属 Inspector -->
+        <ComfyUIWorkflowInspector
+          v-if="fullscreen"
+          :fullscreen="true"
+          :node-id="selectedNodeId"
+          :node="selectedNode"
+          :controls="selectedControls"
+          :can-set-output="canSetSelectedOutput"
+          :output-unverified="outputUnverified"
+          :lora-preset-settings="loraPresetSettings"
+          :lora-options="loraOptions"
+          :is-loading-loras="isLoadingLoras"
+          @set-image-output="setImageOutput"
+          @update:input="updateInput"
+          @update:prompt-binding="updatePromptBinding"
+          @update:seed-mode="updateSeedMode"
+          @update:lora-preset-settings="onLoraPresetUpdate"
+          @refresh-lora-options="emit('refresh-lora-options')"
+        />
+      </div>
+
+      <!-- 非全屏专属 Inspector -->
+      <ComfyUIWorkflowInspector
+        v-if="!fullscreen"
+        :fullscreen="false"
+        :node-id="selectedNodeId"
+        :node="selectedNode"
+        :controls="selectedControls"
+        :can-set-output="canSetSelectedOutput"
+        :output-unverified="outputUnverified"
+        :lora-preset-settings="loraPresetSettings"
+        :lora-options="loraOptions"
+        :is-loading-loras="isLoadingLoras"
+        @set-image-output="setImageOutput"
+        @update:input="updateInput"
+        @update:prompt-binding="updatePromptBinding"
+        @update:seed-mode="updateSeedMode"
+        @update:lora-preset-settings="onLoraPresetUpdate"
+        @refresh-lora-options="emit('refresh-lora-options')"
+      />
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
+import { nextTick } from 'vue';
 import type { ComfyUILoraPresetSettings } from '@/constants/comfyui';
 import { getActiveComfyUILoraPreset } from '@/services/comfyui/lora-presets';
 import { writeLoraPresetToNode } from '@/services/comfyui/lora-adapter';
@@ -230,6 +279,11 @@ const statusTone = computed(() => {
   return 'info' as const;
 });
 
+const isStatusFloatingVisible = computed(() => {
+  if (!statusText.value) return false;
+  return (fullscreen.value && statusTone.value !== 'info') || showSyncStatus.value;
+});
+
 /**
  * 将工作流对象写回 JSON 草稿
  * @param next 工作流对象
@@ -245,6 +299,7 @@ function commitWorkflow(next: ComfyUIWorkflow): void {
 function onJsonEdit(value: string | undefined): void {
   emit('update:modelValue', value ?? '');
 }
+
 
 /**
  * 修改节点输入值
@@ -359,8 +414,10 @@ watch(
   { immediate: true },
 );
 
-watch(fullscreen, value => {
+watch(fullscreen, async (value) => {
   document.body.classList.toggle('cv-workflow-editor-open', value);
+  await nextTick();
+  canvasRef.value?.fitView();
 });
 
 watch(
@@ -380,3 +437,16 @@ onBeforeUnmount(() => {
   }
 });
 </script>
+
+<style scoped>
+@reference '../../../global.css';
+
+.cv-workflow-canvas-wrapper {
+  height: 18rem;
+}
+
+.cv-workflow-editor-container.fixed .cv-workflow-canvas-wrapper {
+  @apply flex-1 min-h-0;
+  height: auto;
+}
+</style>

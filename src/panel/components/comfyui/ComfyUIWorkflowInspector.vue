@@ -1,58 +1,85 @@
 <template>
-  <div class="cv-workflow-inspector">
-    <div v-if="!nodeId || !node" class="cv-workflow-inspector__empty">点击画布节点以编辑参数</div>
-    <div v-else class="cv-workflow-inspector__container">
-      <div class="cv-workflow-inspector__header cursor-pointer select-none" @click="isCollapsed = !isCollapsed">
-        <div class="cv-workflow-inspector__title-block">
-          <i
-            class="fa-solid shrink-0 text-(--cv-on-surface-variant)"
-            :class="isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down'"
-          />
-          <span class="cv-workflow-inspector__title">{{ displayName }}</span>
-          <span class="cv-workflow-inspector__meta">#{{ nodeId }}</span>
-          <span v-if="bindingSummary" class="cv-workflow-inspector__bindings">{{ bindingSummary }}</span>
-        </div>
+  <!-- 非全屏且无节点选中时展示空状态 -->
+  <div v-if="!fullscreen && (!nodeId || !node)" class="cv-workflow-inspector__empty">
+    点击画布节点以编辑参数
+  </div>
+
+  <!-- 有节点选中时（或者在全屏且有节点选中时）渲染详情面板 -->
+  <div
+    v-else-if="nodeId && node"
+    class="cv-workflow-inspector"
+    :class="[
+      fullscreen ? 'cv-lightbox-info' : 'cv-workflow-inspector__container',
+      { 'cv-info-collapsed': isCollapsed }
+    ]"
+  >
+    <div
+      :class="fullscreen ? 'cv-lightbox-info-header cursor-pointer select-none' : 'cv-workflow-inspector__header cursor-pointer select-none'"
+      @click="isCollapsed = !isCollapsed"
+    >
+      <div class="cv-workflow-inspector__title-block">
+        <i
+          class="fa-solid shrink-0 text-(--cv-on-surface-variant)"
+          :class="isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down'"
+        />
+        <span class="cv-workflow-inspector__title">{{ displayName }}</span>
+        <span class="cv-workflow-inspector__meta">#{{ nodeId }}</span>
+        <span v-if="bindingSummary" class="cv-workflow-inspector__bindings">{{ bindingSummary }}</span>
+      </div>
+      <div class="flex items-center gap-(--cv-space-md)" @click.stop>
         <Chip
           class="cv-workflow-inspector__output-chip"
           :class="[
             isImageOutput ? 'is-active' : 'is-inactive',
             { 'is-disabled': !canSetOutput }
           ]"
-          @click.stop="canSetOutput && emit('set-image-output', nodeId!)"
+          @click="canSetOutput && emit('set-image-output', nodeId!)"
         >
           <span class="flex items-center gap-1.5 cursor-pointer">
             <i :class="isImageOutput ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'" aria-hidden="true" />
             <span>{{ isImageOutput ? '当前图片输出' : '设为图片输出' }}</span>
           </span>
         </Chip>
+        <button
+          v-if="fullscreen"
+          type="button"
+          class="cv-lightbox-toggle-btn"
+          :title="isCollapsed ? '展开参数' : '隐藏参数'"
+          @click="isCollapsed = !isCollapsed"
+        >
+          <i class="fa-solid" :class="isCollapsed ? 'fa-eye' : 'fa-eye-slash'" aria-hidden="true" />
+          <span>{{ isCollapsed ? '显示参数' : '隐藏参数' }}</span>
+        </button>
       </div>
+    </div>
 
-      <Divider v-show="!isCollapsed" :dt="dividerTokens" />
+    <!-- 非全屏下根据 isCollapsed 使用 v-show 隐藏；全屏下由 CSS 的 opacity 过渡控制，v-show 恒显示 -->
+    <div
+      v-show="fullscreen || !isCollapsed"
+      :class="fullscreen ? 'cv-lightbox-info-body' : 'cv-workflow-inspector__body'"
+    >
+      <div v-if="outputHint" class="cv-field-hint">{{ outputHint }}</div>
 
-      <div v-show="!isCollapsed" class="cv-workflow-inspector__body">
-        <div v-if="outputHint" class="cv-field-hint">{{ outputHint }}</div>
+      <ComfyUILoraPresetPanel
+        v-if="showLoraPanel && loraPresetSettings"
+        :preset-settings="loraPresetSettings"
+        :lora-options="loraOptions"
+        :is-loading-loras="isLoadingLoras"
+        @update:preset-settings="emit('update:lora-preset-settings', $event)"
+        @refresh-options="emit('refresh-lora-options')"
+      />
 
-        <ComfyUILoraPresetPanel
-          v-if="showLoraPanel && loraPresetSettings"
-          :preset-settings="loraPresetSettings"
-          :lora-options="loraOptions"
-          :is-loading-loras="isLoadingLoras"
-          @update:preset-settings="emit('update:lora-preset-settings', $event)"
-          @refresh-options="emit('refresh-lora-options')"
+      <Divider v-if="showLoraPanel && loraPresetSettings && controls.length" :dt="dividerTokens" />
+
+      <div class="cv-workflow-inspector__inputs">
+        <ComfyUIWorkflowInput
+          v-for="control in controls"
+          :key="`${control.nodeId}:${control.inputName}`"
+          :control="control"
+          @update:value="value => emit('update:input', control.inputName, value)"
+          @update:prompt-binding="binding => emit('update:prompt-binding', control.inputName, binding)"
+          @update:seed-mode="mode => emit('update:seed-mode', control.inputName, mode)"
         />
-
-        <Divider v-if="showLoraPanel && loraPresetSettings && controls.length" :dt="dividerTokens" />
-
-        <div class="cv-workflow-inspector__inputs">
-          <ComfyUIWorkflowInput
-            v-for="control in controls"
-            :key="`${control.nodeId}:${control.inputName}`"
-            :control="control"
-            @update:value="value => emit('update:input', control.inputName, value)"
-            @update:prompt-binding="binding => emit('update:prompt-binding', control.inputName, binding)"
-            @update:seed-mode="mode => emit('update:seed-mode', control.inputName, mode)"
-          />
-        </div>
       </div>
     </div>
   </div>
@@ -81,16 +108,22 @@ const dividerTokens = {
   horizontal: { margin: '0' },
 } as const satisfies DividerDesignTokens;
 
-const props = defineProps<{
-  nodeId: string | null;
-  node: ComfyUIWorkflowNode | null;
-  controls: ComfyUIInputControlDesc[];
-  canSetOutput: boolean;
-  outputUnverified: boolean;
-  loraPresetSettings?: ComfyUILoraPresetSettings;
-  loraOptions: { value: string; label: string }[];
-  isLoadingLoras: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    nodeId: string | null;
+    node: ComfyUIWorkflowNode | null;
+    controls: ComfyUIInputControlDesc[];
+    canSetOutput: boolean;
+    outputUnverified: boolean;
+    loraPresetSettings?: ComfyUILoraPresetSettings;
+    loraOptions: { value: string; label: string }[];
+    isLoadingLoras: boolean;
+    fullscreen?: boolean;
+  }>(),
+  {
+    fullscreen: false,
+  }
+);
 
 const emit = defineEmits<{
   'set-image-output': [nodeId: string];
@@ -167,7 +200,6 @@ watch(
   background: var(--cv-surface-container-low);
 }
 
-
 .cv-workflow-inspector__empty {
   @apply text-center;
   color: var(--cv-on-surface-variant);
@@ -176,6 +208,29 @@ watch(
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   border-radius: var(--cv-radius);
   background: var(--cv-surface-container);
+}
+
+.cv-workflow-inspector__body {
+  @apply flex flex-col;
+  gap: var(--cv-space-xl);
+  padding: var(--cv-space-xl);
+}
+
+.cv-workflow-inspector.cv-lightbox-info {
+  background: var(--cv-surface-container-low);
+  border-top: var(--cv-border-width) solid var(--cv-surface-variant);
+  border-left: var(--cv-border-width) solid var(--cv-surface-variant);
+  border-right: var(--cv-border-width) solid var(--cv-surface-variant);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25);
+  border-radius: var(--cv-radius) var(--cv-radius) 0 0;
+  max-height: 80%; /* 限制浮动面板的最大高度占画布的 80%，防止完全遮挡 */
+}
+
+/* 覆盖折叠状态下的高度 */
+.cv-workflow-inspector.cv-lightbox-info.cv-info-collapsed {
+  max-height: 3.5rem;
 }
 
 .cv-workflow-inspector__title-block {
@@ -200,12 +255,6 @@ watch(
   @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
   font-size: var(--cv-font-size-sm);
   color: var(--cv-primary);
-}
-
-.cv-workflow-inspector__body {
-  @apply flex flex-col;
-  gap: var(--cv-space-xl);
-  padding: var(--cv-space-xl);
 }
 
 .cv-workflow-inspector__inputs {
