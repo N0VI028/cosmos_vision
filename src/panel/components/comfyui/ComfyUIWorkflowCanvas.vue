@@ -21,11 +21,14 @@
         :key="node.id"
         type="button"
         class="cv-workflow-canvas__node"
-        :class="{ 'is-selected': node.id === selectedNodeId }"
+        :class="nodeStates[node.id]?.classes"
         :style="nodeStyle(node)"
         @click.stop="emit('select', node.id)"
       >
-        <span class="cv-workflow-canvas__node-title">{{ node.title }}</span>
+        <span class="cv-workflow-canvas__node-title">
+          <i v-if="nodeStates[node.id]?.icon" :class="['cv-workflow-canvas__node-icon', nodeStates[node.id].icon]" aria-hidden="true"></i>
+          {{ node.title }}
+        </span>
         <span class="cv-workflow-canvas__node-id">#{{ node.id }}</span>
       </button>
     </div>
@@ -34,12 +37,74 @@
 </template>
 
 <script setup lang="ts">
-import type { ComfyUIGraphEdge, ComfyUILayoutNode, ComfyUIWorkflowLayout } from '@/services/comfyui/types';
+import { isSupportedLoraNode } from '@/services/comfyui/lora-adapter';
+import { readNodeMeta } from '@/services/comfyui/meta';
+import type { ComfyUIGraphEdge, ComfyUILayoutNode, ComfyUIWorkflowLayout, ComfyUIWorkflow } from '@/services/comfyui/types';
 
 const props = defineProps<{
   layout: ComfyUIWorkflowLayout;
   selectedNodeId: string | null;
+  workflow?: ComfyUIWorkflow | null;
 }>();
+
+/** 节点绑定状态、样式类及对应图标名 */
+interface NodeBindingState {
+  classes: Record<string, boolean>;
+  icon: string;
+}
+
+/**
+ * 汇总并缓存所有节点的绑定状态、样式类及对应图标名
+ */
+const nodeStates = computed(() => {
+  const states: Record<string, NodeBindingState> = {};
+  const workflowObj = props.workflow;
+
+  for (const node of props.layout.nodes) {
+    const isSelected = node.id === props.selectedNodeId;
+    const defaultState: NodeBindingState = {
+      classes: { 'is-selected': isSelected },
+      icon: '',
+    };
+
+    if (!workflowObj) {
+      states[node.id] = defaultState;
+      continue;
+    }
+
+    const rawNode = workflowObj[node.id];
+    if (!rawNode) {
+      states[node.id] = defaultState;
+      continue;
+    }
+
+    const meta = readNodeMeta(rawNode);
+    const promptBindings = Object.values(meta.promptBindings ?? {});
+    const isLora = isSupportedLoraNode(rawNode);
+    const isPositive = promptBindings.includes('positive');
+    const isNegative = promptBindings.includes('negative');
+    const isImageOutput = !!meta.imageOutput;
+
+    let icon = '';
+    if (isLora) icon = 'fa-solid fa-puzzle-piece';
+    else if (isPositive) icon = 'fa-solid fa-circle-plus';
+    else if (isNegative) icon = 'fa-solid fa-circle-minus';
+    else if (isImageOutput) icon = 'fa-solid fa-image';
+
+    states[node.id] = {
+      classes: {
+        'is-selected': isSelected,
+        'is-lora': isLora,
+        'is-positive-prompt': isPositive,
+        'is-negative-prompt': isNegative,
+        'is-image-output': isImageOutput,
+      },
+      icon,
+    };
+  }
+
+  return states;
+});
 
 const emit = defineEmits<{
   select: [nodeId: string];
@@ -246,9 +311,14 @@ watch(
 }
 
 .cv-workflow-canvas__node-title {
-  @apply truncate w-full;
+  @apply truncate w-full flex items-center;
   font-size: var(--cv-font-size-sm);
   font-weight: 600;
+}
+
+.cv-workflow-canvas__node-icon {
+  margin-right: 0.375rem;
+  flex-shrink: 0;
 }
 
 .cv-workflow-canvas__node-id {
@@ -260,5 +330,71 @@ watch(
   @apply absolute inset-0 flex items-center justify-center;
   color: var(--cv-on-surface-variant);
   font-size: var(--cv-font-size-sm);
+}
+
+/* 特殊绑定节点高亮样式 */
+
+/* Lora 节点 */
+.cv-workflow-canvas__node.is-lora {
+  border-color: color-mix(in srgb, #9333ea 45%, var(--cv-outline));
+  background: linear-gradient(135deg, color-mix(in srgb, #9333ea 8%, var(--cv-surface-container-lowest)), color-mix(in srgb, #9333ea 2%, var(--cv-surface-container-lowest)));
+}
+.cv-workflow-canvas__node.is-lora .cv-workflow-canvas__node-icon {
+  color: #a855f7;
+}
+.cv-workflow-canvas__node.is-lora.is-selected {
+  border-color: #9333ea;
+  background: color-mix(in srgb, #9333ea 16%, var(--cv-surface-container-lowest));
+}
+.cv-workflow-canvas__node.is-lora:hover:not(.is-selected) {
+  border-color: color-mix(in srgb, #9333ea 70%, var(--cv-outline));
+}
+
+/* 正提示词节点 */
+.cv-workflow-canvas__node.is-positive-prompt {
+  border-color: color-mix(in srgb, #10b981 45%, var(--cv-outline));
+  background: linear-gradient(135deg, color-mix(in srgb, #10b981 8%, var(--cv-surface-container-lowest)), color-mix(in srgb, #10b981 2%, var(--cv-surface-container-lowest)));
+}
+.cv-workflow-canvas__node.is-positive-prompt .cv-workflow-canvas__node-icon {
+  color: #10b981;
+}
+.cv-workflow-canvas__node.is-positive-prompt.is-selected {
+  border-color: #10b981;
+  background: color-mix(in srgb, #10b981 16%, var(--cv-surface-container-lowest));
+}
+.cv-workflow-canvas__node.is-positive-prompt:hover:not(.is-selected) {
+  border-color: color-mix(in srgb, #10b981 70%, var(--cv-outline));
+}
+
+/* 负提示词节点 */
+.cv-workflow-canvas__node.is-negative-prompt {
+  border-color: color-mix(in srgb, #ef4444 45%, var(--cv-outline));
+  background: linear-gradient(135deg, color-mix(in srgb, #ef4444 8%, var(--cv-surface-container-lowest)), color-mix(in srgb, #ef4444 2%, var(--cv-surface-container-lowest)));
+}
+.cv-workflow-canvas__node.is-negative-prompt .cv-workflow-canvas__node-icon {
+  color: #ef4444;
+}
+.cv-workflow-canvas__node.is-negative-prompt.is-selected {
+  border-color: #ef4444;
+  background: color-mix(in srgb, #ef4444 16%, var(--cv-surface-container-lowest));
+}
+.cv-workflow-canvas__node.is-negative-prompt:hover:not(.is-selected) {
+  border-color: color-mix(in srgb, #ef4444 70%, var(--cv-outline));
+}
+
+/* 输出图片节点 */
+.cv-workflow-canvas__node.is-image-output {
+  border-color: color-mix(in srgb, #3b82f6 45%, var(--cv-outline));
+  background: linear-gradient(135deg, color-mix(in srgb, #3b82f6 8%, var(--cv-surface-container-lowest)), color-mix(in srgb, #3b82f6 2%, var(--cv-surface-container-lowest)));
+}
+.cv-workflow-canvas__node.is-image-output .cv-workflow-canvas__node-icon {
+  color: #3b82f6;
+}
+.cv-workflow-canvas__node.is-image-output.is-selected {
+  border-color: #3b82f6;
+  background: color-mix(in srgb, #3b82f6 16%, var(--cv-surface-container-lowest));
+}
+.cv-workflow-canvas__node.is-image-output:hover:not(.is-selected) {
+  border-color: color-mix(in srgb, #3b82f6 70%, var(--cv-outline));
 }
 </style>

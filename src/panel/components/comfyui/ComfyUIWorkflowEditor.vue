@@ -45,6 +45,7 @@
         ref="canvasRef"
         :layout="layout"
         :selected-node-id="selectedNodeId"
+        :workflow="workflow"
         @select="selectedNodeId = $event"
       />
       <Transition
