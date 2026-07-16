@@ -2,32 +2,34 @@
   <div class="cv-workflow-inspector">
     <div v-if="!nodeId || !node" class="cv-workflow-inspector__empty">点击画布节点以编辑参数</div>
     <div v-else class="cv-workflow-inspector__container">
-      <div class="cv-workflow-inspector__header">
+      <div class="cv-workflow-inspector__header cursor-pointer select-none" @click="isCollapsed = !isCollapsed">
         <div class="cv-workflow-inspector__title-block">
+          <i
+            class="fa-solid shrink-0 text-(--cv-on-surface-variant)"
+            :class="isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down'"
+          />
           <span class="cv-workflow-inspector__title">{{ displayName }}</span>
           <span class="cv-workflow-inspector__meta">#{{ nodeId }}</span>
           <span v-if="bindingSummary" class="cv-workflow-inspector__bindings">{{ bindingSummary }}</span>
         </div>
-        <div class="flex items-center gap-(--cv-space-5xl)">
-          <Chip
-            class="cv-workflow-inspector__output-chip"
-            :class="[
-              isImageOutput ? 'is-active' : 'is-inactive',
-              { 'is-disabled': !canSetOutput }
-            ]"
-            @click="canSetOutput && emit('set-image-output', nodeId!)"
-          >
-            <span class="flex items-center gap-1.5 cursor-pointer">
-              <i :class="isImageOutput ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'" aria-hidden="true" />
-              <span>{{ isImageOutput ? '当前图片输出' : '设为图片输出' }}</span>
-            </span>
-          </Chip>
-        </div>
+        <Chip
+          class="cv-workflow-inspector__output-chip"
+          :class="[
+            isImageOutput ? 'is-active' : 'is-inactive',
+            { 'is-disabled': !canSetOutput }
+          ]"
+          @click.stop="canSetOutput && emit('set-image-output', nodeId!)"
+        >
+          <span class="flex items-center gap-1.5 cursor-pointer">
+            <i :class="isImageOutput ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'" aria-hidden="true" />
+            <span>{{ isImageOutput ? '当前图片输出' : '设为图片输出' }}</span>
+          </span>
+        </Chip>
       </div>
 
-      <Divider :dt="dividerTokens" />
+      <Divider v-show="!isCollapsed" :dt="dividerTokens" />
 
-      <div class="cv-workflow-inspector__body">
+      <div v-show="!isCollapsed" class="cv-workflow-inspector__body">
         <div v-if="outputHint" class="cv-field-hint">{{ outputHint }}</div>
 
         <ComfyUILoraPresetPanel
@@ -135,6 +137,14 @@ const outputHint = computed(() => {
   return '';
 });
 
+const isCollapsed = ref(false);
+
+watch(
+  () => props.nodeId,
+  () => {
+    isCollapsed.value = false;
+  },
+);
 </script>
 
 <style scoped>
@@ -152,7 +162,7 @@ const outputHint = computed(() => {
 }
 
 .cv-workflow-inspector__header {
-  @apply flex items-center justify-between;
+  @apply flex items-center justify-between cursor-pointer select-none;
   padding: var(--cv-space-lg) var(--cv-space-xl);
   background: var(--cv-surface-container-low);
 }
