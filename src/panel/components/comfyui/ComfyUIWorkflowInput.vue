@@ -66,6 +66,15 @@
       来自节点 #{{ control.linkSource?.nodeId }} 输出 {{ control.linkSource?.outputIndex }}
     </div>
     <Select
+      v-else-if="isDimensionControl"
+      :model-value="Number(control.value ?? 0)"
+      :options="COMFYUI_DIMENSION_PRESETS"
+      editable
+      class="w-full"
+      :disabled="isValueDisabled"
+      @update:model-value="onDimensionChange"
+    />
+    <Select
       v-else-if="control.kind === 'select'"
       :model-value="String(control.value ?? '')"
       :options="selectOptions"
@@ -133,6 +142,7 @@
 <script setup lang="ts">
 import type { PopoverPassThroughOptions } from 'primevue/popover';
 import Popover from 'primevue/popover';
+import { COMFYUI_DIMENSION_PRESETS } from '@/constants/comfyui';
 import {
   MACRO_POPOVER_BASE_Z_INDEX,
   MACRO_POPOVER_TOKENS,
@@ -205,6 +215,12 @@ const selectOptions = computed(() =>
   (props.control.options ?? []).map(value => ({ value, label: value })),
 );
 
+const isDimensionControl = computed(
+  () =>
+    props.control.kind === 'number' &&
+    (props.control.inputName === 'width' || props.control.inputName === 'height'),
+);
+
 const textValue = computed(() => {
   if (props.control.kind !== 'json') return String(props.control.value ?? '');
   try {
@@ -224,6 +240,16 @@ function onJsonChange(value: string | undefined): void {
   } catch {
     // 保留非法 JSON 输入
   }
+}
+
+/**
+ * 提交尺寸值；可编辑 Select 手输时可能是字符串
+ * @param value 下拉或手输值
+ */
+function onDimensionChange(value: string | number | null | undefined): void {
+  const num = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(num)) return;
+  emit('update:value', Math.round(num));
 }
 
 /**
