@@ -72,12 +72,12 @@
           >
             <i
               v-if="statusTone === 'error'"
-              class="fa-solid fa-circle-xmark text-[var(--p-red-500)]"
+              class="fa-solid fa-circle-xmark text-(--p-red-500)"
               aria-hidden="true"
             />
             <i
               v-else-if="statusTone === 'warn'"
-              class="fa-solid fa-triangle-exclamation text-[var(--p-orange-500)]"
+              class="fa-solid fa-triangle-exclamation text-(--p-orange-500)"
               aria-hidden="true"
             />
             <i

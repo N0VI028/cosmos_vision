@@ -14,14 +14,17 @@
             <span>{{ bindingLabel }}</span>
           </span>
         </Chip>
-        <Select
+        <ToggleButton
           v-if="showSeedMode"
-          :model-value="control.seedMode ?? 'fixed'"
-          :options="seedModeOptions"
-          option-label="label"
-          option-value="value"
-          class="cv-workflow-input__mini-select"
-          @update:model-value="onSeedModeChange"
+          :model-value="control.seedMode !== 'fixed' && control.seedMode !== undefined && control.seedMode !== null"
+          class="cv-nai-mini-toggle"
+          on-label="随机"
+          off-label="随机"
+          on-icon="fa-solid fa-check"
+          off-icon="fa-solid fa-xmark"
+          aria-label="切换随机种子"
+          size="small"
+          @update:model-value="onSeedToggleChange"
         />
       </div>
     </div>
@@ -45,6 +48,7 @@
       :max="control.max"
       :step="control.step ?? 1"
       :use-grouping="false"
+      :disabled="showSeedMode && control.seedMode !== 'fixed' && control.seedMode !== undefined && control.seedMode !== null"
       class="w-full"
       @update:model-value="emitValue"
     />
@@ -57,7 +61,21 @@
       <span>{{ control.value ? 'true' : 'false' }}</span>
     </div>
     <Textarea
-      v-else-if="control.kind === 'textarea' || control.kind === 'json'"
+      v-else-if="control.kind === 'textarea'"
+      :model-value="String(control.value ?? '')"
+      rows="3"
+      auto-resize
+      class="w-full"
+      @update:model-value="emitValue"
+    />
+    <InputText
+      v-else-if="control.kind === 'text'"
+      :model-value="String(control.value ?? '')"
+      class="w-full"
+      @update:model-value="emitValue"
+    />
+    <Textarea
+      v-else-if="control.kind === 'json'"
       :model-value="textValue"
       rows="3"
       auto-resize
@@ -92,15 +110,14 @@ const promptBindingOptions = [
   { value: 'negative', label: '负向提示词' },
 ];
 
-const seedModeOptions = [
-  { value: 'fixed', label: '固定' },
-  { value: 'randomize', label: '随机' },
-  { value: 'increment', label: '递增' },
-  { value: 'decrement', label: '递减' },
-];
 
+
+/**
+ * 仅多行文本可绑定正负提示词；已绑定的单行字段仍展示以便解绑
+ */
 const showPromptBinding = computed(() => {
-  return props.control.kind === 'text' || props.control.kind === 'textarea';
+  if (props.control.kind === 'textarea') return true;
+  return Boolean(props.control.promptBinding);
 });
 
 /**
@@ -183,15 +200,11 @@ function togglePromptBinding(): void {
 }
 
 /**
- * 切换 seed 模式
- * @param value 模式值
+ * 切换随机种子开启状态
+ * @param value 是否开启随机
  */
-function onSeedModeChange(value: string | null | undefined): void {
-  if (!value) {
-    emit('update:seed-mode', null);
-    return;
-  }
-  emit('update:seed-mode', value as SeedMode);
+function onSeedToggleChange(value: boolean): void {
+  emit('update:seed-mode', value ? 'randomize' : 'fixed');
 }
 </script>
 
@@ -225,8 +238,17 @@ function onSeedModeChange(value: string | null | undefined): void {
   gap: var(--cv-space-sm);
 }
 
-.cv-workflow-input__mini-select {
-  min-width: 7rem;
+.cv-nai-mini-toggle {
+  @apply min-w-0;
+  --p-togglebutton-sm-padding: var(--cv-space-xs) var(--cv-space-md);
+  --p-togglebutton-content-sm-padding: var(--cv-space-xs) var(--cv-space-md);
+  --p-togglebutton-sm-font-size: var(--cv-font-size-2xs);
+}
+
+.cv-nai-mini-toggle:deep(.cv-prime-togglebutton-content) {
+  gap: var(--cv-space-xs);
+  border-radius: var(--cv-radius-sm);
+  line-height: 1;
 }
 
 .cv-workflow-input__binding-chip {

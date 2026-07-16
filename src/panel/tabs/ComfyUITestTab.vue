@@ -450,7 +450,7 @@ onBeforeUnmount(revokePreviewUrl);
 }
 
 .cv-status-banner {
-  @apply mb-[var(--cv-space-2xl)] flex items-center;
+  @apply mb-(--cv-space-2xl) flex items-center;
   gap: var(--cv-space-lg);
   padding: var(--cv-space-xl);
   border-radius: var(--cv-radius-sm);
@@ -567,7 +567,7 @@ onBeforeUnmount(revokePreviewUrl);
 }
 
 .cv-empty-state {
-  @apply p-[var(--cv-space-8xl)] text-center;
+  @apply p-(--cv-space-8xl) text-center;
   color: var(--cv-on-surface-variant);
 }
 </style>

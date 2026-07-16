@@ -260,7 +260,7 @@ watch(
 }
 
 .cv-workflow-inspector__bindings {
-  @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
+  @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap ml-auto;
   font-size: var(--cv-font-size-sm);
   color: var(--cv-primary);
 }
