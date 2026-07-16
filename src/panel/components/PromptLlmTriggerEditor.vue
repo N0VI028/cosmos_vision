@@ -28,69 +28,92 @@
 
     <div class="cv-field-hint">{{ triggerMatchModeHint }}</div>
 
-    <div v-for="(row, index) in conditionRows" :key="row.id" class="cv-trigger-condition-row">
-      <Select
-        :model-value="row.type"
-        :options="buildTypeOptions()"
-        option-label="label"
-        option-value="value"
-        class="cv-trigger-type-select"
-        @update:model-value="value => updateRowType(index, value)"
-      />
+    <Accordion :value="activePanel" :pt="ACCORDION_PT" @update:value="val => activePanel = val">
+      <AccordionPanel v-for="(row, index) in conditionRows" :key="row.id" :value="row.id" :pt="ACCORDION_PANEL_PT">
+        <AccordionHeader :pt="ACCORDION_HEADER_PT">
+          <div class="cv-trigger-accordion-header-content">
+            <span class="cv-trigger-accordion-summary">
+              {{ getConditionSummary(row) }}
+            </span>
+            <Button
+              icon="fa-solid fa-trash"
+              severity="danger"
+              text
+              size="small"
+              aria-label="删除条件"
+              class="cv-trigger-delete-btn"
+              @click.stop="removeConditionRow(index)"
+            />
+          </div>
+        </AccordionHeader>
+        <AccordionContent :pt="ACCORDION_CONTENT_PT">
+          <div class="cv-trigger-accordion-body">
+            <div class="cv-field cv-trigger-type-field">
+              <span>条件类型</span>
+              <Select
+                :model-value="row.type"
+                :options="buildTypeOptions()"
+                option-label="label"
+                option-value="value"
+                class="cv-trigger-type-select"
+                @update:model-value="value => updateRowType(index, value)"
+              />
+            </div>
 
-      <InputTags
-        v-if="row.type === 'keyword'"
-        :model-value="row.keywords"
-        :allow-duplicate="false"
-        add-on-blur
-        delimiter=","
-        class="cv-trigger-inputchips"
-        @update:model-value="value => updateKeywordRow(index, value)"
-      />
+            <div class="cv-field cv-trigger-value-field">
+              <span>配置内容</span>
 
-      <div v-else-if="row.type === 'model'" class="cv-trigger-model-control">
-        <Select
-          :model-value="row.value || null"
-          :options="buildModelOptions(row.value)"
-          option-label="label"
-          option-value="value"
-          placeholder="选择或输入模型 ID"
-          filter
-          editable
-          class="cv-trigger-model-select"
-          @update:model-value="value => updateModelRow(index, value)"
-        />
-        <Button
-          icon="fa-solid fa-rotate"
-          severity="secondary"
-          outlined
-          rounded
-          :loading="isLoadingCheckpoints"
-          aria-label="同步 ComfyUI checkpoint"
-          @click="syncCheckpoints"
-        />
-      </div>
+              <!-- 关键词输入 -->
+              <InputTags
+                v-if="row.type === 'keyword'"
+                :model-value="row.keywords"
+                :allow-duplicate="false"
+                add-on-blur
+                delimiter=","
+                class="cv-trigger-inputchips"
+                @update:model-value="value => updateKeywordRow(index, value)"
+              />
 
-      <Select
-        v-else
-        :model-value="row.value || null"
-        :options="IMAGE_SOURCE_OPTIONS"
-        option-label="label"
-        option-value="value"
-        placeholder="选择生图源"
-        class="cv-trigger-source-select"
-        @update:model-value="value => updateImageSourceRow(index, value)"
-      />
+              <!-- 模型选择 -->
+              <div v-else-if="row.type === 'model'" class="cv-trigger-model-control">
+                <Select
+                  :model-value="row.value || null"
+                  :options="buildModelOptions(row.value)"
+                  option-label="label"
+                  option-value="value"
+                  placeholder="选择或输入模型 ID"
+                  filter
+                  editable
+                  class="cv-trigger-model-select"
+                  @update:model-value="value => updateModelRow(index, value)"
+                />
+                <Button
+                  icon="fa-solid fa-rotate"
+                  severity="secondary"
+                  outlined
+                  rounded
+                  :loading="isLoadingCheckpoints"
+                  aria-label="同步 ComfyUI checkpoint"
+                  @click="syncCheckpoints"
+                />
+              </div>
 
-      <Button
-        icon="fa-solid fa-trash"
-        severity="danger"
-        text
-        size="small"
-        aria-label="删除条件"
-        @click="removeConditionRow(index)"
-      />
-    </div>
+              <!-- 生图源选择 -->
+              <Select
+                v-else
+                :model-value="row.value || null"
+                :options="IMAGE_SOURCE_OPTIONS"
+                option-label="label"
+                option-value="value"
+                placeholder="选择生图源"
+                class="cv-trigger-source-select"
+                @update:model-value="value => updateImageSourceRow(index, value)"
+              />
+            </div>
+          </div>
+        </AccordionContent>
+      </AccordionPanel>
+    </Accordion>
 
     <button type="button" class="cv-add-condition-btn-flat-wide" @click="addConditionRow">
       <i class="fa-solid fa-plus" /> 新增条件
@@ -163,6 +186,61 @@ const conditionMatchMode = computed<ConditionMatchMode>(() =>
   matchMode.value === 'always' ? DEFAULT_CONDITION_MATCH_MODE : matchMode.value,
 );
 
+/** 展开/收起手风琴的激活面板 ID */
+const activePanel = ref<string | string[] | null | undefined>(null);
+
+/**
+ * PrimeVue Accordion Pass Through (PT) 样式声明
+ */
+const ACCORDION_PT = {
+  root: {
+    class: 'w-full flex flex-col gap-[var(--cv-space-md)]'
+  }
+};
+
+const ACCORDION_PANEL_PT = {
+  root: {
+    class: 'border border-[var(--cv-border-width)] border-[var(--cv-surface-variant)] rounded-[var(--cv-radius-sm)] overflow-hidden bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)]'
+  }
+};
+
+const ACCORDION_HEADER_PT = {
+  root: {
+    class: 'flex items-center gap-[var(--cv-space-lg)] p-[var(--cv-space-md)] cursor-pointer select-none bg-[var(--cv-surface-container-low)] text-[var(--cv-on-surface)] transition-colors duration-200 hover:bg-[var(--cv-surface-container)]'
+  },
+  toggleIcon: {
+    class: 'text-[var(--cv-on-surface-variant)] shrink-0'
+  }
+};
+
+const ACCORDION_CONTENT_PT = {
+  content: {
+    class: 'p-[var(--cv-space-2xl)] md:p-[var(--cv-space-3xl)] bg-[color-mix(in_srgb,var(--cv-surface-container-low)_20%,transparent)] border-t border-[var(--cv-border-width)] border-[var(--cv-surface-variant)]'
+  }
+};
+
+/**
+ * 获取条件的只读摘要文本
+ * @param row 条件行
+ * @returns 摘要文本
+ */
+function getConditionSummary(row: ConditionRow): string {
+  switch (row.type) {
+    case 'keyword':
+      return row.keywords.length > 0
+        ? `关键词: ${row.keywords.join(', ')}`
+        : '关键词: 未配置';
+    case 'model':
+      return row.value ? `模型: ${row.value}` : '模型: 未配置';
+    case 'image_source': {
+      const matched = IMAGE_SOURCE_OPTIONS.find(item => item.value === row.value);
+      return matched ? `生图源: ${matched.label}` : '生图源: 未配置';
+    }
+    default:
+      return '未配置条件';
+  }
+}
+
 /**
  * 获取当前匹配模式在无条件时的逻辑描述提示文本
  */
@@ -217,7 +295,9 @@ function updateConditionMatchMode(value: ConditionMatchMode | null | undefined):
  * 新增条件行，默认关键词；可再改为模型/生图源
  */
 function addConditionRow(): void {
-  conditionRows.value.push(createKeywordRow([]));
+  const newRow = createKeywordRow([]);
+  conditionRows.value.push(newRow);
+  activePanel.value = newRow.id; // 新条件自动展开
   writeConditionRows(conditionRows.value);
 }
 
@@ -423,13 +503,34 @@ function nextRowId(): string {
   gap: var(--cv-space-md);
 }
 
-.cv-trigger-condition-row {
-  @apply grid w-full items-center;
-  grid-template-columns: minmax(6rem, 7.5rem) minmax(0, 1fr) auto;
-  gap: var(--cv-space-md);
+.cv-trigger-accordion-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
-.cv-trigger-type-select,
+.cv-trigger-accordion-summary {
+  font-weight: 500;
+  color: var(--cv-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: var(--cv-space-md);
+  font-size: var(--cv-font-size-sm);
+}
+
+.cv-trigger-accordion-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-space-lg);
+  padding: var(--cv-space-lg);
+}
+
+.cv-trigger-type-select {
+  @apply w-full;
+}
+
 .cv-trigger-model-select,
 .cv-trigger-source-select,
 .cv-trigger-inputchips {
