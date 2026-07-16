@@ -163,7 +163,7 @@ import { nextTick } from 'vue';
 import type { ComfyUILoraPresetSettings } from '@/constants/comfyui';
 import { getActiveComfyUILoraPreset } from '@/services/comfyui/lora-presets';
 import { writeLoraPresetToNode } from '@/services/comfyui/lora-adapter';
-import { layoutWorkflow } from '@/services/comfyui/layout';
+import { layoutWorkflow, readNodeDisplayName } from '@/services/comfyui/layout';
 import { readImageOutputNodeId, setImageOutputNode, clearImageOutputNode, readNodeMeta, setPromptBinding, setSeedMode } from '@/services/comfyui/meta';
 import {
   fetchComfyUIObjectInfo,
@@ -197,6 +197,17 @@ const emit = defineEmits<{
   import: [];
   'refresh-lora-options': [];
 }>();
+
+const showConfirm =
+  inject<
+    (options: {
+      title?: string;
+      message: string;
+      acceptLabel?: string;
+      cancelLabel?: string;
+      severity?: string;
+    }) => Promise<boolean>
+  >('showConfirm');
 
 const canvasRef = ref<{ fitView: () => void } | null>(null);
 const selectedNodeId = ref<string | null>(null);
@@ -260,10 +271,10 @@ const outputCandidates = computed(() => {
 
 const canSetSelectedOutput = computed(() => {
   if (!selectedNodeId.value) return false;
-  if (!objectInfo.value) return true;
   return outputCandidates.value.includes(selectedNodeId.value);
 });
 
+/** 未同步 schema 时输出候选仅按 JSON 推断，视为未经验证 */
 const outputUnverified = computed(() => !objectInfo.value);
 
 const statusText = computed(() => {
@@ -340,24 +351,46 @@ function updateSeedMode(inputName: string, mode: SeedMode | null): void {
 }
 
 /**
- * 设置唯一输出节点
+ * 设置或取消唯一图片输出节点；改绑时用插件确认弹窗二次确认
  * @param nodeId 节点 ID
  */
-function setImageOutput(nodeId: string): void {
+async function setImageOutput(nodeId: string): Promise<void> {
   if (!workflow.value) return;
-  if (objectInfo.value && !outputCandidates.value.includes(nodeId)) {
-    toastr.warning('当前节点定义未将该节点标记为输出节点');
+  const next = structuredClone(workflow.value) as ComfyUIWorkflow;
+  const node = next[nodeId];
+  if (!node) return;
+
+  // 已绑定：直接取消，不要求仍在候选列表（schema 变更后仍可解绑）
+  if (readNodeMeta(node).imageOutput) {
+    clearImageOutputNode(next);
+    commitWorkflow(next);
     return;
   }
-  const next = structuredClone(workflow.value) as ComfyUIWorkflow;
-  const currentNode = next[nodeId];
-  const isCurrentlyOutput = currentNode ? Boolean(readNodeMeta(currentNode).imageOutput) : false;
 
-  if (isCurrentlyOutput) {
-    clearImageOutputNode(next);
-  } else {
-    setImageOutputNode(next, nodeId);
+  if (!outputCandidates.value.includes(nodeId)) {
+    toastr.warning(
+      objectInfo.value
+        ? '当前节点定义未将该节点标记为输出节点'
+        : '未同步节点定义：仅可将 JSON 中已标记或疑似图片输出的节点设为输出',
+    );
+    return;
   }
+
+  const existingId = readImageOutputNodeId(next);
+  if (existingId && existingId !== nodeId) {
+    const existing = next[existingId];
+    const name = existing ? readNodeDisplayName(existing, existingId) : existingId;
+    const confirmed = await showConfirm?.({
+      title: '改绑图片输出节点',
+      message: `节点 #${existingId}（${name}）已绑定为图片输出节点。是否改绑到当前节点 #${nodeId}？`,
+      acceptLabel: '确认改绑',
+      cancelLabel: '取消',
+      severity: 'warn',
+    });
+    if (!confirmed) return;
+  }
+
+  setImageOutputNode(next, nodeId);
   commitWorkflow(next);
 }
 

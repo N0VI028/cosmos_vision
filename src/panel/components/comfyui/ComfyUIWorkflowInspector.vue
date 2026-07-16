@@ -28,12 +28,10 @@
       </div>
       <div class="flex items-center gap-(--cv-space-md)" @click.stop>
         <Chip
+          v-if="showOutputChip"
           class="cv-workflow-inspector__output-chip"
-          :class="[
-            isImageOutput ? 'is-active' : 'is-inactive',
-            { 'is-disabled': !canSetOutput }
-          ]"
-          @click="canSetOutput && emit('set-image-output', nodeId!)"
+          :class="isImageOutput ? 'is-active' : 'is-inactive'"
+          @click="emit('set-image-output', nodeId!)"
         >
           <span class="flex items-center gap-1.5 cursor-pointer">
             <i :class="isImageOutput ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'" aria-hidden="true" />
@@ -140,7 +138,8 @@ const displayName = computed(() => {
 });
 
 const isImageOutput = computed(() => Boolean(props.node && readNodeMeta(props.node).imageOutput));
-
+/** 候选可设，或已绑定（便于取消） */
+const showOutputChip = computed(() => props.canSetOutput || isImageOutput.value);
 const showLoraPanel = computed(() => isSupportedLoraNode(props.node ?? undefined));
 
 /**
@@ -155,9 +154,7 @@ const bindingSummary = computed(() => {
     parts.push(`${inputName}:${binding === 'positive' ? '正向' : '负向'}`);
   }
   for (const [inputName, mode] of Object.entries(meta.seedModes ?? {})) {
-    const modeLabel =
-      mode === 'randomize' ? '随机' : mode === 'increment' ? '递增' : mode === 'decrement' ? '递减' : '固定';
-    parts.push(`${inputName}:${modeLabel}`);
+    parts.push(`${inputName}:${seedModeLabel(mode)}`);
   }
   if (meta.imageOutput) parts.push('输出节点');
 
@@ -165,10 +162,21 @@ const bindingSummary = computed(() => {
 });
 
 const outputHint = computed(() => {
-  if (!props.canSetOutput) return '当前节点定义未将该节点标记为输出节点';
-  if (props.outputUnverified) return '离线模式：输出节点未经验证';
-  return '';
+  if (!showOutputChip.value || !props.outputUnverified) return '';
+  return '未同步节点定义：输出候选按工作流 JSON 推断，尚未经 schema 验证';
 });
+
+/**
+ * seed 模式中文标签
+ * @param mode seed 模式
+ * @returns 展示文案
+ */
+function seedModeLabel(mode: SeedMode): string {
+  if (mode === 'randomize') return '随机';
+  if (mode === 'increment') return '递增';
+  if (mode === 'decrement') return '递减';
+  return '固定';
+}
 
 const isCollapsed = ref(false);
 
@@ -289,11 +297,5 @@ watch(
 
 :deep(.cv-workflow-inspector__output-chip.is-inactive:hover) {
   background: var(--cv-surface-container-high) !important;
-}
-
-:deep(.cv-workflow-inspector__output-chip.is-disabled) {
-  opacity: 0.55 !important;
-  cursor: not-allowed !important;
-  pointer-events: none !important;
 }
 </style>

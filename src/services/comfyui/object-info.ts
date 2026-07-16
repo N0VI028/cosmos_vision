@@ -5,6 +5,7 @@ import type {
   ComfyUIObjectInfoMap,
   ComfyUIObjectInfoNode,
   ComfyUIWorkflow,
+  ComfyUIWorkflowNode,
   CosmosVisionNodeMeta,
 } from '@/services/comfyui/types';
 import { isLinkRef } from '@/services/comfyui/link';
@@ -114,23 +115,43 @@ export function mapInputControls(
 /**
  * 读取可被指定为输出节点的候选节点 ID
  * @param workflow 工作流
- * @param objectInfo 节点 schema 表；null 表示离线降级
+ * @param objectInfo 节点 schema 表；null 表示未同步，仅按 JSON 推断
  * @returns 候选节点 ID 列表
  */
 export function listOutputCandidates(
   workflow: ComfyUIWorkflow,
   objectInfo: ComfyUIObjectInfoMap | null,
 ): string[] {
-  if (!objectInfo) return Object.keys(workflow);
-  const outputClassTypes = new Set(
-    Object.values(objectInfo)
-      .filter(node => node.isOutput)
-      .map(node => node.classType),
-  );
-  // 在线时仅返回 schema 标记的输出节点，不回退到全部节点
   return Object.entries(workflow)
-    .filter(([, node]) => outputClassTypes.has(node.class_type))
+    .filter(([, node]) => isImageOutputCandidate(node, objectInfo))
     .map(([id]) => id);
+}
+
+/**
+ * 判断节点是否可作为图片输出候选
+ * - 已同步：仅 schema.isOutput
+ * - 未同步：imageOutput 元数据或 class_type 疑似图片输出
+ * @param node 工作流节点
+ * @param objectInfo 节点 schema 表
+ * @returns 是否候选
+ */
+function isImageOutputCandidate(
+  node: ComfyUIWorkflowNode,
+  objectInfo: ComfyUIObjectInfoMap | null,
+): boolean {
+  if (objectInfo) return Boolean(objectInfo[node.class_type]?.isOutput);
+  return Boolean(readNodeMeta(node).imageOutput) || isLikelyImageOutputClassType(node.class_type);
+}
+
+/**
+ * 根据 class_type 启发式判断是否疑似图片输出节点
+ * @param classType 节点类型
+ * @returns 是否疑似图片输出
+ */
+function isLikelyImageOutputClassType(classType: string): boolean {
+  if (!classType) return false;
+  const isSaveOrPreview = classType.includes('Save') || classType.includes('Preview');
+  return isSaveOrPreview && classType.includes('Image');
 }
 
 /**
@@ -296,7 +317,7 @@ function detectIsOutputNode(rawNode: Record<string, unknown>, classType: string)
   if (category.includes('image') && (classType.includes('Save') || classType.includes('Preview'))) {
     return true;
   }
-  return classType === 'PreviewImage' || classType === 'SaveImage' || classType.includes('Save Image');
+  return isLikelyImageOutputClassType(classType);
 }
 
 /**
