@@ -237,7 +237,29 @@ function onPointerUp(event: PointerEvent): void {
   el?.removeEventListener('pointerup', onPointerUp);
 }
 
-defineExpose({ fitView });
+/**
+ * 定位并居中显示指定节点，若缩放比例过小则调整到合适比例
+ * @param nodeId 节点 ID
+ */
+function focusNode(nodeId: string): void {
+  const el = rootEl.value;
+  if (!el) return;
+  const node = props.layout.nodes.find(n => n.id === nodeId);
+  if (!node) return;
+
+  // 保证缩放比例不小于 0.7 以确保节点内容可读
+  if (scale.value < 0.7) {
+    scale.value = 0.7;
+  }
+
+  const containerWidth = el.clientWidth;
+  const containerHeight = el.clientHeight;
+
+  offsetX.value = containerWidth / 2 - (node.x + node.width / 2) * scale.value;
+  offsetY.value = containerHeight / 2 - (node.y + node.height / 2) * scale.value;
+}
+
+defineExpose({ fitView, focusNode });
 
 /**
  * 仅拓扑（节点/边 ID）变化时自动适配；改参只换 layout 引用时不重置视口

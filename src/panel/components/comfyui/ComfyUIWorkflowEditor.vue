@@ -105,6 +105,39 @@
 
         <div class="absolute top-(--cv-space-lg) right-(--cv-space-lg) z-2 flex gap-(--cv-space-sm)">
           <ReuseIconButton
+            title="定位绑定节点"
+            @click="locatePopover?.toggle($event)"
+          >
+            <i class="fa-solid fa-location-crosshairs" aria-hidden="true" />
+          </ReuseIconButton>
+
+          <Popover
+            ref="locatePopover"
+            :base-z-index="3200"
+            :dt="MACRO_POPOVER_TOKENS"
+            :pt="locatePopoverPt"
+          >
+            <div class="cv-workflow-locate-popover-content">
+              <button
+                v-for="option in locateOptions"
+                :key="option.key"
+                type="button"
+                class="cv-workflow-locate-option"
+                :disabled="!option.nodeId"
+                @click="onLocateNode(option.nodeId)"
+              >
+                <span class="cv-workflow-locate-option__icon">
+                  <i :class="option.icon" :style="{ color: option.nodeId ? option.color : undefined }" aria-hidden="true" />
+                </span>
+                <span>{{ option.label }}</span>
+                <span class="cv-workflow-locate-option__sub">
+                  {{ option.nodeId ? `#${option.nodeId}` : '未绑定' }}
+                </span>
+              </button>
+            </div>
+          </Popover>
+
+          <ReuseIconButton
             title="同步节点定义"
             :disabled="schemaLoading"
             @click="refreshSchema(true)"
@@ -183,9 +216,9 @@
 import { nextTick } from 'vue';
 import type { ComfyUILoraPresetSettings } from '@/constants/comfyui';
 import { getActiveComfyUILoraPreset } from '@/services/comfyui/lora-presets';
-import { writeLoraPresetToNode } from '@/services/comfyui/lora-adapter';
+import { writeLoraPresetToNode, isSupportedLoraNode } from '@/services/comfyui/lora-adapter';
 import { layoutWorkflow, readNodeDisplayName } from '@/services/comfyui/layout';
-import { readImageOutputNodeId, setImageOutputNode, clearImageOutputNode, readNodeMeta, setPromptBinding, setSeedMode } from '@/services/comfyui/meta';
+import { readImageOutputNodeId, setImageOutputNode, clearImageOutputNode, readNodeMeta, setPromptBinding, setSeedMode, readPromptBindings } from '@/services/comfyui/meta';
 import {
   fetchComfyUIObjectInfo,
   getCachedComfyUIObjectInfo,
@@ -198,6 +231,7 @@ import { createReusableTemplate } from '@vueuse/core';
 import ComfyUIWorkflowCanvas from '@/panel/components/comfyui/ComfyUIWorkflowCanvas.vue';
 import ComfyUIWorkflowInspector from '@/panel/components/comfyui/ComfyUIWorkflowInspector.vue';
 import ComfyUIWorkflowToolbar from '@/panel/components/comfyui/ComfyUIWorkflowToolbar.vue';
+import { MACRO_POPOVER_TOKENS } from '@/panel/components/prompt-llm-macro-popover';
 
 const [DefineIconButton, ReuseIconButton] = createReusableTemplate<{
   title: string;
@@ -231,10 +265,48 @@ const showConfirm =
     }) => Promise<boolean>
   >('showConfirm');
 
-const canvasRef = ref<{ fitView: () => void } | null>(null);
+const canvasRef = ref<{ fitView: () => void; focusNode: (nodeId: string) => void } | null>(null);
 const selectedNodeId = ref<string | null>(null);
 const showAdvancedJson = ref(false);
 const fullscreen = ref(false);
+
+const locatePopover = ref<any>(null);
+
+const locateOptions = computed(() => {
+  const wf = workflow.value;
+  if (!wf) return [];
+
+  const bindings = readPromptBindings(wf);
+  const positiveId = bindings.find(b => b.binding === 'positive')?.nodeId ?? null;
+  const negativeId = bindings.find(b => b.binding === 'negative')?.nodeId ?? null;
+  const loraId = Object.entries(wf).find(([_, node]) => isSupportedLoraNode(node))?.[0] ?? null;
+  const outputId = readImageOutputNodeId(wf);
+
+  return [
+    { key: 'positive', label: '正面提示词', icon: 'fa-solid fa-circle-plus', nodeId: positiveId, color: '#10b981' },
+    { key: 'negative', label: '负面提示词', icon: 'fa-solid fa-circle-minus', nodeId: negativeId, color: '#ef4444' },
+    { key: 'lora', label: 'Lora组', icon: 'fa-solid fa-puzzle-piece', nodeId: loraId, color: '#a855f7' },
+    { key: 'output', label: '图片输出', icon: 'fa-solid fa-image', nodeId: outputId, color: '#3b82f6' },
+  ];
+});
+
+const locatePopoverPt = {
+  root: { class: 'cosmos-vision-root cv-workflow-locate-popover' },
+  content: { class: 'cv-workflow-locate-popover-content' },
+};
+
+/**
+ * 定位到指定节点并使其在画布中居中，同步更新详情和选择器焦点
+ * @param nodeId 节点 ID
+ */
+function onLocateNode(nodeId: string | null): void {
+  if (!nodeId) return;
+  selectedNodeId.value = nodeId;
+  nextTick(() => {
+    canvasRef.value?.focusNode(nodeId);
+  });
+  locatePopover.value?.hide();
+}
 const schemaLoading = ref(false);
 const objectInfo = ref<ComfyUIObjectInfoMap | null>(null);
 const schemaError = ref<string | null>(null);
@@ -560,5 +632,61 @@ onBeforeUnmount(() => {
 .cv-workflow-node-select {
   --p-select-focus-ring-color: transparent;
   --p-select-focus-ring-width: 0;
+}
+</style>
+
+<!-- Popover 挂到 body，scoped 无法命中 -->
+<style>
+.cv-workflow-locate-popover {
+  width: max-content;
+  min-width: 160px;
+}
+
+.cv-workflow-locate-popover-content {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--cv-space-xs);
+  padding: var(--cv-space-xs);
+}
+
+.cv-workflow-locate-option {
+  display: flex;
+  align-items: center;
+  gap: var(--cv-space-md);
+  padding: var(--cv-space-sm) var(--cv-space-lg);
+  border: var(--cv-border-width) solid transparent;
+  border-radius: var(--cv-radius-sm);
+  background: transparent;
+  color: var(--cv-on-surface);
+  font-size: var(--cv-font-size-sm);
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.cv-workflow-locate-option:hover:not(:disabled) {
+  background: var(--cv-surface-container-highest);
+}
+
+.cv-workflow-locate-option:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cv-workflow-locate-option__icon {
+  width: 1.125rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1rem;
+}
+
+.cv-workflow-locate-option__sub {
+  font-size: var(--cv-font-size-2xs);
+  color: var(--cv-on-surface-variant);
+  margin-left: auto;
+  padding-left: var(--cv-space-lg);
 }
 </style>
