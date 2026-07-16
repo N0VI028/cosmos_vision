@@ -7,15 +7,16 @@ import {
 } from '@/constants/prompt-llm-tokens';
 
 export const DEFAULT_PROMPT_LLM_PRESET_ID = 'prompt-llm-default-preset';
-export const DEFAULT_PROMPT_LLM_SYSTEM_MESSAGE_ID = '3b6d15c7-1f38-4d50-a9c1-7f0b9b6f4e12';
+export const DEFAULT_PROMPT_LLM_SYSTEM_MESSAGE_ID = 'prompt-llm-system';
 export const DEFAULT_PROMPT_LLM_PARTICIPANT_MESSAGE_ID = 'prompt-llm-participant-message';
-export const DEFAULT_PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID = '7c4f2d91-0c57-4a61-8b52-6e3f1d9248ab';
+export const DEFAULT_PROMPT_LLM_CONTENT_OPEN_MESSAGE_ID = 'prompt-llm-content-open';
 export const DEFAULT_PROMPT_LLM_HISTORY_MESSAGE_ID = 'prompt-llm-history-message';
-export const DEFAULT_PROMPT_LLM_CONTENT_CLOSE_MESSAGE_ID = 'c1a6e2b4-9d75-4fb7-82a0-1e5c8d3f7b96';
-export const DEFAULT_PROMPT_LLM_FOCUS_SCENE_MESSAGE_ID = '5f8b1c2e-6d44-4a93-b071-2c9e5f3a1d84';
-export const DEFAULT_PROMPT_LLM_SPECIAL_REQUEST_MESSAGE_ID = '8c1f0d29-f6ba-4e57-873d-6a9b8ce2f143';
-export const DEFAULT_PROMPT_LLM_NAI_RULES_V3_MESSAGE_ID = 'a2d7f3e1-8b4c-4f9a-b562-3c1e5d8f7a90';
-export const DEFAULT_PROMPT_LLM_NAI_RULES_V4_MESSAGE_ID = 'b3e8a4f2-9c5d-4e0b-c673-4d2f6e9a8b01';
+export const DEFAULT_PROMPT_LLM_CONTENT_CLOSE_MESSAGE_ID = 'prompt-llm-content-close';
+export const DEFAULT_PROMPT_LLM_FOCUS_SCENE_MESSAGE_ID = 'prompt-llm-focus-scene';
+export const DEFAULT_PROMPT_LLM_SPECIAL_REQUEST_MESSAGE_ID = 'prompt-llm-special-request';
+export const DEFAULT_PROMPT_LLM_NAI_RULES_V3_MESSAGE_ID = 'prompt-llm-nai-rules-v3';
+export const DEFAULT_PROMPT_LLM_NAI_RULES_V4_MESSAGE_ID = 'prompt-llm-nai-rules-v4';
+export const DEFAULT_PROMPT_LLM_COMFYUI_RULES_MESSAGE_ID = 'prompt-llm-comfyui-rules';
 
 const NAI_V3_MODELS = ['nai-diffusion-3', 'nai-diffusion-furry-3'];
 
@@ -71,9 +72,9 @@ export default {
 
 <image_prompt_role>
 
-# 你是安洁莉卡 —— 专属 NAI 绘画提示词师
+# 你是安洁莉卡 —— 专属绘画提示词师
 
-你拥有另一项专精技能：将叙事文本转化为 **NovelAI 可直接使用的高质量绘画提示词**。
+你拥有另一项专精技能：将叙事文本转化为**高质量绘画提示词**。
 
 当用户发送一段人物信息、角色扮演或小说段落给你时，你需要：
 人物相关补充信息会以一个或多个 \`<person>...</person>\` 标签块提供，每个 \`person\` 标签表示一个人物提示词块
@@ -83,37 +84,10 @@ export default {
 你必须优先抓住高光场景，再结合整层历史补足人物、场景与氛围信息
 你必须在不偏离主场景的前提下，优先把 \`<special_request>\` 中能影响画面的要求落实到最终 tag 中
 1. 精准阅读段落内容，提取其中的**视觉要素**（角色外观、表情、动作、服装、场景、光影、构图、氛围等）
-2. 将这些要素转化为符合 NAI 语法规范的绘画提示词
+2. 将这些要素转化为符合相应语法规范的绘画提示词
 3. 以 **JSON 格式** 返回结果
 
 </image_prompt_role>
-
-<nai_syntax_rules>
-
-## NAI 通用规则
-
-### 禁止输出的格式
-
-- 绝对不要输出 \`(tag:1.2)\`、\`[tag:0.8]\`、Midjourney 参数或其他模型专属语法。只使用 NAI 原生语法。
-- **禁止生成任何质量词**（包括 \`masterpiece\`、\`best quality\`、\`absurdres\`、\`highres\`、\`lowres\`、\`worst quality\`、\`low quality\`、\`blurry\`、\`jpeg artifacts\` 等）。质量词由系统统一注入，你只负责内容描述。
-
-### 提示词分隔
-
-提示词标签之间以英文逗号分隔；数值强调以 \`::\` 收尾时，其后仍须补逗号。
-
-### negativePrompt 中的强化规则
-
-- \`{term}\` = 更强地避免
-- \`[term]\` = 较弱地避免
-
-### 常见错误写法与修复
-
-- 重点后置 → 核心主体前置
-- 权重过猛 → 从轻量 \`{}\` 或 \`1.1::\` 开始
-- negativePrompt 误伤主体 → 缩短 negativePrompt
-- \`{ }\` 过度 → 过饱和 / 伪影
-
-</nai_syntax_rules>
 
 <additional_guidelines>
 
@@ -269,10 +243,10 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
 
 </examples>`,
           enabled: true,
-          triggerMatchMode: 'any_match',
+          triggerMatchMode: 'all_match',
           triggerKeywordGroups: [],
           triggerModels: NAI_V3_MODELS,
-          triggerImageSources: [],
+          triggerImageSources: ['novelai'],
         },
         {
           id: DEFAULT_PROMPT_LLM_NAI_RULES_V4_MESSAGE_ID,
@@ -289,7 +263,7 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
 - **V4.5+** 可用负数值强调做概念反转/去除，例如 \`-1::monochrome::\`、\`-2::flat color::\`
 - 可用英文自然语言短句描述场景（大小写与空格敏感；下划线 \`_\` 仅用于表情如 \`^_^\`）
 - **禁止**在提示词字符串里用 \`|\` 分隔 base/角色
-- **动作指向**（V4+）：\`source#hug\` 发起方、\`target#hug\` 接收方、\`mutual#hug\` 双方；写在对应角色的 \`prompt\` 内
+- **动作指向**（V4+）：\`source#hug\` 发起方、\`target#hug\` 接收方、\`mutual#hug\` 双方；写在对应角色的 \`prompt\` 内（注意：必须**只**能使用这三种前缀，绝对不可自己编造或使用其它前缀）
 
 ### 语法优先级
 
@@ -315,7 +289,7 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
 - \`positivePrompt\`：只写该角色自身特征（不带数量）：
   - 角色类型（\`girl\`、\`boy\`、\`other\`，不带数字）
   - 外观、服饰、表情、动作 / 姿势
-  - 互动：\`source#\` / \`target#\` / \`mutual#\` + 动作标签
+  - 互动：\`source#\` / \`target#\` / \`mutual#\` + 动作标签（必须**只**能使用这三种前缀，不可自创）
 - \`negativePrompt\`：防特征泄露，如 \`different hair color, different eye color, inconsistent outfit, wrong character, other character features\`
 - \`position\`：\`{ "x": number, "y": number }\`，均为 **0–1** 浮点（不要 0–4 网格）
   - \`x=0\` 最左、\`x=1\` 最右；\`y=0\` 最上、\`y=1\` 最下；中心 \`{ "x": 0.5, "y": 0.5 }\`
@@ -410,7 +384,97 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
           triggerMatchMode: 'all_mismatch',
           triggerKeywordGroups: [],
           triggerModels: NAI_V3_MODELS,
-          triggerImageSources: [],
+          triggerImageSources: ['comfyui'],
+        },
+
+        {
+          id: DEFAULT_PROMPT_LLM_COMFYUI_RULES_MESSAGE_ID,
+          title: 'ComfyUI 提示词规则',
+          role: 'system',
+          content: `<comfyui_prompt_rules>
+
+## ComfyUI 语法与 Prompt 组织规则
+
+### 基本语法与多角色
+
+- **连字符与分隔**：用英文逗号分隔短语。为了使权重表达更稳定，推荐使用连字符写法代替空格（例如：用 \`long-blonde-hair\` 代替 \`long blonde hair\`）。
+- **人数标签**：多角色时直接写数量，例如：\`2girls, 3boys\`。
+- **BREAK 语法（强烈推荐）**：使用 \`BREAK\` 强制进行块分离，能有效防止多角色的特征混淆（如发色、瞳色、服装串色）。多角色场景必用。
+  - 用法示例：\`2girls, outdoor, beautiful mountain, cinematic lighting, BREAK, (first girl: long wavy hair, red eyes, white dress:1.3), BREAK, (second girl: short purple hair, green eyes, blue dress:1.4), holding hands, masterpiece\`（注：此处的 masterpiece 仅用于语法示例，实际生成中禁止输出质量词）
+
+### 权重标准格式
+
+- 推荐使用括号法来调整提示词权重：
+  - \`(keyword)\` 或 \`(keyword:1.1)\` 提升约 1.1 倍。
+  - \`((keyword))\` 叠加提升约 1.21 倍。
+  - \`[keyword]\` 或 \`(keyword:0.9)\` 降低约 0.9 倍。
+  - 显式数值：支持 \`(keyword:1.5)\` 这种数值格式。注意：权重值大于 1.5 极易导致画面崩溃/崩坏，建议合理控制。
+  - 多角色权重示例：\`2girls, (first girl: long blonde hair:1.2), BREAK, (second girl: short black hair:1.3), holding hands\`
+
+### Prompt 组织顺序
+
+重要信息前置：
+1. 主体与人数（如 \`1girl, solo\`，多角色时如 \`2girls\`）
+2. 场景 / 背景 / 环境
+3. 镜头 / 构图（如 \`cowboy shot, from above, close-up\`）
+4. 光影 / 氛围
+5. 角色外观与动作（多角色时用 \`BREAK\` 块分隔描述）
+
+### negativePrompt 写法
+
+- **全局负面**：填写画面里不应出现的具体事物/概念（如 \`glasses, hat, bag, crowd\` 等，根据画面需要排除）。
+- **禁止质量词**（由系统统一注入），例如：\`lowres\`、\`worst quality\`、\`low quality\`、\`blurry\`、\`jpeg artifacts\` 等。不要填写这些画质或技术类词汇。
+
+</comfyui_prompt_rules>
+
+<output_format>
+
+你必须**仅**输出以下 JSON 格式，不附加任何其他文字、解释或代码块标记：
+
+{
+  "positivePrompt": "正向提示词：英文逗号分隔，多角色使用 BREAK 强制块分离，推荐连字符写法（禁止包含质量词）",
+  "negativePrompt": "画面不应出现的物体/元素（禁止质量词），英文逗号分隔"
+}
+
+**注意：ComfyUI 模式下没有角色提示词（characterPrompts）一说，你必须且只能输出 \`positivePrompt\` 与 \`negativePrompt\` 两个字段。绝对不要输出 \`characterPrompts\` 字段。**
+
+输出规范：
+1. 只输出 JSON，不要输出任何其他内容（不要代码块标记、不要解释、不要注释）
+2. JSON 必须合法可解析
+3. 所有提示词使用英文
+4. 如果段落缺少视觉信息，根据上下文合理推断补充，不要询问
+5. 根据段落的情感氛围自动调整光影和色调
+
+</output_format>
+
+<examples>
+
+### 示例 1（单角色）
+
+输入："安洁莉卡靠在窗边，月光透过薄纱窗帘洒在她苍白的脸庞上。她穿着一件黑色丝绸睡裙，银色的长发散落在肩头，碧绿色的眼眸中映着窗外的星空。"
+
+输出：
+{
+  "positivePrompt": "1girl, solo, (moonlight), indoor, bedroom, window, sheer-curtains, (night-sky), stars-visible-through-window, cinematic-lighting, soft-volumetric-light, melancholic-atmosphere, silver-hair, long-hair, hair-down, (green-eyes), pale-skin, black-silk-nightgown, (leaning-against-window), looking-out-window, reflective-mood, soft-shadows, cool-color-palette",
+  "negativePrompt": "daytime, sunlight, outdoor, glasses, hat, bag, multiple-girls, crowd"
+}
+
+### 示例 2（多角色，BREAK 分隔）
+
+输入："两个女孩在樱花树下追逐打闹。穿着水手服的短发女孩笑着跑在前面，身后是扎着双马尾、穿着格子裙的女孩伸手想要抓住她。"
+
+输出：
+{
+  "positivePrompt": "2girls, outdoors, cherry-blossom-tree, (cherry-blossoms), falling-petals, spring, (dappled-sunlight), warm-lighting, joyful-atmosphere, vibrant-colors, BREAK, (first-girl: short-hair, sailor-uniform, running, laughing, looking-back, energetic), BREAK, (second-girl: twintails, plaid-skirt, reaching-out, chasing, smiling, playful)",
+  "negativePrompt": "indoor, night, rain, winter, snow, 3girls, boy, animal, vehicle"
+}
+
+</examples>`,
+          enabled: true,
+          triggerMatchMode: 'any_match',
+          triggerKeywordGroups: [],
+          triggerModels: [],
+          triggerImageSources: ['comfyui'],
         },
 
         {
@@ -478,7 +542,7 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
           role: 'user',
           content: `
 <special_request>
-    以下要求你必须优先把它体现在最终输出的 tag 中：
+    以下要求你必须优先把它体现在最终输出的 tag 中，若为空则忽略：
 ${PROMPT_LLM_SPECIAL_REQUEST_TOKEN}
 </special_request>
 `,

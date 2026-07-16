@@ -356,7 +356,7 @@ const confirmDialogClass = computed(() => ['cv-confirm-dialog', settingsDialogCl
 
 const isMobile = useMediaQuery('(max-width: 66.6667em)');
 const dialogStyle = computed(() =>
-  isMobile.value ? { width: '95vw', height: '90vh' } : { width: '50.6667em', height: '40em', maxHeight: '80vh' },
+  isMobile.value ? { width: '95vw', height: '90vh' } : { width: '40vw', height: '70vh', maxHeight: '80vh' },
 );
 const confirmDialogStyle = computed(() =>
   isMobile.value
