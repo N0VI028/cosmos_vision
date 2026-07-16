@@ -137,7 +137,7 @@
             :node="selectedNode"
             :controls="selectedControls"
             :can-set-output="canSetSelectedOutput"
-            :output-unverified="outputUnverified"
+            :online="online"
             :lora-preset-settings="loraPresetSettings"
             :lora-options="loraOptions"
             :is-loading-loras="isLoadingLoras"
@@ -153,7 +153,6 @@
 
       <!-- 非全屏：画布与详情之间的节点选择 -->
       <label v-if="workflow && !fullscreen" class="cv-field">
-        <span>快速选择节点</span>
         <ReuseNodeSelect />
       </label>
 
@@ -165,7 +164,7 @@
         :node="selectedNode"
         :controls="selectedControls"
         :can-set-output="canSetSelectedOutput"
-        :output-unverified="outputUnverified"
+        :online="online"
         :lora-preset-settings="loraPresetSettings"
         :lora-options="loraOptions"
         :is-loading-loras="isLoadingLoras"
@@ -307,13 +306,14 @@ const outputCandidates = computed(() => {
   return listOutputCandidates(workflow.value, objectInfo.value);
 });
 
+const online = computed(() => Boolean(objectInfo.value));
+
 const canSetSelectedOutput = computed(() => {
   if (!selectedNodeId.value) return false;
   return outputCandidates.value.includes(selectedNodeId.value);
 });
 
-/** 未同步 schema 时输出候选仅按 JSON 推断，视为未经验证 */
-const outputUnverified = computed(() => !objectInfo.value);
+
 
 const statusText = computed(() => {
   if (parseError.value) return parseError.value;

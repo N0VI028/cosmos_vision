@@ -18,22 +18,40 @@
       </span>
       <span class="cv-message-title">{{ getMessageTitle(entry as PromptLlmMessage) }}</span>
       <Tag
-        v-if="isSourceMessage(entry as PromptLlmMessage) && !isSourceStatusReady(entry as PromptLlmMessage)"
+        v-if="shouldShowSourceStatus(entry as PromptLlmMessage)"
         class="cv-status-tag-mini"
         :value="getSourceStatusText(entry as PromptLlmMessage)"
         :severity="getSourceStatusSeverity(entry as PromptLlmMessage)"
       />
     </template>
     <template #actions="{ entry }">
-      <ToggleSwitch v-model="entry.enabled" class="cv-message-toggle" />
-      <Button
-        icon="fa-solid fa-pen"
-        class="cv-message-edit-btn"
-        text
-        size="small"
-        @click="openMessageEditor(entry as PromptLlmMessage)"
+      <button
+        type="button"
+        class="cv-message-toggle"
+        :class="{ 'is-enabled': entry.enabled !== false }"
+        role="switch"
+        :aria-checked="entry.enabled !== false"
+        aria-label="切换条目启用状态"
+        @click="toggleMessageEnabled(entry as PromptLlmMessage)"
       />
-      <Button icon="fa-solid fa-trash" severity="danger" text size="small" @click="deleteMessage(entry.id)" />
+      <button
+        type="button"
+        class="cv-message-action-btn cv-message-edit-btn"
+        title="编辑条目"
+        aria-label="编辑条目"
+        @click="openMessageEditor(entry as PromptLlmMessage)"
+      >
+        <i class="fa-solid fa-pen" />
+      </button>
+      <button
+        type="button"
+        class="cv-message-action-btn cv-message-delete-btn"
+        title="删除条目"
+        aria-label="删除条目"
+        @click="deleteMessage(entry.id)"
+      >
+        <i class="fa-solid fa-trash" />
+      </button>
     </template>
   </PromptEntryList>
 
@@ -263,6 +281,8 @@ const isLoadingWorldbookSources = ref(false);
 let worldbookSourceRequestId = 0;
 let entryStatusRequestId = 0;
 let editorPreviewRequestId = 0;
+let entryStatusIdleId: number | null = null;
+let entryStatusTimerId: ReturnType<typeof globalThis.setTimeout> | null = null;
 
 const editorSourceOptions = computed(() => buildPromptLlmSourceOptions(editorDraft.value?.kind));
 const worldbookOptions = computed(() =>
@@ -289,13 +309,12 @@ const sourceMessageStatusSignature = computed(() =>
     .join('|'),
 );
 
-watch(sourceMessageStatusSignature, refreshEntryStatuses, { immediate: true });
+watch(sourceMessageStatusSignature, scheduleEntryStatusRefresh, { immediate: true, flush: 'post' });
 watch(
   () => isEditorVisible.value,
   visible => {
-    if (visible || worldbookSourceOptions.value.length === 0) void loadWorldbookSources();
+    if (visible && worldbookSourceOptions.value.length === 0) void loadWorldbookSources();
   },
-  { immediate: true },
 );
 watch(
   () =>
@@ -307,6 +326,30 @@ watch(
     ] as const,
   refreshEditorPreview,
 );
+
+onBeforeUnmount(cancelEntryStatusRefresh);
+
+/**
+ * 空闲时刷新来源状态，避免与列表首帧渲染争抢主线程
+ */
+function scheduleEntryStatusRefresh(): void {
+  cancelEntryStatusRefresh();
+  if ('requestIdleCallback' in window) {
+    entryStatusIdleId = window.requestIdleCallback(() => void refreshEntryStatuses(), { timeout: 800 });
+    return;
+  }
+  entryStatusTimerId = globalThis.setTimeout(() => void refreshEntryStatuses(), 80);
+}
+
+/**
+ * 取消尚未执行的来源状态刷新
+ */
+function cancelEntryStatusRefresh(): void {
+  if (entryStatusIdleId !== null) window.cancelIdleCallback(entryStatusIdleId);
+  if (entryStatusTimerId !== null) globalThis.clearTimeout(entryStatusTimerId);
+  entryStatusIdleId = null;
+  entryStatusTimerId = null;
+}
 
 /**
  * 刷新来源条目状态
@@ -360,6 +403,14 @@ function deleteMessage(id: string): void {
   if (index === -1) return;
   if (editorDraft.value?.id === id) closeMessageEditor();
   messages.value = messages.value.filter(message => message.id !== id);
+}
+
+/**
+ * 切换消息启用状态
+ * @param message 消息条目
+ */
+function toggleMessageEnabled(message: PromptLlmMessage): void {
+  message.enabled = !message.enabled;
 }
 
 /**
@@ -551,12 +602,13 @@ function getMessageStatus(message: PromptLlmMessage): ResolvedPromptSourceEntry[
 }
 
 /**
- * 判断来源是否可用
+ * 判断是否需要显示来源异常状态
  * @param message 消息条目
- * @returns 是否可用
+ * @returns 是否显示状态标签
  */
-function isSourceStatusReady(message: PromptLlmMessage): boolean {
-  return getMessageStatus(message) === 'ready';
+function shouldShowSourceStatus(message: PromptLlmMessage): boolean {
+  const status = entryStatusMap.value[message.id]?.status;
+  return status !== undefined && status !== 'ready';
 }
 
 /**
@@ -707,18 +759,64 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
 }
 
 .cv-message-toggle {
-  flex-shrink: 0;
-  margin-right: 0;
-  transform: scale(0.7);
+  position: relative;
+  flex: 0 0 auto;
+  width: 1.8rem;
+  height: 1rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--cv-radius-full);
+  background: var(--cv-surface-variant);
+  transition: background 0.15s ease;
+}
+
+.cv-message-toggle::after {
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--cv-on-surface-variant);
+  content: '';
+  transition: transform 0.15s ease;
+}
+
+.cv-message-toggle.is-enabled {
+  background: var(--p-primary-color);
+}
+
+.cv-message-toggle.is-enabled::after {
+  background: var(--p-primary-contrast-color);
+  transform: translateX(0.8rem);
+}
+
+.cv-message-action-btn {
+  @apply flex cursor-pointer items-center justify-center;
+  width: 1.8rem;
+  height: 1.8rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--cv-radius-sm);
+  background: transparent;
+  font-size: var(--cv-font-size-sm);
 }
 
 .cv-message-edit-btn {
-  color: color-mix(in srgb, var(--cv-on-surface) 60%, transparent) !important;
+  color: color-mix(in srgb, var(--cv-on-surface) 60%, transparent);
 }
 
 .cv-message-edit-btn:hover {
-  background: var(--cv-surface-container-high) !important;
-  color: var(--cv-on-surface) !important;
+  background: var(--cv-surface-container-high);
+  color: var(--cv-on-surface);
+}
+
+.cv-message-delete-btn {
+  color: var(--p-red-500);
+}
+
+.cv-message-delete-btn:hover {
+  background: color-mix(in srgb, var(--p-red-500) 10%, transparent);
 }
 
 .cv-status-tag-mini {

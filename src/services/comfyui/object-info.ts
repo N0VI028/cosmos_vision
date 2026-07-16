@@ -183,7 +183,7 @@ function buildInputControl(
     label: inputName,
     value,
     promptBinding,
-    // 在线且 schema multiline 可绑；已有绑定在线仍可改/解绑
+    // schema multiline 可绑；已有绑定仍可改/解绑。离线时恒为 false
     canPromptBind: online && Boolean(spec?.multiline || promptBinding),
     seedMode: meta.seedModes?.[inputName],
     controlAfterGenerate: Boolean(spec?.controlAfterGenerate),

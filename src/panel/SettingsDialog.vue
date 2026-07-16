@@ -191,8 +191,10 @@
             <MainTab v-if="activeTab === 'main'" :sub-tab="mainSubTab" />
             <NovelAITab v-else-if="activeTab === 'novelai'" :sub-tab="novelaiSubTab" />
             <ComfyUITab v-else-if="activeTab === 'comfyui'" :sub-tab="comfyuiSubTab" />
-            <PromptLlmTab v-else-if="activeTab === 'prompt-llm'" :sub-tab="promptLlmSubTab" />
             <PromptProfilesTab v-else-if="activeTab === 'prompt-profiles'" v-model:kind="promptProfilesSubTab" />
+            <KeepAlive>
+              <PromptLlmTab v-if="activeTab === 'prompt-llm'" :sub-tab="promptLlmSubTab" />
+            </KeepAlive>
           </Fluid>
         </div>
 
@@ -415,6 +417,7 @@ const scrollContainer = ref<HTMLElement | null>(null);
 const breadcrumbRef = ref<HTMLElement | null>(null);
 const isConfirmVisible = ref(false);
 const confirmAction = ref<ConfirmAction>('close');
+let isSectionRefreshPending = false;
 
 const customConfirmVisible = ref(false);
 const customConfirmState = ref<{
@@ -531,12 +534,7 @@ const dialogVisible = computed({
   },
 });
 
-// 提供刷新 section 的方法给子组件
-provide('refreshSections', () => {
-  nextTick(() => {
-    scanSections();
-  });
-});
+provide('refreshSections', refreshSectionsAfterRender);
 
 const currentTabLabel = computed(() => NAV_ITEMS.find(item => item.value === activeTab.value)?.label ?? '');
 const confirmTitle = computed(() => (confirmAction.value === 'discard' ? '放弃更改' : '保存更改'));
@@ -669,8 +667,7 @@ function scanSections(): void {
     title: el.textContent?.trim() || '',
     element: el as HTMLElement,
   }));
-
-  updateCurrentSection();
+  currentSection.value = sections.value[0]?.title ?? '';
 }
 
 /**
@@ -720,7 +717,10 @@ function scrollToSection(section: SectionInfo): void {
  * 渲染后刷新 section 列表
  */
 function refreshSectionsAfterRender(): void {
+  if (isSectionRefreshPending) return;
+  isSectionRefreshPending = true;
   nextTick(() => {
+    isSectionRefreshPending = false;
     showSectionMenu.value = false;
     scanSections();
   });
@@ -729,11 +729,7 @@ function refreshSectionsAfterRender(): void {
 watch(activeTab, refreshSectionsAfterRender);
 watch([mainSubTab, novelaiSubTab, comfyuiSubTab, promptLlmSubTab, promptProfilesSubTab], refreshSectionsAfterRender);
 
-onMounted(() => {
-  nextTick(() => {
-    scanSections();
-  });
-});
+onMounted(refreshSectionsAfterRender);
 
 useEventListener(scrollContainer, 'scroll', updateCurrentSection, { passive: true });
 </script>

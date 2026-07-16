@@ -507,7 +507,8 @@ function nextRowId(): string {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
+  flex: 1;
+  @apply min-w-0;
 }
 
 .cv-trigger-accordion-summary {

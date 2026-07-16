@@ -6,13 +6,16 @@
         <template v-if="control.canPromptBind">
           <Chip
             class="cv-workflow-action-chip"
-            :class="`is-${control.promptBinding ?? 'none'}`"
-            @click="promptPopover?.toggle($event)"
+            :class="[
+              `is-${control.promptBinding ?? 'none'}`,
+              { 'is-disabled': !online }
+            ]"
+            @click="online && promptPopover?.toggle($event)"
           >
-            <span class="flex items-center gap-1.5 cursor-pointer">
+            <span class="flex items-center gap-1.5">
               <i :class="currentBinding.icon" aria-hidden="true" />
               <span>{{ currentBinding.label }}</span>
-              <i class="fa-solid fa-caret-down text-[0.65em] opacity-70" aria-hidden="true" />
+              <i v-if="online" class="fa-solid fa-caret-down text-[0.65em] opacity-70" aria-hidden="true" />
             </span>
           </Chip>
           <Popover
@@ -38,10 +41,13 @@
         <Chip
           v-if="showImageOutput"
           class="cv-workflow-action-chip"
-          :class="isImageOutput ? 'is-active' : 'is-inactive'"
-          @click="emit('set-image-output')"
+          :class="[
+            isImageOutput ? 'is-active' : 'is-inactive',
+            { 'is-disabled': !online }
+          ]"
+          @click="online && emit('set-image-output')"
         >
-          <span class="flex items-center gap-1.5 cursor-pointer">
+          <span class="flex items-center gap-1.5">
             <i :class="isImageOutput ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'" aria-hidden="true" />
             <span>{{ isImageOutput ? '当前图片输出' : '设为图片输出' }}</span>
           </span>
@@ -172,10 +178,12 @@ const props = withDefaults(
     control: ComfyUIInputControlDesc;
     showImageOutput?: boolean;
     isImageOutput?: boolean;
+    online?: boolean;
   }>(),
   {
     showImageOutput: false,
     isImageOutput: false,
+    online: false,
   },
 );
 
@@ -321,6 +329,17 @@ function onSeedToggleChange(value: boolean): void {
   padding: 0.15rem 0.5rem;
   line-height: 1.2;
   min-height: auto;
+}
+
+:deep(.cv-workflow-action-chip.is-disabled) {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+}
+
+:deep(.cv-workflow-action-chip.is-disabled:hover) {
+  background: inherit !important;
+  border-color: inherit !important;
+  color: inherit !important;
 }
 
 :deep(.cv-workflow-action-chip.is-none),

@@ -55,12 +55,11 @@
       <Divider v-if="showLoraPanel && loraPresetSettings && visibleControls.length" :dt="dividerTokens" />
 
       <div class="cv-workflow-inspector__inputs">
-        <div v-if="outputHint" class="cv-field-hint">{{ outputHint }}</div>
-
         <ComfyUIWorkflowInput
           v-for="control in visibleControls"
           :key="`${control.nodeId}:${control.inputName}`"
           :control="control"
+          :online="online"
           :show-image-output="control.inputName === imagePortInputName"
           :is-image-output="isImageOutput"
           @update:value="value => emit('update:input', control.inputName, value)"
@@ -73,10 +72,13 @@
         <div v-if="showOutputChip && !imagePortInputName" class="cv-workflow-inspector__output-fallback">
           <Chip
             class="cv-workflow-action-chip"
-            :class="isImageOutput ? 'is-active' : 'is-inactive'"
-            @click="emit('set-image-output', nodeId!)"
+            :class="[
+              isImageOutput ? 'is-active' : 'is-inactive',
+              { 'is-disabled': !online }
+            ]"
+            @click="online && emit('set-image-output', nodeId!)"
           >
-            <span class="flex items-center gap-1.5 cursor-pointer">
+            <span class="flex items-center gap-1.5">
               <i :class="isImageOutput ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'" aria-hidden="true" />
               <span>{{ isImageOutput ? '当前图片输出' : '设为图片输出' }}</span>
             </span>
@@ -113,13 +115,16 @@ const props = withDefaults(
     node: ComfyUIWorkflowNode | null;
     controls: ComfyUIInputControlDesc[];
     canSetOutput: boolean;
-    outputUnverified: boolean;
+    online: boolean;
     loraPresetSettings?: ComfyUILoraPresetSettings;
     loraOptions: { value: string; label: string }[];
     isLoadingLoras: boolean;
     fullscreen?: boolean;
   }>(),
-  { fullscreen: false },
+  {
+    fullscreen: false,
+    loraPresetSettings: undefined,
+  },
 );
 
 const emit = defineEmits<{
@@ -156,11 +161,6 @@ const imagePortInputName = computed(() => {
   return visibleControls.value.find(c => /image/i.test(c.inputName))?.inputName ?? null;
 });
 
-const outputHint = computed(() =>
-  showOutputChip.value && props.outputUnverified
-    ? '未同步节点定义：输出候选按工作流 JSON 推断，尚未经 schema 验证'
-    : '',
-);
 
 watch(
   () => props.nodeId,
@@ -259,6 +259,17 @@ watch(
   line-height: 1.2;
   min-height: auto;
   width: fit-content;
+}
+
+:deep(.cv-workflow-action-chip.is-disabled) {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+}
+
+:deep(.cv-workflow-action-chip.is-disabled:hover) {
+  background: inherit !important;
+  border-color: inherit !important;
+  color: inherit !important;
 }
 
 :deep(.cv-workflow-action-chip.is-active) {

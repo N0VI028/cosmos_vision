@@ -409,13 +409,7 @@ function restoreDefaultPreset(): void {
 
 const messages = computed<PromptLlmMessage[]>({
   get() {
-    const list = activePreset.value?.messages ?? [];
-    list.forEach(m => {
-      if (m.enabled === undefined) {
-        m.enabled = true;
-      }
-    });
-    return list;
+    return activePreset.value?.messages ?? [];
   },
   set(value) {
     const preset = activePreset.value;
@@ -425,10 +419,6 @@ const messages = computed<PromptLlmMessage[]>({
 
     preset.messages = value;
   },
-});
-
-watchEffect(() => {
-  normalizeCurrentMessages();
 });
 
 /**
@@ -442,17 +432,6 @@ function normalizePresetMessages(preset: PromptLlmMessagePreset): PromptLlmMessa
     presets: [preset],
   });
   return { ...preset, messages: normalized.presets[0].messages };
-}
-
-/**
- * 规范化当前消息列表
- */
-function normalizeCurrentMessages(): void {
-  const preset = activePreset.value;
-  if (!preset) return;
-  const normalized = normalizePresetMessages(preset);
-  if (_.isEqual(preset.messages, normalized.messages)) return;
-  preset.messages.splice(0, preset.messages.length, ...normalized.messages);
 }
 
 /**

@@ -109,6 +109,8 @@ defineExpose({ scrollToEnd });
   @apply grid overflow-hidden;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: stretch;
+  content-visibility: auto;
+  contain-intrinsic-block-size: 47px;
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   border-radius: var(--cv-radius-sm);
   background: var(--cv-surface-container-low);

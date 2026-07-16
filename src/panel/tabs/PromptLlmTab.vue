@@ -126,10 +126,12 @@
     </template>
 
     <!-- 提示词构建器页 -->
-    <PromptBuilderTab v-else-if="subTab === 'builder'" />
+    <KeepAlive>
+      <PromptBuilderTab v-if="subTab === 'builder'" />
+    </KeepAlive>
 
     <!-- 连接测试页 -->
-    <PromptLlmTestTab v-else-if="subTab === 'test'" />
+    <PromptLlmTestTab v-if="subTab === 'test'" />
   </div>
 </template>
 
@@ -150,16 +152,6 @@ const props = defineProps<{ subTab: SubTab }>();
 const subTab = computed(() => props.subTab);
 
 const { settings } = useSettingsStore();
-
-// 注入父组件提供的刷新方法
-const refreshSections = inject<(() => void) | undefined>('refreshSections');
-
-// 监听 subTab 变化，通知父组件刷新 section
-watch(subTab, () => {
-  nextTick(() => {
-    refreshSections?.();
-  });
-});
 
 const proxyPresetOptions = ref<ProxyPresetOption[]>(getProxyPresets());
 

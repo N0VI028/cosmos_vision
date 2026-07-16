@@ -105,13 +105,23 @@ const LORA_NODE_ADAPTERS: ComfyUILoraNodeAdapter[] = [loraManagerAdapter];
 function buildLoraManagerEntries(loras: readonly ComfyUILoraSetting[]): LoraManagerEntry[] {
   return loras
     .map(lora => ({
-      name: lora.name.trim(),
+      name: normalizeLoraManagerName(lora.name),
       strength: Number.isFinite(lora.strength) ? lora.strength : 1,
       active: lora.enabled,
       expanded: false,
       clipStrength: LORA_MANAGER_CLIP_STRENGTH,
     }))
     .filter(entry => entry.name.length > 0);
+}
+
+/**
+ * 转换为 LoraManager 缓存使用的无扩展名文件基名
+ * @param value ComfyUI 模型列表返回的 LoRA 路径
+ * @returns LoraManager 可精确匹配的名称
+ */
+function normalizeLoraManagerName(value: string): string {
+  const filename = value.trim().replaceAll('\\', '/').split('/').pop() ?? '';
+  return filename.replace(/\.(?:safetensors|sft)$/i, '');
 }
 
 /**
