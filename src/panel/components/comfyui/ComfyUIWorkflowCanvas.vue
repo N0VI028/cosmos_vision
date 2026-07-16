@@ -305,6 +305,7 @@ watch(
 
 .cv-workflow-canvas__node.is-selected {
   border-color: var(--cv-primary-container);
+  box-shadow: 0 0 0 1px var(--cv-primary-container);
   background: color-mix(in srgb, var(--cv-primary-container) 16%, var(--cv-surface-container-lowest));
 }
 
@@ -342,6 +343,7 @@ watch(
 }
 .cv-workflow-canvas__node.is-lora.is-selected {
   border-color: #9333ea;
+  box-shadow: 0 0 0 1px #9333ea;
   background: color-mix(in srgb, #9333ea 16%, var(--cv-surface-container-lowest));
 }
 .cv-workflow-canvas__node.is-lora:hover:not(.is-selected) {
@@ -358,6 +360,7 @@ watch(
 }
 .cv-workflow-canvas__node.is-positive-prompt.is-selected {
   border-color: #10b981;
+  box-shadow: 0 0 0 1px #10b981;
   background: color-mix(in srgb, #10b981 16%, var(--cv-surface-container-lowest));
 }
 .cv-workflow-canvas__node.is-positive-prompt:hover:not(.is-selected) {
@@ -374,6 +377,7 @@ watch(
 }
 .cv-workflow-canvas__node.is-negative-prompt.is-selected {
   border-color: #ef4444;
+  box-shadow: 0 0 0 1px #ef4444;
   background: color-mix(in srgb, #ef4444 16%, var(--cv-surface-container-lowest));
 }
 .cv-workflow-canvas__node.is-negative-prompt:hover:not(.is-selected) {
@@ -390,6 +394,7 @@ watch(
 }
 .cv-workflow-canvas__node.is-image-output.is-selected {
   border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
   background: color-mix(in srgb, #3b82f6 16%, var(--cv-surface-container-lowest));
 }
 .cv-workflow-canvas__node.is-image-output:hover:not(.is-selected) {

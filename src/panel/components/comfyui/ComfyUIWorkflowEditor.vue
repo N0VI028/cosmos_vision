@@ -164,7 +164,7 @@ import type { ComfyUILoraPresetSettings } from '@/constants/comfyui';
 import { getActiveComfyUILoraPreset } from '@/services/comfyui/lora-presets';
 import { writeLoraPresetToNode } from '@/services/comfyui/lora-adapter';
 import { layoutWorkflow } from '@/services/comfyui/layout';
-import { readImageOutputNodeId, setImageOutputNode, setPromptBinding, setSeedMode } from '@/services/comfyui/meta';
+import { readImageOutputNodeId, setImageOutputNode, clearImageOutputNode, readNodeMeta, setPromptBinding, setSeedMode } from '@/services/comfyui/meta';
 import {
   fetchComfyUIObjectInfo,
   getCachedComfyUIObjectInfo,
@@ -350,7 +350,14 @@ function setImageOutput(nodeId: string): void {
     return;
   }
   const next = structuredClone(workflow.value) as ComfyUIWorkflow;
-  setImageOutputNode(next, nodeId);
+  const currentNode = next[nodeId];
+  const isCurrentlyOutput = currentNode ? Boolean(readNodeMeta(currentNode).imageOutput) : false;
+
+  if (isCurrentlyOutput) {
+    clearImageOutputNode(next);
+  } else {
+    setImageOutputNode(next, nodeId);
+  }
   commitWorkflow(next);
 }
 
