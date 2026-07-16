@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-2 gap-(--cv-space-lg)">
+  <div class="grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] gap-(--cv-space-lg)">
     <Button label="导入 API JSON" icon="fa-solid fa-download" size="small" @click="emit('import')" />
     <Button
       :label="showAdvancedJson ? '收起 API JSON' : '编辑 API JSON'"
