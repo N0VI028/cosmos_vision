@@ -102,6 +102,11 @@ export interface ComfyUIInputControlDesc {
   controlAfterGenerate?: boolean;
   seedMode?: SeedMode;
   promptBinding?: PromptBinding | null;
+  /**
+   * 是否展示改绑定 UI：已同步 object_info 且（schema multiline 或已有绑定）。
+   * 离线恒 false。
+   */
+  canPromptBind?: boolean;
   linkSource?: { nodeId: string; outputIndex: number };
   readonly?: boolean;
 }

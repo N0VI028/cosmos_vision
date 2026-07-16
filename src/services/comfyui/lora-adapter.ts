@@ -38,6 +38,19 @@ export function isSupportedLoraNode(node: ComfyUIWorkflowNode | undefined): bool
 }
 
 /**
+ * 判断输入是否由 LoRA 预设面板托管（应隐藏默认 text/loras 控件）
+ * @param node 工作流节点
+ * @param inputName 输入名
+ * @returns 是否托管
+ */
+export function isLoraPanelManagedInput(
+  node: ComfyUIWorkflowNode | undefined,
+  inputName: string,
+): boolean {
+  return isSupportedLoraNode(node) && (inputName === 'text' || inputName === 'loras');
+}
+
+/**
  * 将当前预设写入指定节点
  * @param node 工作流节点
  * @param preset LoRA 预设组

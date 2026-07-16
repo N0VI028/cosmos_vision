@@ -107,8 +107,10 @@ export function mapInputControls(
   if (!node) return [];
   const schema = objectInfo?.[node.class_type];
   const meta = readNodeMeta(node);
+  // objectInfo 非 null 即在线；某 class_type 缺失时 schema 仍可能为 undefined
+  const online = objectInfo != null;
   return Object.entries(node.inputs ?? {}).map(([inputName, value]) =>
-    buildInputControl(nodeId, inputName, value, schema, meta),
+    buildInputControl(nodeId, inputName, value, schema, meta, online),
   );
 }
 
@@ -159,9 +161,9 @@ function isLikelyImageOutputClassType(classType: string): boolean {
  * @param nodeId 节点 ID
  * @param inputName 输入名
  * @param value 当前值
- * @param schema 节点 schema
+ * @param schema 节点 schema（在线但未注册的 class 可能为 undefined）
  * @param meta 节点元数据
- * @returns 控件描述
+ * @param online 是否已同步 object_info；离线不开放改绑定 UI
  */
 function buildInputControl(
   nodeId: string,
@@ -169,16 +171,20 @@ function buildInputControl(
   value: unknown,
   schema: ComfyUIObjectInfoNode | undefined,
   meta: CosmosVisionNodeMeta,
+  online: boolean,
 ): ComfyUIInputControlDesc {
   if (isLinkRef(value)) return buildLinkControl(nodeId, inputName, value);
 
   const spec = schema?.inputs.find(item => item.name === inputName);
+  const promptBinding = meta.promptBindings?.[inputName] ?? null;
   return {
     nodeId,
     inputName,
     label: inputName,
     value,
-    promptBinding: meta.promptBindings?.[inputName] ?? null,
+    promptBinding,
+    // 在线且 schema multiline 可绑；已有绑定在线仍可改/解绑
+    canPromptBind: online && Boolean(spec?.multiline || promptBinding),
     seedMode: meta.seedModes?.[inputName],
     controlAfterGenerate: Boolean(spec?.controlAfterGenerate),
     ...resolveScalarControlFields(value, spec),

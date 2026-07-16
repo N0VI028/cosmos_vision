@@ -3,20 +3,53 @@
     <div class="cv-workflow-input__header">
       <span class="cv-workflow-input__label">{{ control.label }}</span>
       <div class="cv-workflow-input__actions">
+        <template v-if="control.canPromptBind">
+          <Chip
+            class="cv-workflow-action-chip"
+            :class="`is-${control.promptBinding ?? 'none'}`"
+            @click="promptPopover?.toggle($event)"
+          >
+            <span class="flex items-center gap-1.5 cursor-pointer">
+              <i :class="currentBinding.icon" aria-hidden="true" />
+              <span>{{ currentBinding.label }}</span>
+              <i class="fa-solid fa-caret-down text-[0.65em] opacity-70" aria-hidden="true" />
+            </span>
+          </Chip>
+          <Popover
+            ref="promptPopover"
+            :base-z-index="MACRO_POPOVER_BASE_Z_INDEX"
+            :dt="MACRO_POPOVER_TOKENS"
+            :pt="bindingPopoverPt"
+          >
+            <button
+              v-for="option in alternateBindings"
+              :key="option.value ?? 'none'"
+              type="button"
+              class="cv-workflow-input__binding-option"
+              :class="`is-${option.value ?? 'none'}`"
+              @click="selectPromptBinding(option.value)"
+            >
+              <i :class="option.icon" aria-hidden="true" />
+              <span>{{ option.label }}</span>
+            </button>
+          </Popover>
+        </template>
+
         <Chip
-          v-if="showPromptBinding"
-          class="cv-workflow-input__binding-chip"
-          :class="`is-${control.promptBinding ?? 'none'}`"
-          @click="togglePromptBinding"
+          v-if="showImageOutput"
+          class="cv-workflow-action-chip"
+          :class="isImageOutput ? 'is-active' : 'is-inactive'"
+          @click="emit('set-image-output')"
         >
           <span class="flex items-center gap-1.5 cursor-pointer">
-            <i :class="bindingIcon" aria-hidden="true" />
-            <span>{{ bindingLabel }}</span>
+            <i :class="isImageOutput ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'" aria-hidden="true" />
+            <span>{{ isImageOutput ? '当前图片输出' : '设为图片输出' }}</span>
           </span>
         </Chip>
+
         <ToggleButton
           v-if="showSeedMode"
-          :model-value="control.seedMode !== 'fixed' && control.seedMode !== undefined && control.seedMode !== null"
+          :model-value="isSeedRandom"
           class="cv-nai-mini-toggle"
           on-label="随机"
           off-label="随机"
@@ -39,7 +72,8 @@
       option-label="label"
       option-value="value"
       class="w-full"
-      @update:model-value="emitValue"
+      :disabled="isValueDisabled"
+      @update:model-value="emit('update:value', $event)"
     />
     <InputNumber
       v-else-if="control.kind === 'number'"
@@ -48,15 +82,16 @@
       :max="control.max"
       :step="control.step ?? 1"
       :use-grouping="false"
-      :disabled="showSeedMode && control.seedMode !== 'fixed' && control.seedMode !== undefined && control.seedMode !== null"
+      :disabled="isValueDisabled"
       class="w-full"
-      @update:model-value="emitValue"
+      @update:model-value="emit('update:value', $event)"
     />
     <div v-else-if="control.kind === 'boolean'" class="cv-workflow-input__boolean">
       <Checkbox
         binary
         :model-value="Boolean(control.value)"
-        @update:model-value="emitValue"
+        :disabled="isValueDisabled"
+        @update:model-value="emit('update:value', $event)"
       />
       <span>{{ control.value ? 'true' : 'false' }}</span>
     </div>
@@ -66,13 +101,15 @@
       rows="3"
       auto-resize
       class="w-full"
-      @update:model-value="emitValue"
+      :disabled="isValueDisabled"
+      @update:model-value="emit('update:value', $event)"
     />
     <InputText
       v-else-if="control.kind === 'text'"
       :model-value="String(control.value ?? '')"
       class="w-full"
-      @update:model-value="emitValue"
+      :disabled="isValueDisabled"
+      @update:model-value="emit('update:value', $event)"
     />
     <Textarea
       v-else-if="control.kind === 'json'"
@@ -80,128 +117,127 @@
       rows="3"
       auto-resize
       class="w-full"
-      @update:model-value="onTextChange"
+      :disabled="isValueDisabled"
+      @update:model-value="onJsonChange"
     />
     <InputText
       v-else
       :model-value="String(control.value ?? '')"
       class="w-full"
-      @update:model-value="emitValue"
+      :disabled="isValueDisabled"
+      @update:model-value="emit('update:value', $event)"
     />
   </div>
 </template>
 
 <script setup lang="ts">
+import type { PopoverPassThroughOptions } from 'primevue/popover';
+import Popover from 'primevue/popover';
+import {
+  MACRO_POPOVER_BASE_Z_INDEX,
+  MACRO_POPOVER_TOKENS,
+  type MacroPopoverInstance,
+} from '@/panel/components/prompt-llm-macro-popover';
 import type { ComfyUIInputControlDesc, PromptBinding, SeedMode } from '@/services/comfyui/types';
 
-const props = defineProps<{
-  control: ComfyUIInputControlDesc;
-}>();
+interface PromptBindingOption {
+  value: PromptBinding | null;
+  label: string;
+  icon: string;
+}
+
+const BINDING_OPTIONS: PromptBindingOption[] = [
+  { value: null, label: '不绑定', icon: 'fa-solid fa-link-slash' },
+  { value: 'positive', label: '正向提示词', icon: 'fa-solid fa-circle-plus' },
+  { value: 'negative', label: '负向提示词', icon: 'fa-solid fa-circle-minus' },
+];
+
+const bindingPopoverPt = {
+  root: { class: 'cosmos-vision-root cv-workflow-input__binding-popover' },
+  content: { class: 'cv-workflow-input__binding-popover-content' },
+} satisfies PopoverPassThroughOptions;
+
+const props = withDefaults(
+  defineProps<{
+    control: ComfyUIInputControlDesc;
+    showImageOutput?: boolean;
+    isImageOutput?: boolean;
+  }>(),
+  {
+    showImageOutput: false,
+    isImageOutput: false,
+  },
+);
 
 const emit = defineEmits<{
   'update:value': [value: unknown];
   'update:prompt-binding': [binding: PromptBinding | null];
   'update:seed-mode': [mode: SeedMode | null];
+  'set-image-output': [];
 }>();
 
-const promptBindingOptions = [
-  { value: 'none', label: '不绑定' },
-  { value: 'positive', label: '正向提示词' },
-  { value: 'negative', label: '负向提示词' },
-];
+const promptPopover = ref<MacroPopoverInstance | null>(null);
 
-
-
-/**
- * 仅多行文本可绑定正负提示词；已绑定的单行字段仍展示以便解绑
- */
-const showPromptBinding = computed(() => {
-  if (props.control.kind === 'textarea') return true;
-  return Boolean(props.control.promptBinding);
+const currentBinding = computed(() => {
+  const current = props.control.promptBinding ?? null;
+  return BINDING_OPTIONS.find(opt => opt.value === current) ?? BINDING_OPTIONS[0];
 });
 
-/**
- * 获取当前提示词绑定的显示文本
- */
-const bindingLabel = computed(() => {
-  const value = props.control.promptBinding ?? 'none';
-  const option = promptBindingOptions.find(opt => opt.value === value);
-  return option ? option.label : '不绑定';
+const alternateBindings = computed(() => {
+  const current = props.control.promptBinding ?? null;
+  return BINDING_OPTIONS.filter(opt => opt.value !== current);
 });
 
-/**
- * 获取当前提示词绑定的 FontAwesome 图标类名
- */
-const bindingIcon = computed(() => {
-  const value = props.control.promptBinding ?? 'none';
-  if (value === 'positive') return 'fa-solid fa-circle-plus';
-  if (value === 'negative') return 'fa-solid fa-circle-minus';
-  return 'fa-solid fa-link-slash';
-});
+const showSeedMode = computed(
+  () => props.control.kind === 'number' && Boolean(props.control.controlAfterGenerate || props.control.seedMode),
+);
 
-const showSeedMode = computed(() => {
-  return props.control.kind === 'number' && Boolean(props.control.controlAfterGenerate || props.control.seedMode);
-});
+const isSeedRandom = computed(
+  () => props.control.seedMode !== 'fixed' && props.control.seedMode != null,
+);
 
-const selectOptions = computed(() => {
-  return (props.control.options ?? []).map(value => ({ value, label: value }));
-});
+/** 已绑提示词或随机 seed 时禁用值编辑 */
+const isValueDisabled = computed(
+  () => Boolean(props.control.promptBinding) || (showSeedMode.value && isSeedRandom.value),
+);
+
+const selectOptions = computed(() =>
+  (props.control.options ?? []).map(value => ({ value, label: value })),
+);
 
 const textValue = computed(() => {
-  if (props.control.kind === 'json') {
-    try {
-      return JSON.stringify(props.control.value, null, 2);
-    } catch {
-      return String(props.control.value ?? '');
-    }
+  if (props.control.kind !== 'json') return String(props.control.value ?? '');
+  try {
+    return JSON.stringify(props.control.value, null, 2);
+  } catch {
+    return String(props.control.value ?? '');
   }
-  return String(props.control.value ?? '');
 });
 
 /**
- * 提交普通参数值
- * @param value 新值
- */
-function emitValue(value: unknown): void {
-  emit('update:value', value);
-}
-
-/**
- * 提交文本/JSON 值
+ * 解析并提交 JSON；非法内容不写回
  * @param value 文本
  */
-function onTextChange(value: string | undefined): void {
-  const text = value ?? '';
-  if (props.control.kind !== 'json') {
-    emitValue(text);
-    return;
-  }
+function onJsonChange(value: string | undefined): void {
   try {
-    emitValue(JSON.parse(text));
+    emit('update:value', JSON.parse(value ?? ''));
   } catch {
-    // 保留输入中的非法 JSON，不写回对象
+    // 保留非法 JSON 输入
   }
 }
 
 /**
- * 循环切换提示词绑定状态：未绑定 -> 正向提示词 -> 负向提示词 -> 未绑定
+ * 选择提示词绑定并关闭下拉
+ * @param binding null 表示不绑定
  */
-function togglePromptBinding(): void {
-  const current = props.control.promptBinding ?? 'none';
-  let next: PromptBinding | null = null;
-  if (current === 'none') {
-    next = 'positive';
-  } else if (current === 'positive') {
-    next = 'negative';
-  } else {
-    next = null;
-  }
-  emit('update:prompt-binding', next);
+function selectPromptBinding(binding: PromptBinding | null): void {
+  emit('update:prompt-binding', binding);
+  promptPopover.value?.hide();
 }
 
 /**
- * 切换随机种子开启状态
- * @param value 是否开启随机
+ * 切换随机种子
+ * @param value 是否随机
  */
 function onSeedToggleChange(value: boolean): void {
   emit('update:seed-mode', value ? 'randomize' : 'fixed');
@@ -251,15 +287,7 @@ function onSeedToggleChange(value: boolean): void {
   line-height: 1;
 }
 
-.cv-workflow-input__binding-chip {
-  cursor: pointer;
-  transition: all 0.2s ease;
-  user-select: none;
-  font-size: var(--cv-font-size-2xs);
-  padding: 0.15rem 0.5rem;
-}
-
-:deep(.cv-workflow-input__binding-chip) {
+:deep(.cv-workflow-action-chip) {
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
@@ -269,33 +297,37 @@ function onSeedToggleChange(value: boolean): void {
   min-height: auto;
 }
 
-:deep(.cv-workflow-input__binding-chip.is-none) {
+:deep(.cv-workflow-action-chip.is-none),
+:deep(.cv-workflow-action-chip.is-inactive) {
   background: var(--cv-surface-container-low) !important;
   border-color: var(--cv-outline) !important;
   color: var(--cv-on-surface-variant) !important;
 }
 
-:deep(.cv-workflow-input__binding-chip.is-none:hover) {
+:deep(.cv-workflow-action-chip.is-none:hover),
+:deep(.cv-workflow-action-chip.is-inactive:hover) {
   background: var(--cv-surface-container-high) !important;
 }
 
-:deep(.cv-workflow-input__binding-chip.is-positive) {
+:deep(.cv-workflow-action-chip.is-positive),
+:deep(.cv-workflow-action-chip.is-active) {
   background: color-mix(in srgb, var(--p-primary-color) 12%, transparent) !important;
   border-color: var(--p-primary-color) !important;
   color: var(--p-primary-color) !important;
 }
 
-:deep(.cv-workflow-input__binding-chip.is-positive:hover) {
+:deep(.cv-workflow-action-chip.is-positive:hover),
+:deep(.cv-workflow-action-chip.is-active:hover) {
   background: color-mix(in srgb, var(--p-primary-color) 20%, transparent) !important;
 }
 
-:deep(.cv-workflow-input__binding-chip.is-negative) {
+:deep(.cv-workflow-action-chip.is-negative) {
   background: color-mix(in srgb, #f59e0b 12%, transparent) !important;
   border-color: #f59e0b !important;
   color: #f59e0b !important;
 }
 
-:deep(.cv-workflow-input__binding-chip.is-negative:hover) {
+:deep(.cv-workflow-action-chip.is-negative:hover) {
   background: color-mix(in srgb, #f59e0b 20%, transparent) !important;
 }
 
@@ -308,5 +340,53 @@ function onSeedToggleChange(value: boolean): void {
 .cv-workflow-input__boolean {
   @apply flex items-center;
   gap: var(--cv-space-lg);
+}
+</style>
+
+<!-- Popover 挂到 body，scoped 无法命中 -->
+<style>
+.cv-workflow-input__binding-popover {
+  width: max-content;
+  min-width: max-content;
+}
+
+.cv-workflow-input__binding-popover-content {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--cv-space-xs);
+  width: max-content;
+}
+
+.cv-workflow-input__binding-option {
+  display: flex;
+  align-items: center;
+  gap: var(--cv-space-sm);
+  padding: var(--cv-space-xs) var(--cv-space-lg);
+  border: var(--cv-border-width) solid transparent;
+  border-radius: var(--cv-radius-sm);
+  background: transparent;
+  color: var(--cv-on-surface);
+  font-size: var(--cv-font-size-2xs);
+  line-height: 1.2;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.cv-workflow-input__binding-option:hover {
+  background: var(--cv-surface-container-highest);
+}
+
+.cv-workflow-input__binding-option.is-positive {
+  color: var(--p-primary-color);
+}
+
+.cv-workflow-input__binding-option.is-negative {
+  color: #f59e0b;
+}
+
+.cv-workflow-input__binding-option.is-none {
+  color: var(--cv-on-surface-variant);
 }
 </style>

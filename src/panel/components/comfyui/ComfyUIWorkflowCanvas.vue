@@ -239,8 +239,12 @@ function onPointerUp(event: PointerEvent): void {
 
 defineExpose({ fitView });
 
+/**
+ * 仅拓扑（节点/边 ID）变化时自动适配；改参只换 layout 引用时不重置视口
+ */
 watch(
-  () => props.layout,
+  () =>
+    `${props.layout.nodes.map(node => node.id).join(',')}|${props.layout.edges.map(edge => edge.id).join(',')}`,
   () => nextTick(fitView),
   { immediate: true },
 );
