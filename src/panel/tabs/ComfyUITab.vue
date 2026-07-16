@@ -7,7 +7,19 @@
         <label class="cv-field">
           <span>ComfyUI URL</span>
           <div class="cv-field-control">
-            <InputText v-model="settings.comfyui.url" placeholder="http://127.0.0.1:8188" />
+            <div class="cv-url-input-row">
+              <InputText v-model="settings.comfyui.url" placeholder="http://127.0.0.1:8188" class="cv-url-input" />
+              <Button
+                :icon="connectionTestIcon"
+                :severity="connectionTestSeverity"
+                outlined
+                rounded
+                :loading="isTestingConnection"
+                :title="connectionTestTitle"
+                aria-label="测试连接"
+                @click="testConnection"
+              />
+            </div>
             <div class="cv-field-hint">浏览器直连本地 ComfyUI 时，请确认已允许当前来源的 CORS</div>
           </div>
         </label>
@@ -87,6 +99,7 @@ import {
   DEFAULT_COMFYUI_WORKFLOW_PRESET_ID,
 } from '@/constants/comfyui';
 import { fetchComfyUILoraNames } from '@/services/comfyui/api';
+import { fetchComfyUIObjectInfo } from '@/services/comfyui/object-info';
 import { getActiveComfyUILoras } from '@/services/comfyui/lora-presets';
 import { getComfyUIWorkflowValidationError } from '@/services/comfyui/parse';
 import { findComfyUIWorkflowPreset } from '@/services/comfyui/workflow-presets';
@@ -121,6 +134,59 @@ const showConfirm =
   >('showConfirm');
 const loraNames = ref<string[]>([]);
 const isLoadingLoras = ref(false);
+
+const isTestingConnection = ref(false);
+const connectionTestStatus = ref<'idle' | 'success' | 'error'>('idle');
+
+const connectionTestIcon = computed(() => {
+  if (connectionTestStatus.value === 'success') return 'fa-solid fa-circle-check';
+  if (connectionTestStatus.value === 'error') return 'fa-solid fa-circle-xmark';
+  return 'fa-solid fa-plug';
+});
+
+const connectionTestSeverity = computed(() => {
+  if (connectionTestStatus.value === 'success') return 'success';
+  if (connectionTestStatus.value === 'error') return 'danger';
+  return 'secondary';
+});
+
+const connectionTestTitle = computed(() => {
+  if (isTestingConnection.value) return '正在测试连接...';
+  if (connectionTestStatus.value === 'success') return '连接成功，点击重新测试';
+  if (connectionTestStatus.value === 'error') return '连接失败，点击重新测试';
+  return '测试连接';
+});
+
+/**
+ * 测试当前填写的 ComfyUI URL 连通性
+ */
+async function testConnection(): Promise<void> {
+  if (isTestingConnection.value) return;
+  isTestingConnection.value = true;
+  connectionTestStatus.value = 'idle';
+  try {
+    if (!settings.comfyui.url.trim()) {
+      throw new Error('请先填写 ComfyUI URL');
+    }
+    // 复用已有的元数据拉取函数作为连通性测试，顺便预热缓存
+    await fetchComfyUIObjectInfo(settings.comfyui.url, true);
+    connectionTestStatus.value = 'success';
+    toastr.success('ComfyUI 连接成功');
+  } catch (error) {
+    connectionTestStatus.value = 'error';
+    const message = error instanceof Error ? error.message : '连接失败';
+    toastr.error(message);
+  } finally {
+    isTestingConnection.value = false;
+  }
+}
+
+watch(
+  () => settings.comfyui.url,
+  () => {
+    connectionTestStatus.value = 'idle';
+  },
+);
 
 watch(
   subTab,
@@ -342,5 +408,14 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
   color: var(--p-red-500);
   background: color-mix(in srgb, var(--p-red-500) 10%, transparent);
   outline: none;
+}
+
+.cv-url-input-row {
+  @apply flex items-center;
+  gap: var(--cv-space-md);
+}
+
+.cv-url-input {
+  @apply flex-1 min-w-0;
 }
 </style>
