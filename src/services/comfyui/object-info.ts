@@ -4,6 +4,7 @@ import type {
   ComfyUIObjectInfoInputSpec,
   ComfyUIObjectInfoMap,
   ComfyUIObjectInfoNode,
+  ComfyUIObjectInfoOutputSpec,
   ComfyUIWorkflow,
   ComfyUIWorkflowNode,
   CosmosVisionNodeMeta,
@@ -117,13 +118,14 @@ export function mapInputControls(
 /**
  * 读取可被指定为输出节点的候选节点 ID
  * @param workflow 工作流
- * @param objectInfo 节点 schema 表；null 表示未同步，仅按 JSON 推断
+ * @param objectInfo 节点 schema 表；null 表示未同步且无候选
  * @returns 候选节点 ID 列表
  */
 export function listOutputCandidates(
   workflow: ComfyUIWorkflow,
   objectInfo: ComfyUIObjectInfoMap | null,
 ): string[] {
+  if (!objectInfo) return [];
   return Object.entries(workflow)
     .filter(([, node]) => isImageOutputCandidate(node, objectInfo))
     .map(([id]) => id);
@@ -131,29 +133,19 @@ export function listOutputCandidates(
 
 /**
  * 判断节点是否可作为图片输出候选
- * - 已同步：仅 schema.isOutput
- * - 未同步：imageOutput 元数据或 class_type 疑似图片输出
  * @param node 工作流节点
  * @param objectInfo 节点 schema 表
  * @returns 是否候选
  */
 function isImageOutputCandidate(
   node: ComfyUIWorkflowNode,
-  objectInfo: ComfyUIObjectInfoMap | null,
+  objectInfo: ComfyUIObjectInfoMap,
 ): boolean {
-  if (objectInfo) return Boolean(objectInfo[node.class_type]?.isOutput);
-  return Boolean(readNodeMeta(node).imageOutput) || isLikelyImageOutputClassType(node.class_type);
-}
-
-/**
- * 根据 class_type 启发式判断是否疑似图片输出节点
- * @param classType 节点类型
- * @returns 是否疑似图片输出
- */
-function isLikelyImageOutputClassType(classType: string): boolean {
-  if (!classType) return false;
-  const isSaveOrPreview = classType.includes('Save') || classType.includes('Preview');
-  return isSaveOrPreview && classType.includes('Image');
+  const schema = objectInfo[node.class_type];
+  if (!schema) return false;
+  const hasImageInput = schema.inputs.some(input => input.type === 'IMAGE');
+  const hasImageOutput = schema.outputs.some(output => output.type === 'IMAGE');
+  return hasImageInput || hasImageOutput;
 }
 
 /**
@@ -173,14 +165,15 @@ function buildInputControl(
   meta: CosmosVisionNodeMeta,
   online: boolean,
 ): ComfyUIInputControlDesc {
-  if (isLinkRef(value)) return buildLinkControl(nodeId, inputName, value);
-
   const spec = schema?.inputs.find(item => item.name === inputName);
+  if (isLinkRef(value)) return buildLinkControl(nodeId, inputName, value, spec);
+
   const promptBinding = meta.promptBindings?.[inputName] ?? null;
   return {
     nodeId,
     inputName,
     label: inputName,
+    dataType: spec?.type,
     value,
     promptBinding,
     // schema multiline 可绑；已有绑定仍可改/解绑。离线时恒为 false
@@ -196,18 +189,21 @@ function buildInputControl(
  * @param nodeId 节点 ID
  * @param inputName 输入名
  * @param value 连线引用
+ * @param spec 输入 schema
  * @returns 控件描述
  */
 function buildLinkControl(
   nodeId: string,
   inputName: string,
   value: ComfyUILinkRef,
+  spec?: ComfyUIObjectInfoInputSpec,
 ): ComfyUIInputControlDesc {
   return {
     nodeId,
     inputName,
     kind: 'link',
     label: inputName,
+    dataType: spec?.type,
     value,
     readonly: true,
     linkSource: { nodeId: String(value[0]), outputIndex: value[1] },
@@ -269,9 +265,38 @@ function normalizeObjectInfoNode(
     classType,
     displayName: readString(rawNode.display_name) ?? readString(rawNode.name),
     category: readString(rawNode.category),
-    isOutput: detectIsOutputNode(rawNode, classType),
+    outputs: normalizeOutputSpecs(rawNode),
     inputs,
   };
+}
+
+/**
+ * 规范化节点输出端口
+ * @param rawNode 原始节点定义
+ * @returns 输出端口列表
+ */
+function normalizeOutputSpecs(rawNode: Record<string, unknown>): ComfyUIObjectInfoOutputSpec[] {
+  const types = readStringArray(rawNode.output).map(type => type.toUpperCase());
+  const names = readStringArray(rawNode.output_name);
+  const listFlags = Array.isArray(rawNode.output_is_list) ? rawNode.output_is_list : [];
+  return types.map((type, index) => ({
+    index,
+    name: names[index] ?? `输出 ${index + 1}`,
+    type,
+    isList: listFlags[index] === true,
+  }));
+}
+
+/**
+ * 读取字符串数组
+ * @param value 原始值
+ * @returns 有效字符串列表
+ */
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === 'string' && Boolean(item.trim()))
+    .map(item => item.trim());
 }
 
 /**
@@ -291,11 +316,7 @@ function normalizeInputSpec(
   const options = Array.isArray(typeInfo)
     ? typeInfo.filter((item): item is string => typeof item === 'string')
     : undefined;
-  const typeName = Array.isArray(typeInfo)
-    ? 'COMBO'
-    : typeof typeInfo === 'string'
-      ? typeInfo
-      : 'UNKNOWN';
+  const typeName = resolveInputTypeName(typeInfo);
 
   return {
     name,
@@ -312,18 +333,14 @@ function normalizeInputSpec(
 }
 
 /**
- * 判断节点是否为输出节点
- * @param rawNode 原始节点定义
- * @param classType 节点类型
- * @returns 是否输出节点
+ * 解析输入类型名称
+ * @param typeInfo 原始类型定义
+ * @returns 规范化类型名
  */
-function detectIsOutputNode(rawNode: Record<string, unknown>, classType: string): boolean {
-  if (rawNode.output_node === true) return true;
-  const category = readString(rawNode.category)?.toLowerCase() ?? '';
-  if (category.includes('image') && (classType.includes('Save') || classType.includes('Preview'))) {
-    return true;
-  }
-  return isLikelyImageOutputClassType(classType);
+function resolveInputTypeName(typeInfo: unknown): string {
+  if (Array.isArray(typeInfo)) return 'COMBO';
+  if (typeof typeInfo === 'string') return typeInfo.toUpperCase();
+  return 'UNKNOWN';
 }
 
 /**

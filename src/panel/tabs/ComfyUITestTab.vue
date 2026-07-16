@@ -235,7 +235,7 @@ const snapshotRows = computed<ParamRow[]>(() => {
   const snapshot = requestSnapshot.value;
   return [
     { label: '接口地址', value: `${snapshot.endpoint}/prompt`, code: true },
-    { label: '输出节点', value: snapshot.imageOutputNodeId, code: true },
+    { label: '段落生图结果节点', value: snapshot.imageOutputNodeId, code: true },
     {
       label: '提示词绑定',
       value: formatPromptBindings(snapshot.promptBindings),
@@ -307,8 +307,8 @@ async function runTest(): Promise<void> {
     const request = currentMode.value === 'llm' ? await runLlmModeTest() : runDirectModeTest();
     requestSnapshot.value = request.snapshot;
     const blobs = await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request);
-    // TODO: 后续改为多图测试结果，当前仅展示指定输出节点的第一张图片
-    if (!blobs.length) throw new Error('指定输出节点未返回任何图片');
+    // 测试页暂只展示段落生图结果的第一张图片
+    if (!blobs.length) throw new Error('段落生图结果节点未返回任何图片');
     replacePreviewImage(blobs[0]);
     testStatus.value = 'success';
     toastr.success(successStateText.value);

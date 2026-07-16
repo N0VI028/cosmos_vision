@@ -38,21 +38,6 @@
           </Popover>
         </template>
 
-        <Chip
-          v-if="showImageOutput"
-          class="cv-workflow-action-chip"
-          :class="[
-            isImageOutput ? 'is-active' : 'is-inactive',
-            { 'is-disabled': !online }
-          ]"
-          @click="online && emit('set-image-output')"
-        >
-          <span class="flex items-center gap-1.5">
-            <i :class="isImageOutput ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'" aria-hidden="true" />
-            <span>{{ isImageOutput ? '当前图片输出' : '设为图片输出' }}</span>
-          </span>
-        </Chip>
-
         <ToggleButton
           v-if="showSeedMode"
           :model-value="isSeedRandom"
@@ -176,13 +161,9 @@ const bindingPopoverPt = {
 const props = withDefaults(
   defineProps<{
     control: ComfyUIInputControlDesc;
-    showImageOutput?: boolean;
-    isImageOutput?: boolean;
     online?: boolean;
   }>(),
   {
-    showImageOutput: false,
-    isImageOutput: false,
     online: false,
   },
 );
@@ -191,7 +172,6 @@ const emit = defineEmits<{
   'update:value': [value: unknown];
   'update:prompt-binding': [binding: PromptBinding | null];
   'update:seed-mode': [mode: SeedMode | null];
-  'set-image-output': [];
 }>();
 
 const promptPopover = ref<MacroPopoverInstance | null>(null);
@@ -342,27 +322,23 @@ function onSeedToggleChange(value: boolean): void {
   color: inherit !important;
 }
 
-:deep(.cv-workflow-action-chip.is-none),
-:deep(.cv-workflow-action-chip.is-inactive) {
+:deep(.cv-workflow-action-chip.is-none) {
   background: var(--cv-surface-container-low) !important;
   border-color: var(--cv-outline) !important;
   color: var(--cv-on-surface-variant) !important;
 }
 
-:deep(.cv-workflow-action-chip.is-none:hover),
-:deep(.cv-workflow-action-chip.is-inactive:hover) {
+:deep(.cv-workflow-action-chip.is-none:hover) {
   background: var(--cv-surface-container-high) !important;
 }
 
-:deep(.cv-workflow-action-chip.is-positive),
-:deep(.cv-workflow-action-chip.is-active) {
+:deep(.cv-workflow-action-chip.is-positive) {
   background: color-mix(in srgb, var(--p-primary-color) 12%, transparent) !important;
   border-color: var(--p-primary-color) !important;
   color: var(--p-primary-color) !important;
 }
 
-:deep(.cv-workflow-action-chip.is-positive:hover),
-:deep(.cv-workflow-action-chip.is-active:hover) {
+:deep(.cv-workflow-action-chip.is-positive:hover) {
   background: color-mix(in srgb, var(--p-primary-color) 20%, transparent) !important;
 }
 

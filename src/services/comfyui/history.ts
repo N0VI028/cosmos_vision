@@ -24,7 +24,7 @@ export function extractHistoryImages(
 
   const images = (entry.outputs[imageOutputNodeId]?.images ?? []).filter(image => Boolean(image.filename));
   if (!images.length) {
-    throw new Error(`指定输出节点 ${imageOutputNodeId} 未返回任何图片`);
+    throw new Error(`段落生图结果节点 ${imageOutputNodeId} 未返回任何图片`);
   }
   return images;
 }

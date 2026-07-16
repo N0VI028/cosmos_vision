@@ -169,6 +169,7 @@
             :node-id="selectedNodeId"
             :node="selectedNode"
             :controls="selectedControls"
+            :outputs="selectedOutputs"
             :can-set-output="canSetSelectedOutput"
             :online="online"
             :lora-preset-settings="loraPresetSettings"
@@ -196,6 +197,7 @@
         :node-id="selectedNodeId"
         :node="selectedNode"
         :controls="selectedControls"
+        :outputs="selectedOutputs"
         :can-set-output="canSetSelectedOutput"
         :online="online"
         :lora-preset-settings="loraPresetSettings"
@@ -286,7 +288,7 @@ const locateOptions = computed(() => {
     { key: 'positive', label: '正面提示词', icon: 'fa-solid fa-circle-plus', nodeId: positiveId, color: '#10b981' },
     { key: 'negative', label: '负面提示词', icon: 'fa-solid fa-circle-minus', nodeId: negativeId, color: '#ef4444' },
     { key: 'lora', label: 'Lora组', icon: 'fa-solid fa-puzzle-piece', nodeId: loraId, color: '#a855f7' },
-    { key: 'output', label: '图片输出', icon: 'fa-solid fa-image', nodeId: outputId, color: '#3b82f6' },
+    { key: 'output', label: '段落生图结果', icon: 'fa-solid fa-image', nodeId: outputId, color: '#3b82f6' },
   ];
 });
 
@@ -371,6 +373,11 @@ const nodeSelectOptions = computed(() => {
 const selectedControls = computed(() => {
   if (!workflow.value || !selectedNodeId.value) return [];
   return mapInputControls(workflow.value, selectedNodeId.value, objectInfo.value);
+});
+
+const selectedOutputs = computed(() => {
+  if (!selectedNode.value || !objectInfo.value) return [];
+  return objectInfo.value[selectedNode.value.class_type]?.outputs ?? [];
 });
 
 const outputCandidates = computed(() => {
@@ -460,47 +467,75 @@ function updateSeedMode(inputName: string, mode: SeedMode | null): void {
 }
 
 /**
- * 设置或取消唯一图片输出节点；改绑时用插件确认弹窗二次确认
+ * 设置或取消唯一段落生图结果节点；改绑时用插件确认弹窗二次确认
  * @param nodeId 节点 ID
  */
 async function setImageOutput(nodeId: string): Promise<void> {
-  if (!workflow.value) return;
-  const next = structuredClone(workflow.value) as ComfyUIWorkflow;
-  const node = next[nodeId];
-  if (!node) return;
-
-  // 已绑定：直接取消，不要求仍在候选列表（schema 变更后仍可解绑）
-  if (readNodeMeta(node).imageOutput) {
-    clearImageOutputNode(next);
-    commitWorkflow(next);
-    return;
-  }
-
-  if (!outputCandidates.value.includes(nodeId)) {
-    toastr.warning(
-      objectInfo.value
-        ? '当前节点定义未将该节点标记为输出节点'
-        : '未同步节点定义：仅可将 JSON 中已标记或疑似图片输出的节点设为输出',
-    );
-    return;
-  }
-
-  const existingId = readImageOutputNodeId(next);
-  if (existingId && existingId !== nodeId) {
-    const existing = next[existingId];
-    const name = existing ? readNodeDisplayName(existing, existingId) : existingId;
-    const confirmed = await showConfirm?.({
-      title: '改绑图片输出节点',
-      message: `节点 #${existingId}（${name}）已绑定为图片输出节点。是否改绑到当前节点 #${nodeId}？`,
-      acceptLabel: '确认改绑',
-      cancelLabel: '取消',
-      severity: 'warn',
-    });
-    if (!confirmed) return;
-  }
-
+  const next = createWorkflowDraft(nodeId);
+  if (!next) return;
+  if (tryClearParagraphResult(next, nodeId)) return;
+  if (!canBindParagraphResult(nodeId)) return;
+  if (!(await confirmParagraphResultRebind(next, nodeId))) return;
   setImageOutputNode(next, nodeId);
   commitWorkflow(next);
+}
+
+/**
+ * 创建包含目标节点的工作流草稿
+ * @param nodeId 目标节点 ID
+ * @returns 工作流草稿或 null
+ */
+function createWorkflowDraft(nodeId: string): ComfyUIWorkflow | null {
+  if (!workflow.value) return null;
+  const next = structuredClone(workflow.value) as ComfyUIWorkflow;
+  return next[nodeId] ? next : null;
+}
+
+/**
+ * 尝试取消当前段落生图结果
+ * @param next 工作流草稿
+ * @param nodeId 目标节点 ID
+ * @returns 是否已取消
+ */
+function tryClearParagraphResult(next: ComfyUIWorkflow, nodeId: string): boolean {
+  if (!readNodeMeta(next[nodeId]).imageOutput) return false;
+  clearImageOutputNode(next);
+  commitWorkflow(next);
+  return true;
+}
+
+/**
+ * 校验节点是否可绑定段落生图结果
+ * @param nodeId 目标节点 ID
+ * @returns 是否可绑定
+ */
+function canBindParagraphResult(nodeId: string): boolean {
+  if (outputCandidates.value.includes(nodeId)) return true;
+  const message = objectInfo.value
+    ? '当前节点没有可用的 IMAGE 输入或输出端口'
+    : '未同步节点定义，不能设置段落生图结果';
+  toastr.warning(message);
+  return false;
+}
+
+/**
+ * 确认是否改绑段落生图结果
+ * @param next 工作流草稿
+ * @param nodeId 目标节点 ID
+ * @returns 是否继续改绑
+ */
+async function confirmParagraphResultRebind(next: ComfyUIWorkflow, nodeId: string): Promise<boolean> {
+  const existingId = readImageOutputNodeId(next);
+  if (!existingId || existingId === nodeId) return true;
+  const existing = next[existingId];
+  const name = existing ? readNodeDisplayName(existing, existingId) : existingId;
+  return Boolean(await showConfirm?.({
+    title: '改绑段落生图结果',
+    message: `节点 #${existingId}（${name}）已绑定为段落生图结果。是否改绑到当前节点 #${nodeId}？`,
+    acceptLabel: '确认改绑',
+    cancelLabel: '取消',
+    severity: 'warn',
+  }));
 }
 
 /**

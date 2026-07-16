@@ -205,8 +205,8 @@ export function validatePromptBindings(workflow: ComfyUIWorkflow): string | null
  */
 export function validateImageOutput(workflow: ComfyUIWorkflow): string | null {
   const nodeId = readImageOutputNodeId(workflow);
-  if (!nodeId) return '未指定图片输出节点';
-  if (!workflow[nodeId]) return `图片输出节点 ${nodeId} 不存在于工作流`;
+  if (!nodeId) return '未指定段落生图结果节点';
+  if (!workflow[nodeId]) return `段落生图结果节点 ${nodeId} 不存在于工作流`;
   return null;
 }
 

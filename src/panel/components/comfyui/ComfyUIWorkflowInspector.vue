@@ -41,50 +41,95 @@
     <!-- 非全屏用 v-show；全屏由 CSS opacity 过渡，v-show 恒显示 -->
     <div
       v-show="fullscreen || !isCollapsed"
-      :class="fullscreen ? 'cv-lightbox-info-body' : 'cv-workflow-inspector__body'"
+      :class="['cv-workflow-inspector__body', { 'cv-lightbox-info-body': fullscreen }]"
     >
-      <ComfyUILoraPresetPanel
-        v-if="showLoraPanel && loraPresetSettings"
-        :preset-settings="loraPresetSettings"
-        :lora-options="loraOptions"
-        :is-loading-loras="isLoadingLoras"
-        @update:preset-settings="emit('update:lora-preset-settings', $event)"
-        @refresh-options="emit('refresh-lora-options')"
-      />
-
-      <Divider v-if="showLoraPanel && loraPresetSettings && visibleControls.length" :dt="dividerTokens" />
-
-      <div class="cv-workflow-inspector__inputs">
-        <ComfyUIWorkflowInput
-          v-for="control in visibleControls"
-          :key="`${control.nodeId}:${control.inputName}`"
-          :control="control"
-          :online="online"
-          :show-image-output="control.inputName === imagePortInputName"
-          :is-image-output="isImageOutput"
-          @update:value="value => emit('update:input', control.inputName, value)"
-          @update:prompt-binding="binding => emit('update:prompt-binding', control.inputName, binding)"
-          @update:seed-mode="mode => emit('update:seed-mode', control.inputName, mode)"
-          @set-image-output="emit('set-image-output', nodeId!)"
-        />
-
-        <!-- 无 image 端口时 chip 放参数区末尾 -->
-        <div v-if="showOutputChip && !imagePortInputName" class="cv-workflow-inspector__output-fallback">
-          <Chip
-            class="cv-workflow-action-chip"
-            :class="[
-              isImageOutput ? 'is-active' : 'is-inactive',
-              { 'is-disabled': !online }
-            ]"
-            @click="online && emit('set-image-output', nodeId!)"
-          >
-            <span class="flex items-center gap-1.5">
-              <i :class="isImageOutput ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'" aria-hidden="true" />
-              <span>{{ isImageOutput ? '当前图片输出' : '设为图片输出' }}</span>
-            </span>
-          </Chip>
+      <section class="cv-workflow-inspector__section">
+        <div class="cv-workflow-inspector__section-header">
+          <div class="cv-workflow-inspector__section-title">
+            <i class="fa-solid fa-sliders" aria-hidden="true" />
+            <span>可调参数</span>
+            <span class="cv-workflow-inspector__count">{{ parameterCount }}</span>
+          </div>
         </div>
-      </div>
+        <div class="cv-workflow-inspector__section-body">
+          <ComfyUILoraPresetPanel
+            v-if="showLoraPanel && loraPresetSettings"
+            :preset-settings="loraPresetSettings"
+            :lora-options="loraOptions"
+            :is-loading-loras="isLoadingLoras"
+            @update:preset-settings="emit('update:lora-preset-settings', $event)"
+            @refresh-options="emit('refresh-lora-options')"
+          />
+          <Divider v-if="showLoraPanel && loraPresetSettings && parameterControls.length" :dt="dividerTokens" />
+          <ComfyUIWorkflowInput
+            v-for="control in parameterControls"
+            :key="`${control.nodeId}:${control.inputName}`"
+            :control="control"
+            :online="online"
+            @update:value="value => emit('update:input', control.inputName, value)"
+            @update:prompt-binding="binding => emit('update:prompt-binding', control.inputName, binding)"
+            @update:seed-mode="mode => emit('update:seed-mode', control.inputName, mode)"
+          />
+          <div v-if="!parameterCount" class="cv-workflow-inspector__empty-section">无可调参数</div>
+        </div>
+      </section>
+
+      <section class="cv-workflow-inspector__section">
+        <div class="cv-workflow-inspector__section-header">
+          <div class="cv-workflow-inspector__section-title">
+            <i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true" />
+            <span>输入</span>
+            <span class="cv-workflow-inspector__count">{{ inputControls.length }}</span>
+          </div>
+        </div>
+        <div class="cv-workflow-inspector__ports">
+          <div v-for="control in inputControls" :key="control.inputName" class="cv-workflow-inspector__port">
+            <div class="cv-workflow-inspector__port-main">
+              <span class="cv-workflow-inspector__port-index">IN</span>
+              <span class="cv-workflow-inspector__port-name">{{ control.label }}</span>
+              <span class="cv-workflow-inspector__type">{{ control.dataType ?? 'UNKNOWN' }}</span>
+            </div>
+            <div class="cv-workflow-inspector__port-side">
+              <ComfyUIResultBindingButton
+                v-if="isResultInput(control)"
+                :active="isImageOutput"
+                :disabled="!online"
+                @click="emit('set-image-output', nodeId!)"
+              />
+            </div>
+          </div>
+          <div v-if="!inputControls.length" class="cv-workflow-inspector__empty-section">无连线输入</div>
+        </div>
+      </section>
+
+      <section class="cv-workflow-inspector__section">
+        <div class="cv-workflow-inspector__section-header">
+          <div class="cv-workflow-inspector__section-title">
+            <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true" />
+            <span>输出</span>
+            <span class="cv-workflow-inspector__count">{{ outputs.length }}</span>
+          </div>
+        </div>
+        <div class="cv-workflow-inspector__ports">
+          <div v-for="output in outputs" :key="output.index" class="cv-workflow-inspector__port">
+            <div class="cv-workflow-inspector__port-main">
+              <span class="cv-workflow-inspector__port-index">{{ output.index }}</span>
+              <span class="cv-workflow-inspector__port-name">{{ output.name }}</span>
+              <span class="cv-workflow-inspector__type">{{ output.type }}</span>
+              <span v-if="output.isList" class="cv-workflow-inspector__list-tag">LIST</span>
+            </div>
+            <div class="cv-workflow-inspector__port-side">
+              <ComfyUIResultBindingButton
+                v-if="isResultOutput(output)"
+                :active="isImageOutput"
+                :disabled="!online"
+                @click="emit('set-image-output', nodeId!)"
+              />
+            </div>
+          </div>
+          <div v-if="!outputs.length" class="cv-workflow-inspector__empty-section">{{ outputEmptyText }}</div>
+        </div>
+      </section>
     </div>
   </div>
 </template>
@@ -93,12 +138,14 @@
 import type { DividerDesignTokens } from '@primeuix/themes/types/divider';
 import type { ComfyUILoraPresetSettings } from '@/constants/comfyui';
 import ComfyUILoraPresetPanel from '@/panel/components/ComfyUILoraPresetPanel.vue';
+import ComfyUIResultBindingButton from '@/panel/components/comfyui/ComfyUIResultBindingButton.vue';
 import ComfyUIWorkflowInput from '@/panel/components/comfyui/ComfyUIWorkflowInput.vue';
 import { readNodeDisplayName } from '@/services/comfyui/layout';
 import { isLoraPanelManagedInput, isSupportedLoraNode } from '@/services/comfyui/lora-adapter';
 import { readNodeMeta } from '@/services/comfyui/meta';
 import type {
   ComfyUIInputControlDesc,
+  ComfyUIObjectInfoOutputSpec,
   ComfyUIWorkflowNode,
   PromptBinding,
   SeedMode,
@@ -114,6 +161,7 @@ const props = withDefaults(
     nodeId: string | null;
     node: ComfyUIWorkflowNode | null;
     controls: ComfyUIInputControlDesc[];
+    outputs: ComfyUIObjectInfoOutputSpec[];
     canSetOutput: boolean;
     online: boolean;
     loraPresetSettings?: ComfyUILoraPresetSettings;
@@ -152,15 +200,35 @@ const showLoraPanel = computed(() => isSupportedLoraNode(props.node ?? undefined
 const visibleControls = computed(() =>
   props.controls.filter(control => !isLoraPanelManagedInput(props.node ?? undefined, control.inputName)),
 );
-
-/**
- * 首个 image 端口名；有则 chip 挂控件 header，无则末尾 fallback
- */
-const imagePortInputName = computed(() => {
-  if (!showOutputChip.value) return null;
-  return visibleControls.value.find(c => /image/i.test(c.inputName))?.inputName ?? null;
+const parameterControls = computed(() => visibleControls.value.filter(control => control.kind !== 'link'));
+const inputControls = computed(() => visibleControls.value.filter(control => control.kind === 'link'));
+const parameterCount = computed(() => parameterControls.value.length + Number(showLoraPanel.value));
+const outputEmptyText = computed(() => props.online ? '该节点未声明输出端口' : '同步节点定义后显示输出端口');
+const resultInputName = computed(() =>
+  inputControls.value.find(control => control.dataType?.toUpperCase() === 'IMAGE')?.inputName ?? null,
+);
+const resultOutputIndex = computed(() => {
+  if (resultInputName.value) return null;
+  return props.outputs.find(output => output.type === 'IMAGE')?.index ?? null;
 });
 
+/**
+ * 判断输入端口是否承载段落生图结果操作
+ * @param control 输入控件
+ * @returns 是否显示操作
+ */
+function isResultInput(control: ComfyUIInputControlDesc): boolean {
+  return showOutputChip.value && control.inputName === resultInputName.value;
+}
+
+/**
+ * 判断输出端口是否承载段落生图结果操作
+ * @param output 输出端口
+ * @returns 是否显示操作
+ */
+function isResultOutput(output: ComfyUIObjectInfoOutputSpec): boolean {
+  return showOutputChip.value && output.index === resultOutputIndex.value;
+}
 
 watch(
   () => props.nodeId,
@@ -202,8 +270,7 @@ watch(
 
 .cv-workflow-inspector__body {
   @apply flex flex-col;
-  gap: var(--cv-space-xl);
-  padding: var(--cv-space-xl);
+  overflow-y: auto;
 }
 
 .cv-workflow-inspector.cv-lightbox-info {
@@ -240,55 +307,160 @@ watch(
   font-family: Consolas, Monaco, monospace;
 }
 
-.cv-workflow-inspector__inputs {
+.cv-workflow-inspector__section {
   @apply flex flex-col;
+  border-top: var(--cv-border-width) solid var(--cv-surface-variant);
 }
 
-.cv-workflow-inspector__output-fallback {
-  @apply flex items-center flex-wrap;
+.cv-workflow-inspector__section-header {
+  @apply flex items-center justify-between;
+  min-height: 2.75rem;
+  gap: var(--cv-space-lg);
+  padding: var(--cv-space-md) var(--cv-space-xl);
+  background: var(--cv-surface-container);
+}
+
+.cv-workflow-inspector__section-title,
+.cv-workflow-inspector__port-main {
+  @apply flex min-w-0 items-center;
   gap: var(--cv-space-sm);
+}
+
+.cv-workflow-inspector__section-title {
+  color: var(--cv-on-surface);
+  font-size: var(--cv-font-size-sm);
+  font-weight: 600;
+}
+
+.cv-workflow-inspector__section-title i {
+  width: 1rem;
+  color: var(--cv-on-surface-variant);
+  text-align: center;
+}
+
+.cv-workflow-inspector__count,
+.cv-workflow-inspector__type,
+.cv-workflow-inspector__list-tag,
+.cv-workflow-inspector__port-index {
+  font-family: Consolas, Monaco, monospace;
+  font-size: var(--cv-font-size-2xs);
+}
+
+.cv-workflow-inspector__count {
+  min-width: 1.25rem;
+  padding: 0.05rem var(--cv-space-xs);
+  border-radius: 999px;
+  background: var(--cv-surface-container-highest);
+  color: var(--cv-on-surface-variant);
+  text-align: center;
+}
+
+.cv-workflow-inspector__section-body {
+  @apply flex flex-col;
+  padding: 0 var(--cv-space-xl);
+}
+
+.cv-workflow-inspector__ports {
+  @apply flex flex-col;
+  padding: var(--cv-space-sm) var(--cv-space-xl) var(--cv-space-lg);
+}
+
+.cv-workflow-inspector__port {
+  @apply flex items-center justify-between;
+  min-height: 2.5rem;
+  gap: var(--cv-space-xl);
+  padding: var(--cv-space-sm) 0;
+  border-bottom: var(--cv-border-width) solid var(--cv-surface-variant);
+}
+
+.cv-workflow-inspector__port:last-child {
+  border-bottom: none;
+}
+
+.cv-workflow-inspector__port-index {
+  min-width: 1.75rem;
+  color: var(--cv-on-surface-variant);
+}
+
+.cv-workflow-inspector__port-name {
+  @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
+  color: var(--cv-on-surface);
+  font-size: var(--cv-font-size-sm);
+  font-weight: 600;
+}
+
+.cv-workflow-inspector__port-side {
+  @apply flex shrink-0 items-center;
+  gap: var(--cv-space-lg);
+}
+
+.cv-workflow-inspector__type,
+.cv-workflow-inspector__list-tag {
+  padding: 0.1rem var(--cv-space-sm);
+  border: var(--cv-border-width) solid var(--cv-outline);
+  border-radius: var(--cv-radius-sm);
+  color: var(--cv-on-surface-variant);
+}
+
+.cv-workflow-inspector__list-tag {
+  border-color: var(--p-primary-color);
+  color: var(--p-primary-color);
+}
+
+.cv-workflow-inspector__empty-section {
+  color: var(--cv-on-surface-variant);
+  font-size: var(--cv-font-size-xs);
   padding: var(--cv-space-lg) 0;
 }
 
-:deep(.cv-workflow-action-chip) {
-  cursor: pointer;
-  transition: all 0.2s ease;
-  user-select: none;
+:deep(.cv-workflow-action-btn) {
+  @apply flex items-center gap-1.5 cursor-pointer select-none rounded border transition-all duration-200 shrink-0;
   font-size: var(--cv-font-size-2xs);
-  padding: 0.15rem 0.5rem;
+  padding: 0.15rem 0.40rem;
   line-height: 1.2;
   min-height: auto;
   width: fit-content;
 }
 
-:deep(.cv-workflow-action-chip.is-disabled) {
-  opacity: 0.5;
+:deep(.cv-workflow-action-btn.is-disabled) {
+  opacity: 0.4 !important;
   cursor: not-allowed !important;
 }
 
-:deep(.cv-workflow-action-chip.is-disabled:hover) {
-  background: inherit !important;
-  border-color: inherit !important;
-  color: inherit !important;
-}
-
-:deep(.cv-workflow-action-chip.is-active) {
+:deep(.cv-workflow-action-btn.is-active) {
+  opacity: 1 !important;
   background: color-mix(in srgb, var(--p-primary-color) 12%, transparent) !important;
   border-color: var(--p-primary-color) !important;
   color: var(--p-primary-color) !important;
 }
 
-:deep(.cv-workflow-action-chip.is-active:hover) {
+:deep(.cv-workflow-action-btn.is-active:hover) {
   background: color-mix(in srgb, var(--p-primary-color) 20%, transparent) !important;
 }
 
-:deep(.cv-workflow-action-chip.is-inactive) {
+:deep(.cv-workflow-action-btn.is-inactive) {
   background: var(--cv-surface-container-low) !important;
   border-color: var(--cv-outline) !important;
   color: var(--cv-on-surface-variant) !important;
 }
 
-:deep(.cv-workflow-action-chip.is-inactive:hover) {
+:deep(.cv-workflow-action-btn.is-inactive:hover) {
   background: var(--cv-surface-container-high) !important;
+}
+
+@media (hover: hover) {
+  :deep(.cv-workflow-action-btn.is-inactive) {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  :deep(.cv-workflow-inspector__port:hover .cv-workflow-action-btn.is-inactive) {
+    opacity: 0.6;
+    pointer-events: auto;
+  }
+
+  :deep(.cv-workflow-inspector__port:hover .cv-workflow-action-btn.is-inactive:hover) {
+    opacity: 1;
+  }
 }
 </style>

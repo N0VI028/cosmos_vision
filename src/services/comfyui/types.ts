@@ -93,6 +93,7 @@ export interface ComfyUIInputControlDesc {
   inputName: string;
   kind: ComfyUIInputControlKind;
   label: string;
+  dataType?: string;
   value: unknown;
   options?: string[];
   min?: number;
@@ -125,12 +126,20 @@ export interface ComfyUIObjectInfoInputSpec {
   controlAfterGenerate?: boolean;
 }
 
+/** /object_info 节点输出定义 */
+export interface ComfyUIObjectInfoOutputSpec {
+  index: number;
+  name: string;
+  type: string;
+  isList: boolean;
+}
+
 /** /object_info 节点定义 */
 export interface ComfyUIObjectInfoNode {
   classType: string;
   displayName?: string;
   category?: string;
-  isOutput?: boolean;
+  outputs: ComfyUIObjectInfoOutputSpec[];
   inputs: ComfyUIObjectInfoInputSpec[];
 }
 
