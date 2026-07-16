@@ -32,8 +32,11 @@ app.use(PrimeVue, {
     },
   },
   pt: cosmosPrimePt,
+  // overlay/menu 必须高于全屏工作流编辑器 (z-99999)；modal 保持 ST 对话框之上
   zIndex: {
     modal: 3101,
+    overlay: 100100,
+    menu: 100100,
   },
 });
 

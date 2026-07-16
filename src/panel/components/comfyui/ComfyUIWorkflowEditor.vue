@@ -20,6 +20,20 @@
         </button>
       </DefineIconButton>
 
+      <DefineNodeSelect>
+        <Select
+          v-model="selectedNodeId"
+          :options="nodeSelectOptions"
+          option-label="label"
+          option-value="value"
+          filter
+          filter-placeholder="搜索节点名称或 ID"
+          placeholder="快速选择节点"
+          class="cv-workflow-node-select w-full"
+          :filter-fields="['label', 'classType']"
+        />
+      </DefineNodeSelect>
+
       <!-- 非全屏下才渲染 toolbar 和 JSON 编辑 textarea -->
       <template v-if="!fullscreen">
         <ComfyUIWorkflowToolbar
@@ -114,26 +128,34 @@
           </ReuseIconButton>
         </div>
 
-        <!-- 全屏专属 Inspector -->
-        <ComfyUIWorkflowInspector
-          v-if="fullscreen"
-          :fullscreen="true"
-          :node-id="selectedNodeId"
-          :node="selectedNode"
-          :controls="selectedControls"
-          :can-set-output="canSetSelectedOutput"
-          :output-unverified="outputUnverified"
-          :lora-preset-settings="loraPresetSettings"
-          :lora-options="loraOptions"
-          :is-loading-loras="isLoadingLoras"
-          @set-image-output="setImageOutput"
-          @update:input="updateInput"
-          @update:prompt-binding="updatePromptBinding"
-          @update:seed-mode="updateSeedMode"
-          @update:lora-preset-settings="onLoraPresetUpdate"
-          @refresh-lora-options="emit('refresh-lora-options')"
-        />
+        <!-- 全屏：节点选择 + Inspector 叠在画布底部 -->
+        <div v-if="fullscreen" class="cv-workflow-editor__inspector-stack">
+          <ReuseNodeSelect />
+          <ComfyUIWorkflowInspector
+            :fullscreen="true"
+            :node-id="selectedNodeId"
+            :node="selectedNode"
+            :controls="selectedControls"
+            :can-set-output="canSetSelectedOutput"
+            :output-unverified="outputUnverified"
+            :lora-preset-settings="loraPresetSettings"
+            :lora-options="loraOptions"
+            :is-loading-loras="isLoadingLoras"
+            @set-image-output="setImageOutput"
+            @update:input="updateInput"
+            @update:prompt-binding="updatePromptBinding"
+            @update:seed-mode="updateSeedMode"
+            @update:lora-preset-settings="onLoraPresetUpdate"
+            @refresh-lora-options="emit('refresh-lora-options')"
+          />
+        </div>
       </div>
+
+      <!-- 非全屏：画布与详情之间的节点选择 -->
+      <label v-if="workflow && !fullscreen" class="cv-field">
+        <span>快速选择节点</span>
+        <ReuseNodeSelect />
+      </label>
 
       <!-- 非全屏专属 Inspector -->
       <ComfyUIWorkflowInspector
@@ -182,6 +204,7 @@ const [DefineIconButton, ReuseIconButton] = createReusableTemplate<{
   title: string;
   disabled?: boolean;
 }>();
+const [DefineNodeSelect, ReuseNodeSelect] = createReusableTemplate();
 
 const props = defineProps<{
   modelValue: string;
@@ -259,6 +282,21 @@ const selectedNode = computed(() => {
   return workflow.value[selectedNodeId.value] ?? null;
 });
 
+/** 节点下拉选项；label 含名称与 ID，classType 供自定义标题时仍可搜类型 */
+const nodeSelectOptions = computed(() => {
+  if (!workflow.value) return [] as { value: string; label: string; classType: string }[];
+  return Object.entries(workflow.value)
+    .map(([id, node]) => {
+      const title = readNodeDisplayName(node, id);
+      return {
+        value: id,
+        label: `${title} (#${id})`,
+        classType: node.class_type ?? '',
+      };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label, 'zh-CN', { numeric: true }));
+});
+
 const selectedControls = computed(() => {
   if (!workflow.value || !selectedNodeId.value) return [];
   return mapInputControls(workflow.value, selectedNodeId.value, objectInfo.value);
@@ -310,7 +348,6 @@ function commitWorkflow(next: ComfyUIWorkflow): void {
 function onJsonEdit(value: string | undefined): void {
   emit('update:modelValue', value ?? '');
 }
-
 
 /**
  * 修改节点输入值
@@ -488,5 +525,40 @@ onBeforeUnmount(() => {
 .cv-workflow-editor-container.fixed .cv-workflow-canvas-wrapper {
   @apply flex-1 min-h-0;
   height: auto;
+}
+
+/* 全屏底部叠层：不拦截画布指针，子元素自行接收 */
+.cv-workflow-editor__inspector-stack {
+  @apply absolute bottom-0 left-0 right-0 z-2 flex flex-col;
+  gap: var(--cv-space-sm);
+  padding: 0 var(--cv-space-lg);
+  pointer-events: none;
+  max-height: 85%;
+}
+
+.cv-workflow-editor__inspector-stack > * {
+  pointer-events: auto;
+}
+
+/* Inspector 原为 absolute 贴底，叠层内改为相对流式布局 */
+.cv-workflow-editor__inspector-stack :deep(.cv-lightbox-info) {
+  position: relative;
+  bottom: auto;
+  left: auto;
+  right: auto;
+  max-height: none;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cv-workflow-editor__inspector-stack .cv-workflow-node-select {
+  @apply shrink-0;
+  background: var(--cv-surface-container-high);
+}
+
+.cv-workflow-node-select {
+  --p-select-focus-ring-color: transparent;
+  --p-select-focus-ring-width: 0;
 }
 </style>
