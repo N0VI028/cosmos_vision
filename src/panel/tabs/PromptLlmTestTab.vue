@@ -10,11 +10,12 @@
 
     <div class="cv-action-row">
       <Button
-        label="开始测试连接"
-        icon="fa-solid fa-play"
-        :loading="testStatus === 'running'"
+        :label="actionLabel"
+        :icon="actionIcon"
+        :severity="actionSeverity"
+        :outlined="actionOutlined"
         class="w-full"
-        @click="runTest"
+        @click="onActionClick"
       />
     </div>
 
@@ -102,9 +103,11 @@
 import { computed, ref } from 'vue';
 
 import { useFocusedParagraphInput } from '@/composables/useFocusedParagraphInput';
+import { useTestActionButton } from '@/composables/useTestActionButton';
+import { useTestRequestSession } from '@/composables/useTestRequestSession';
 import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue';
 import { useSettingsStore } from '@/store/settings';
-import { getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
+import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
 import {
   buildPromptLlmLogParams,
   formatPromptLlmRequestLog,
@@ -121,6 +124,7 @@ const {
   hasFocusedParagraph,
   buildTestContext,
 } = useFocusedParagraphInput();
+const requestSession = useTestRequestSession();
 
 /** 测试状态 */
 const testStatus = ref<'idle' | 'running' | 'success' | 'error'>('idle');
@@ -134,8 +138,30 @@ const testError = ref('');
 /** 发送前记录的提示词快照 */
 const sentPromptText = ref('');
 
+/** 是否正在运行测试 */
+const isRunning = computed(() => testStatus.value === 'running');
+
+/** 主操作按钮状态 */
+const {
+  label: actionLabel,
+  icon: actionIcon,
+  severity: actionSeverity,
+  outlined: actionOutlined,
+} = useTestActionButton(isRunning, {
+  label: '开始测试连接',
+  icon: 'fa-solid fa-play',
+});
+
 /** 参数日志计算属性 */
 const logParams = computed(() => buildPromptLlmLogParams(settings.promptLlm));
+
+/**
+ * 主操作按钮点击：运行中终止，否则启动测试
+ */
+function onActionClick(): void {
+  if (isRunning.value) stopTest();
+  else void runTest();
+}
 
 /**
  * 运行 LLM 连接测试
@@ -149,6 +175,7 @@ async function runTest(): Promise<void> {
     return;
   }
 
+  const session = requestSession.start();
   testStatus.value = 'running';
 
   try {
@@ -158,17 +185,46 @@ async function runTest(): Promise<void> {
       settings.promptLlm,
       settings.promptLlmMessagePresets,
       settings.promptProfiles,
-      undefined,
+      buildPromptLlmSchemaFields(settings.promptLlm),
       buildPromptLlmTriggerContext(settings),
     );
+    if (!requestSession.isCurrent(session)) return;
     sentPromptText.value = formatPromptLlmRequestLog(request);
-    applyTestResponse(await requestPromptLlmRaw(request));
+    applyTestResponse(await requestPromptLlmRaw(request, { generationId: session.generationId }));
+    if (!requestSession.isCurrent(session)) return;
     testStatus.value = 'success';
     toastr.success('LLM 连接测试成功');
   } catch (error) {
-    const message = error instanceof Error ? error.message : '发送请求失败，未知错误';
-    failTest(message);
+    requestSession.handleError(session, error, markAborted, handleRequestError);
+  } finally {
+    requestSession.finish(session);
   }
+}
+
+/**
+ * 终止当前 LLM 测试请求
+ */
+function stopTest(): void {
+  if (!requestSession.stop()) return;
+  markAborted();
+}
+
+/**
+ * 写入用户终止状态
+ */
+function markAborted(): void {
+  testStatus.value = 'error';
+  testError.value = '已终止测试';
+  toastr.info('已终止测试');
+}
+
+/**
+ * 处理 LLM 请求业务错误
+ * @param error 捕获到的异常
+ */
+function handleRequestError(error: unknown): void {
+  const message = error instanceof Error ? error.message : '发送请求失败，未知错误';
+  failTest(message);
 }
 
 /**

@@ -16,18 +16,31 @@ export interface PromptLlmLogParams {
   topK: number;
 }
 
+/** Prompt LLM 测试请求选项 */
+export interface PromptLlmRawRequestOptions {
+  generationId?: string;
+}
+
 /**
  * 调用 TavernHelper 发送测试请求
  * @param request generateRaw 请求体
+ * @param options 请求控制选项
  * @returns 格式化后的原始响应文本
  */
-export async function requestPromptLlmRaw(request: TavernHelperGenerateRawConfig): Promise<string> {
+export async function requestPromptLlmRaw(
+  request: TavernHelperGenerateRawConfig,
+  options: PromptLlmRawRequestOptions = {},
+): Promise<string> {
   const tavernHelper = getTavernHelper({ silent: false });
   if (!tavernHelper) {
     throw new Error('TavernHelper 不可用，请确保酒馆环境正常加载');
   }
 
-  return requestTavernHelperGenerateRaw(tavernHelper, { ...request, should_silence: true });
+  return requestTavernHelperGenerateRaw(tavernHelper, {
+    ...request,
+    should_silence: true,
+    generation_id: options.generationId ?? request.generation_id,
+  });
 }
 
 /**

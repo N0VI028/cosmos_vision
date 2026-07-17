@@ -33,10 +33,11 @@
     <div class="cv-action-row">
       <Button
         :label="actionLabel"
-        icon="fa-solid fa-wand-magic-sparkles"
-        :loading="testStatus === 'running'"
+        :icon="actionIcon"
+        :severity="actionSeverity"
+        :outlined="actionOutlined"
         class="w-full"
-        @click="runTest"
+        @click="onActionClick"
       />
     </div>
 
@@ -122,6 +123,8 @@
 <script setup lang="ts">
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { useFocusedParagraphInput } from '@/composables/useFocusedParagraphInput';
+import { useTestActionButton } from '@/composables/useTestActionButton';
+import { useTestRequestSession } from '@/composables/useTestRequestSession';
 import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue';
 import TestImageGallery from '@/panel/components/TestImageGallery.vue';
 
@@ -161,6 +164,7 @@ interface ParamRow {
 const settingsStore = useSettingsStore();
 const { settings } = settingsStore;
 const { paragraphText: llmParagraphText, hasFocusedParagraph, buildTestContext } = useFocusedParagraphInput();
+const requestSession = useTestRequestSession();
 
 const currentMode = ref<TestMode>('direct');
 const lastRunMode = ref<TestMode | null>(null);
@@ -175,6 +179,7 @@ const llmRawResponse = ref('');
 const llmSentPromptLog = ref('');
 const llmLogParams = ref<PromptLlmLogParams | null>(null);
 
+const isRunning = computed(() => testStatus.value === 'running');
 const useLlmMode = computed({
   get: () => currentMode.value === 'llm',
   set: value => {
@@ -191,9 +196,13 @@ const modeHint = computed(() => {
     ? '先使用当前 LLM 配置生成正负提示词，再按 ComfyUI 工作流注入生图'
     : '直接把输入内容与共享生图预设拼接后注入工作流';
 });
-const actionLabel = computed(() => {
-  return useLlmMode.value ? '开始联动测试' : '开始生图测试';
-});
+const idleActionLabel = computed(() => (useLlmMode.value ? '开始联动测试' : '开始生图测试'));
+const {
+  label: actionLabel,
+  icon: actionIcon,
+  severity: actionSeverity,
+  outlined: actionOutlined,
+} = useTestActionButton(isRunning, { label: idleActionLabel });
 const runningStateText = computed(() => {
   return useLlmMode.value ? '正在请求 LLM 并等待 ComfyUI 返回图像' : '正在等待 ComfyUI 返回图像';
 });
@@ -284,24 +293,59 @@ function formatSeedValues(seeds: ComfyUIRequestSnapshot['seedValues']): string {
 }
 
 /**
+ * 主操作按钮点击：运行中终止，否则启动测试
+ */
+function onActionClick(): void {
+  if (isRunning.value) stopTest();
+  else void runTest();
+}
+
+/**
  * 执行当前模式的测试
  */
 async function runTest(): Promise<void> {
   resetTestResult();
   lastRunMode.value = currentMode.value;
+  const session = requestSession.start();
   testStatus.value = 'running';
 
   try {
-    const request = currentMode.value === 'llm' ? await runLlmModeTest() : runDirectModeTest();
+    const request =
+      currentMode.value === 'llm'
+        ? await runLlmModeTest(session.generationId)
+        : runDirectModeTest();
+    if (!requestSession.isCurrent(session)) return;
     requestSnapshot.value = request.snapshot;
-    const blobs = await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request);
+    const blobs = await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request, {
+      signal: session.signal,
+    });
+    if (!requestSession.isCurrent(session)) return;
     if (!blobs.length) throw new Error('段落生图结果节点未返回任何图片');
     previewBlobs.value = blobs;
     testStatus.value = 'success';
     toastr.success(successStateText.value);
   } catch (error) {
-    handleTestError(error);
+    requestSession.handleError(session, error, markAborted, handleTestError);
+  } finally {
+    requestSession.finish(session);
   }
+}
+
+/**
+ * 终止当前测试请求
+ */
+function stopTest(): void {
+  if (!requestSession.stop()) return;
+  markAborted();
+}
+
+/**
+ * 写入用户终止状态
+ */
+function markAborted(): void {
+  testStatus.value = 'error';
+  errorMessage.value = '已终止测试';
+  toastr.info('已终止测试');
 }
 
 /**
@@ -317,9 +361,10 @@ function runDirectModeTest(): ComfyUIResolvedRequest {
 
 /**
  * 执行 LLM 联动测试
+ * @param generationId TavernHelper 生成请求 ID
  * @returns 已解析的 ComfyUI 请求
  */
-async function runLlmModeTest(): Promise<ComfyUIResolvedRequest> {
+async function runLlmModeTest(generationId: string): Promise<ComfyUIResolvedRequest> {
   llmLogParams.value = buildPromptLlmLogParams(settings.promptLlm);
   const requestError = getPromptLlmRequestError(settings.promptLlm);
   if (requestError) throw new Error(requestError);
@@ -327,7 +372,7 @@ async function runLlmModeTest(): Promise<ComfyUIResolvedRequest> {
   const schemaFields = buildPromptLlmSchemaFields(settings.promptLlm);
   const request = await buildLlmModeRequest(schemaFields);
   llmSentPromptLog.value = formatPromptLlmRequestLog(request);
-  llmRawResponse.value = await requestPromptLlmRaw(request);
+  llmRawResponse.value = await requestPromptLlmRaw(request, { generationId });
 
   const prompts = readPromptLlmOutputWithRules(llmRawResponse.value, settings.promptLlm, schemaFields);
   if (!prompts) throw new Error('LLM 返回值无法提取正负提示词');

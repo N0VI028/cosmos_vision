@@ -90,10 +90,11 @@
     <div class="cv-action-row">
       <Button
         :label="actionLabel"
-        icon="fa-solid fa-wand-magic-sparkles"
-        :loading="testStatus === 'running'"
+        :icon="actionIcon"
+        :severity="actionSeverity"
+        :outlined="actionOutlined"
         class="w-full"
-        @click="runTest"
+        @click="onActionClick"
       />
     </div>
 
@@ -199,6 +200,8 @@
 <script setup lang="ts">
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { useFocusedParagraphInput } from '@/composables/useFocusedParagraphInput';
+import { useTestActionButton } from '@/composables/useTestActionButton';
+import { useTestRequestSession, type TestRequestSession } from '@/composables/useTestRequestSession';
 import type { CharacterPromptItem } from '@/constants/novelai';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
@@ -254,6 +257,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { settings } = useSettingsStore();
 const { paragraphText: llmParagraphText, hasFocusedParagraph, buildTestContext } = useFocusedParagraphInput();
+const requestSession = useTestRequestSession();
 
 const currentMode = ref<NovelAITestMode>('direct');
 const lastRunMode = ref<NovelAITestMode | null>(null);
@@ -271,6 +275,7 @@ const llmRawResponse = ref('');
 const llmSentPromptLog = ref('');
 const llmLogParams = ref<PromptLlmLogParams | null>(null);
 
+const isRunning = computed(() => testStatus.value === 'running');
 const useLlmMode = computed({
   get: () => currentMode.value === 'llm',
   set: value => {
@@ -291,9 +296,13 @@ const modeHint = computed(() => {
     ? `先使用当前 LLM 配置生成tag，再按 ${props.serviceName} 提取规则和固定模板生图`
     : '直接把输入内容作为LLM提取结果，不经过AI生成tag';
 });
-const actionLabel = computed(() => {
-  return useLlmMode.value ? '开始联动测试' : '开始生图测试';
-});
+const idleActionLabel = computed(() => (useLlmMode.value ? '开始联动测试' : '开始生图测试'));
+const {
+  label: actionLabel,
+  icon: actionIcon,
+  severity: actionSeverity,
+  outlined: actionOutlined,
+} = useTestActionButton(isRunning, { label: idleActionLabel });
 const runningStateText = computed(() => {
   return useLlmMode.value
     ? `正在请求 LLM 并等待 ${props.serviceName} 返回图像`
@@ -359,53 +368,90 @@ const llmParamRows = computed<ParamRow[]>(() => {
 });
 
 /**
+ * 主操作按钮点击：运行中终止，否则启动测试
+ */
+function onActionClick(): void {
+  if (isRunning.value) stopTest();
+  else void runTest();
+}
+
+/**
  * 执行当前模式的测试
  */
 async function runTest(): Promise<void> {
   resetTestResult();
   lastRunMode.value = currentMode.value;
+  const session = requestSession.start();
   testStatus.value = 'running';
 
   try {
     if (currentMode.value === 'llm') {
-      await runLlmModeTest();
+      await runLlmModeTest(session);
     } else {
-      await runDirectModeTest();
+      await runDirectModeTest(session);
     }
+    if (!requestSession.isCurrent(session)) return;
     testStatus.value = 'success';
     toastr.success(successStateText.value);
   } catch (error) {
-    handleTestError(error);
+    requestSession.handleError(session, error, markAborted, handleTestError);
+  } finally {
+    requestSession.finish(session);
   }
 }
 
 /**
- * 执行仅 NovelAI 测试
+ * 终止当前测试请求
  */
-async function runDirectModeTest(): Promise<void> {
-  await runNovelAIWithOverrides(createDirectPromptOverrides());
+function stopTest(): void {
+  if (!requestSession.stop()) return;
+  markAborted();
+}
+
+/**
+ * 写入用户终止状态
+ */
+function markAborted(): void {
+  testStatus.value = 'error';
+  errorMessage.value = '已终止测试';
+  toastr.info('已终止测试');
+}
+
+/**
+ * 执行仅 NovelAI 测试
+ * @param session 当前测试会话
+ */
+async function runDirectModeTest(session: TestRequestSession): Promise<void> {
+  await runNovelAIWithOverrides(createDirectPromptOverrides(), session);
 }
 
 /**
  * 执行 LLM + NovelAI 联动测试
+ * @param session 当前测试会话
  */
-async function runLlmModeTest(): Promise<void> {
+async function runLlmModeTest(session: TestRequestSession): Promise<void> {
   llmLogParams.value = buildPromptLlmLogParams(settings.promptLlm);
   const requestError = getPromptLlmRequestError(settings.promptLlm);
   if (requestError) throw new Error(requestError);
 
   const request = await buildLlmModeRequest();
+  if (!requestSession.isCurrent(session)) return;
   llmSentPromptLog.value = formatPromptLlmRequestLog(request);
-  llmRawResponse.value = await requestPromptLlmRaw(request);
+  llmRawResponse.value = await requestPromptLlmRaw(request, { generationId: session.generationId });
+  if (!requestSession.isCurrent(session)) return;
 
-  await runNovelAIWithOverrides(buildNovelAILlmPromptOverrides(settings.promptLlm, llmRawResponse.value));
+  await runNovelAIWithOverrides(buildNovelAILlmPromptOverrides(settings.promptLlm, llmRawResponse.value), session);
 }
 
 /**
  * 使用覆写提示词执行 NovelAI 生图
  * @param overrides 提示词覆写参数
+ * @param session 当前测试会话
  */
-async function runNovelAIWithOverrides(overrides: NovelAIPromptOverrides): Promise<void> {
+async function runNovelAIWithOverrides(
+  overrides: NovelAIPromptOverrides,
+  session: TestRequestSession,
+): Promise<void> {
   const request = buildNovelAIResolvedRequest(
     settings.novelai,
     settings.imagePromptPresets,
@@ -413,7 +459,10 @@ async function runNovelAIWithOverrides(overrides: NovelAIPromptOverrides): Promi
     overrides,
   );
   novelaiSnapshot.value = request.snapshot;
-  const result = await generateNovelAIImagesFromResolvedRequest(request, settings.novelai.imageCount);
+  const result = await generateNovelAIImagesFromResolvedRequest(request, settings.novelai.imageCount, {
+    signal: session.signal,
+  });
+  if (!requestSession.isCurrent(session)) return;
   novelaiSnapshot.value = result.snapshot;
   previewBlobs.value = result.imageBlobs;
 }
