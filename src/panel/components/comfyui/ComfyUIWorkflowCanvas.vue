@@ -5,6 +5,9 @@
     :style="canvasStyle"
     @wheel.prevent="onWheel"
     @pointerdown="onPointerDown"
+    @pointermove="onPointerMove"
+    @pointerup="onPointerUp"
+    @pointercancel="onPointerUp"
   >
     <div class="cv-workflow-canvas__viewport" :style="viewportStyle">
       <svg class="cv-workflow-canvas__edges" :width="layout.width" :height="layout.height">
@@ -110,12 +113,20 @@ const emit = defineEmits<{
   select: [nodeId: string];
 }>();
 
+const SCALE_MIN = 0.2;
+const SCALE_MAX = 2.5;
+
 const rootEl = ref<HTMLElement | null>(null);
 const scale = ref(1);
 const offsetX = ref(0);
 const offsetY = ref(0);
-const dragging = ref(false);
-const lastPointer = ref({ x: 0, y: 0 });
+
+/** 手势会话状态（不驱动模板，无需响应式） */
+const pointers = new Map<number, { x: number; y: number }>();
+let dragging = false;
+let lastX = 0;
+let lastY = 0;
+let pinch: { dist: number; midX: number; midY: number; scale: number; ox: number; oy: number } | null = null;
 
 const viewportStyle = computed(() => ({
   transform: `translate(${offsetX.value}px, ${offsetY.value}px) scale(${scale.value})`,
@@ -124,16 +135,13 @@ const viewportStyle = computed(() => ({
 }));
 
 /**
- * 计算画布背景网格的样式
- * 根据当前缩放比例动态计算大网格和细网格的颜色、大小与偏移量
+ * 计算画布背景网格样式（随缩放切换主/次网格可见性）
  */
 const canvasStyle = computed(() => {
-  const showMinorGrid = scale.value > 0.35;
-  const showMajorGrid = scale.value > 0.15;
-
-  const majorColor = showMajorGrid ? 'color-mix(in srgb, var(--cv-outline) 14%, transparent)' : 'transparent';
-  const minorColor = showMinorGrid ? 'color-mix(in srgb, var(--cv-outline) 6%, transparent)' : 'transparent';
-
+  const majorColor =
+    scale.value > 0.15 ? 'color-mix(in srgb, var(--cv-outline) 14%, transparent)' : 'transparent';
+  const minorColor =
+    scale.value > 0.35 ? 'color-mix(in srgb, var(--cv-outline) 6%, transparent)' : 'transparent';
   return {
     '--cv-offset-x': `${offsetX.value}px`,
     '--cv-offset-y': `${offsetY.value}px`,
@@ -144,6 +152,28 @@ const canvasStyle = computed(() => {
 });
 
 /**
+ * 将缩放比例钳制在允许范围内
+ * @param value 原始比例
+ */
+function clampScale(value: number): number {
+  return Math.min(Math.max(value, SCALE_MIN), SCALE_MAX);
+}
+
+/**
+ * 以容器内锚点为中心缩放，保持该点下图示不动
+ * @param nextScale 目标缩放
+ * @param anchorX 锚点本地 X
+ * @param anchorY 锚点本地 Y
+ */
+function zoomAt(nextScale: number, anchorX: number, anchorY: number): void {
+  const clamped = clampScale(nextScale);
+  const ratio = clamped / scale.value;
+  offsetX.value = anchorX - (anchorX - offsetX.value) * ratio;
+  offsetY.value = anchorY - (anchorY - offsetY.value) * ratio;
+  scale.value = clamped;
+}
+
+/**
  * 适配视图到容器
  */
 function fitView(): void {
@@ -152,16 +182,15 @@ function fitView(): void {
   const pad = 24;
   const sx = (el.clientWidth - pad * 2) / props.layout.width;
   const sy = (el.clientHeight - pad * 2) / props.layout.height;
-  const next = Math.min(Math.max(Math.min(sx, sy), 0.2), 2);
+  const next = Math.min(Math.max(Math.min(sx, sy), SCALE_MIN), 2);
   scale.value = next;
   offsetX.value = (el.clientWidth - props.layout.width * next) / 2;
   offsetY.value = (el.clientHeight - props.layout.height * next) / 2;
 }
 
 /**
- * 计算节点样式
+ * 计算节点定位样式
  * @param node 布局节点
- * @returns 定位样式
  */
 function nodeStyle(node: ComfyUILayoutNode): Record<string, string> {
   return {
@@ -173,9 +202,8 @@ function nodeStyle(node: ComfyUILayoutNode): Record<string, string> {
 }
 
 /**
- * 计算边路径
+ * 计算边的贝塞尔路径
  * @param edge 图边
- * @returns SVG path
  */
 function edgePath(edge: ComfyUIGraphEdge): string {
   const source = props.layout.nodes.find(node => node.id === edge.sourceNodeId);
@@ -190,55 +218,158 @@ function edgePath(edge: ComfyUIGraphEdge): string {
 }
 
 /**
- * 滚轮缩放
- * @param event 滚轮事件
+ * 视口坐标转画布本地坐标
+ * @param clientX 视口 X
+ * @param clientY 视口 Y
  */
-function onWheel(event: WheelEvent): void {
-  const delta = event.deltaY > 0 ? 0.9 : 1.1;
-  scale.value = Math.min(Math.max(scale.value * delta, 0.2), 2.5);
+function toLocal(clientX: number, clientY: number): { x: number; y: number } {
+  const rect = rootEl.value?.getBoundingClientRect();
+  if (!rect) return { x: clientX, y: clientY };
+  return { x: clientX - rect.left, y: clientY - rect.top };
 }
 
 /**
- * 指针按下开始平移
+ * 读取当前双指间距与中点
+ */
+function pinchMetrics(): { dist: number; midX: number; midY: number } | null {
+  if (pointers.size < 2) return null;
+  const [a, b] = [...pointers.values()];
+  const dist = Math.hypot(b.x - a.x, b.y - a.y);
+  if (dist < 1) return null;
+  const mid = toLocal((a.x + b.x) / 2, (a.y + b.y) / 2);
+  return { dist, midX: mid.x, midY: mid.y };
+}
+
+/**
+ * 记录双指 pinch 基线并中止单指拖拽
+ */
+function startPinch(): void {
+  const metrics = pinchMetrics();
+  if (!metrics) {
+    pinch = null;
+    return;
+  }
+  pinch = {
+    ...metrics,
+    scale: scale.value,
+    ox: offsetX.value,
+    oy: offsetY.value,
+  };
+  dragging = false;
+}
+
+/**
+ * 按双指间距与中点更新缩放与平移
+ */
+function updatePinch(): void {
+  if (!pinch) return;
+  const metrics = pinchMetrics();
+  if (!metrics) return;
+  const nextScale = clampScale(pinch.scale * (metrics.dist / pinch.dist));
+  const ratio = nextScale / pinch.scale;
+  scale.value = nextScale;
+  offsetX.value = metrics.midX - (pinch.midX - pinch.ox) * ratio;
+  offsetY.value = metrics.midY - (pinch.midY - pinch.oy) * ratio;
+}
+
+/**
+ * 捕获指针到画布根节点
+ * @param pointerId 指针 ID
+ */
+function capturePointer(pointerId: number): void {
+  try {
+    rootEl.value?.setPointerCapture(pointerId);
+  } catch {
+    // 目标可能已离开
+  }
+}
+
+/**
+ * 释放画布上的指针捕获
+ * @param pointerId 指针 ID
+ */
+function releasePointer(pointerId: number): void {
+  const el = rootEl.value;
+  if (el?.hasPointerCapture(pointerId)) el.releasePointerCapture(pointerId);
+}
+
+/**
+ * 滚轮缩放（指针位置为锚点）
+ * @param event 滚轮事件
+ */
+function onWheel(event: WheelEvent): void {
+  const { x, y } = toLocal(event.clientX, event.clientY);
+  zoomAt(scale.value * (event.deltaY > 0 ? 0.9 : 1.1), x, y);
+}
+
+/**
+ * 指针按下：空白处单指平移；双指 pinch；节点上单指仅登记便于后续 pinch
  * @param event 指针事件
  */
 function onPointerDown(event: PointerEvent): void {
   if (event.button !== 0) return;
-  const target = event.target as HTMLElement;
-  if (target.closest('.cv-workflow-canvas__node')) return;
-  dragging.value = true;
-  lastPointer.value = { x: event.clientX, y: event.clientY };
-  const el = rootEl.value;
-  el?.setPointerCapture(event.pointerId);
-  el?.addEventListener('pointermove', onPointerMove);
-  el?.addEventListener('pointerup', onPointerUp);
+  pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+  if (pointers.size >= 2) {
+    for (const id of pointers.keys()) capturePointer(id);
+    startPinch();
+    return;
+  }
+
+  if ((event.target as HTMLElement).closest('.cv-workflow-canvas__node')) return;
+
+  dragging = true;
+  lastX = event.clientX;
+  lastY = event.clientY;
+  capturePointer(event.pointerId);
 }
 
 /**
- * 指针移动平移画布
+ * 指针移动：单指平移或双指 pinch
  * @param event 指针事件
  */
 function onPointerMove(event: PointerEvent): void {
-  if (!dragging.value) return;
-  offsetX.value += event.clientX - lastPointer.value.x;
-  offsetY.value += event.clientY - lastPointer.value.y;
-  lastPointer.value = { x: event.clientX, y: event.clientY };
+  if (!pointers.has(event.pointerId)) return;
+  pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+  if (pointers.size >= 2) {
+    if (!pinch) startPinch();
+    updatePinch();
+    return;
+  }
+
+  if (!dragging) return;
+  offsetX.value += event.clientX - lastX;
+  offsetY.value += event.clientY - lastY;
+  lastX = event.clientX;
+  lastY = event.clientY;
 }
 
 /**
- * 指针抬起结束平移
+ * 指针抬起/取消：清理会话；空白处单指拖可续接
  * @param event 指针事件
  */
 function onPointerUp(event: PointerEvent): void {
-  dragging.value = false;
-  const el = rootEl.value;
-  el?.releasePointerCapture(event.pointerId);
-  el?.removeEventListener('pointermove', onPointerMove);
-  el?.removeEventListener('pointerup', onPointerUp);
+  pointers.delete(event.pointerId);
+  releasePointer(event.pointerId);
+
+  if (pointers.size >= 2) {
+    startPinch();
+    return;
+  }
+
+  pinch = null;
+  if (pointers.size === 1 && dragging) {
+    const remaining = [...pointers.values()][0];
+    lastX = remaining.x;
+    lastY = remaining.y;
+    return;
+  }
+  dragging = false;
 }
 
 /**
- * 定位并居中显示指定节点，若缩放比例过小则调整到合适比例
+ * 定位并居中显示指定节点；过小时抬到可读比例
  * @param nodeId 节点 ID
  */
 function focusNode(nodeId: string): void {
@@ -246,17 +377,9 @@ function focusNode(nodeId: string): void {
   if (!el) return;
   const node = props.layout.nodes.find(n => n.id === nodeId);
   if (!node) return;
-
-  // 保证缩放比例不小于 0.7 以确保节点内容可读
-  if (scale.value < 0.7) {
-    scale.value = 0.7;
-  }
-
-  const containerWidth = el.clientWidth;
-  const containerHeight = el.clientHeight;
-
-  offsetX.value = containerWidth / 2 - (node.x + node.width / 2) * scale.value;
-  offsetY.value = containerHeight / 2 - (node.y + node.height / 2) * scale.value;
+  if (scale.value < 0.7) scale.value = 0.7;
+  offsetX.value = el.clientWidth / 2 - (node.x + node.width / 2) * scale.value;
+  offsetY.value = el.clientHeight / 2 - (node.y + node.height / 2) * scale.value;
 }
 
 defineExpose({ fitView, focusNode });
@@ -306,6 +429,7 @@ watch(
 .cv-workflow-canvas__viewport {
   @apply relative origin-top-left;
   transform-origin: 0 0;
+  touch-action: none;
 }
 
 .cv-workflow-canvas__edges {
@@ -327,6 +451,7 @@ watch(
   background: var(--cv-surface-container-lowest);
   color: var(--cv-on-surface);
   cursor: pointer;
+  touch-action: none;
 }
 
 .cv-workflow-canvas__node.is-selected {
