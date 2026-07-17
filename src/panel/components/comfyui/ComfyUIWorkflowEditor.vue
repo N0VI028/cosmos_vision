@@ -4,7 +4,7 @@
       :class="[
         'cv-workflow-editor-container',
         fullscreen
-          ? 'fixed inset-0 z-99999 overflow-hidden bg-(--cv-background) p-(--cv-space-lg) flex flex-col gap-(--cv-space-lg)'
+          ? 'absolute inset-0 z-99999 overflow-hidden bg-(--cv-background) p-(--cv-space-lg) flex flex-col gap-(--cv-space-lg)'
           : 'flex flex-col gap-(--cv-space-xl)'
       ]"
     >
@@ -70,95 +70,100 @@
           @select="selectedNodeId = $event"
         />
 
-        <!-- 统一状态提示，全屏下悬浮于 Canvas 左上角 -->
-        <!-- 如果是 info 成功提示，非全屏下也悬浮展示；非全屏下的 error/warn 已经通过 toolbar 展现了 -->
-        <Transition
-          enter-active-class="transition duration-300 ease"
-          enter-from-class="opacity-0 -translate-y-[4px]"
-          enter-to-class="opacity-100 translate-y-0"
-          leave-active-class="transition duration-300 ease"
-          leave-from-class="opacity-100 translate-y-0"
-          leave-to-class="opacity-0 -translate-y-[4px]"
-        >
-          <div
-            v-if="isStatusFloatingVisible"
-            class="pointer-events-none absolute top-(--cv-space-lg) left-(--cv-space-lg) z-2 flex items-center gap-(--cv-space-sm) px-(--cv-space-lg) py-(--cv-space-sm) text-(length:--cv-font-size-xs) bg-(--cv-surface-container-high) text-(--cv-on-surface) rounded border border-solid border-(--cv-outline) shadow-md"
-          >
-            <i
-              v-if="statusTone === 'error'"
-              class="fa-solid fa-circle-xmark text-(--p-red-500)"
-              aria-hidden="true"
-            />
-            <i
-              v-else-if="statusTone === 'warn'"
-              class="fa-solid fa-triangle-exclamation text-(--p-orange-500)"
-              aria-hidden="true"
-            />
-            <i
-              v-else
-              class="fa-solid fa-circle-info text-(--cv-primary)"
-              aria-hidden="true"
-            />
-            <span>{{ statusText }}</span>
-          </div>
-        </Transition>
-
-        <div class="absolute top-(--cv-space-lg) right-(--cv-space-lg) z-2 flex gap-(--cv-space-sm)">
-          <ReuseIconButton
-            title="定位绑定节点"
-            @click="locatePopover?.toggle($event)"
-          >
-            <i class="fa-solid fa-location-crosshairs" aria-hidden="true" />
-          </ReuseIconButton>
-
-          <Popover
-            ref="locatePopover"
-            :base-z-index="3200"
-            :dt="MACRO_POPOVER_TOKENS"
-            :pt="locatePopoverPt"
-          >
-            <div class="cv-workflow-locate-popover-content">
-              <button
-                v-for="option in locateOptions"
-                :key="option.key"
-                type="button"
-                class="cv-workflow-locate-option"
-                :disabled="!option.nodeId"
-                @click="onLocateNode(option.nodeId)"
+        <!-- 悬浮状态提示与右侧操作按钮的统一容器，避免绝对定位冲突导致覆盖 -->
+        <div class="absolute top-(--cv-space-lg) left-(--cv-space-lg) right-(--cv-space-lg) z-2 flex justify-between items-start gap-(--cv-space-md) pointer-events-none">
+          <!-- 左侧统一状态提示 -->
+          <div class="flex-1 min-w-0">
+            <Transition
+              enter-active-class="transition duration-300 ease"
+              enter-from-class="opacity-0 -translate-y-[4px]"
+              enter-to-class="opacity-100 translate-y-0"
+              leave-active-class="transition duration-300 ease"
+              leave-from-class="opacity-100 translate-y-0"
+              leave-to-class="opacity-0 -translate-y-[4px]"
+            >
+              <div
+                v-if="isStatusFloatingVisible"
+                class="flex items-center gap-(--cv-space-sm) px-(--cv-space-lg) py-(--cv-space-sm) text-(length:--cv-font-size-xs) bg-(--cv-surface-container-high) text-(--cv-on-surface) rounded border border-solid border-(--cv-outline) shadow-md w-fit max-w-full"
               >
-                <span class="cv-workflow-locate-option__icon">
-                  <i :class="option.icon" :style="{ color: option.nodeId ? option.color : undefined }" aria-hidden="true" />
-                </span>
-                <span>{{ option.label }}</span>
-                <span class="cv-workflow-locate-option__sub">
-                  {{ option.nodeId ? `#${option.nodeId}` : '未绑定' }}
-                </span>
-              </button>
-            </div>
-          </Popover>
+                <i
+                  v-if="statusTone === 'error'"
+                  class="fa-solid fa-circle-xmark text-(--p-red-500) shrink-0"
+                  aria-hidden="true"
+                />
+                <i
+                  v-else-if="statusTone === 'warn'"
+                  class="fa-solid fa-triangle-exclamation text-(--p-orange-500) shrink-0"
+                  aria-hidden="true"
+                />
+                <i
+                  v-else
+                  class="fa-solid fa-circle-info text-(--cv-primary) shrink-0"
+                  aria-hidden="true"
+                />
+                <span class="whitespace-break-spaces">{{ statusText }}</span>
+              </div>
+            </Transition>
+          </div>
 
-          <ReuseIconButton
-            title="同步节点定义"
-            :disabled="schemaLoading"
-            @click="refreshSchema(true)"
-          >
-            <i class="fa-solid fa-rotate" :class="{ 'fa-spin': schemaLoading }" aria-hidden="true" />
-          </ReuseIconButton>
-          <ReuseIconButton
-            title="适配视图"
-            @click="canvasRef?.fitView()"
-          >
-            <i class="fa-solid fa-expand" aria-hidden="true" />
-          </ReuseIconButton>
-          <ReuseIconButton
-            :title="fullscreen ? '退出全屏' : '全屏编辑'"
-            @click="fullscreen = !fullscreen"
-          >
-            <i
-              :class="fullscreen ? 'fa-solid fa-compress' : 'fa-solid fa-up-right-and-down-left-from-center'"
-              aria-hidden="true"
-            />
-          </ReuseIconButton>
+          <!-- 右侧操作按钮 -->
+          <div class="flex gap-(--cv-space-sm) shrink-0 pointer-events-auto">
+            <ReuseIconButton
+              title="定位绑定节点"
+              @click="locatePopover?.toggle($event)"
+            >
+              <i class="fa-solid fa-location-crosshairs" aria-hidden="true" />
+            </ReuseIconButton>
+
+            <Popover
+              ref="locatePopover"
+              :base-z-index="3200"
+              :dt="MACRO_POPOVER_TOKENS"
+              :pt="locatePopoverPt"
+            >
+              <div class="cv-workflow-locate-popover-content">
+                <button
+                  v-for="option in locateOptions"
+                  :key="option.key"
+                  type="button"
+                  class="cv-workflow-locate-option"
+                  :disabled="!option.nodeId"
+                  @click="onLocateNode(option.nodeId)"
+                >
+                  <span class="cv-workflow-locate-option__icon">
+                    <i :class="option.icon" :style="{ color: option.nodeId ? option.color : undefined }" aria-hidden="true" />
+                  </span>
+                  <span>{{ option.label }}</span>
+                  <span class="cv-workflow-locate-option__sub">
+                    {{ option.nodeId ? `#${option.nodeId}` : '未绑定' }}
+                  </span>
+                </button>
+              </div>
+            </Popover>
+
+            <ReuseIconButton
+              title="同步节点定义"
+              :disabled="schemaLoading"
+              @click="refreshSchema(true)"
+            >
+              <i class="fa-solid fa-rotate" :class="{ 'fa-spin': schemaLoading }" aria-hidden="true" />
+            </ReuseIconButton>
+            <ReuseIconButton
+              title="适配视图"
+              @click="canvasRef?.fitView()"
+            >
+              <i class="fa-solid fa-expand" aria-hidden="true" />
+            </ReuseIconButton>
+            <ReuseIconButton
+              :title="fullscreen ? '退出全屏' : '全屏编辑'"
+              @click="fullscreen = !fullscreen"
+            >
+              <i
+                :class="fullscreen ? 'fa-solid fa-compress' : 'fa-solid fa-up-right-and-down-left-from-center'"
+                aria-hidden="true"
+              />
+            </ReuseIconButton>
+          </div>
         </div>
 
         <!-- 全屏：节点选择 + Inspector 叠在画布底部 -->
@@ -626,12 +631,27 @@ onBeforeUnmount(() => {
 @reference '../../../global.css';
 
 .cv-workflow-canvas-wrapper {
-  height: 18rem;
+  width: 100%;
+  height: auto !important;
+  aspect-ratio: 16 / 9;
+  max-height: 18rem;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.cv-workflow-editor-container.fixed .cv-workflow-canvas-wrapper {
+.cv-workflow-editor-container.absolute {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 99999 !important;
+}
+
+.cv-workflow-editor-container.absolute .cv-workflow-canvas-wrapper {
   @apply flex-1 min-h-0;
-  height: auto;
+  height: auto !important;
+  aspect-ratio: auto !important;
+  max-height: none !important;
 }
 
 /* 全屏底部叠层：不拦截画布指针，子元素自行接收 */

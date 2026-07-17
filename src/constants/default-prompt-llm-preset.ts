@@ -618,7 +618,7 @@ For each character appearing in the current frame, list sequentially (use "|" to
 - NSFW Status: {possible NSFW-specific tags}
 </pre_tag_listing>
 `,
-          enabled: true,
+          enabled: false,
           triggerMatchMode: 'always',
           triggerKeywordGroups: [],
           triggerModels: [],
