@@ -56,6 +56,30 @@
     <div v-if="control.kind === 'link'" class="cv-workflow-input__link">
       来自节点 #{{ control.linkSource?.nodeId }} 输出 {{ control.linkSource?.outputIndex }}
     </div>
+    <div v-else-if="isCkptControl" class="flex gap-(--cv-space-sm) items-center w-full">
+      <Select
+        :model-value="String(control.value ?? '')"
+        :options="ckptOptions"
+        option-label="label"
+        option-value="value"
+        filter
+        placeholder="选择或同步模型..."
+        class="flex-1 min-w-0"
+        :disabled="isValueDisabled"
+        @update:model-value="emit('update:value', $event)"
+      />
+      <Button
+        icon="fa-solid fa-rotate"
+        severity="secondary"
+        outlined
+        rounded
+        :loading="isLoadingCheckpoints"
+        :disabled="isValueDisabled"
+        title="同步 ComfyUI 模型"
+        aria-label="同步 ComfyUI 模型"
+        @click="syncCheckpoints"
+      />
+    </div>
     <Select
       v-else-if="isDimensionControl"
       :model-value="Number(control.value ?? 0)"
@@ -141,6 +165,8 @@ import {
 } from '@/panel/components/prompt-llm-macro-popover';
 import type { ComfyUIInputControlDesc, PromptBinding, SeedMode } from '@/services/comfyui/types';
 
+import { fetchComfyUICheckpointNames } from '@/services/comfyui/api';
+
 interface PromptBindingOption {
   value: PromptBinding | null;
   label: string;
@@ -162,9 +188,11 @@ const props = withDefaults(
   defineProps<{
     control: ComfyUIInputControlDesc;
     online?: boolean;
+    comfyuiUrl?: string;
   }>(),
   {
     online: false,
+    comfyuiUrl: '',
   },
 );
 
@@ -256,6 +284,42 @@ function selectPromptBinding(binding: PromptBinding | null): void {
 function onSeedToggleChange(value: boolean): void {
   emit('update:seed-mode', value ? 'randomize' : 'fixed');
 }
+
+const isCkptControl = computed(
+  () => props.control.inputName === 'ckpt_name',
+);
+
+const isLoadingCheckpoints = ref(false);
+const fetchedCheckpoints = ref<string[]>([]);
+
+/**
+ * 同步 ComfyUI 可用 Checkpoint 列表
+ */
+async function syncCheckpoints(): Promise<void> {
+  if (!props.comfyuiUrl.trim()) {
+    toastr.warning('未填写 ComfyUI URL');
+    return;
+  }
+  isLoadingCheckpoints.value = true;
+  try {
+    const list = await fetchComfyUICheckpointNames({ url: props.comfyuiUrl } as any);
+    fetchedCheckpoints.value = list;
+    toastr.success('已成功获取 ComfyUI 模型列表');
+  } catch (error) {
+    toastr.warning(error instanceof Error ? error.message : '获取 ComfyUI 模型列表失败');
+  } finally {
+    isLoadingCheckpoints.value = false;
+  }
+}
+
+const ckptOptions = computed(() => {
+  const values = [
+    ...(props.control.value ? [String(props.control.value)] : []),
+    ...fetchedCheckpoints.value,
+    ...(props.control.options ?? []),
+  ];
+  return Array.from(new Set(values)).map(value => ({ value, label: value }));
+});
 </script>
 
 <style scoped>

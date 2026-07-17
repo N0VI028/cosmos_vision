@@ -66,6 +66,7 @@
             :key="`${control.nodeId}:${control.inputName}`"
             :control="control"
             :online="online"
+            :comfyui-url="comfyuiUrl"
             @update:value="value => emit('update:input', control.inputName, value)"
             @update:prompt-binding="binding => emit('update:prompt-binding', control.inputName, binding)"
             @update:seed-mode="mode => emit('update:seed-mode', control.inputName, mode)"
@@ -168,10 +169,12 @@ const props = withDefaults(
     loraOptions: { value: string; label: string }[];
     isLoadingLoras: boolean;
     fullscreen?: boolean;
+    comfyuiUrl?: string;
   }>(),
   {
     fullscreen: false,
     loraPresetSettings: undefined,
+    comfyuiUrl: '',
   },
 );
 
