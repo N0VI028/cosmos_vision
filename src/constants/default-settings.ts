@@ -148,7 +148,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     model: '',
     source: 'openai',
     temperature: 0.7,
-    maxTokens: 1000,
+    maxTokens: 32000,
     topP: 1.0,
     topK: 0,
     historyFloorCount: 0,
