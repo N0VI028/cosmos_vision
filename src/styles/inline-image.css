@@ -317,6 +317,14 @@ body.dark .cv-inline-toolbar {
 .cv-inline-img-wrap {
   position: relative;
   display: block;
+  max-width: 40em;
+  margin: var(--cv-space-10xl) auto;
+}
+
+/* 在测试预览区域内，画廊占满宽度并不需要外边距 */
+.cv-preview-stage .cv-inline-img-wrap {
+  max-width: none;
+  margin: 0;
 }
 
 /* Teleport 承载容器：仅占位，视觉由内部 wrap 负责 */
