@@ -94,6 +94,8 @@
             <label class="cv-field"><span>角色正面字段名</span><InputText v-model="settings.promptLlm.characterPositivePromptJsonField" /></label>
             <label class="cv-field"><span>角色负面字段名</span><InputText v-model="settings.promptLlm.characterNegativePromptJsonField" /></label>
             <label class="cv-field"><span>角色位置字段名</span><InputText v-model="settings.promptLlm.characterPositionJsonField" /></label>
+            <label class="cv-field"><span>角色 X 坐标字段名</span><InputText v-model="settings.promptLlm.characterPositionXJsonField" /></label>
+            <label class="cv-field"><span>角色 Y 坐标字段名</span><InputText v-model="settings.promptLlm.characterPositionYJsonField" /></label>
           </div>
         </div>
       </template>

@@ -170,6 +170,8 @@ export function buildJsonSchema(
  */
 function buildPromptOutputProperty(name: string, fields: PromptLlmOutputFields): Record<string, unknown> {
   if (name !== fields.characterPrompts) return { type: 'string', description: name === fields.positive ? '正向提示词' : '负向提示词' };
+  const xKey = fields.characterPositionX ?? 'x';
+  const yKey = fields.characterPositionY ?? 'y';
   return {
     type: 'array',
     description: 'NovelAI 角色提示词数组',
@@ -179,7 +181,13 @@ function buildPromptOutputProperty(name: string, fields: PromptLlmOutputFields):
         [fields.characterPositivePrompt ?? 'positivePrompt']: { type: 'string' },
         [fields.characterNegativePrompt ?? 'negativePrompt']: { type: 'string' },
         [fields.characterPosition ?? 'position']: {
-          type: 'object', properties: { x: { type: 'number' }, y: { type: 'number' } }, required: ['x', 'y'], additionalProperties: false,
+          type: 'object',
+          properties: {
+            [xKey]: { type: 'number' },
+            [yKey]: { type: 'number' },
+          },
+          required: [xKey, yKey],
+          additionalProperties: false,
         },
       },
       required: [
@@ -462,6 +470,8 @@ function readPromptLlmOutputFields(settings: PromptLlmSettings): PromptLlmOutput
     characterPositivePrompt: settings.characterPositivePromptJsonField.trim(),
     characterNegativePrompt: settings.characterNegativePromptJsonField.trim(),
     characterPosition: settings.characterPositionJsonField.trim(),
+    characterPositionX: settings.characterPositionXJsonField?.trim() || 'x',
+    characterPositionY: settings.characterPositionYJsonField?.trim() || 'y',
   };
 }
 

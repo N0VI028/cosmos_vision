@@ -47,7 +47,11 @@ function normalizeJsonCharacter(value: unknown, settings: PromptLlmSettings): Ch
     {
       positivePrompt,
       negativePrompt,
-      position: normalizePosition(value[settings.characterPositionJsonField.trim()]),
+      position: normalizePosition(
+        value[settings.characterPositionJsonField.trim()],
+        settings.characterPositionXJsonField?.trim() || 'x',
+        settings.characterPositionYJsonField?.trim() || 'y',
+      ),
     },
   ];
 }
@@ -127,8 +131,14 @@ function parseRegexLiteral(value: string): { pattern: string; flags: string } | 
  * @param value 原始位置
  * @returns 0–1 范围内的坐标
  */
-function normalizePosition(value: unknown): CharacterPromptItem['position'] {
-  if (isRecord(value) && isCoordinate(value.x) && isCoordinate(value.y)) return { x: value.x, y: value.y };
+function normalizePosition(value: unknown, xKey = 'x', yKey = 'y'): CharacterPromptItem['position'] {
+  if (isRecord(value)) {
+    const xVal = value[xKey];
+    const yVal = value[yKey];
+    if (isCoordinate(xVal) && isCoordinate(yVal)) {
+      return { x: xVal, y: yVal };
+    }
+  }
   console.warn('[CosmosVision] 角色坐标无效，已回退到中心点');
   return defaultPosition();
 }

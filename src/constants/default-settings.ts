@@ -80,6 +80,8 @@ export const DEFAULT_PROMPT_LLM_OUTPUT_FIELDS = {
   characterPositivePrompt: 'positivePrompt',
   characterNegativePrompt: 'negativePrompt',
   characterPosition: 'position',
+  characterPositionX: 'x',
+  characterPositionY: 'y',
 } as const satisfies PromptLlmOutputFields;
 
 /** 图像生成来源默认值 */
@@ -160,6 +162,8 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     characterPositivePromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.characterPositivePrompt,
     characterNegativePromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.characterNegativePrompt,
     characterPositionJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.characterPosition,
+    characterPositionXJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.characterPositionX,
+    characterPositionYJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.characterPositionY,
     positivePromptExtractPattern: DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN,
     negativePromptExtractPattern: DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN,
     characterPositivePromptExtractPattern: DEFAULT_CHARACTER_POSITIVE_PROMPT_EXTRACT_PATTERN,

@@ -230,6 +230,10 @@ export interface PromptLlmSettings {
   characterNegativePromptJsonField: string;
   /** 角色位置字段名 */
   characterPositionJsonField: string;
+  /** 角色 X 坐标字段名 */
+  characterPositionXJsonField: string;
+  /** 角色 Y 坐标字段名 */
+  characterPositionYJsonField: string;
   /** 正面提示词正则提取规则 */
   positivePromptExtractPattern: string;
   /** 负面提示词正则提取规则 */
@@ -268,6 +272,8 @@ export interface PromptLlmOutputFields {
   characterPositivePrompt?: string;
   characterNegativePrompt?: string;
   characterPosition?: string;
+  characterPositionX?: string;
+  characterPositionY?: string;
 }
 
 /** 提示词 LLM 消息角色 */
