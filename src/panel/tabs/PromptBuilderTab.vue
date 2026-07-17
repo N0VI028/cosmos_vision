@@ -63,7 +63,23 @@
 
     <PromptLlmMessageList v-model="messages" />
 
-    <h2 class="cv-section-title">Tag提取规则</h2>
+    <div class="cv-message-section-head" style="margin-bottom: var(--cv-space-3xl)">
+      <h2 class="cv-section-title cv-prompt-builder-title" style="margin-bottom: 0; margin-top: var(--cv-space-10xl)">
+        <span>Tag提取规则</span>
+        <div
+          class="cv-reset-default-preset-btn"
+          role="button"
+          tabindex="0"
+          title="重置为默认值"
+          aria-label="重置为默认值"
+          @click="resetTagExtractionRules"
+          @keydown.enter.prevent="resetTagExtractionRules"
+          @keydown.space.prevent="resetTagExtractionRules"
+        >
+          <i class="fa-solid fa-rotate-left" />
+        </div>
+      </h2>
+    </div>
     <div class="cv-section-body">
       <div class="cv-field">
         <div class="cv-field-control">
@@ -135,6 +151,7 @@ import {
   DEFAULT_PROMPT_LLM_MESSAGE_PRESET_NAME,
   DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN,
   DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN,
+  DEFAULT_SETTINGS,
 } from '@/constants/default-settings';
 import { type PromptLlmMessage, type PromptLlmMessagePreset } from '@/constants/novelai';
 import {
@@ -226,6 +243,8 @@ const showConfirm = inject<(options: ConfirmOptions) => Promise<boolean>>('showC
 const isDefaultPresetActive = computed(
   () => settings.promptLlmMessagePresets.activePresetId === DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID,
 );
+
+
 
 const presetOptions = computed(() => {
   return settings.promptLlmMessagePresets.presets.map(preset => ({
@@ -388,6 +407,43 @@ async function resetDefaultPreset(): Promise<void> {
   if (!confirmed) return;
   restoreDefaultPreset();
   toastr.success('内置预设已重置为初始状态');
+}
+
+/**
+ * 确认后重置Tag提取规则为默认值
+ */
+async function resetTagExtractionRules(): Promise<void> {
+  const message = '确定要将所有Tag提取规则重置为默认值吗？';
+  const confirmed = showConfirm
+    ? await showConfirm({
+        title: '重置Tag提取规则',
+        message,
+        acceptLabel: '确认重置',
+        cancelLabel: '取消',
+        severity: 'danger',
+      })
+    : confirm(message);
+
+  if (!confirmed) return;
+
+  const defaults = DEFAULT_SETTINGS.promptLlm;
+  settings.promptLlm.preferJsonSchemaExtraction = defaults.preferJsonSchemaExtraction;
+  settings.promptLlm.positivePromptJsonField = defaults.positivePromptJsonField;
+  settings.promptLlm.negativePromptJsonField = defaults.negativePromptJsonField;
+  settings.promptLlm.characterPromptsJsonField = defaults.characterPromptsJsonField;
+  settings.promptLlm.characterPositivePromptJsonField = defaults.characterPositivePromptJsonField;
+  settings.promptLlm.characterNegativePromptJsonField = defaults.characterNegativePromptJsonField;
+  settings.promptLlm.characterPositionJsonField = defaults.characterPositionJsonField;
+  settings.promptLlm.characterPositionXJsonField = defaults.characterPositionXJsonField;
+  settings.promptLlm.characterPositionYJsonField = defaults.characterPositionYJsonField;
+  settings.promptLlm.positivePromptExtractPattern = defaults.positivePromptExtractPattern;
+  settings.promptLlm.negativePromptExtractPattern = defaults.negativePromptExtractPattern;
+  settings.promptLlm.characterPositivePromptExtractPattern = defaults.characterPositivePromptExtractPattern;
+  settings.promptLlm.characterNegativePromptExtractPattern = defaults.characterNegativePromptExtractPattern;
+  settings.promptLlm.characterPositionXExtractPattern = defaults.characterPositionXExtractPattern;
+  settings.promptLlm.characterPositionYExtractPattern = defaults.characterPositionYExtractPattern;
+
+  toastr.success('Tag提取规则已重置为默认值');
 }
 
 /**

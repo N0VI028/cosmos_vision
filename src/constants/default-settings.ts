@@ -67,8 +67,10 @@ export const DEFAULT_NEGATIVE_PROMPT_PRESET_NAME = '默认负面预设';
 export { DEFAULT_NOVELAI_VIBE_PRESET_ID, DEFAULT_NOVELAI_VIBE_PRESET_NAME };
 export const DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN = '/"positivePrompt"\\s*:\\s*"([^"]*)"/i';
 export const DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN = '/"negativePrompt"\\s*:\\s*"([^"]*)"/i';
-export const DEFAULT_CHARACTER_POSITIVE_PROMPT_EXTRACT_PATTERN = '/"positivePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g';
-export const DEFAULT_CHARACTER_NEGATIVE_PROMPT_EXTRACT_PATTERN = '/"negativePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g';
+export const DEFAULT_CHARACTER_POSITIVE_PROMPT_EXTRACT_PATTERN =
+  '/\\{\\s*"positivePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"\\s*,\\s*"negativePrompt"\\s*:\\s*"(?:\\\\.|[^"\\\\])*"\\s*,\\s*"position"\\s*:/g';
+export const DEFAULT_CHARACTER_NEGATIVE_PROMPT_EXTRACT_PATTERN =
+  '/\\{\\s*"positivePrompt"\\s*:\\s*"(?:\\\\.|[^"\\\\])*"\\s*,\\s*"negativePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"\\s*,\\s*"position"\\s*:/g';
 export const DEFAULT_CHARACTER_POSITION_X_EXTRACT_PATTERN = '/"x"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g';
 export const DEFAULT_CHARACTER_POSITION_Y_EXTRACT_PATTERN = '/"y"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g';
 
