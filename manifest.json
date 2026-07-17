@@ -6,8 +6,8 @@
   "js": "dist/index.js",
   "css": "dist/index.css",
   "author": "KAKAA",
-  "version": "0.9.0",
+  "version": "0.9.5",
   "homePage": "",
   "auto_update": true,
-  "minimum_client_version": "1.12.13"
+  "minimum_client_version": "1.12.14"
 }
