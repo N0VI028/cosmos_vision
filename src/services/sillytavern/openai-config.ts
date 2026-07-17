@@ -1,4 +1,4 @@
-import { chat_completion_sources, proxies } from '@sillytavern/scripts/openai';
+import { proxies } from '@sillytavern/scripts/openai';
 
 /** 代理预设项(来自 ST 的 proxies 数组) */
 export interface ProxyPresetOption {
@@ -31,32 +31,25 @@ export interface ChatCompletionSourceOption {
   label: string;
 }
 
-/** 来源 value → 中文友好标签 */
-const SOURCE_LABELS: Record<string, string> = {
-  openai: 'OpenAI',
-  windowai: 'Window AI',
-  claude: 'Claude',
-  scale: 'Scale',
-  openrouter: 'OpenRouter',
-  ai21: 'AI21',
-  makersuite: 'Google AI Studio',
-  mistralai: 'Mistral',
-  custom: '自定义(兼容 OpenAI)',
-  cohere: 'Cohere',
-  perplexity: 'Perplexity',
-  groq: 'Groq',
-  '01ai': '01.AI',
-  nanogpt: 'NanoGPT',
-  deepseek: 'DeepSeek',
-  xai: 'xAI',
-};
+/**
+ * generateRaw custom_api 实际可用的来源
+ * 依据 JS-Slash-Runner applyCustomApiOverrides：apiurl 写入 reverse_proxy；
+ * ST proxySupportedSources 会透传 reverse_proxy 的源，外加 source==='custom' 走 custom_url
+ */
+const GENERATE_RAW_SOURCE_OPTIONS: ChatCompletionSourceOption[] = [
+  { value: 'openai', label: 'OpenAI' },
+  { value: 'claude', label: 'Claude' },
+  { value: 'mistralai', label: 'Mistral' },
+  { value: 'makersuite', label: 'Google AI Studio' },
+  { value: 'vertexai', label: 'Google Vertex AI' },
+  { value: 'deepseek', label: 'DeepSeek' },
+  { value: 'xai', label: 'xAI' },
+  { value: 'zai', label: 'Z.AI' },
+  { value: 'moonshot', label: 'Moonshot' },
+  { value: 'custom', label: '自定义(兼容 OpenAI)' },
+];
 
 /**
- * 来源标识下拉选项(基于 ST chat_completion_sources 枚举)
+ * 来源标识下拉选项(仅 generateRaw custom_api 可用源)
  */
-export const CHAT_COMPLETION_SOURCE_OPTIONS: ChatCompletionSourceOption[] = Object.values(
-  chat_completion_sources as Record<string, string>,
-).map(value => ({
-  value,
-  label: SOURCE_LABELS[value] ?? value,
-}));
+export const CHAT_COMPLETION_SOURCE_OPTIONS: ChatCompletionSourceOption[] = GENERATE_RAW_SOURCE_OPTIONS;
