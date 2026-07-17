@@ -12,6 +12,7 @@ import type {
 } from '@/constants/novelai';
 import {
   NOVELAI_MAX_SEED,
+  NOVELAI_IMAGE_COUNT_LIMITS,
   isNovelAIV3Model,
   isNovelAIV4Model,
   isNovelAIV45Model,
@@ -25,7 +26,8 @@ import {
 } from '@/services/novelai/prompt-presets';
 import { readPreferredPromptLlmOutput, type PromptLlmExtractSettings } from '@/services/tavern-helper/prompt-llm';
 import { readCharacterPrompts } from '@/services/prompt-llm/character-prompt';
-import { extractFirstImage } from '@/services/novelai/zip';
+import { extractNovelAIJsonImages } from '@/services/novelai/response-images';
+import { extractImages } from '@/services/novelai/zip';
 import { getNovelAIRequestAccounts } from '@/services/novelai/router';
 import {
   getActiveNovelAIVibePresetRefs,
@@ -85,6 +87,7 @@ export interface NovelAIRequestSnapshot {
   noiseSchedule: NovelAINoiseSchedule;
   ucPreset: NovelAIUcPreset;
   addQualityTags: boolean;
+  imageCount: number;
   vibes: NovelAIVibeSnapshot;
 }
 
@@ -98,6 +101,12 @@ export interface NovelAIResolvedRequest {
 
 export interface NovelAIImageResult {
   imageBlob: Blob;
+  snapshot: NovelAIRequestSnapshot;
+  prompts: NovelAIFinalPrompts;
+}
+
+export interface NovelAIImagesResult {
+  imageBlobs: Blob[];
   snapshot: NovelAIRequestSnapshot;
   prompts: NovelAIFinalPrompts;
 }
@@ -133,6 +142,26 @@ export async function generateNovelAIImageFromResolvedRequest(
   request: NovelAIResolvedRequest,
   options: NovelAIRequestOptions = {},
 ): Promise<NovelAIImageResult> {
+  const result = await generateNovelAIImagesFromResolvedRequest(request, NOVELAI_IMAGE_COUNT_LIMITS.min, options);
+  return {
+    imageBlob: result.imageBlobs[0]!,
+    snapshot: result.snapshot,
+    prompts: result.prompts,
+  };
+}
+
+/**
+ * 按预解析结果请求多张 NovelAI 图片
+ * @param request 已确定提示词与账号顺序的请求
+ * @param imageCount 请求图片数
+ * @param options 请求控制选项
+ */
+export async function generateNovelAIImagesFromResolvedRequest(
+  request: NovelAIResolvedRequest,
+  imageCount: number,
+  options: NovelAIRequestOptions = {},
+): Promise<NovelAIImagesResult> {
+  validateImageCount(imageCount);
   validatePrompts(request.prompts);
   ensureRequestAccounts(request.accounts);
   throwIfNovelAIAborted(options.signal);
@@ -140,17 +169,43 @@ export async function generateNovelAIImageFromResolvedRequest(
   const errors: string[] = [];
   for (const [index, account] of request.accounts.entries()) {
     try {
-      return {
-        imageBlob: await requestNovelAIAccountImage(request.settings, prompts, account, options, request.seed),
-        snapshot: buildRequestSnapshot(request.settings, prompts, account, request.seed),
-        prompts,
-      };
+      return await requestImagesWithAccount(request, prompts, account, imageCount, options);
     } catch (error) {
       if (options.signal?.aborted) throw createNovelAIAbortError();
       errors.push(formatAccountError(index, account, error));
     }
   }
   throw new Error(buildAggregateErrorMessage(errors));
+}
+
+/**
+ * 使用单个账号请求并组装多图结果
+ * @param request 已确定提示词与账号顺序的请求
+ * @param prompts 已解析最终提示词
+ * @param account 本次尝试账号
+ * @param imageCount 请求图片数
+ * @param options 请求控制选项
+ */
+async function requestImagesWithAccount(
+  request: NovelAIResolvedRequest,
+  prompts: NovelAIFinalPrompts,
+  account: NovelAIAccount,
+  imageCount: number,
+  options: NovelAIRequestOptions,
+): Promise<NovelAIImagesResult> {
+  const imageBlobs = await requestNovelAIAccountImages(
+    request.settings,
+    prompts,
+    account,
+    options,
+    request.seed,
+    imageCount,
+  );
+  return {
+    imageBlobs,
+    snapshot: buildRequestSnapshot(request.settings, prompts, account, request.seed, imageCount),
+    prompts,
+  };
 }
 
 /**
@@ -200,6 +255,7 @@ function buildRequestSnapshot(
   prompts: NovelAIFinalPrompts,
   account: NovelAIAccount | null,
   seed: number,
+  imageCount: number,
 ): NovelAIRequestSnapshot {
   return {
     endpoint: account ? buildEndpoint(account.url) : '未选择可用账号',
@@ -223,6 +279,7 @@ function buildRequestSnapshot(
     noiseSchedule: getEffectiveNoiseSchedule(settings),
     ucPreset: settings.ucPreset,
     addQualityTags: settings.addQualityTags,
+    imageCount,
     vibes: buildVibeSnapshot(prompts),
   };
 }
@@ -276,12 +333,17 @@ function validatePrompts(prompts: NovelAIFinalPrompts): void {
  * @param seed 本次请求使用的 seed
  * @returns 官方 API payload
  */
-function buildPayload(settings: NovelAISettings, prompts: NovelAIFinalPrompts, seed: number): NovelAIPayload {
+function buildPayload(
+  settings: NovelAISettings,
+  prompts: NovelAIFinalPrompts,
+  seed: number,
+  imageCount: number,
+): NovelAIPayload {
   return {
     action: 'generate',
     input: prompts.positivePrompt,
     model: settings.model,
-    parameters: buildParameters(settings, prompts, seed),
+    parameters: buildParameters(settings, prompts, seed, imageCount),
     use_new_shared_trial: true,
   };
 }
@@ -293,8 +355,13 @@ function buildPayload(settings: NovelAISettings, prompts: NovelAIFinalPrompts, s
  * @param seed 本次请求使用的 seed
  * @returns 官方 parameters
  */
-function buildParameters(settings: NovelAISettings, prompts: NovelAIFinalPrompts, seed: number): Record<string, unknown> {
-  const parameters = createBaseParameters(settings, prompts, seed);
+function buildParameters(
+  settings: NovelAISettings,
+  prompts: NovelAIFinalPrompts,
+  seed: number,
+  imageCount: number,
+): Record<string, unknown> {
+  const parameters = createBaseParameters(settings, prompts, seed, imageCount);
   if (isNovelAIV3Model(settings.model)) applyV3Parameters(parameters, settings);
   if (isNovelAIV4Model(settings.model)) applyV4Prompts(parameters, prompts, settings.autoCharacterCoords);
   if (prompts.vibeParameters) Object.assign(parameters, prompts.vibeParameters);
@@ -308,7 +375,12 @@ function buildParameters(settings: NovelAISettings, prompts: NovelAIFinalPrompts
  * @param seed 本次请求使用的 seed
  * @returns 官方 parameters 基础对象
  */
-function createBaseParameters(settings: NovelAISettings, prompts: NovelAIFinalPrompts, seed: number): Record<string, unknown> {
+function createBaseParameters(
+  settings: NovelAISettings,
+  prompts: NovelAIFinalPrompts,
+  seed: number,
+  imageCount: number,
+): Record<string, unknown> {
   return {
     params_version: 3,
     width: settings.width,
@@ -316,7 +388,7 @@ function createBaseParameters(settings: NovelAISettings, prompts: NovelAIFinalPr
     scale: settings.guidance,
     sampler: getEffectiveSampler(settings),
     steps: settings.steps,
-    n_samples: 1,
+    n_samples: imageCount,
     ucPreset: getUcPresetValue(settings.ucPreset),
     qualityToggle: settings.addQualityTags,
     autoSmea: false,
@@ -519,7 +591,7 @@ function createResolvedRequest(settings: NovelAISettings, prompts: NovelAIFinalP
     prompts,
     accounts,
     seed,
-    snapshot: buildRequestSnapshot(settings, prompts, accounts[0] ?? null, seed),
+    snapshot: buildRequestSnapshot(settings, prompts, accounts[0] ?? null, seed, 1),
   };
 }
 
@@ -589,24 +661,26 @@ function ensureRequestAccounts(accounts: NovelAIAccount[]): void {
  * @param account 本次尝试账号
  * @param options 请求控制选项
  * @param seed 本次请求使用的 seed
- * @returns 第一张图片 Blob
+ * @param imageCount 请求图片数
+ * @returns 按响应顺序排列的图片
  */
-async function requestNovelAIAccountImage(
+async function requestNovelAIAccountImages(
   settings: NovelAISettings,
   prompts: NovelAIFinalPrompts,
   account: NovelAIAccount,
   options: NovelAIRequestOptions,
   seed: number,
-): Promise<Blob> {
-  const response = await requestNovelAIResponse(settings, prompts, account, options, seed);
+  imageCount: number,
+): Promise<Blob[]> {
+  const response = await requestNovelAIResponse(settings, prompts, account, options, seed, imageCount);
   throwIfNovelAIAborted(options.signal);
   const contentType = response.headers.get('content-type') ?? '';
   if (contentType.includes('application/json')) {
-    return extractNovelAIImageFromJson(response);
+    return extractNovelAIJsonImages(response);
   }
   const zipBlob = await readNovelAIResponseBlob(response);
   throwIfNovelAIAborted(options.signal);
-  return extractNovelAIImage(zipBlob);
+  return extractNovelAIZipImages(zipBlob);
 }
 
 /**
@@ -624,12 +698,13 @@ async function requestNovelAIResponse(
   account: NovelAIAccount,
   options: NovelAIRequestOptions,
   seed: number,
+  imageCount: number,
 ): Promise<Response> {
   try {
     const response = await fetch(buildEndpoint(account.url), {
       method: 'POST',
       headers: buildHeaders(account.apiKey),
-      body: JSON.stringify(buildPayload(settings, prompts, seed)),
+      body: JSON.stringify(buildPayload(settings, prompts, seed, imageCount)),
       signal: options.signal,
     });
     await ensureSuccess(response);
@@ -653,32 +728,23 @@ async function readNovelAIResponseBlob(response: Response): Promise<Blob> {
 }
 
 /**
- * 从 NovelAI JSON 响应中提取首图（新格式：images[0].image 为 base64）
- * @param response 官方 JSON 响应
- * @returns 第一张图片 Blob
+ * 校验 NovelAI 单次请求图片数
+ * @param imageCount 图片数
  */
-async function extractNovelAIImageFromJson(response: Response): Promise<Blob> {
-  try {
-    const json = await response.json() as { images?: Array<{ image?: string }> };
-    const base64 = json.images?.[0]?.image;
-    if (!base64) throw new Error('JSON 响应中没有找到图片数据');
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return new Blob([bytes], { type: 'image/png' });
-  } catch (error) {
-    throw new Error(`[JSON 解析] ${(error as Error).message}`);
-  }
+function validateImageCount(imageCount: number): void {
+  const { min, max } = NOVELAI_IMAGE_COUNT_LIMITS;
+  if (Number.isInteger(imageCount) && imageCount >= min && imageCount <= max) return;
+  throw new Error(`图片数必须是 ${min} 到 ${max} 的整数`);
 }
 
 /**
- * 解压 NovelAI ZIP 并返回首图
- * @param zipBlob 响应 ZIP
- * @returns 第一张图片 Blob
+ * 从 NovelAI ZIP 响应中提取全部图片
+ * @param zipBlob 官方响应 ZIP
+ * @returns 按压缩包顺序排列的图片
  */
-async function extractNovelAIImage(zipBlob: Blob): Promise<Blob> {
+async function extractNovelAIZipImages(zipBlob: Blob): Promise<Blob[]> {
   try {
-    return await extractFirstImage(zipBlob);
+    return await extractImages(zipBlob);
   } catch (error) {
     throw new Error(`[ZIP 解析] ${(error as Error).message}`);
   }

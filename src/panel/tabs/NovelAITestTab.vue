@@ -112,21 +112,11 @@
           <i class="fa-solid fa-circle-exclamation" />
           <span>{{ errorMessage }}</span>
         </div>
-        <div class="cv-preview-stage" :class="{ 'has-image': Boolean(previewUrl) }">
-          <LightboxImage
-            v-if="previewUrl"
-            :src="previewUrl"
-            :snapshot="previewPromptSnapshot"
-            :download-blob="previewBlob"
-            :alt="previewAltText"
-            class="cv-preview-viewer cv-preview-img"
-            :style="PREVIEW_IMAGE_STYLE"
-          />
-          <div v-else class="cv-preview-placeholder">
-            <i class="fa-regular fa-image" />
-            <span>{{ previewPlaceholderText }}</span>
-          </div>
-        </div>
+        <TestImageGallery
+          :image-blobs="previewBlobs"
+          :snapshot="previewPromptSnapshot"
+          :placeholder="previewPlaceholderText"
+        />
       </div>
     </div>
 
@@ -213,12 +203,12 @@ import type { CharacterPromptItem } from '@/constants/novelai';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
 import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue';
-import LightboxImage from '@/panel/components/LightboxImage.vue';
+import TestImageGallery from '@/panel/components/TestImageGallery.vue';
 
 import {
   buildNovelAILlmPromptOverrides,
   buildNovelAIResolvedRequest,
-  generateNovelAIImageFromResolvedRequest,
+  generateNovelAIImagesFromResolvedRequest,
   type NovelAIPromptOverrides,
   type NovelAIRequestSnapshot,
 } from '@/services/novelai/api';
@@ -256,7 +246,6 @@ interface Props {
   serviceName?: string;
 }
 
-const PREVIEW_IMAGE_STYLE = { width: '100%', display: 'block' } as const;
 let nextDirectCharacterId = 0;
 
 const props = withDefaults(defineProps<Props>(), {
@@ -270,8 +259,7 @@ const currentMode = ref<NovelAITestMode>('direct');
 const lastRunMode = ref<NovelAITestMode | null>(null);
 const testStatus = ref<TestStatus>('idle');
 const errorMessage = ref('');
-const previewUrl = ref('');
-const previewBlob = ref<Blob | null>(null);
+const previewBlobs = ref<Blob[]>([]);
 
 const directPositivePrompt = ref('1girl');
 const directNegativePrompt = ref('');
@@ -292,7 +280,6 @@ const useLlmMode = computed({
 
 const activeLogMode = computed(() => lastRunMode.value ?? currentMode.value);
 const showLlmLogs = computed(() => activeLogMode.value === 'llm');
-const previewAltText = computed(() => `${props.serviceName} 生成预览`);
 const promptTitle = computed(() => `${props.serviceName} 最终提示词`);
 const paramTitle = computed(() => `${props.serviceName} 参数配置`);
 const emptyParamText = computed(() => `尚未生成 ${props.serviceName} 参数快照`);
@@ -337,6 +324,7 @@ const novelaiParamRows = computed<ParamRow[]>(() => {
     { label: '接口地址', value: novelaiSnapshot.value.endpoint, code: true },
     { label: '模型', value: novelaiSnapshot.value.model, code: true },
     { label: '图像尺寸', value: `${novelaiSnapshot.value.width}x${novelaiSnapshot.value.height}` },
+    { label: '图片数', value: String(novelaiSnapshot.value.imageCount) },
     { label: '采样器', value: novelaiSnapshot.value.sampler, code: true },
     { label: 'Seed', value: String(novelaiSnapshot.value.seed) },
     { label: '步数', value: String(novelaiSnapshot.value.steps) },
@@ -350,7 +338,7 @@ const novelaiParamRows = computed<ParamRow[]>(() => {
     { label: '提示词引导重缩放', value: String(novelaiSnapshot.value.promptGuidanceRescale) },
     { label: '噪声调度', value: novelaiSnapshot.value.noiseSchedule, code: true },
     { label: '负向提示词程度', value: novelaiSnapshot.value.ucPreset },
-    { label: '使用官方质量词', value: novelaiSnapshot.value.addQualityTags ? '开启' : '关闭' },
+    { label: '使用官方正面质量词', value: novelaiSnapshot.value.addQualityTags ? '开启' : '关闭' },
     ...buildVibeParamRows(novelaiSnapshot.value.vibes),
   ];
 });
@@ -425,9 +413,9 @@ async function runNovelAIWithOverrides(overrides: NovelAIPromptOverrides): Promi
     overrides,
   );
   novelaiSnapshot.value = request.snapshot;
-  const result = await generateNovelAIImageFromResolvedRequest(request);
+  const result = await generateNovelAIImagesFromResolvedRequest(request, settings.novelai.imageCount);
   novelaiSnapshot.value = result.snapshot;
-  replacePreviewImage(result.imageBlob);
+  previewBlobs.value = result.imageBlobs;
 }
 
 /**
@@ -579,8 +567,7 @@ function resetTestResult(): void {
   llmRawResponse.value = '';
   llmSentPromptLog.value = '';
   llmLogParams.value = null;
-  revokePreviewUrl();
-  previewBlob.value = null;
+  previewBlobs.value = [];
 }
 
 /**
@@ -593,26 +580,6 @@ function handleTestError(error: unknown): void {
   toastr.error(errorMessage.value);
 }
 
-/**
- * 替换当前测试预览图片
- * @param blob 新的图片数据
- */
-function replacePreviewImage(blob: Blob): void {
-  revokePreviewUrl();
-  previewBlob.value = blob;
-  previewUrl.value = URL.createObjectURL(blob);
-}
-
-/**
- * 释放当前预览图地址
- */
-function revokePreviewUrl(): void {
-  if (!previewUrl.value) return;
-  URL.revokeObjectURL(previewUrl.value);
-  previewUrl.value = '';
-}
-
-onBeforeUnmount(revokePreviewUrl);
 </script>
 
 <style scoped>
@@ -696,42 +663,6 @@ onBeforeUnmount(revokePreviewUrl);
   background: color-mix(in srgb, var(--p-red-500) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--p-red-500) 30%, transparent);
   color: var(--p-red-500);
-}
-
-.cv-preview-stage {
-  @apply w-full overflow-hidden;
-  width: 100%;
-  min-height: 16rem;
-  border: var(--cv-border-width) dashed color-mix(in srgb, var(--p-content-border-color) 78%, transparent);
-  border-radius: var(--cv-radius);
-  background: color-mix(in srgb, var(--p-content-background) 92%, var(--cv-surface-container-low));
-}
-
-.cv-preview-stage.has-image {
-  border-style: solid;
-  border-color: var(--cv-surface-variant);
-}
-
-.cv-preview-viewer {
-  @apply block w-full;
-}
-
-.cv-preview-img {
-  @apply block w-full object-contain;
-  max-height: 40vh;
-}
-
-.cv-preview-placeholder {
-  @apply flex flex-col items-center justify-center text-center;
-  gap: var(--cv-space-lg);
-  min-height: 16rem;
-  padding: var(--cv-space-8xl);
-  color: var(--cv-on-surface-variant);
-}
-
-.cv-preview-placeholder > i {
-  font-size: 1.5rem;
-  color: color-mix(in srgb, var(--p-primary-color) 60%, var(--cv-on-surface-variant));
 }
 
 .cv-prompt-log {

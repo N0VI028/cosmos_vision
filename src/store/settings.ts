@@ -21,6 +21,7 @@ import {
 } from '@/constants/novelai-vibe';
 import {
   NOVELAI_CUSTOM_RESOLUTION_PRESET,
+  NOVELAI_IMAGE_COUNT_LIMITS,
   NOVELAI_IMAGE_SIZE_LIMITS,
   NOVELAI_MAX_SEED,
   NOVELAI_MODELS,
@@ -72,6 +73,7 @@ const novelAIResolutionPresetSchema = z.union([
   z.literal(NOVELAI_CUSTOM_RESOLUTION_PRESET),
 ]);
 const novelAIImageSizeSchema = z.number().int().min(NOVELAI_IMAGE_SIZE_LIMITS.min).max(NOVELAI_IMAGE_SIZE_LIMITS.max);
+const novelAIImageCountSchema = z.number().int().min(NOVELAI_IMAGE_COUNT_LIMITS.min).max(NOVELAI_IMAGE_COUNT_LIMITS.max);
 const novelAISeedSchema = z.number().int().min(0).max(NOVELAI_MAX_SEED).nullable();
 const novelAIAccountSchema = z.object({
   id: z.string().min(1),
@@ -137,6 +139,7 @@ const novelAISettingsSchema = z.object({
   width: novelAIImageSizeSchema,
   height: novelAIImageSizeSchema,
   steps: z.number(),
+  imageCount: novelAIImageCountSchema,
   guidance: z.number(),
   sampler: novelAISamplerSchema,
   seed: novelAISeedSchema,
@@ -421,6 +424,7 @@ function recoverNovelAISettings(value: unknown): NovelAISettings {
     width: read('width', novelAIImageSizeSchema),
     height: read('height', novelAIImageSizeSchema),
     steps: read('steps', z.number()),
+    imageCount: read('imageCount', novelAIImageCountSchema),
     guidance: readNovelAIGuidance(record, fallback.guidance),
     sampler: read('sampler', novelAISamplerSchema),
     seed: read('seed', novelAISeedSchema),

@@ -116,6 +116,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     width: 832,
     height: 1216,
     steps: 28,
+    imageCount: 1,
     guidance: 5.5,
     sampler: 'k_euler_ancestral',
     seed: null,

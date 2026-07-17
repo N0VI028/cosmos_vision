@@ -114,49 +114,75 @@
           </div>
         </div>
         <div class="cv-field-grid">
+          <label class="cv-field">
+            <span>图片数</span>
+            <InputNumber
+              v-model="settings.novelai.imageCount"
+              :min="imageCountLimits.min"
+              :max="imageCountLimits.max"
+              :allow-empty="false"
+              :use-grouping="false"
+              show-buttons
+            />
+          </label>
           <div class="cv-field">
             <div class="cv-nai-field-title-row">
-              <span>采样器</span>
-              <ToggleButton
-                v-if="isV3Model"
-                v-model="settings.novelai.autoSampler"
-                class="cv-nai-mini-toggle"
-                on-label="Auto"
-                off-label="Auto"
-                on-icon="fa-solid fa-check"
-                off-icon="fa-solid fa-xmark"
-                aria-label="切换 Auto 采样器"
-                size="small"
-              />
+              <span>种子</span>
+              <div class="cv-nai-title-actions">
+                <ToggleButton
+                  v-model="seedRandom"
+                  class="cv-nai-mini-toggle"
+                  on-label="随机"
+                  off-label="随机"
+                  on-icon="fa-solid fa-check"
+                  off-icon="fa-solid fa-xmark"
+                  aria-label="切换随机种子"
+                  size="small"
+                />
+              </div>
             </div>
-            <Select
-              v-model="settings.novelai.sampler"
-              :options="samplerOptions"
-              option-label="label"
-              option-value="value"
-              :disabled="settings.novelai.autoSampler && isV3Model"
-            />
-            <div v-if="isV3Model" class="cv-nai-option-row">
-              <label class="cv-nai-check-option">
-                <Checkbox v-model="settings.novelai.smea" binary />
-                <span>SMEA</span>
-              </label>
-              <label class="cv-nai-check-option" :class="{ 'cv-nai-check-option--disabled': !settings.novelai.smea }">
-                <Checkbox v-model="settings.novelai.smeaDyn" binary :disabled="!settings.novelai.smea" />
-                <span>DYN</span>
-              </label>
-            </div>
-          </div>
-          <label class="cv-field">
-            <span>种子</span>
             <InputNumber
               v-model="settings.novelai.seed"
               :min="0"
               :max="maxSeed"
               :use-grouping="false"
-              placeholder="留空随机"
+              :disabled="seedRandom"
+              placeholder="固定种子"
             />
-          </label>
+          </div>
+        </div>
+        <div class="cv-field">
+          <div class="cv-nai-field-title-row">
+            <span>采样器</span>
+            <ToggleButton
+              v-if="isV3Model"
+              v-model="settings.novelai.autoSampler"
+              class="cv-nai-mini-toggle"
+              on-label="Auto"
+              off-label="Auto"
+              on-icon="fa-solid fa-check"
+              off-icon="fa-solid fa-xmark"
+              aria-label="切换 Auto 采样器"
+              size="small"
+            />
+          </div>
+          <Select
+            v-model="settings.novelai.sampler"
+            :options="samplerOptions"
+            option-label="label"
+            option-value="value"
+            :disabled="settings.novelai.autoSampler && isV3Model"
+          />
+          <div v-if="isV3Model" class="cv-nai-option-row">
+            <label class="cv-nai-check-option">
+              <Checkbox v-model="settings.novelai.smea" binary />
+              <span>SMEA</span>
+            </label>
+            <label class="cv-nai-check-option" :class="{ 'cv-nai-check-option--disabled': !settings.novelai.smea }">
+              <Checkbox v-model="settings.novelai.smeaDyn" binary :disabled="!settings.novelai.smea" />
+              <span>DYN</span>
+            </label>
+          </div>
         </div>
         <label class="cv-field">
           <span>负向提示词程度</span>
@@ -169,7 +195,7 @@
         </label>
         <label class="cv-field-inline">
           <ToggleSwitch v-model="settings.novelai.addQualityTags" />
-          <span>使用官方质量词</span>
+          <span>使用官方正面质量词</span>
         </label>
       </div>
 
@@ -249,6 +275,7 @@ import {
   isNovelAIV3Model,
   isNovelAIV45Model,
   isNovelAIV4OnlyModel,
+  NOVELAI_IMAGE_COUNT_LIMITS,
 } from '@/constants/novelai';
 import ImagePromptPresetPanel from '@/panel/components/ImagePromptPresetPanel.vue';
 import NovelAIVibePresetPanel from '@/panel/components/NovelAIVibePresetPanel.vue';
@@ -284,11 +311,25 @@ const resolutionPresetOptions = [
 const samplerOptions = [...NOVELAI_SAMPLERS];
 const ucPresetOptions = [...NOVELAI_UC_PRESETS];
 const imageSizeLimits = NOVELAI_IMAGE_SIZE_LIMITS;
+const imageCountLimits = NOVELAI_IMAGE_COUNT_LIMITS;
 const maxSeed = NOVELAI_MAX_SEED;
 const isV3Model = computed(() => isNovelAIV3Model(settings.novelai.model));
 const isV45Model = computed(() => isNovelAIV45Model(settings.novelai.model));
 const isV4OnlyModel = computed(() => isNovelAIV4OnlyModel(settings.novelai.model));
 const supportsVarietyPlus = computed(() => isV3Model.value || isV45Model.value);
+/** 种子随机开关：开启时 seed 为 null，关闭时写入固定种子并启用输入 */
+const seedRandom = computed({
+  get: () => settings.novelai.seed === null,
+  set: (enabled: boolean) => {
+    if (enabled) {
+      settings.novelai.seed = null;
+      return;
+    }
+    if (settings.novelai.seed === null) {
+      settings.novelai.seed = Math.floor(Math.random() * (NOVELAI_MAX_SEED + 1));
+    }
+  },
+});
 const noiseScheduleOptions = computed(() => {
   return isV3Model.value ? [...NOVELAI_V3_NOISE_SCHEDULES] : [...NOVELAI_NOISE_SCHEDULES];
 });
@@ -369,7 +410,8 @@ const proxyPreview = computed(() => {
 }
 
 .cv-nai-mini-toggle {
-  @apply min-w-0;
+  /* 覆盖全局 .cv-prime-togglebutton 的 flex-1，避免标题行内被拉满 */
+  @apply min-w-0 shrink-0 grow-0 basis-auto;
   --p-togglebutton-sm-padding: var(--cv-space-xs) var(--cv-space-md);
   --p-togglebutton-content-sm-padding: var(--cv-space-xs) var(--cv-space-md);
   --p-togglebutton-sm-font-size: var(--cv-font-size-2xs);

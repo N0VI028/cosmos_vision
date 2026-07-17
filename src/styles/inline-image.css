@@ -317,8 +317,6 @@ body.dark .cv-inline-toolbar {
 .cv-inline-img-wrap {
   position: relative;
   display: block;
-  max-width: 40em;
-  margin: var(--cv-space-10xl) auto;
 }
 
 /* Teleport 承载容器：仅占位，视觉由内部 wrap 负责 */

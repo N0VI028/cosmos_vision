@@ -55,28 +55,11 @@
           <i class="fa-solid fa-circle-exclamation" />
           <span>{{ errorMessage }}</span>
         </div>
-        <div class="cv-preview-stage" :class="{ 'has-image': previewItems.length > 0 }">
-          <div v-if="previewItems.length" :class="previewGalleryClass">
-            <InlineGalleryGroupView
-              :items="previewItems"
-              :active-item-id="activePreviewItemId"
-              :dark-mode="settingsStore.darkMode"
-              :can-generate="false"
-              :show-corner-actions="false"
-              :is-runtime-enabled="() => true"
-              :select-item="selectPreviewItem"
-              :toggle-favorite="noopPreviewAction"
-              :remove-item="noopPreviewAction"
-              :generate-last="noopPreviewAction"
-              :generate-fresh="noopPreviewAction"
-              :generate-with-editable-prompt="noopPreviewAction"
-            />
-          </div>
-          <div v-else class="cv-preview-placeholder">
-            <i class="fa-regular fa-image" />
-            <span>{{ previewPlaceholderText }}</span>
-          </div>
-        </div>
+        <TestImageGallery
+          :image-blobs="previewBlobs"
+          :snapshot="previewPromptSnapshot"
+          :placeholder="previewPlaceholderText"
+        />
       </div>
     </div>
 
@@ -138,17 +121,9 @@
 
 <script setup lang="ts">
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
-import { buildInlineActionHostClass } from '@/composables/inlineImageDom';
-import {
-  InlineGalleryGroupView,
-  type InlineGalleryItem,
-} from '@/composables/inlineImageGalleryView';
-import {
-  createTrackedObjectUrl,
-  revokeTrackedObjectUrls,
-} from '@/composables/inlineGalleryMountActions';
 import { useFocusedParagraphInput } from '@/composables/useFocusedParagraphInput';
 import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue';
+import TestImageGallery from '@/panel/components/TestImageGallery.vue';
 
 import { generateComfyUIImagesFromResolvedRequest } from '@/services/comfyui/api';
 import {
@@ -191,9 +166,7 @@ const currentMode = ref<TestMode>('direct');
 const lastRunMode = ref<TestMode | null>(null);
 const testStatus = ref<TestStatus>('idle');
 const errorMessage = ref('');
-const previewItems = ref<InlineGalleryItem[]>([]);
-const activePreviewItemId = ref('');
-const previewObjectUrls = new Set<string>();
+const previewBlobs = ref<Blob[]>([]);
 
 const directPositivePrompt = ref('1girl');
 const directNegativePrompt = ref('');
@@ -232,9 +205,15 @@ const previewPlaceholderText = computed(() => {
   if (testStatus.value === 'error') return '本次测试未返回图像';
   return '测试结果将在这里显示';
 });
-const previewGalleryClass = computed(() =>
-  buildInlineActionHostClass('cv-inline-img-wrap cv-inline-favorite-wrap', settingsStore.darkMode),
-);
+const previewPromptSnapshot = computed<InlinePromptSnapshot | undefined>(() => {
+  const snapshot = requestSnapshot.value;
+  if (!snapshot) return undefined;
+  return {
+    positivePrompt: snapshot.positivePrompt,
+    negativePrompt: snapshot.negativePrompt,
+    comfyui: snapshot,
+  };
+});
 const displayLlmLogParams = computed(() => {
   return llmLogParams.value ?? buildPromptLlmLogParams(settings.promptLlm);
 });
@@ -317,7 +296,7 @@ async function runTest(): Promise<void> {
     requestSnapshot.value = request.snapshot;
     const blobs = await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request);
     if (!blobs.length) throw new Error('段落生图结果节点未返回任何图片');
-    replacePreviewImages(blobs, request.snapshot);
+    previewBlobs.value = blobs;
     testStatus.value = 'success';
     toastr.success(successStateText.value);
   } catch (error) {
@@ -383,7 +362,7 @@ function resetTestResult(): void {
   llmRawResponse.value = '';
   llmSentPromptLog.value = '';
   llmLogParams.value = null;
-  clearPreviewImages();
+  previewBlobs.value = [];
 }
 
 /**
@@ -396,71 +375,6 @@ function handleTestError(error: unknown): void {
   toastr.error(errorMessage.value);
 }
 
-/**
- * 替换当前测试预览画廊
- * @param blobs 新的图片数据
- * @param snapshot 本次请求快照
- */
-function replacePreviewImages(blobs: Blob[], snapshot: ComfyUIRequestSnapshot): void {
-  clearPreviewImages();
-  const createdAt = Date.now();
-  const promptSnapshot: InlinePromptSnapshot = {
-    positivePrompt: snapshot.positivePrompt,
-    negativePrompt: snapshot.negativePrompt,
-    comfyui: snapshot,
-  };
-  previewItems.value = blobs.map((imageBlob, index) =>
-    createPreviewItem(imageBlob, promptSnapshot, createdAt, index),
-  );
-  activePreviewItemId.value = previewItems.value[0]?.id ?? '';
-}
-
-/**
- * 构建测试画廊项
- * @param imageBlob 图片数据
- * @param promptSnapshot 提示词快照
- * @param createdAt 生成时间
- * @param index 返回顺序
- * @returns 画廊项
- */
-function createPreviewItem(
-  imageBlob: Blob,
-  promptSnapshot: InlinePromptSnapshot,
-  createdAt: number,
-  index: number,
-): InlineGalleryItem {
-  return {
-    id: `comfyui-test-${createdAt}-${index}`,
-    favoriteId: null,
-    slotId: null,
-    imageBlob,
-    objectUrl: createTrackedObjectUrl(imageBlob, previewObjectUrls),
-    promptSnapshot,
-    createdAt,
-  };
-}
-
-/**
- * 切换测试画廊焦点图
- * @param item 画廊项
- */
-function selectPreviewItem(item: InlineGalleryItem): void {
-  activePreviewItemId.value = item.id;
-}
-
-/** 清空测试画廊并释放临时地址 */
-function clearPreviewImages(): void {
-  revokeTrackedObjectUrls(previewObjectUrls);
-  previewItems.value = [];
-  activePreviewItemId.value = '';
-}
-
-/**
- * 提供只读测试画廊所需的空操作
- */
-function noopPreviewAction(): void {}
-
-onBeforeUnmount(clearPreviewImages);
 </script>
 
 <style scoped>
@@ -525,33 +439,6 @@ onBeforeUnmount(clearPreviewImages);
   background: color-mix(in srgb, var(--p-red-500) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--p-red-500) 30%, transparent);
   color: var(--p-red-500);
-}
-
-.cv-preview-stage {
-  @apply w-full overflow-hidden;
-  width: 100%;
-  min-height: 16rem;
-  border: var(--cv-border-width) dashed color-mix(in srgb, var(--p-content-border-color) 78%, transparent);
-  border-radius: var(--cv-radius);
-  background: color-mix(in srgb, var(--p-content-background) 92%, var(--cv-surface-container-low));
-}
-
-.cv-preview-stage.has-image {
-  border-style: solid;
-  border-color: var(--cv-surface-variant);
-}
-
-.cv-preview-placeholder {
-  @apply flex flex-col items-center justify-center text-center;
-  gap: var(--cv-space-lg);
-  min-height: 16rem;
-  padding: var(--cv-space-8xl);
-  color: var(--cv-on-surface-variant);
-}
-
-.cv-preview-placeholder > i {
-  font-size: 1.5rem;
-  color: color-mix(in srgb, var(--p-primary-color) 60%, var(--cv-on-surface-variant));
 }
 
 .cv-prompt-log {

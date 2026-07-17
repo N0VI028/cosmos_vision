@@ -17,7 +17,7 @@ import {
   buildNovelAILlmPromptOverrides,
   type NovelAIFinalPrompts,
   generateNovelAIImageFromPrompts,
-  generateNovelAIImageFromResolvedRequest,
+  generateNovelAIImagesFromResolvedRequest,
 } from '@/services/novelai/api';
 import {
   buildNovelAIFinalPromptsFromEditable,
@@ -606,10 +606,12 @@ export function useInlineImageGeneration(
       createNovelAISnapshot(request.prompts),
       async () => {
         try {
-          const result = await generateNovelAIImageFromResolvedRequest(request, { signal: session.controller.signal });
+          const result = await generateNovelAIImagesFromResolvedRequest(request, settings.novelai.imageCount, {
+            signal: session.controller.signal,
+          });
           return {
             promptSnapshot: createNovelAISnapshot(result.prompts),
-            imageBlobs: [result.imageBlob],
+            imageBlobs: result.imageBlobs,
           };
         } finally {
           if (hasPromotedTemporaryVibes(request.prompts.vibeReferences, temporarySourceHashes)) {
@@ -624,7 +626,6 @@ export function useInlineImageGeneration(
   /**
    * 收集当前仍为临时态的 vibe 来源 hash
    * @param vibes 本次请求绑定的 vibe 引用
-   * @returns 临时 vibe hash 列表
    */
   function collectTemporaryVibeSourceHashes(vibes?: readonly ImagePromptVibeRef[]): string[] {
     return (vibes ?? []).filter(vibe => vibe.temporary).map(vibe => vibe.sourceHash);
