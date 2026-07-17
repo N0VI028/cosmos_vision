@@ -25,6 +25,7 @@ export interface InlineGalleryGroupProps {
   activeItemId: string;
   darkMode: boolean;
   canGenerate: boolean;
+  showCornerActions: boolean;
   isRuntimeEnabled: () => boolean;
   selectItem: (item: InlineGalleryItem) => void;
   toggleFavorite: (item: InlineGalleryItem) => void;
@@ -32,7 +33,7 @@ export interface InlineGalleryGroupProps {
   generateLast: (item: InlineGalleryItem) => void;
   generateFresh: () => void;
   generateWithEditablePrompt: (item: InlineGalleryItem) => void;
-  downloadImage: (item: InlineGalleryItem) => void;
+  downloadImage?: (item: InlineGalleryItem) => void;
 }
 
 interface InlineGalleryThumbnailStripProps {
@@ -48,6 +49,7 @@ export const InlineGalleryGroupView = defineComponent({
     activeItemId: { type: String, required: true },
     darkMode: { type: Boolean, required: true },
     canGenerate: { type: Boolean, required: true },
+    showCornerActions: { type: Boolean, default: true },
     isRuntimeEnabled: { type: Function as PropType<() => boolean>, required: true },
     selectItem: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
     toggleFavorite: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
@@ -55,7 +57,7 @@ export const InlineGalleryGroupView = defineComponent({
     generateLast: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
     generateFresh: { type: Function as PropType<() => void>, required: true },
     generateWithEditablePrompt: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
-    downloadImage: { type: Function as PropType<(item: InlineGalleryItem) => void>, required: true },
+    downloadImage: { type: Function as PropType<(item: InlineGalleryItem) => void>, default: undefined },
   },
   setup(props) {
     const resolvedProps = props as InlineGalleryGroupProps;
@@ -143,12 +145,12 @@ function syncActiveItemByIndex(props: Readonly<InlineGalleryGroupProps>, index: 
  * @returns 图片舞台 VNode
  */
 function renderFocusImage(props: Readonly<InlineGalleryGroupProps>, item: InlineGalleryItem): VNode {
-  return h('div', { class: 'cv-inline-favorite-stage' }, [
-    renderGalleryImage(props, item),
-    renderFavoriteToggle(props, item),
-    renderRemoveToggle(props, item),
-    renderGalleryActions(props, item),
-  ]);
+  const children = [renderGalleryImage(props, item)];
+  if (props.showCornerActions) {
+    children.push(renderFavoriteToggle(props, item), renderRemoveToggle(props, item));
+  }
+  children.push(renderGalleryActions(props, item));
+  return h('div', { class: 'cv-inline-favorite-stage' }, children);
 }
 
 /**
@@ -177,9 +179,9 @@ function openLightbox(event: MouseEvent, props: Readonly<InlineGalleryGroupProps
   const img = event.currentTarget as HTMLImageElement;
   const wrap = img.closest('.cv-inline-favorite-stage') ?? img.closest('.cv-inline-img-wrap');
   if (wrap instanceof HTMLElement) {
-    handleInlineImageClick(event, img, wrap, props.isRuntimeEnabled, item.promptSnapshot, {
-      onDownload: () => props.downloadImage(item),
-    });
+    const downloadImage = props.downloadImage;
+    const actions = downloadImage ? { onDownload: () => downloadImage(item) } : undefined;
+    handleInlineImageClick(event, img, wrap, props.isRuntimeEnabled, item.promptSnapshot, actions);
   }
 }
 
