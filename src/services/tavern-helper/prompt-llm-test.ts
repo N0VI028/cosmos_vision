@@ -16,6 +16,13 @@ export interface PromptLlmLogParams {
   topK: number;
 }
 
+/** 测试页参数展示行 */
+export interface PromptLlmParamRow {
+  label: string;
+  value: string;
+  code?: boolean;
+}
+
 /** Prompt LLM 测试请求选项 */
 export interface PromptLlmRawRequestOptions {
   generationId?: string;
@@ -64,6 +71,25 @@ export function buildPromptLlmLogParams(settings: PromptLlmSettings): PromptLlmL
     topP: settings.topP,
     topK: settings.topK,
   };
+}
+
+/**
+ * 构建 LLM 参数配置展示行
+ * @param params 日志参数
+ * @returns 参数行列表
+ */
+export function buildPromptLlmParamRows(params: PromptLlmLogParams): PromptLlmParamRow[] {
+  return [
+    { label: '连接方式', value: params.connectionType },
+    { label: '接口地址', value: params.apiUrl, code: true },
+    { label: '接口密钥', value: params.apiKey, code: true },
+    { label: '来源标识', value: params.source },
+    { label: '使用模型', value: params.model, code: true },
+    { label: '温度', value: String(params.temperature) },
+    { label: '最大输出令牌数', value: String(params.maxTokens) },
+    { label: 'Top P', value: String(params.topP) },
+    { label: 'Top K', value: String(params.topK) },
+  ];
 }
 
 /**

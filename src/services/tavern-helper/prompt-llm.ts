@@ -470,8 +470,8 @@ function readPromptLlmOutputFields(settings: PromptLlmSettings): PromptLlmOutput
     characterPositivePrompt: settings.characterPositivePromptJsonField.trim(),
     characterNegativePrompt: settings.characterNegativePromptJsonField.trim(),
     characterPosition: settings.characterPositionJsonField.trim(),
-    characterPositionX: settings.characterPositionXJsonField?.trim() || 'x',
-    characterPositionY: settings.characterPositionYJsonField?.trim() || 'y',
+    characterPositionX: settings.characterPositionXJsonField.trim() || 'x',
+    characterPositionY: settings.characterPositionYJsonField.trim() || 'y',
   };
 }
 

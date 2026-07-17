@@ -143,6 +143,7 @@ import {
 } from '@/services/tavern-helper/prompt-llm';
 import {
   buildPromptLlmLogParams,
+  buildPromptLlmParamRows,
   formatPromptLlmRequestLog,
   requestPromptLlmRaw,
   type PromptLlmLogParams,
@@ -247,20 +248,7 @@ const snapshotRows = computed<ParamRow[]>(() => {
   ];
 });
 
-const llmParamRows = computed<ParamRow[]>(() => {
-  const params = displayLlmLogParams.value;
-  return [
-    { label: '连接方式', value: params.connectionType },
-    { label: '接口地址', value: params.apiUrl, code: true },
-    { label: '接口密钥', value: params.apiKey, code: true },
-    { label: '来源标识', value: params.source },
-    { label: '使用模型', value: params.model, code: true },
-    { label: '温度', value: String(params.temperature) },
-    { label: '最大输出令牌数', value: String(params.maxTokens) },
-    { label: 'Top P', value: String(params.topP) },
-    { label: 'Top K', value: String(params.topK) },
-  ];
-});
+const llmParamRows = computed(() => buildPromptLlmParamRows(displayLlmLogParams.value));
 
 /**
  * 格式化快照中的 LoRA 列表
@@ -306,29 +294,28 @@ function onActionClick(): void {
 async function runTest(): Promise<void> {
   resetTestResult();
   lastRunMode.value = currentMode.value;
-  const session = requestSession.start();
   testStatus.value = 'running';
 
-  try {
-    const request =
-      currentMode.value === 'llm'
-        ? await runLlmModeTest(session.generationId)
-        : runDirectModeTest();
-    if (!requestSession.isCurrent(session)) return;
-    requestSnapshot.value = request.snapshot;
-    const blobs = await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request, {
-      signal: session.signal,
-    });
-    if (!requestSession.isCurrent(session)) return;
-    if (!blobs.length) throw new Error('段落生图结果节点未返回任何图片');
-    previewBlobs.value = blobs;
-    testStatus.value = 'success';
-    toastr.success(successStateText.value);
-  } catch (error) {
-    requestSession.handleError(session, error, markAborted, handleTestError);
-  } finally {
-    requestSession.finish(session);
-  }
+  await requestSession.run(
+    async session => {
+      const request =
+        currentMode.value === 'llm'
+          ? await runLlmModeTest(session.generationId)
+          : runDirectModeTest();
+      if (!requestSession.isCurrent(session)) return;
+      requestSnapshot.value = request.snapshot;
+      const blobs = await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request, {
+        signal: session.signal,
+      });
+      if (!requestSession.isCurrent(session)) return;
+      if (!blobs.length) throw new Error('段落生图结果节点未返回任何图片');
+      previewBlobs.value = blobs;
+      testStatus.value = 'success';
+      toastr.success(successStateText.value);
+    },
+    markAborted,
+    handleTestError,
+  );
 }
 
 /**

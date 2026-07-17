@@ -47,41 +47,9 @@
     <div class="cv-section-body">
       <div class="cv-log-container">
         <div class="cv-log-param-grid">
-          <div class="cv-log-param-row">
-            <span class="param-label">连接方式</span>
-            <span class="param-value font-medium">{{ logParams.connectionType }}</span>
-          </div>
-          <div class="cv-log-param-row">
-            <span class="param-label">接口地址</span>
-            <span class="param-value code-font">{{ logParams.apiUrl }}</span>
-          </div>
-          <div class="cv-log-param-row">
-            <span class="param-label">接口密钥</span>
-            <span class="param-value code-font">{{ logParams.apiKey }}</span>
-          </div>
-          <div class="cv-log-param-row">
-            <span class="param-label">来源标识</span>
-            <span class="param-value font-medium">{{ logParams.source }}</span>
-          </div>
-          <div class="cv-log-param-row">
-            <span class="param-label">使用模型</span>
-            <span class="param-value code-font">{{ logParams.model }}</span>
-          </div>
-          <div class="cv-log-param-row">
-            <span class="param-label">温度</span>
-            <span class="param-value">{{ logParams.temperature }}</span>
-          </div>
-          <div class="cv-log-param-row">
-            <span class="param-label">最大输出令牌数</span>
-            <span class="param-value">{{ logParams.maxTokens }}</span>
-          </div>
-          <div class="cv-log-param-row">
-            <span class="param-label">Top P</span>
-            <span class="param-value">{{ logParams.topP }}</span>
-          </div>
-          <div class="cv-log-param-row">
-            <span class="param-label">Top K</span>
-            <span class="param-value">{{ logParams.topK }}</span>
+          <div v-for="row in logParamRows" :key="row.label" class="cv-log-param-row">
+            <span class="param-label">{{ row.label }}</span>
+            <span class="param-value" :class="{ 'code-font': row.code }">{{ row.value }}</span>
           </div>
         </div>
       </div>
@@ -110,6 +78,7 @@ import { useSettingsStore } from '@/store/settings';
 import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
 import {
   buildPromptLlmLogParams,
+  buildPromptLlmParamRows,
   formatPromptLlmRequestLog,
   requestPromptLlmRaw,
 } from '@/services/tavern-helper/prompt-llm-test';
@@ -152,8 +121,8 @@ const {
   icon: 'fa-solid fa-play',
 });
 
-/** 参数日志计算属性 */
-const logParams = computed(() => buildPromptLlmLogParams(settings.promptLlm));
+/** LLM 参数配置展示行 */
+const logParamRows = computed(() => buildPromptLlmParamRows(buildPromptLlmLogParams(settings.promptLlm)));
 
 /**
  * 主操作按钮点击：运行中终止，否则启动测试
@@ -175,30 +144,29 @@ async function runTest(): Promise<void> {
     return;
   }
 
-  const session = requestSession.start();
   testStatus.value = 'running';
 
-  try {
-    const context = buildTestContext();
-    const request = await buildPromptLlmRuntimeRequestFromContext(
-      context,
-      settings.promptLlm,
-      settings.promptLlmMessagePresets,
-      settings.promptProfiles,
-      buildPromptLlmSchemaFields(settings.promptLlm),
-      buildPromptLlmTriggerContext(settings),
-    );
-    if (!requestSession.isCurrent(session)) return;
-    sentPromptText.value = formatPromptLlmRequestLog(request);
-    applyTestResponse(await requestPromptLlmRaw(request, { generationId: session.generationId }));
-    if (!requestSession.isCurrent(session)) return;
-    testStatus.value = 'success';
-    toastr.success('LLM 连接测试成功');
-  } catch (error) {
-    requestSession.handleError(session, error, markAborted, handleRequestError);
-  } finally {
-    requestSession.finish(session);
-  }
+  await requestSession.run(
+    async session => {
+      const context = buildTestContext();
+      const request = await buildPromptLlmRuntimeRequestFromContext(
+        context,
+        settings.promptLlm,
+        settings.promptLlmMessagePresets,
+        settings.promptProfiles,
+        buildPromptLlmSchemaFields(settings.promptLlm),
+        buildPromptLlmTriggerContext(settings),
+      );
+      if (!requestSession.isCurrent(session)) return;
+      sentPromptText.value = formatPromptLlmRequestLog(request);
+      applyTestResponse(await requestPromptLlmRaw(request, { generationId: session.generationId }));
+      if (!requestSession.isCurrent(session)) return;
+      testStatus.value = 'success';
+      toastr.success('LLM 连接测试成功');
+    },
+    markAborted,
+    handleRequestError,
+  );
 }
 
 /**

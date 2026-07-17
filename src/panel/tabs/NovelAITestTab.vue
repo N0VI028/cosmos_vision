@@ -219,6 +219,7 @@ import { useSettingsStore } from '@/store/settings';
 import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
 import {
   buildPromptLlmLogParams,
+  buildPromptLlmParamRows,
   formatPromptLlmRequestLog,
   requestPromptLlmRaw,
   type PromptLlmLogParams,
@@ -352,20 +353,7 @@ const novelaiParamRows = computed<ParamRow[]>(() => {
   ];
 });
 
-const llmParamRows = computed<ParamRow[]>(() => {
-  const params = displayLlmLogParams.value;
-  return [
-    { label: '连接方式', value: params.connectionType },
-    { label: '接口地址', value: params.apiUrl, code: true },
-    { label: '接口密钥', value: params.apiKey, code: true },
-    { label: '来源标识', value: params.source },
-    { label: '使用模型', value: params.model, code: true },
-    { label: '温度', value: String(params.temperature) },
-    { label: '最大输出令牌数', value: String(params.maxTokens) },
-    { label: 'Top P', value: String(params.topP) },
-    { label: 'Top K', value: String(params.topK) },
-  ];
-});
+const llmParamRows = computed(() => buildPromptLlmParamRows(displayLlmLogParams.value));
 
 /**
  * 主操作按钮点击：运行中终止，否则启动测试
@@ -381,23 +369,22 @@ function onActionClick(): void {
 async function runTest(): Promise<void> {
   resetTestResult();
   lastRunMode.value = currentMode.value;
-  const session = requestSession.start();
   testStatus.value = 'running';
 
-  try {
-    if (currentMode.value === 'llm') {
-      await runLlmModeTest(session);
-    } else {
-      await runDirectModeTest(session);
-    }
-    if (!requestSession.isCurrent(session)) return;
-    testStatus.value = 'success';
-    toastr.success(successStateText.value);
-  } catch (error) {
-    requestSession.handleError(session, error, markAborted, handleTestError);
-  } finally {
-    requestSession.finish(session);
-  }
+  await requestSession.run(
+    async session => {
+      if (currentMode.value === 'llm') {
+        await runLlmModeTest(session);
+      } else {
+        await runDirectModeTest(session);
+      }
+      if (!requestSession.isCurrent(session)) return;
+      testStatus.value = 'success';
+      toastr.success(successStateText.value);
+    },
+    markAborted,
+    handleTestError,
+  );
 }
 
 /**
@@ -531,10 +518,7 @@ function removeDirectCharacter(id: number): void {
  * @param id 角色草稿标识
  */
 function toggleDirectCharacter(id: number): void {
-  const expanded = new Set(expandedDirectCharacterIds.value);
-  if (expanded.has(id)) expanded.delete(id);
-  else expanded.add(id);
-  expandedDirectCharacterIds.value = expanded;
+  expandedDirectCharacterIds.value = toggleSetItem(expandedDirectCharacterIds.value, id);
 }
 
 /**
@@ -590,10 +574,20 @@ function formatCharacterPosition(item: CharacterPromptItem): string {
  * @param index 角色序号
  */
 function toggleCharacterPrompt(index: number): void {
-  const next = new Set(expandedCharacterIndexes.value);
-  if (next.has(index)) next.delete(index);
-  else next.add(index);
-  expandedCharacterIndexes.value = next;
+  expandedCharacterIndexes.value = toggleSetItem(expandedCharacterIndexes.value, index);
+}
+
+/**
+ * 切换集合中的成员（不可变）
+ * @param source 原集合
+ * @param item 目标成员
+ * @returns 新集合
+ */
+function toggleSetItem<T>(source: ReadonlySet<T>, item: T): Set<T> {
+  const next = new Set(source);
+  if (next.has(item)) next.delete(item);
+  else next.add(item);
+  return next;
 }
 
 /**

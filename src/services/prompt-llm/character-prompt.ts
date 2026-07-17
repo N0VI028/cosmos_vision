@@ -49,8 +49,8 @@ function normalizeJsonCharacter(value: unknown, settings: PromptLlmSettings): Ch
       negativePrompt,
       position: normalizePosition(
         value[settings.characterPositionJsonField.trim()],
-        settings.characterPositionXJsonField?.trim() || 'x',
-        settings.characterPositionYJsonField?.trim() || 'y',
+        settings.characterPositionXJsonField.trim() || 'x',
+        settings.characterPositionYJsonField.trim() || 'y',
       ),
     },
   ];
