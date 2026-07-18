@@ -19,6 +19,7 @@ interface PromptLlmHistoryOptions {
 
 interface PromptLlmHistoryMessage {
   messageId: number;
+  role: PromptLlmHistoryRole;
   content: string;
 }
 
@@ -44,49 +45,57 @@ export function readPromptLlmHistoryMessages(
   if (currentIndex === null || currentIndex <= 0 || historyFloorCount <= 0) return [];
   const tavernHelper = getPromptLlmChatHistoryReader();
   if (!tavernHelper) return [];
-  const range = `0-${currentIndex - 1}`;
-  const messages = readPromptLlmRawHistoryMessages(tavernHelper, range, options.ignoreUserMessages);
-  return filterPromptLlmHistoryMessages(messages, historyFloorCount).map(message => message.content);
+  const selectedMessages = readPromptLlmHistoryBatches(
+    tavernHelper,
+    currentIndex,
+    historyFloorCount,
+    options.ignoreUserMessages,
+  );
+  return selectedMessages.map(message => message.content);
 }
 
 /**
- * 过滤并截取本次需要的历史消息
- * @param messages 原始历史消息数组
- * @param historyFloorCount 需要回溯的历史楼层数
- * @returns 按楼层顺序排列的历史消息
+ * 按用户填写数量从焦点楼层向前分批读取历史
+ * @param tavernHelper TavernHelper 读取器
+ * @param currentIndex 当前焦点楼层索引
+ * @param historyFloorCount 目标历史楼层数与单批大小
+ * @param ignoreUserMessages 是否忽略 user 楼层
+ * @returns 按楼层顺序排列的目标历史消息
  */
-function filterPromptLlmHistoryMessages(messages: unknown[], historyFloorCount: number): PromptLlmHistoryMessage[] {
-  const normalizedMessages = messages
+function readPromptLlmHistoryBatches(
+  tavernHelper: PromptLlmChatHistoryReader,
+  currentIndex: number,
+  historyFloorCount: number,
+  ignoreUserMessages: boolean,
+): PromptLlmHistoryMessage[] {
+  const selectedMessages: PromptLlmHistoryMessage[] = [];
+  let rangeEnd = currentIndex - 1;
+  while (rangeEnd >= 0 && selectedMessages.length < historyFloorCount) {
+    const rangeStart = Math.max(0, rangeEnd - historyFloorCount + 1);
+    const range = `${rangeStart}-${rangeEnd}`;
+    const rawMessages = tavernHelper.getChatMessages(range, { role: 'all', hide_state: 'all' });
+    const matchedMessages = filterPromptLlmHistoryMessages(rawMessages, ignoreUserMessages);
+    selectedMessages.unshift(...matchedMessages);
+    rangeEnd = rangeStart - 1;
+  }
+  return selectedMessages.slice(-historyFloorCount);
+}
+
+/**
+ * 本地过滤用户楼层
+ * @param messages 原始历史消息数组
+ * @param ignoreUserMessages 是否忽略 user 楼层
+ * @returns 按楼层顺序排列的有效历史消息
+ */
+function filterPromptLlmHistoryMessages(
+  messages: unknown[],
+  ignoreUserMessages: boolean,
+): PromptLlmHistoryMessage[] {
+  return messages
     .map(normalizePromptLlmHistoryMessage)
     .filter(isPromptLlmHistoryMessage)
+    .filter(message => !ignoreUserMessages || message.role !== 'user')
     .sort((a, b) => a.messageId - b.messageId);
-  return normalizedMessages.slice(-historyFloorCount);
-}
-
-/**
- * 按角色过滤读取 TavernHelper 原始历史消息
- * @param tavernHelper TavernHelper 读取器
- * @param range 楼层范围
- * @param ignoreUserMessages 是否忽略 user 楼层
- * @returns 原始历史消息数组
- */
-function readPromptLlmRawHistoryMessages(
-  tavernHelper: PromptLlmChatHistoryReader,
-  range: string,
-  ignoreUserMessages: boolean,
-): PromptLlmChatMessage[] {
-  return getPromptLlmHistoryReadRoles(ignoreUserMessages).flatMap(role =>
-    tavernHelper.getChatMessages(range, { role, hide_state: 'unhidden' }),
-  );
-}
-
-/**
- * 读取本次历史查询需要的角色列表
- * @param ignoreUserMessages 是否忽略 user 楼层
- * @returns TavernHelper role 查询列表
- */
-function getPromptLlmHistoryReadRoles(ignoreUserMessages: boolean): PromptLlmHistoryReadRole[] {
-  return ignoreUserMessages ? ['assistant', 'system'] : ['all'];
 }
 
 /**
@@ -101,7 +110,7 @@ function normalizePromptLlmHistoryMessage(value: unknown): PromptLlmHistoryMessa
   const role = normalizePromptLlmHistoryRole(record);
   const content = normalizePromptLlmMessageContent(record.message ?? record.mes);
   if (!Number.isInteger(messageId) || messageId < 0 || !role || !content) return null;
-  return { messageId, content };
+  return { messageId, role, content };
 }
 
 /**
