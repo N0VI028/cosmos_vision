@@ -59,10 +59,9 @@ export function createDefaultPromptPersonTemplateEntries(): PromptPersonTemplate
     createCustomPromptPersonTemplateEntry(
       '人物开始',
       `<person name="${PROMPT_LLM_TRIGGER_NAMES_TOKEN}">
-  <fixed_tags>以下固定tag为角色特性，必须原样体现在最终正向提示词中：${PROMPT_LLM_FIXED_TAGS_TOKEN}</fixed_tags>
-  <references>`,
+  <fixed_tags>以下固定tag为角色特性，必须原样体现在最终正向提示词中：${PROMPT_LLM_FIXED_TAGS_TOKEN}</fixed_tags>`,
     ),
-    createCustomPromptPersonTemplateEntry('人物结束', `  </references>\n</person>`),
+    createCustomPromptPersonTemplateEntry('人物结束', `</person>`),
   ];
 }
 

@@ -15,7 +15,11 @@ import {
 } from '@/services/data-portability/types';
 import { exportNovelAIVibeCacheRecords } from '@/services/novelai/vibe-cache';
 import { findNovelAIVibePreset } from '@/services/novelai/vibe-presets';
-import { isOfficialNovelAIVibeFile, parseNovelAIVibeFiles } from '@/services/novelai/vibe-file';
+import {
+  isOfficialNovelAIVibeFile,
+  isOfficialNovelAIVibeTransferValue,
+  parseNovelAIVibeFiles,
+} from '@/services/novelai/vibe-file';
 import { importNovelAIVibePayloadsAsPreset } from '@/services/novelai/vibe-import';
 
 export type PresetPackageSection = Extract<DataPortabilitySectionId, 'imagePromptPresets' | 'novelAIVibeBundle' | 'promptLlmMessagePresets'>;
@@ -131,14 +135,34 @@ export async function importNovelAIVibePresetPackageFile(
   file: File,
   currentSettings: CosmosVisionSettings,
 ): Promise<DataImportResult> {
-  if (!isJsonPresetPackage(file)) return importNovelAIVibeTransferFile(file, currentSettings);
-  const preview = buildDataImportPreview(await file.text());
+  // 官网结构 / 官方扩展名 / 非 JSON（含图片）走 transfer 导入
+  if (await shouldUseNovelAIVibeTransferImport(file)) {
+    return importNovelAIVibeTransferFile(file, currentSettings);
+  }
+
+  // 否则作为原生预设包进行导入
+  const text = await file.text();
+  const preview = buildDataImportPreview(text);
   if (!preview.sections.some(section => section.id === 'novelAIVibeBundle')) {
     throw new Error('文件中没有可导入的 NovelAI vibe 预设');
   }
   const result = await applyDataImport(preview, ['novelAIVibeBundle'], currentSettings);
   activateImportedNovelAIVibePreset(result, preview.payload.novelAIVibeBundle);
   return result;
+}
+
+/**
+ * 判断是否应走官网 / 图片 vibe transfer 导入
+ * @param file 用户选择文件
+ * @returns 是否走 transfer 路径
+ */
+async function shouldUseNovelAIVibeTransferImport(file: File): Promise<boolean> {
+  if (!JSON_FILE_NAME_PATTERN.test(file.name) || isOfficialNovelAIVibeFile(file)) return true;
+  try {
+    return isOfficialNovelAIVibeTransferValue(JSON.parse(await file.text()));
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -180,15 +204,6 @@ function createVibeTransferImportResult(settings: CosmosVisionSettings): DataImp
 function appendImportedVibePreset(result: DataImportResult, preset: NovelAIVibePreset): void {
   result.settings.novelai.novelAIVibePresets.presets.push(preset);
   result.settings.novelai.novelAIVibePresets.activePresetId = preset.id;
-}
-
-/**
- * 判断文件是否为原生 JSON 预设包
- * @param file 用户选择文件
- * @returns 是否为 JSON
- */
-function isJsonPresetPackage(file: File): boolean {
-  return JSON_FILE_NAME_PATTERN.test(file.name) && !isOfficialNovelAIVibeFile(file);
 }
 
 /**

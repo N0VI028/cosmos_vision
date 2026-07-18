@@ -78,8 +78,21 @@ export async function parseNovelAIVibeFile(file: File): Promise<ParsedNovelAIVib
  * @returns 可写入缓存的文件载荷列表
  */
 export async function parseNovelAIVibeFiles(file: File): Promise<ParsedNovelAIVibeFile[]> {
-  if (isOfficialNovelAIVibeFile(file)) return parseOfficialNovelAIVibeTransferFile(file);
   if (isImageFile(file)) return parseImageOrEmbeddedVibeFile(file);
+
+  const text = await file.text();
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    if (isOfficialNovelAIVibeFile(file)) throw new Error('官网 vibe 文件内容损坏或结构无效');
+    throw new Error('仅支持图片文件或 NovelAI 官方 vibe 文件');
+  }
+
+  // 结构完整，或官方扩展名：走深层解析以给出更具体错误
+  if (isOfficialNovelAIVibeTransferValue(parsed) || isOfficialNovelAIVibeFile(file)) {
+    return parseOfficialVibeTransferText(text, file);
+  }
   throw new Error('仅支持图片文件或 NovelAI 官方 vibe 文件');
 }
 
@@ -168,15 +181,6 @@ export function countOfficialNovelAIVibeTransferEntries(value: unknown): number 
  */
 function isImageFile(file: File): boolean {
   return file.type.startsWith('image/') || IMAGE_FILE_NAME_PATTERN.test(file.name);
-}
-
-/**
- * 解析官网 vibe 传输文件
- * @param file 上传文件
- * @returns 已解析 vibe 载荷列表
- */
-async function parseOfficialNovelAIVibeTransferFile(file: File): Promise<ParsedNovelAIVibeFile[]> {
-  return parseOfficialVibeTransferText(await file.text(), file);
 }
 
 /**
