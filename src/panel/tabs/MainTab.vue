@@ -1,5 +1,5 @@
 <template>
-  <div class="cv-tab-content">
+  <div class="flex flex-col gap-0">
     <!-- 通用子 tab -->
     <template v-if="subTab === 'general'">
       <h2 class="cv-section-title">基础设置</h2>
@@ -19,32 +19,26 @@
         </label>
       </div>
 
-      <div class="cv-about-title-row">
-        <h2 class="cv-section-title">关于插件</h2>
-        <Tag :value="'v' + manifest.version" class="cv-version-tag" rounded />
-      </div>
+      <h2 class="cv-section-title flex items-center justify-between">
+        <span>关于插件</span>
+        <Tag :value="'v' + manifest.version" class="font-(--cv-font-headline)! text-(length:--cv-font-size-xs)! bg-(--p-primary-color)! py-(--cv-space-sm)! px-(--cv-space-md)! leading-none! h-auto! text-(--cv-background)!" rounded />
+      </h2>
       <div class="cv-section-body">
         <div class="cv-field-inline">
           <span>作者</span>
-          <span class="cv-about-text">{{ manifest.author }}</span>
+          <span class="text-right text-(--p-button-secondary-color)">{{ manifest.author }}</span>
         </div>
         <div class="cv-field-inline">
           <span>相关链接</span>
-          <div class="cv-links-container">
-            <Button
-              icon="fa-brands fa-github"
-              severity="secondary"
-              text
-              rounded
-              aria-label="GitHub"
+          <div class="inline-flex items-center justify-end gap-(--cv-space-md) -mr-(--cv-space-xs)">
+            <i
+              class="fa-brands fa-github cursor-pointer transition-colors duration-150 text-[1.25rem] text-(--p-button-secondary-color) p-(--cv-space-xs) hover:text-(--p-primary-color)"
+              title="GitHub"
               @click="openUrl('https://github.com/N0VI028/cosmos_vision')"
             />
-            <Button
-              icon="fa-brands fa-discord"
-              severity="secondary"
-              text
-              rounded
-              aria-label="Discord"
+            <i
+              class="fa-brands fa-discord cursor-pointer transition-colors duration-150 text-[1.25rem] text-(--p-button-secondary-color) p-(--cv-space-xs) hover:text-(--p-primary-color)"
+              title="Discord"
               @click="openUrl('https://discord.gg/sillytavern')"
             />
           </div>
@@ -346,39 +340,4 @@ function openUrl(url: string): void {
 
 <style scoped>
 @reference '../../global.css';
-
-.cv-tab-content {
-  @apply flex flex-col gap-0;
-}
-
-.cv-about-title-row {
-  @apply flex items-center justify-between;
-  margin: var(--cv-space-10xl) 0 var(--cv-space-3xl) 0;
-}
-
-.cv-about-title-row > .cv-section-title {
-  @apply m-0;
-}
-
-.cv-version-tag {
-  font-family: var(--cv-font-headline) !important;
-  font-size: var(--cv-font-size-xs) !important;
-  font-weight: 700 !important;
-  background: var(--p-primary-color) !important;
-  color: var(--p-primary-contrast-color) !important;
-  padding: 0.05rem 0.25rem !important;
-  line-height: 1 !important;
-  height: auto !important;
-}
-
-.cv-about-text {
-  @apply text-right;
-  color: var(--cv-on-surface-variant);
-  color: var(--p-button-secondary-color);
-}
-
-.cv-links-container {
-  @apply inline-flex items-center justify-end;
-  gap: var(--cv-space-xs);
-}
 </style>
