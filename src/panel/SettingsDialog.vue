@@ -280,7 +280,7 @@
 </template>
 
 <script setup lang="ts">
-import { onClickOutside, useEventListener, useMediaQuery } from '@vueuse/core';
+import { onClickOutside, useEventListener, useMediaQuery, useLocalStorage } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 
 import { DARK_CLASS } from '@/constants/default-settings';
@@ -366,7 +366,7 @@ const confirmDialogStyle = computed(() =>
 
 const contentStyle = { padding: '0', overflow: 'hidden' } as const;
 
-const activeTab = ref<NavValue>('main');
+const activeTab = useLocalStorage<NavValue>('cosmos-vision:settings-active-tab', 'main');
 
 type NovelAISubTab = 'api' | 'config' | 'preset' | 'test';
 type ComfyUISubTab = 'api' | 'config' | 'test';
@@ -404,11 +404,11 @@ const PROMPT_PROFILES_SUB_TABS = [
   { value: 'character', label: '角色卡' },
 ] as const;
 
-const novelaiSubTab = ref<NovelAISubTab>('api');
-const comfyuiSubTab = ref<ComfyUISubTab>('api');
-const promptLlmSubTab = ref<PromptLlmSubTab>('settings');
-const promptProfilesSubTab = ref<PromptProfilesSubTab>('character');
-const mainSubTab = ref<MainSubTab>('general');
+const novelaiSubTab = useLocalStorage<NovelAISubTab>('cosmos-vision:settings-novelai-sub-tab', 'api');
+const comfyuiSubTab = useLocalStorage<ComfyUISubTab>('cosmos-vision:settings-comfyui-sub-tab', 'api');
+const promptLlmSubTab = useLocalStorage<PromptLlmSubTab>('cosmos-vision:settings-prompt-llm-sub-tab', 'settings');
+const promptProfilesSubTab = useLocalStorage<PromptProfilesSubTab>('cosmos-vision:settings-prompt-profiles-sub-tab', 'character');
+const mainSubTab = useLocalStorage<MainSubTab>('cosmos-vision:settings-main-sub-tab', 'general');
 
 const sections = ref<SectionInfo[]>([]);
 const currentSection = ref<string>('');
@@ -556,7 +556,6 @@ onClickOutside(breadcrumbRef, () => {
  */
 function handleShow(): void {
   settingsStore.resetDraftSettings();
-  activeTab.value = 'main';
   closeConfirmDialog();
 }
 
