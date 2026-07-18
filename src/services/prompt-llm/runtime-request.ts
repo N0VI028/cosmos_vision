@@ -218,7 +218,8 @@ function buildSilentGenerateRawRequest(
 }
 
 /**
- * 基于上下文发送 LLM 请求并解析正负提示词
+ * 基于上下文发送 LLM 请求并解析正负提示词。主要用于添加段落生图流程。
+ * 如果 LLM 返回值无法解析，则直接将 LLM 原始响应内容抛出。
  * @param context Prompt LLM 运行时上下文
  * @param settings LLM 配置
  * @param presetSettings 消息预设集合
@@ -244,7 +245,7 @@ export async function generatePromptFromRuntimeContext(
   );
   const output = readPromptLlmOutputWithRules(rawText, settings, schemaFields);
   if (!output) {
-    throw new Error('LLM 返回值无法提取正负提示词');
+    throw new Error(`LLM返回值无法提取正负提示词，原始输出：${rawText}`);
   }
   return output;
 }

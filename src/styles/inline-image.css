@@ -803,6 +803,7 @@ body.dark .cv-inline-toolbar {
   font-size: var(--cv-font-size-sm);
   line-height: 1.35;
   overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 /* error 态含重试按钮时的横向排列 */
