@@ -181,6 +181,9 @@ const modelOptions = computed<string[]>(() => {
   return [...values];
 });
 
+/**
+ * 获取并更新可用模型列表
+ */
 async function fetchModels(): Promise<void> {
   const preset = findProxyPreset(settings.promptLlm.proxyPreset);
   const apiUrl = (preset?.url ?? settings.promptLlm.apiUrl).trim();
@@ -192,24 +195,14 @@ async function fetchModels(): Promise<void> {
   }
 
   isLoadingModels.value = true;
-
   try {
-    const modelsUrl = `${apiUrl.replace(/\/+$/, '')}/models`;
-    const response = await fetch(modelsUrl, {
-      headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
+    if (!TavernHelper || typeof TavernHelper.getModelList !== 'function') {
+      throw new Error('未检测到兼容的酒馆助手模型拉取接口，请更新扩展');
+    }
+    fetchedModels.value = await TavernHelper.getModelList({
+      apiurl: apiUrl,
+      key: apiKey,
     });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    if (!data.data || !Array.isArray(data.data)) {
-      throw new Error('响应格式不符合兼容接口规范');
-    }
-
-    fetchedModels.value = data.data.map((m: { id: string }) => m.id);
     toastr.success(`成功获取 ${fetchedModels.value.length} 个模型`);
   } catch (error) {
     const message = error instanceof Error ? error.message : '获取模型列表失败';

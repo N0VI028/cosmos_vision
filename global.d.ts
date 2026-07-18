@@ -66,6 +66,12 @@ declare global {
          */
         generateRaw(config: TavernHelperGenerateRawConfig): Promise<string>;
         /**
+         * 向指定的 API 地址请求获取模型列表
+         * @param custom_api 接口配置对象
+         * @returns 模型列表数组
+         */
+        getModelList(custom_api: { apiurl: string; key?: string }): Promise<string[]>;
+        /**
          * 获取酒馆助手版本号
          * @returns 语义版本字符串
          */
