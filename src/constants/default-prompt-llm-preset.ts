@@ -126,7 +126,12 @@ export default {
 你必须在不偏离主场景的前提下，优先把 \`<special_request>\` 中能影响画面的要求落实到最终 tag 中
 1. 精准阅读段落内容，提取其中的**视觉要素**（角色外观、表情、动作、服装、场景、光影、构图、氛围等）
 2. 将这些要素转化为符合相应语法规范的绘画提示词
-3. 以 **JSON 格式** 返回结果
+3. 以 **JSON 格式** 返回结果，且必须使用 \`<output>\` 标签将最终的 JSON 结果完全包裹起来。
+
+[关键输出约束]
+- 你必须且只能将最终生成的合法 JSON 格式结果包裹在 \`<output>\` 和 \`</output>\` 标签中进行返回（该标签是提取最终结果的唯一容器）。
+- 如果你带有自带的、内部的思考过程（Thinking Process）或草稿，**绝对不能**在思考过程中输出完整且符合语法规则的 JSON 结构。思考过程中的内容仅允许作为不完整的零碎构思或草稿，绝不能呈现可以被直接匹配提取的完整 JSON，以防止解析冲突。
+- 只有在确定了最终方案后，才在最终的 \`<output>\` 标签中一次性输出实质性的最终 JSON 提示词内容。
 
 </image_prompt_role>
 </CORE_INSTRUCTIONS>
@@ -192,7 +197,7 @@ export default {
 - \`{tag}\` / \`{{tag}}\`：强化（约 ×1.05，嵌套越深越强）
 - \`[tag]\` / \`[[tag]]\`：弱化（约 ÷1.05）
 - \`n::tag::\`：数值强调，例如 \`1.3::rain, night::\`（\`::\` 闭合更稳妥）
-- **不要**使用负数值强调（如 \`-1::monochrome::\`），那是 V4.5+ 特性
+- **不要**使用负数值强调（如 \`-1::monochrome::\`），生图引擎不支持该语法
 - **不要**使用 \`source#\` / \`target#\` / \`mutual#\` 动作指向
 - **不要**输出独立 \`characterPrompts\` 数组
 
@@ -211,9 +216,9 @@ export default {
 5. 风格 / 质感
 6. 角色外观与动作（多角色时用下方 \`|\` 分隔）
 
-### 多角色写法（V3：\`|\` 分隔）
+### 多角色写法（\`|\` 分隔）
 
-V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
+用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
 \`base | character1 | character2\`
 
 - **base**：人数、场景、构图、光影、风格、共同互动氛围
@@ -248,7 +253,7 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
 你必须**仅**输出以下 JSON 格式，不附加任何其他文字、解释或代码块标记：
 
 {
-  "positivePrompt": "V3 正面提示词：单角色为逗号标签串；多角色为 base | char1 | char2（禁止包含质量词）",
+  "positivePrompt": "正面提示词：单角色为逗号标签串；多角色为 base | char1 | char2（禁止包含质量词）",
   "negativePrompt": "画面不应出现的物体/元素（禁止质量词），英文逗号分隔"
 }
 
@@ -272,20 +277,24 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
 输入："安洁莉卡靠在窗边，月光透过薄纱窗帘洒在她苍白的脸庞上。她穿着一件黑色丝绸睡裙，银色的长发散落在肩头，碧绿色的眼眸中映着窗外的星空。"
 
 输出：
+<output>
 {
   "positivePrompt": "1girl, solo, {moonlight}, indoor, bedroom, window, sheer curtains, {night sky}, stars visible through window, cinematic lighting, soft volumetric light, melancholic atmosphere, silver hair, long hair, hair down, {green eyes}, pale skin, black silk nightgown, {leaning against window}, looking out window, reflective mood, soft shadows, cool color palette",
   "negativePrompt": "daytime, sunlight, outdoor, glasses, hat, bag, multiple girls, crowd"
 }
+</output>
 
 ### 示例 2（多角色，\`|\` 分隔）
 
 输入："两个女孩在樱花树下追逐打闹。穿着水手服的短发女孩笑着跑在前面，身后是扎着双马尾、穿着格子裙的女孩伸手想要抓住她。"
 
 输出：
+<output>
 {
   "positivePrompt": "2girls, outdoors, cherry blossom tree, {cherry blossoms}, falling petals, spring, {dappled sunlight}, warm lighting, joyful atmosphere, vibrant colors | short hair, sailor uniform, {running}, laughing, looking back, energetic | twintails, plaid skirt, {reaching out}, chasing, smiling, playful",
   "negativePrompt": "indoor, night, rain, winter, snow, 3girls, boy, animal, vehicle"
 }
+</output>
 
 </examples>`,
           enabled: true,
@@ -302,14 +311,14 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
 
 ## NAI 语法与 Prompt 组织规则
 
-### V4 / V4.5 强调与符号语法
+### 强调与符号语法
 
 - \`{tag}\` / \`{{tag}}\`：强化（约 ×1.05）；\`[tag]\` / \`[[tag]]\`：弱化（约 ÷1.05）
 - \`n::tag::\`：数值强调，例如 \`1.5::tag::\` 强化、\`0.5::tag::\` 弱化（\`::\` 闭合推荐）
-- **V4.5+** 可用负数值强调做概念反转/去除，例如 \`-1::monochrome::\`、\`-2::flat color::\`
+- 可用负数值强调做概念反转/去除，例如 \`-1::monochrome::\`、\`-2::flat color::\`
 - 可用英文自然语言短句描述场景（大小写与空格敏感；下划线 \`_\` 仅用于表情如 \`^_^\`）
 - **禁止**在提示词字符串里用 \`|\` 分隔 base/角色
-- **动作指向**（V4+）：\`source#hug\` 发起方、\`target#hug\` 接收方、\`mutual#hug\` 双方；写在对应角色的 \`prompt\` 内（注意：必须**只**能使用这三种前缀，绝对不可自己编造或使用其它前缀）
+- **动作指向**：\`source#hug\` 发起方、\`target#hug\` 接收方、\`mutual#hug\` 双方；写在对应角色的 \`prompt\` 内（注意：必须**只**能使用这三种前缀，绝对不可自己编造或使用其它前缀。且**动作指向标签（带 # 号）只允许在具体角色 prompt 内出现，绝对禁止出现在全局的正面提示词或全局负面提示词中**）
 
 ### 语法优先级
 
@@ -329,6 +338,7 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
 4. 光影 / 氛围
 5. 风格 / 质感
 6. 文本渲染（如需）：\`text, english text\` 等 + 文案意图；
+- **核心警告：绝对禁止在此处写入任何带有井号键（#）的动作指向标签（如 source# 等），指向性写法是角色专属，不允许出现在全局中！**
 
 ### \`characterPrompts\` 数组（每个角色独立）：
 每个角色对象包含 \`positivePrompt\`（正面）、\`negativePrompt\`（负面）和 \`position\`（画面坐标）：
@@ -350,6 +360,7 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
 **全局负面 = 整张画面里不应出现的物体、元素、场景或概念**，不是质量/技术类标签。
 
 - 按主场景排除冲突内容，例如室内夜景可写：\`daytime, sunlight, outdoor, crowd\`；无眼镜场景可写：\`glasses\`
+- **核心警告：绝对禁止在此处写入任何带有井号键（#）的指向性或标签描述，负面提示词仅支持普通英文单词！**
 - **禁止**质量词（系统统一注入）：\`lowres\`、\`worst quality\`、\`low quality\`、\`blurry\`、\`jpeg artifacts\` 等
 - 角色外形防串色、错装等写在各角色的 \`negativePrompt\`，不要堆进全局负面
 
@@ -403,6 +414,7 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
 输入："安洁莉卡靠在窗边，月光透过薄纱窗帘洒在她苍白的脸庞上。她穿着一件黑色丝绸睡裙，银色的长发散落在肩头，碧绿色的眼眸中映着窗外的星空。"
 
 输出：
+<output>
 {
   "positivePrompt": "1girl, solo, {moonlight}, indoor, bedroom, window, sheer curtains, {night sky}, stars visible through window, cinematic lighting, soft volumetric light, melancholic atmosphere",
   "negativePrompt": "daytime, sunlight, outdoor, glasses, hat, bag, multiple girls, crowd",
@@ -410,12 +422,14 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
     { "positivePrompt": "girl, silver hair, long hair, hair down, {green eyes}, pale skin, black silk nightgown, {leaning against window}, looking out window, reflective mood", "negativePrompt": "different hair color, different eye color, wrong character", "position": { "x": 0.5, "y": 0.5 } }
   ]
 }
+</output>
 
 ### 示例 2（多角色 + 动作指向）
 
 输入："两个女孩在樱花树下追逐打闹。穿着水手服的短发女孩笑着跑在前面，身后是扎着双马尾、穿着格子裙的女孩伸手想要抓住她。"
 
 输出：
+<output>
 {
   "positivePrompt": "2girls, outdoors, cherry blossom tree, {cherry blossoms}, falling petals, spring, {dappled sunlight}, warm lighting, joyful atmosphere, vibrant colors",
   "negativePrompt": "indoor, night, rain, winter, snow, 3girls, boy, animal, vehicle",
@@ -424,6 +438,7 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
     { "positivePrompt": "girl, twintails, plaid skirt, {reaching out}, chasing, source#reaching for, smiling, playful", "negativePrompt": "different hair color, wrong character, inconsistent outfit", "position": { "x": 0.7, "y": 0.55 } }
   ]
 }
+</output>
 
 </examples>`,
           enabled: true,
@@ -500,20 +515,24 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
 输入："安洁莉卡靠在窗边，月光透过薄纱窗帘洒在她苍白的脸庞上。她穿着一件黑色丝绸睡裙，银色的长发散落在肩头，碧绿色的眼眸中映着窗外的星空。"
 
 输出：
+<output>
 {
   "positivePrompt": "1girl, solo, (moonlight), indoor, bedroom, window, sheer-curtains, (night-sky), stars-visible-through-window, cinematic-lighting, soft-volumetric-light, melancholic-atmosphere, silver-hair, long-hair, hair-down, (green-eyes), pale-skin, black-silk-nightgown, (leaning-against-window), looking-out-window, reflective-mood, soft-shadows, cool-color-palette",
   "negativePrompt": "daytime, sunlight, outdoor, glasses, hat, bag, multiple-girls, crowd"
 }
+</output>
 
 ### 示例 2（多角色，BREAK 分隔）
 
 输入："两个女孩在樱花树下追逐打闹。穿着水手服的短发女孩笑着跑在前面，身后是扎着双马尾、穿着格子裙的女孩伸手想要抓住她。"
 
 输出：
+<output>
 {
   "positivePrompt": "2girls, outdoors, cherry-blossom-tree, (cherry-blossoms), falling-petals, spring, (dappled-sunlight), warm-lighting, joyful-atmosphere, vibrant-colors, BREAK, (first-girl: short-hair, sailor-uniform, running, laughing, looking-back, energetic), BREAK, (second-girl: twintails, plaid-skirt, reaching-out, chasing, smiling, playful)",
   "negativePrompt": "indoor, night, rain, winter, snow, 3girls, boy, animal, vehicle"
 }
+</output>
 
 </examples>`,
           enabled: true,
@@ -588,7 +607,18 @@ V3 用竖线 \`|\` 分隔 **base 提示词** 与各 **角色提示词**：
           role: 'system',
           content: `
 <pre_tag_listing>
-This is a supplement to the output format rules defined in the previous messages. You must output the <pre_tag_listing> block FIRST, followed immediately by the JSON object required by the Output Rules. Both parts must be generated completely within a single response. Use English to list the preparation tasks and details within the <pre_tag_listing> tags to ensure the generated tags are highly reliable.
+This is a supplement to the output format rules defined in the previous messages. You must output the <pre_tag_listing> block FIRST, followed immediately by the final JSON object wrapped inside the <output>...</output> tags. Both parts must be generated completely within a single response. Use English to list the preparation tasks and details within the <pre_tag_listing> tags to ensure the generated tags are highly reliable.
+
+Structure of your response must be:
+<pre_tag_listing>
+[Your analytical thinking list here]
+</pre_tag_listing>
+<output>
+{
+  "positivePrompt": "...",
+  ...
+}
+</output>
 
 - Final frame focus: The exact moment this long narrative passage should freeze on.
 - Current active information: Retain only descriptions that are currently true/active in the scene.
@@ -618,7 +648,7 @@ For each character appearing in the current frame, list sequentially (use "|" to
 - NSFW Status: {possible NSFW-specific tags}
 </pre_tag_listing>
 `,
-          enabled: false,
+          enabled: true,
           triggerMatchMode: 'always',
           triggerKeywordGroups: [],
           triggerModels: [],

@@ -1,4 +1,5 @@
 import type { CharacterPromptItem, PromptLlmSettings } from '@/constants/novelai';
+import { extractOutputBlock } from '@/services/tavern-helper/prompt-llm';
 
 type CharacterRecord = Record<string, unknown>;
 
@@ -9,7 +10,8 @@ type CharacterRecord = Record<string, unknown>;
  * @returns 已归一化的角色提示词列表
  */
 export function readCharacterPrompts(rawText: string, settings: PromptLlmSettings): CharacterPromptItem[] {
-  const jsonPrompts = settings.preferJsonSchemaExtraction ? readJsonCharacterPrompts(rawText, settings) : null;
+  const cleanText = extractOutputBlock(rawText);
+  const jsonPrompts = settings.preferJsonSchemaExtraction ? readJsonCharacterPrompts(cleanText, settings) : null;
   return jsonPrompts ?? readRegexCharacterPrompts(rawText, settings);
 }
 

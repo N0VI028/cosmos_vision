@@ -414,9 +414,10 @@ export function parsePromptLlmOutput(
     throw new Error('LLM 返回值不是字符串');
   }
 
+  const cleanText = extractOutputBlock(rawResult);
   let parsed: unknown;
   try {
-    parsed = JSON.parse(rawResult);
+    parsed = JSON.parse(cleanText);
   } catch {
     throw new Error('LLM 返回值不是有效 JSON');
   }
@@ -439,7 +440,8 @@ export function readPromptLlmOutput(
   rawText: string,
   fields: PromptLlmOutputFields = DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
 ): PromptLlmOutput | null {
-  return readPromptLlmJsonOutput(rawText, fields) ?? readLabeledPromptLlmOutput(rawText);
+  const cleanText = extractOutputBlock(rawText);
+  return readPromptLlmJsonOutput(cleanText, fields) ?? readLabeledPromptLlmOutput(cleanText);
 }
 
 /**
@@ -483,9 +485,10 @@ function readPromptLlmOutputFields(settings: PromptLlmSettings): PromptLlmOutput
  * @returns 正负提示词或 null
  */
 export function readPreferredPromptLlmOutput(rawText: string, settings: PromptLlmSettings): PromptLlmOutput | null {
+  const cleanText = extractOutputBlock(rawText);
   const fields = settings.preferJsonSchemaExtraction ? readPromptLlmOutputFields(settings) : null;
   if (fields) {
-    const jsonOutput = readPromptLlmJsonOutput(rawText, fields);
+    const jsonOutput = readPromptLlmJsonOutput(cleanText, fields);
     if (jsonOutput) return jsonOutput;
   }
   return readPromptLlmOutputByRules(rawText, settings);
@@ -503,8 +506,9 @@ export function readPromptLlmOutputWithRules(
   settings: PromptLlmExtractSettings,
   fields: PromptLlmOutputFields | null = DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
 ): PromptLlmOutput | null {
-  const jsonOutput = fields ? readPromptLlmJsonOutput(rawText, fields) : null;
-  return jsonOutput ?? readPromptLlmOutputByRules(rawText, settings) ?? readLabeledPromptLlmOutput(rawText);
+  const cleanText = extractOutputBlock(rawText);
+  const jsonOutput = fields ? readPromptLlmJsonOutput(cleanText, fields) : null;
+  return jsonOutput ?? readPromptLlmOutputByRules(rawText, settings) ?? readLabeledPromptLlmOutput(cleanText);
 }
 
 /**
@@ -679,3 +683,22 @@ function resolvePromptOutputField(obj: Record<string, unknown>, key: string | un
   const value = obj[key];
   return typeof value === 'string' ? value : null;
 }
+
+/**
+ * 提取被 <output> 标签包裹的最终输出内容，并清理可能存在的 markdown 代码块包裹
+ * @param text 原始文本
+ * @returns 标签内的内容，如果不存在标签则返回原文本
+ */
+export function extractOutputBlock(text: string): string {
+  let content = text.trim();
+  const match = /<output>([\s\S]*?)<\/output>/i.exec(content);
+  if (match) {
+    content = match[1].trim();
+  }
+  const codeBlockMatch = /^```(?:json)?\s*([\s\S]*?)\s*```$/i.exec(content);
+  if (codeBlockMatch) {
+    content = codeBlockMatch[1].trim();
+  }
+  return content;
+}
+

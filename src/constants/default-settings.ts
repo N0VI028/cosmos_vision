@@ -65,14 +65,18 @@ export const DEFAULT_NEGATIVE_PROMPT_PRESET_ID = 'novelai-negative-current-prese
 export const DEFAULT_POSITIVE_PROMPT_PRESET_NAME = '默认正面预设';
 export const DEFAULT_NEGATIVE_PROMPT_PRESET_NAME = '默认负面预设';
 export { DEFAULT_NOVELAI_VIBE_PRESET_ID, DEFAULT_NOVELAI_VIBE_PRESET_NAME };
-export const DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN = '/"positivePrompt"\\s*:\\s*"([^"]*)"/i';
-export const DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN = '/"negativePrompt"\\s*:\\s*"([^"]*)"/i';
+export const DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN =
+  '/<output>\\s*\\{[\\s\\S]*?"positivePrompt"\\s*:\\s*"([^"]*)"[\\s\\S]*?<\\/output>/i';
+export const DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN =
+  '/<output>\\s*\\{[\\s\\S]*?"negativePrompt"\\s*:\\s*"([^"]*)"[\\s\\S]*?<\\/output>/i';
 export const DEFAULT_CHARACTER_POSITIVE_PROMPT_EXTRACT_PATTERN =
-  '/\\{\\s*"positivePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"\\s*,\\s*"negativePrompt"\\s*:\\s*"(?:\\\\.|[^"\\\\])*"\\s*,\\s*"position"\\s*:/g';
+  '/<output>\\s*\\{[\\s\\S]*?\\{\\s*"positivePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"\\s*,\\s*"negativePrompt"\\s*:\\s*"(?:\\\\.|[^"\\\\])*"\\s*,\\s*"position"\\s*:[\\s\\S]*?<\\/output>/g';
 export const DEFAULT_CHARACTER_NEGATIVE_PROMPT_EXTRACT_PATTERN =
-  '/\\{\\s*"positivePrompt"\\s*:\\s*"(?:\\\\.|[^"\\\\])*"\\s*,\\s*"negativePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"\\s*,\\s*"position"\\s*:/g';
-export const DEFAULT_CHARACTER_POSITION_X_EXTRACT_PATTERN = '/"x"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g';
-export const DEFAULT_CHARACTER_POSITION_Y_EXTRACT_PATTERN = '/"y"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g';
+  '/<output>\\s*\\{[\\s\\S]*?\\{\\s*"positivePrompt"\\s*:\\s*"(?:\\\\.|[^"\\\\])*"\\s*,\\s*"negativePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"\\s*,\\s*"position"\\s*:[\\s\\S]*?<\\/output>/g';
+export const DEFAULT_CHARACTER_POSITION_X_EXTRACT_PATTERN =
+  '/<output>\\s*\\{[\\s\\S]*?"x"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)[\\s\\S]*?<\\/output>/g';
+export const DEFAULT_CHARACTER_POSITION_Y_EXTRACT_PATTERN =
+  '/<output>\\s*\\{[\\s\\S]*?"y"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)[\\s\\S]*?<\\/output>/g';
 
 /** 提示词 LLM JSON 输出默认字段(双侧齐全,作为占位与回退默认值) */
 export const DEFAULT_PROMPT_LLM_OUTPUT_FIELDS = {
