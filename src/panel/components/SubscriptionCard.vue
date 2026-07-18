@@ -104,8 +104,15 @@ watch(
   },
 );
 
-/** 下拉选项：账号 1、账号 2 … */
-const accountOptions = computed(() => savedAccounts.value.map((_, i) => ({ label: `账号 ${i + 1}`, value: i })));
+/** 下拉选项：展示账号序号与实际账号名称 */
+const accountOptions = computed(() =>
+  savedAccounts.value.map((account, i) => {
+    const prefix = `账号 ${i + 1}`;
+    const name = account.name.trim();
+    const label = name ? `${prefix} - ${name}` : `${prefix} - 未命名`;
+    return { label, value: i };
+  })
+);
 
 /** 已保存配置中选中的账号 */
 const savedAccount = computed(() => savedAccounts.value[selectedIndex.value] ?? null);
@@ -149,7 +156,7 @@ function formatFetchedAt(ts: number): string {
 @reference '../../global.css';
 
 .nai-sub-card {
-  @apply my-[var(--cv-space-10xl)] overflow-hidden;
+  @apply my-(--cv-space-10xl) overflow-hidden;
   background: var(--cv-surface-container);
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   border-top-color: var(--cv-surface-bright);

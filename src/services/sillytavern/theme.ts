@@ -2,12 +2,18 @@ import { event_types, eventSource } from '@sillytavern/script';
 
 /**
  * 读取 ST 主题色 --SmartThemeQuoteColor 并归一化为 #rrggbb
+ * 如果未获取到，或颜色为纯黑 (#000000) 或纯白 (#ffffff)，则回退为默认的橙色主题色 (#e18a24)
  * @param target 计算样式来源,默认 document.documentElement
- * @returns 形如 `#rrggbb` 的不透明颜色;解析失败返回 ST 默认值
+ * @returns 形如 `#rrggbb` 的不透明颜色;解析失败或为纯黑/纯白则返回默认橙色
  */
 export function getThemeQuoteColorOpaque(target: HTMLElement = document.documentElement): string {
   const raw = getComputedStyle(target).getPropertyValue('--SmartThemeQuoteColor').trim();
-  return toOpaqueHex(raw) ?? '#e18a24';
+  const color = toOpaqueHex(raw);
+
+  if (!color || color === '#000000' || color === '#ffffff') {
+    return '#e18a24';
+  }
+  return color;
 }
 
 /**
