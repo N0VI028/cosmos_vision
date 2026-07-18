@@ -634,8 +634,8 @@ Structure of your response must be:
 - Lighting & Atmosphere: {translate the current mood and narrative atmosphere into visual lighting tags, e.g., cinematic lighting / volumetric light / cool color palette}
 - Style & Quality/Texture: {style preference and texture tags, e.g., anime screencap / digital painting / detailed texture}
 
-[Character Layer - Per Character]
-For each character appearing in the current frame, list sequentially (use "|" to separate thinking order for multiple characters, matching the final output order):
+For each character appearing in the current frame, analyze them in separate blocks. Start each block with [Character Layer: Character Name] on its own line, followed by their specific details:
+[Character Layer: Character Name]
 - Character Type: {e.g., 1girl / 1boy / catgirl / the actual type in the current state, based on the final frame focus}
 - Appearance Features: {hair color, hair style, eye color, body type, skin color, etc., retaining only features active in the current frame}
 - Clothing Details: {based on what they are actually wearing in the current frame, do not let identity settings or occupational stereotypes override this}
