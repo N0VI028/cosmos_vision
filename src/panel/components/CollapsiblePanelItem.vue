@@ -4,7 +4,7 @@
     :class="['cv-collapsible-panel', { 'cv-collapsible-panel--disabled': disabled }]"
     @update:value="handleAccordionChange"
   >
-    <AccordionPanel value="0" :disabled="disabled">
+    <AccordionPanel value="0">
       <AccordionHeader :pt="{ root: { style: { gap: 'var(--cv-space-lg)' } }, toggleIcon: { class: 'hidden' } }">
         <i
           :class="[

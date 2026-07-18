@@ -64,8 +64,8 @@
             </div>
 
             <div class="cv-vibe-card-body">
-              <div class="cv-vibe-name">{{ getDisplayName(item) }}</div>
-              <div class="cv-vibe-meta">{{ formatCreatedAt(item.createdAt) }} · {{ buildShortHash(item.sourceHash) }}</div>
+              <div class="cv-vibe-name">{{ getNovelAIVibeDisplayFileName(item) }}</div>
+              <div class="cv-vibe-meta">{{ formatCreatedAt(item.createdAt) }} · {{ item.sourceHash.slice(0, 8) }}</div>
               <div class="cv-vibe-tag-row">
                 <Tag
                   v-for="tagItem in buildTagItems(item)"
@@ -187,36 +187,21 @@ watch(
   },
 );
 
-/**
- * 切换显式选择模式
- */
 function toggleSelectMode(): void {
   if (isSelectionToggleDisabled.value) return;
   isSelecting.value = !isSelecting.value;
   if (!isSelecting.value) selectedHashes.value = [];
 }
 
-/**
- * 清空已选状态并退出选择模式
- */
 function clearSelection(): void {
   isSelecting.value = false;
   selectedHashes.value = [];
 }
 
-/**
- * 判断当前条目是否已被选中
- * @param sourceHash vibe 来源 hash
- * @returns 是否选中
- */
 function isItemSelected(sourceHash: string): boolean {
   return selectedHashes.value.includes(sourceHash);
 }
 
-/**
- * 切换单个条目的选中状态
- * @param sourceHash vibe 来源 hash
- */
 function toggleItem(sourceHash: string): void {
   if (!isSelecting.value || props.busy) return;
   selectedHashes.value = isItemSelected(sourceHash)
@@ -224,78 +209,37 @@ function toggleItem(sourceHash: string): void {
     : [...selectedHashes.value, sourceHash];
 }
 
-/**
- * 切换当前筛选范围的全选状态
- */
 function toggleSelectAll(): void {
   if (props.busy) return;
   selectedHashes.value = isAllSelected.value ? [] : props.items.map(item => item.sourceHash);
 }
 
-/**
- * 批量下载当前选中的 vibe
- */
 function downloadSelected(): void {
   if (!selectedCount.value || props.busy) return;
   emit('download-items', selectedHashes.value);
 }
 
-/**
- * 批量删除当前选中的 vibe
- */
 function deleteSelected(): void {
   if (!selectedCount.value || props.busy) return;
   emit('delete-items', selectedHashes.value);
 }
 
 /**
- * 读取用于展示的 vibe 文件名
- * @param item vibe 列表项
- * @returns 展示文件名
- */
-function getDisplayName(item: NovelAIVibeCacheListItem): string {
-  return getNovelAIVibeDisplayFileName(item);
-}
-
-/**
- * 构建 vibe 状态标签
- * @param item vibe 列表项
- * @returns 标签列表
+ * 构建 vibe 状态标签：模型 + 是否有原图
  */
 function buildTagItems(item: NovelAIVibeCacheListItem): VibeTagItem[] {
+  const modelTags = item.models.length
+    ? item.models.map(model => ({
+        label: NOVELAI_MODEL_LABEL_MAP[model] ?? model,
+        severity: 'secondary' as const,
+      }))
+    : [{ label: '未知模型', severity: 'warn' as const }];
   return [
-    ...buildModelTagItems(item.models),
+    ...modelTags,
     { label: item.hasImage ? '有原图' : '仅编码', severity: item.hasImage ? 'info' : 'warn' },
   ];
 }
 
-/**
- * 构建模型展示标签
- * @param models 已缓存 encoding 所属模型
- * @returns 模型标签列表
- */
-function buildModelTagItems(models: readonly NovelAIModel[]): VibeTagItem[] {
-  if (!models.length) return [{ label: '未知模型', severity: 'warn' }];
-  return models.map(model => ({
-    label: NOVELAI_MODEL_LABEL_MAP[model] ?? model,
-    severity: 'secondary',
-  }));
-}
-
-/**
- * 构建短 hash 展示
- * @param sourceHash vibe 来源 hash
- * @returns 短 hash
- */
-function buildShortHash(sourceHash: string): string {
-  return sourceHash.slice(0, 8);
-}
-
-/**
- * 格式化创建时间
- * @param createdAt 创建时间戳
- * @returns 展示文案
- */
 function formatCreatedAt(createdAt: number): string {
   const date = new Date(createdAt);
   return `${date.getMonth() + 1}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;

@@ -19,6 +19,7 @@ import type { GalleryMountRuntime } from '@/store/gallery-runtimes';
 import { useGalleryRuntimesStore } from '@/store/gallery-runtimes';
 import { useSettingsStore } from '@/store/settings';
 import { storeToRefs } from 'pinia';
+import { removeSlotShortcodeFromMessage } from '@/services/inline-image/slot-bind';
 
 const props = defineProps<{
   mount: GalleryMountRuntime;
@@ -32,6 +33,7 @@ const items = ref<InlineGalleryItem[]>([]);
 const activeItemId = ref('');
 const loading = ref(true);
 const objectUrls = new Set<string>();
+const isLost = ref(false);
 
 /** 画廊宿主 class：随 darkMode 响应式切换 */
 const hostClass = computed(() =>
@@ -47,12 +49,31 @@ async function reloadItems(): Promise<void> {
   try {
     items.value = await loadMountGalleryItems(props.mount, objectUrls);
     activeItemId.value = items.value[0]?.id ?? '';
-    if (!items.value.length) removeMount(props.mount.key, props.mount.messageId);
+    isLost.value = !items.value.length;
   } catch (error) {
     console.error('[CosmosVision] 加载画廊项失败', error);
     items.value = [];
+    isLost.value = true;
   } finally {
     loading.value = false;
+  }
+}
+
+/**
+ * 强行删除失效短码并卸载挂载容器
+ */
+async function onForceDeleteShortcode(): Promise<void> {
+  if (!settingsStore.savedSettings.enabled) return;
+  try {
+    const target = props.mount.anchor.paragraph ?? props.mount.messageId;
+    if (target && props.mount.mountKey.kind === 'slot') {
+      await removeSlotShortcodeFromMessage(target, props.mount.mountKey.slotId);
+    }
+    removeMount(props.mount.key, props.mount.messageId);
+    toastr.success('已成功移除失效短码并清理占位符');
+  } catch (error) {
+    console.error('[CosmosVision] 强制删除短码失败', error);
+    toastr.error('删除失效短码失败');
   }
 }
 /**
@@ -129,10 +150,35 @@ onUnmounted(() => {
 
 <template>
   <div
-    v-if="!loading && items.length"
+    v-if="!loading && (items.length || isLost)"
     :class="hostClass"
   >
+    <!-- 图片源文件丢失占位符 -->
+    <div v-if="isLost" class="cv-inline-favorite-content">
+      <div class="cv-inline-favorite-galleria">
+        <div class="cv-inline-favorite-stage">
+          <div class="cv-lost-placeholder">
+            <div class="cv-lost-warning">
+              <span class="cv-lost-icon">⚠️</span>
+              <span class="cv-lost-text">此段落绑定的图片源文件已被清理或丢失。</span>
+            </div>
+            <div class="cv-lost-actions">
+              <button
+                class="cv-delete-shortcode-btn"
+                title="彻底从聊天原文中删除此短码并移除占位符"
+                @click="void onForceDeleteShortcode()"
+              >
+                彻底删除图片定位码
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 正常画廊 -->
     <InlineGalleryGroupView
+      v-else
       :items="items"
       :active-item-id="activeItemId"
       :dark-mode="darkMode"
@@ -148,3 +194,65 @@ onUnmounted(() => {
     />
   </div>
 </template>
+
+<style scoped>
+.cv-lost-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 20px;
+  background: rgba(255, 193, 7, 0.05);
+  border: 1px dashed rgba(255, 193, 7, 0.3);
+  border-radius: 8px;
+  margin: 8px 0;
+  text-align: center;
+  gap: 12px;
+}
+
+.cv-lost-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffc107;
+  font-size: 14px;
+}
+
+.cv-lost-icon {
+  font-size: 18px;
+}
+
+.cv-lost-text {
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.cv-delete-shortcode-btn {
+  display: inline-block;
+  outline: none;
+  border: 1px solid rgba(220, 53, 69, 0.3) !important;
+  background: rgba(220, 53, 69, 0.15) !important;
+  color: #dc3545 !important;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  line-height: 1.4;
+  text-align: center;
+  transition: all 0.2s ease;
+  margin: 0;
+  box-shadow: none;
+}
+
+.cv-delete-shortcode-btn:hover {
+  background: rgba(220, 53, 69, 0.3) !important;
+  border-color: rgba(220, 53, 69, 0.6) !important;
+  color: #ff4d5a !important;
+  box-shadow: 0 0 8px rgba(220, 53, 69, 0.2);
+}
+
+.cv-delete-shortcode-btn:active {
+  transform: scale(0.98);
+}
+</style>

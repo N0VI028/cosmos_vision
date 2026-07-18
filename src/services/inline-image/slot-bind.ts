@@ -49,11 +49,13 @@ export async function ensureSlotShortcodeOnParagraph(paragraph: HTMLElement, slo
  * @param slotId 位点 id
  */
 export async function removeSlotShortcodeFromMessage(
-  paragraphOrMessageId: HTMLElement | string,
+  paragraphOrMessageId: HTMLElement | string | number,
   slotId: string,
 ): Promise<void> {
   const messageId =
-    typeof paragraphOrMessageId === 'string' ? paragraphOrMessageId : findMessageId(paragraphOrMessageId);
+    typeof paragraphOrMessageId === 'string' || typeof paragraphOrMessageId === 'number'
+      ? paragraphOrMessageId
+      : findMessageId(paragraphOrMessageId);
   if (!messageId) throw new Error('未找到消息楼层，无法移除短码');
   const raw = readChatMessageRaw(messageId);
   if (raw === null) throw new Error('读取消息原文失败，无法移除短码');

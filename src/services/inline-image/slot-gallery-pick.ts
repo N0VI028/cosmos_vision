@@ -1,7 +1,4 @@
 import {
-  listInlineImageFavoritesBySlot,
-} from '@/services/inline-image/favorites-cache';
-import {
   parseSlotMarkerLine,
 } from '@/services/inline-image/slot-shortcode';
 import {
@@ -17,7 +14,6 @@ import {
   resolveSessionAnchor,
   type GallerySessionRecord,
 } from '@/composables/inlineGallerySession';
-import { getCurrentInlineFavoriteScope } from '@/services/sillytavern/chat-context';
 import {
   createInlineFavoriteAnchor,
   findMessageId,
@@ -137,13 +133,7 @@ async function pickSlotMountForParagraph(
   const key = buildSlotSessionKey(slotId);
   if (seen.has(key)) return null;
   seen.add(key);
-  const records = await listInlineImageFavoritesBySlot(slotId, getCurrentInlineFavoriteScope());
-  if (!records.length) {
-    // 多设备/局域网下，其他设备可能存有图片缓存（IndexedDB）。
-    // 在本地未发现图片时，仅将空位短码从当前 DOM 中移除以防显示异常，不可写回服务器清理 raw，以防破坏其他设备的数据。
-    marker.remove();
-    return null;
-  }
+  // 💡 不再在此处拦截和移除 DOM 节点，而是直接创建挂载容器，让前端展示失效占位符和一键删除按钮
   const element = ensureSlotRenderContainer(marker, slotId);
   return {
     key,
