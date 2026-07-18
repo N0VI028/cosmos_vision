@@ -567,6 +567,20 @@ export default {
         },
 
         {
+          id: DEFAULT_PROMPT_LLM_PARTICIPANT_MESSAGE_ID,
+          title: '人物总体信息',
+          role: 'system',
+          content: `
+以下是当前可能出现在画面中的人物设定信息（仅作视觉特征与固定 Tag 的提取参考）：
+${PROMPT_LLM_PARTICIPANT_TOKEN}
+`,
+          enabled: true,
+          triggerMatchMode: 'always',
+          triggerKeywordGroups: [],
+          triggerModels: [],
+          triggerImageSources: [],
+        },
+        {
           id: DEFAULT_PROMPT_LLM_HISTORY_MESSAGE_ID,
           title: '历史消息',
           role: 'system',
@@ -583,12 +597,13 @@ ${PROMPT_LLM_HISTORY_TOKEN}
           triggerImageSources: [],
         },
         {
-          id: DEFAULT_PROMPT_LLM_PARTICIPANT_MESSAGE_ID,
-          title: '人物总体信息',
+          id: DEFAULT_PROMPT_LLM_FOCUS_SCENE_MESSAGE_ID,
+          title: '焦点场景',
           role: 'system',
           content: `
-以下是当前可能出现在画面中的人物设定信息（仅作视觉特征与固定 Tag 的提取参考）：
-${PROMPT_LLM_PARTICIPANT_TOKEN}
+<main_scene>
+    ${PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN}
+</main_scene>
 `,
           enabled: true,
           triggerMatchMode: 'always',
@@ -597,13 +612,13 @@ ${PROMPT_LLM_PARTICIPANT_TOKEN}
           triggerImageSources: [],
         },
         {
-          id: DEFAULT_PROMPT_LLM_FOCUS_SCENE_MESSAGE_ID,
-          title: '焦点场景',
+          id: DEFAULT_PROMPT_LLM_SPECIAL_REQUEST_MESSAGE_ID,
+          title: '临时追加要求',
           role: 'system',
-          content: `
-<main_scene>
-    ${PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN}
-</main_scene>
+          content: `<special_request>
+    以下用户要求你必须优先把它体现在最终输出的 tag 中，若为空则忽略：
+${PROMPT_LLM_SPECIAL_REQUEST_TOKEN}
+</special_request>
 `,
           enabled: true,
           triggerMatchMode: 'always',
@@ -657,21 +672,6 @@ For each character appearing in the current frame, analyze them in separate bloc
 - Key Items: {tags for items that actually appear or are reasonably visible in the current frame, attribute to Base or the corresponding character}
 - NSFW Status: {possible NSFW-specific tags}
 </pre_tag_listing>
-`,
-          enabled: true,
-          triggerMatchMode: 'always',
-          triggerKeywordGroups: [],
-          triggerModels: [],
-          triggerImageSources: [],
-        },
-        {
-          id: DEFAULT_PROMPT_LLM_SPECIAL_REQUEST_MESSAGE_ID,
-          title: '临时追加要求',
-          role: 'system',
-          content: `<special_request>
-    以下用户要求你必须优先把它体现在最终输出的 tag 中，若为空则忽略：
-${PROMPT_LLM_SPECIAL_REQUEST_TOKEN}
-</special_request>
 `,
           enabled: true,
           triggerMatchMode: 'always',
