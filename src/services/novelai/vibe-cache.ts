@@ -80,42 +80,32 @@ export async function saveNovelAIVibeThumbnailData(sourceHash: string, thumbnail
   await Promise.all(records.map(record => upsertNovelAIVibeRecord({ ...record, thumbnailData })));
 }
 
-/**
- * 读取 vibe 原图 data URL
- * @param sourceHash vibe 来源 hash
- * @returns 原图 data URL 或 null
- */
-export async function getNovelAIVibeImageData(sourceHash: string): Promise<string | null> {
-  const temporaryImageData = temporaryNovelAIVibeEntries.get(sourceHash)?.imageData;
-  if (temporaryImageData) return temporaryImageData;
-  const record = await findNovelAIVibeRecord(sourceHash, item => item.sourceType === 'image' && Boolean(item.imageData));
-  return record?.imageData ?? null;
+/** 生成解析时一次加载的同源 vibe 缓存视图 */
+export interface NovelAIVibeSourceCacheView {
+  imageData: string | null;
+  fileName: string | null;
+  encodings: Array<{ model: NovelAIModel; informationExtracted: number; encodedData: string }>;
 }
 
 /**
- * 读取指定模型与信息提取强度的 encodedData
+ * 一次读取同源 vibe 缓存，供生成时解析使用
  * @param sourceHash vibe 来源 hash
- * @param model NovelAI 模型
- * @param informationExtracted 信息提取强度
- * @returns encodedData 或 null
+ * @returns 原图、文件名与全部 encoding
  */
-export async function getNovelAIVibeEncodedData(
-  sourceHash: string,
-  model: NovelAIModel,
-  informationExtracted: number,
-): Promise<string | null> {
-  const record = await findNovelAIVibeRecord(sourceHash, item => isExactEncodedRecord(item, model, informationExtracted));
-  return record?.encodedData ?? null;
-}
-
-/**
- * 读取任一已解析 encodedData
- * @param sourceHash vibe 来源 hash
- * @returns encodedData 或 null
- */
-export async function getNovelAIVibeAnyEncodedData(sourceHash: string): Promise<string | null> {
-  const record = await findNovelAIVibeRecord(sourceHash, item => item.sourceType === 'encoded-vibe' && Boolean(item.encodedData));
-  return record?.encodedData ?? null;
+export async function loadNovelAIVibeSourceCache(sourceHash: string): Promise<NovelAIVibeSourceCacheView> {
+  const temporaryEntry = temporaryNovelAIVibeEntries.get(sourceHash);
+  const records = await getNovelAIVibeSourceRecords(sourceHash);
+  return {
+    imageData: temporaryEntry?.imageData ?? records.find(record => record.sourceType === 'image' && record.imageData)?.imageData ?? null,
+    fileName: temporaryEntry?.fileName ?? records[0]?.fileName ?? null,
+    encodings: records
+      .filter(record => record.sourceType === 'encoded-vibe' && record.encodedData)
+      .map(record => ({
+        model: record.model,
+        informationExtracted: record.informationExtracted,
+        encodedData: record.encodedData as string,
+      })),
+  };
 }
 
 /**
@@ -140,17 +130,6 @@ export async function summarizeNovelAIVibeCache(
  */
 export async function listNovelAIVibeCacheItems(): Promise<NovelAIVibeCacheListItem[]> {
   return buildVibeCacheList(await getAllNovelAIVibeRecords());
-}
-
-/**
- * 读取缓存中的文件名
- * @param sourceHash vibe 来源 hash
- * @returns 文件名或 null
- */
-export async function getNovelAIVibeFileName(sourceHash: string): Promise<string | null> {
-  const temporaryFileName = temporaryNovelAIVibeEntries.get(sourceHash)?.fileName;
-  if (temporaryFileName) return temporaryFileName;
-  return (await getNovelAIVibeSourceRecords(sourceHash))[0]?.fileName ?? null;
 }
 
 /**
@@ -467,15 +446,15 @@ function createVibeCacheListItem(
   records: NovelAIVibeCacheRecord[],
 ): NovelAIVibeCacheListItem {
   const latestRecord = pickLatestRecord(records);
-  const fileName = latestRecord?.fileName ?? sourceHash.slice(0, 8);
+  const encodedRecords = records.filter(record => record.sourceType === 'encoded-vibe' && Boolean(record.encodedData));
   const hasImage = records.some(record => record.sourceType === 'image' && Boolean(record.imageData));
-  const hasEncoded = records.some(record => record.sourceType === 'encoded-vibe' && Boolean(record.encodedData));
   return {
     sourceHash,
-    fileName,
+    fileName: latestRecord?.fileName ?? sourceHash.slice(0, 8),
     sourceType: hasImage ? 'image' : 'encoded-vibe',
     hasImage,
-    hasEncoded,
+    hasEncoded: encodedRecords.length > 0,
+    models: [...new Set(encodedRecords.map(record => record.model))],
     thumbnailData: getThumbnailData(records),
     createdAt: latestRecord?.createdAt ?? 0,
   };

@@ -13,15 +13,14 @@
     <div v-if="loading" class="cv-vibe-grid">
       <CvDataCard v-for="index in 4" :key="index">
         <div class="cv-vibe-card">
-          <Skeleton width="4.5rem" height="4.5rem" :dt="SKELETON_TOKENS" />
-          <div class="cv-vibe-main">
-            <Skeleton height="1rem" width="82%" :dt="SKELETON_TOKENS" />
-            <Skeleton height="1rem" width="62%" :dt="SKELETON_TOKENS" />
+          <Skeleton height="100%" class="cv-vibe-skeleton-thumb" :dt="SKELETON_TOKENS" />
+          <div class="cv-vibe-card-body">
+            <Skeleton height="1rem" width="70%" :dt="SKELETON_TOKENS" />
+            <Skeleton height="0.9rem" width="52%" :dt="SKELETON_TOKENS" />
             <div class="cv-vibe-tag-row">
               <Skeleton height="1.2rem" width="4rem" border-radius="999px" :dt="SKELETON_TOKENS" />
               <Skeleton height="1.2rem" width="4.5rem" border-radius="999px" :dt="SKELETON_TOKENS" />
             </div>
-            <Skeleton height="0.9rem" width="52%" :dt="SKELETON_TOKENS" />
           </div>
         </div>
       </CvDataCard>
@@ -56,16 +55,17 @@
               />
             </div>
 
-            <div class="cv-vibe-cover" :class="{ 'cv-vibe-cover--file': !item.thumbnailData }">
-              <img v-if="item.thumbnailData" :src="item.thumbnailData" alt="" />
+            <div class="cv-vibe-thumb-wrap" :class="{ 'cv-vibe-thumb-wrap--file': !item.thumbnailData }">
+              <img v-if="item.thumbnailData" :src="item.thumbnailData" alt="" class="cv-vibe-thumb" />
               <template v-else>
                 <span class="cv-vibe-file-mark">V</span>
                 <span class="cv-vibe-file-ext">{{ item.hasImage ? 'HAS IMG' : 'NO IMG' }}</span>
               </template>
             </div>
 
-            <div class="cv-vibe-main">
+            <div class="cv-vibe-card-body">
               <div class="cv-vibe-name">{{ getDisplayName(item) }}</div>
+              <div class="cv-vibe-meta">{{ formatCreatedAt(item.createdAt) }} · {{ buildShortHash(item.sourceHash) }}</div>
               <div class="cv-vibe-tag-row">
                 <Tag
                   v-for="tagItem in buildTagItems(item)"
@@ -75,7 +75,6 @@
                   class="cv-vibe-tag"
                 />
               </div>
-              <div class="cv-vibe-meta">{{ formatCreatedAt(item.createdAt) }} · {{ buildShortHash(item.sourceHash) }}</div>
             </div>
 
             <div v-if="!isSelecting" class="cv-vibe-actions" @click.stop>
@@ -137,6 +136,7 @@ import Checkbox from 'primevue/checkbox';
 import Skeleton from 'primevue/skeleton';
 import Tag from 'primevue/tag';
 import { computed, ref, watch } from 'vue';
+import { NOVELAI_MODELS, type NovelAIModel } from '@/constants/novelai';
 import CvDataCard from '@/panel/components/CvDataCard.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import StaticPanel from '@/panel/components/StaticPanel.vue';
@@ -147,6 +147,10 @@ interface VibeTagItem {
   label: string;
   severity: 'secondary' | 'success' | 'info' | 'warn';
 }
+
+const NOVELAI_MODEL_LABEL_MAP = Object.fromEntries(
+  NOVELAI_MODELS.map(item => [item.value, item.label.replace(/^NAI Diffusion\s+/i, '')]),
+) as Record<NovelAIModel, string>;
 
 const props = defineProps<{
   items: NovelAIVibeCacheListItem[];
@@ -260,10 +264,22 @@ function getDisplayName(item: NovelAIVibeCacheListItem): string {
  */
 function buildTagItems(item: NovelAIVibeCacheListItem): VibeTagItem[] {
   return [
-    { label: item.thumbnailData ? '有缩略图' : '文件卡', severity: item.thumbnailData ? 'success' : 'info' },
+    ...buildModelTagItems(item.models),
     { label: item.hasImage ? '有原图' : '仅编码', severity: item.hasImage ? 'info' : 'warn' },
-    { label: '可导出', severity: 'success' },
   ];
+}
+
+/**
+ * 构建模型展示标签
+ * @param models 已缓存 encoding 所属模型
+ * @returns 模型标签列表
+ */
+function buildModelTagItems(models: readonly NovelAIModel[]): VibeTagItem[] {
+  if (!models.length) return [{ label: '未知模型', severity: 'warn' }];
+  return models.map(model => ({
+    label: NOVELAI_MODEL_LABEL_MAP[model] ?? model,
+    severity: 'secondary',
+  }));
 }
 
 /**
@@ -309,14 +325,11 @@ function formatCreatedAt(createdAt: number): string {
   @apply grid overflow-y-auto;
   max-height: var(--cv-vibe-grid-max-h, 36rem);
   gap: var(--cv-space-4xl);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .cv-vibe-card {
-  @apply relative grid min-w-0;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: var(--cv-space-4xl);
-  padding: var(--cv-space-4xl);
+  @apply relative flex min-w-0 flex-col;
 }
 
 .cv-vibe-select {
@@ -326,25 +339,29 @@ function formatCreatedAt(createdAt: number): string {
   z-index: 1;
 }
 
-.cv-vibe-cover {
-  @apply flex shrink-0 items-center justify-center overflow-hidden;
-  width: 4.5rem;
-  height: 4.5rem;
-  border-radius: var(--cv-radius-sm);
+.cv-vibe-thumb-wrap {
+  @apply flex items-center justify-center overflow-hidden;
+  aspect-ratio: 1;
+  border-bottom: var(--cv-border-width) solid color-mix(in srgb, var(--cv-surface-variant) 72%, transparent);
   background: var(--cv-surface-container-high);
   color: var(--cv-on-surface-variant);
-  border: var(--cv-border-width) solid color-mix(in srgb, var(--cv-surface-variant) 72%, transparent);
 }
 
-.cv-vibe-cover > img {
+.cv-vibe-thumb {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
-.cv-vibe-cover--file {
+.cv-vibe-thumb-wrap--file {
   @apply flex-col;
   gap: var(--cv-space-sm);
+}
+
+.cv-vibe-skeleton-thumb {
+  display: block;
+  aspect-ratio: 1;
 }
 
 .cv-vibe-file-mark {
@@ -359,9 +376,10 @@ function formatCreatedAt(createdAt: number): string {
   color: var(--cv-on-surface-variant);
 }
 
-.cv-vibe-main {
+.cv-vibe-card-body {
   @apply flex min-w-0 flex-col;
-  gap: var(--cv-space-md);
+  gap: var(--cv-space-sm);
+  padding: var(--cv-space-4xl);
 }
 
 .cv-vibe-name {
@@ -370,7 +388,7 @@ function formatCreatedAt(createdAt: number): string {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   color: var(--cv-on-surface);
-  font-size: var(--cv-font-size-sm);
+  font-size: var(--cv-font-size-xs);
   font-weight: 600;
   line-height: 1.4;
   word-break: break-all;
@@ -386,26 +404,24 @@ function formatCreatedAt(createdAt: number): string {
 }
 
 .cv-vibe-meta {
+  @apply overflow-hidden text-ellipsis whitespace-nowrap;
   color: var(--cv-on-surface-variant);
   font-size: var(--cv-font-size-2xs);
 }
 
 .cv-vibe-actions {
-  @apply flex items-start;
+  @apply flex items-center justify-end;
   gap: var(--cv-space-2xl);
+  padding: 0 var(--cv-space-4xl) var(--cv-space-4xl);
 }
 
 .cv-vibe-batch-bar {
-  @apply flex flex-wrap items-center justify-between;
+  @apply sticky flex flex-wrap items-center justify-between;
+  bottom: 0;
   gap: var(--cv-space-md);
   margin-top: var(--cv-space-4xl);
   padding: var(--cv-space-4xl) 0 0;
   border-top: var(--cv-border-width) solid var(--cv-surface-variant);
-  background: linear-gradient(
-    to top,
-    var(--cv-surface-container-lowest) 78%,
-    color-mix(in srgb, var(--cv-surface-container-lowest) 0%, transparent)
-  );
 }
 
 .cv-vibe-batch-count {
@@ -430,23 +446,13 @@ function formatCreatedAt(createdAt: number): string {
 
 @media (max-width: 56rem) {
   .cv-vibe-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 38rem) {
-  .cv-vibe-card {
-    grid-template-columns: auto minmax(0, 1fr);
-  }
-
-  .cv-vibe-cover {
-    width: 3.8rem;
-    height: 3.8rem;
-  }
-
-  .cv-vibe-actions {
-    grid-column: 2;
-    justify-content: flex-start;
+  .cv-vibe-grid {
+    grid-template-columns: 1fr;
   }
 
   .cv-vibe-summary-hint {

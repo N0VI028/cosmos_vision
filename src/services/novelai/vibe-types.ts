@@ -50,6 +50,8 @@ export interface NovelAIVibeCacheListItem {
   sourceType: NovelAIVibeSourceType;
   hasImage: boolean;
   hasEncoded: boolean;
+  /** 已缓存 encoding 所属的 NovelAI 模型 */
+  models: NovelAIModel[];
   thumbnailData?: string;
   createdAt: number;
 }

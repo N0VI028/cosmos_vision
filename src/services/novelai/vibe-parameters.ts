@@ -1,16 +1,14 @@
 import type { ImagePromptVibeRef, NovelAIVibePresetSettings } from '@/constants/novelai-vibe';
 import { isNovelAIV3Model, type NovelAIAccount, type NovelAISettings } from '@/constants/novelai';
 import {
-  getNovelAIVibeFileName,
-  getNovelAIVibeAnyEncodedData,
-  getNovelAIVibeEncodedData,
-  getNovelAIVibeImageData,
+  loadNovelAIVibeSourceCache,
   saveNovelAIVibeEncodedData,
+  type NovelAIVibeSourceCacheView,
 } from '@/services/novelai/vibe-cache';
 import { encodeNovelAIVibeWithAccounts } from '@/services/novelai/vibe-encode';
 import { stripDataUrlBase64 } from '@/services/novelai/vibe-file';
 import { findNovelAIVibePreset } from '@/services/novelai/vibe-presets';
-import type { NovelAIVibeParameters, ParsedNovelAIVibeFile } from '@/services/novelai/vibe-types';
+import type { NovelAIVibeParameters } from '@/services/novelai/vibe-types';
 
 /** NovelAI vibe 参数解析选项 */
 export interface NovelAIVibeResolveOptions {
@@ -93,8 +91,8 @@ async function resolveVibeEntry(
  * @returns 原图 base64
  */
 async function resolveV3VibeImage(vibe: ImagePromptVibeRef): Promise<string> {
-  const imageData = await getNovelAIVibeImageData(vibe.sourceHash);
-  if (imageData) return stripDataUrlBase64(imageData);
+  const cache = await loadNovelAIVibeSourceCache(vibe.sourceHash);
+  if (cache.imageData) return stripDataUrlBase64(cache.imageData);
   throw new Error('当前 vibe 只有已解析数据，V3 模型需要重新上传原图');
 }
 
@@ -112,29 +110,41 @@ async function resolveV4VibeImage(
   accounts: NovelAIAccount[],
   options: NovelAIVibeResolveOptions,
 ): Promise<string> {
-  const cached = await getNovelAIVibeEncodedData(vibe.sourceHash, settings.model, vibe.informationExtracted);
-  if (cached) return markVibePersistent(vibe, cached);
-  const imageData = await getNovelAIVibeImageData(vibe.sourceHash);
-  if (!imageData) return getEncodedOnlyVibeData(vibe);
-  return encodeAndCacheVibe(settings, vibe, imageData, accounts, options);
+  const cache = await loadNovelAIVibeSourceCache(vibe.sourceHash);
+  const encodedData = pickEncodedData(cache, settings.model, vibe.informationExtracted);
+  if (encodedData) return markVibePersistent(vibe, encodedData);
+  if (!cache.imageData) throw new Error('当前 vibe 缓存已丢失，请重新上传图片或 .naiv4vibe 文件');
+  return encodeAndCacheVibe(settings, vibe, cache, accounts, options);
 }
 
 /**
- * 读取只有已解析二进制的 vibe
- * @param vibe vibe 引用
- * @returns encodedData base64
+ * 按优先级挑选可用 encoding：exact → 同模型 → 任意
+ * @param cache 同源缓存视图
+ * @param model 当前模型
+ * @param informationExtracted 当前信息提取
+ * @returns encoding 或 null
  */
-async function getEncodedOnlyVibeData(vibe: ImagePromptVibeRef): Promise<string> {
-  const encodedData = await getNovelAIVibeAnyEncodedData(vibe.sourceHash);
-  if (encodedData) return markVibePersistent(vibe, encodedData);
-  throw new Error('当前 vibe 缓存已丢失，请重新上传图片或 .naiv4vibe 文件');
+function pickEncodedData(
+  cache: NovelAIVibeSourceCacheView,
+  model: NovelAISettings['model'],
+  informationExtracted: number,
+): string | null {
+  const exact = cache.encodings.find(
+    item => item.model === model && item.informationExtracted === informationExtracted,
+  );
+  if (exact) return exact.encodedData;
+  const sameModel = cache.encodings.find(item => item.model === model);
+  if (sameModel) return sameModel.encodedData;
+  // 无原图时才允许跨模型兜底，避免有图时静默用错模型 encoding
+  if (!cache.imageData) return cache.encodings[0]?.encodedData ?? null;
+  return null;
 }
 
 /**
  * 调用 encode-vibe 并写入缓存
  * @param settings NovelAI 设置
  * @param vibe vibe 引用
- * @param imageData 原图 data URL
+ * @param cache 已加载的同源缓存
  * @param accounts 候选 NovelAI 账号
  * @param options 请求控制选项
  * @returns encodedData base64
@@ -142,37 +152,28 @@ async function getEncodedOnlyVibeData(vibe: ImagePromptVibeRef): Promise<string>
 async function encodeAndCacheVibe(
   settings: NovelAISettings,
   vibe: ImagePromptVibeRef,
-  imageData: string,
+  cache: NovelAIVibeSourceCacheView,
   accounts: NovelAIAccount[],
   options: NovelAIVibeResolveOptions,
 ): Promise<string> {
   const result = await encodeNovelAIVibeWithAccounts(
     accounts,
-    stripDataUrlBase64(imageData),
+    stripDataUrlBase64(cache.imageData as string),
     settings.model,
     vibe.informationExtracted,
     options,
   );
   await saveNovelAIVibeEncodedData(
-    await createCachePayload(vibe),
+    {
+      sourceHash: vibe.sourceHash,
+      fileName: cache.fileName ?? vibe.sourceHash.slice(0, 8),
+    },
     settings.model,
     vibe.informationExtracted,
     result.encodedData,
     result.cacheSecretKey,
   );
   return markVibePersistent(vibe, result.encodedData);
-}
-
-/**
- * 创建 encodedData 缓存写入载荷
- * @param vibe vibe 引用
- * @returns 最小缓存载荷
- */
-async function createCachePayload(vibe: ImagePromptVibeRef): Promise<Pick<ParsedNovelAIVibeFile, 'sourceHash' | 'fileName'>> {
-  return {
-    sourceHash: vibe.sourceHash,
-    fileName: (await getNovelAIVibeFileName(vibe.sourceHash)) ?? vibe.sourceHash.slice(0, 8),
-  };
 }
 
 /**
