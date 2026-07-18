@@ -1,7 +1,6 @@
 import {
   listInlineImageFavoritesBySlot,
 } from '@/services/inline-image/favorites-cache';
-import { removeSlotShortcodeFromMessage } from '@/services/inline-image/slot-bind';
 import {
   parseSlotMarkerLine,
 } from '@/services/inline-image/slot-shortcode';
@@ -140,7 +139,9 @@ async function pickSlotMountForParagraph(
   seen.add(key);
   const records = await listInlineImageFavoritesBySlot(slotId, getCurrentInlineFavoriteScope());
   if (!records.length) {
-    await pruneBareSlotShortcode(marker, slotId);
+    // 多设备/局域网下，其他设备可能存有图片缓存（IndexedDB）。
+    // 在本地未发现图片时，仅将空位短码从当前 DOM 中移除以防显示异常，不可写回服务器清理 raw，以防破坏其他设备的数据。
+    marker.remove();
     return null;
   }
   const element = ensureSlotRenderContainer(marker, slotId);
@@ -258,20 +259,6 @@ function pickTempSessionMount(
     mountKey: { kind: 'temp', tempId: record.tempId },
     anchor,
   };
-}
-
-/**
- * 有码无图时 DOM 摘码并尽可能清理 raw
- * @param paragraph 段落
- * @param slotId 位点
- */
-async function pruneBareSlotShortcode(paragraph: HTMLElement, slotId: string): Promise<void> {
-  paragraph.remove();
-  try {
-    await removeSlotShortcodeFromMessage(paragraph, slotId);
-  } catch (error) {
-    console.warn('[CosmosVision] 清理空位短码 raw 失败', error);
-  }
 }
 
 /**
