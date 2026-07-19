@@ -218,7 +218,7 @@ async function handleThumbnailFileChange(event: Event): Promise<void> {
 }
 
 /**
- * 保存缩略图文件到浏览器缓存
+ * 保存缩略图文件到 SillyTavern 本地文件
  * @param file 缩略图文件
  */
 async function saveThumbnailFile(file: File): Promise<void> {

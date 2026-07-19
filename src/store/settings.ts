@@ -233,6 +233,7 @@ const promptLlmMessagePresetSettingsSchema = promptLlmMessagePresetSettingsBaseS
 
 const cosmosVisionSettingsSchema = z.object({
   enabled: z.boolean(),
+  temporaryImageLimit: z.number().int().positive(),
   imageSource: imageSourceSchema,
   imagePromptPresets: imagePromptPresetSettingsSchema,
   novelai: novelAISettingsSchema,
@@ -344,6 +345,11 @@ function recoverSettings(value: unknown): CosmosVisionSettings {
   const record = toPlainRecord(value);
   return {
     enabled: parseField(z.boolean(), record.enabled, DEFAULT_SETTINGS.enabled),
+    temporaryImageLimit: parseField(
+      z.number().int().positive(),
+      record.temporaryImageLimit,
+      DEFAULT_SETTINGS.temporaryImageLimit,
+    ),
     imageSource: parseField(imageSourceSchema, record.imageSource, DEFAULT_SETTINGS.imageSource),
     imagePromptPresets: recoverImagePromptPresets(record.imagePromptPresets),
     novelai: recoverNovelAISettings(record.novelai),
@@ -415,10 +421,8 @@ function recoverNovelAISettings(value: unknown): NovelAISettings {
   const fallback = DEFAULT_SETTINGS.novelai;
   const { record, read } = createRecoveryReader(value, fallback);
   return {
-    accounts: recoverNovelAIAccounts(record.accounts),
-    routingMode: read('routingMode', novelAIRoutingModeSchema),
-    corsProxy: read('corsProxy', z.string()),
-    novelAIVibePresets: recoverNovelAIVibePresetSettings(record.novelAIVibePresets),
+    accounts: recoverNovelAIAccounts(record.accounts), routingMode: read('routingMode', novelAIRoutingModeSchema),
+    corsProxy: read('corsProxy', z.string()), novelAIVibePresets: recoverNovelAIVibePresetSettings(record.novelAIVibePresets),
     model: read('model', novelAIModelSchema),
     resolutionPreset: read('resolutionPreset', novelAIResolutionPresetSchema),
     width: read('width', novelAIImageSizeSchema),

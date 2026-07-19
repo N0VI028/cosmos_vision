@@ -437,15 +437,15 @@ export function useInlineImageGeneration(
    * @param result 批量生成结果
    * @param session 生成会话
    */
-  function applyGenerationResult(
+  async function applyGenerationResult(
     paragraph: HTMLElement,
     result: InlineGenerationBatchResult,
     session: InlineGenerationSession,
-  ): void {
+  ): Promise<void> {
     generationSession.ensureActive(session);
     session.status.remove();
     for (const imageBlob of result.imageBlobs) {
-      imageGallery.showGenerated(paragraph, {
+      await imageGallery.showGenerated(paragraph, {
         imageBlob,
         promptSnapshot: result.promptSnapshot,
       });

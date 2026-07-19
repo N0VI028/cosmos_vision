@@ -1,10 +1,6 @@
 import type { NovelAIModel } from '@/constants/novelai';
-import {
-  hashArrayBuffer,
-  OFFICIAL_NOVELAI_VIBE_FILE_NAME_PATTERN,
-  sha256Text,
-} from '@/services/novelai/vibe-shared';
-import type { ParsedNovelAIVibeFile } from '@/services/novelai/vibe-types';
+import { hashArrayBuffer, OFFICIAL_NOVELAI_VIBE_FILE_NAME_PATTERN, sha256Text } from '@/services/novelai/vibe-shared';
+import type { ParsedNovelAIVibeEncoding, ParsedNovelAIVibeFile } from '@/services/novelai/vibe-types';
 
 const IMAGE_FILE_NAME_PATTERN = /\.(png|jpe?g|webp|gif)$/i;
 const BASE64_CHUNK_SIZE = 0x8000;
@@ -28,13 +24,18 @@ const OFFICIAL_MODEL_KEY_MAP: Record<NovelAIModel, string> = {
   'nai-diffusion-3': '',
   'nai-diffusion-furry-3': '',
 };
+const OFFICIAL_MODEL_BY_KEY = new Map(
+  Object.entries(OFFICIAL_MODEL_KEY_MAP)
+    .filter(([, key]) => Boolean(key))
+    .map(([model, key]) => [key, model as NovelAIModel]),
+);
 
-interface OfficialVibeEncodingEntry {
+export interface OfficialVibeEncodingEntry {
   encoding: string;
   params?: { information_extracted?: number };
 }
 
-interface OfficialVibeTransferEntry {
+export interface OfficialVibeTransferEntry {
   identifier: string;
   version: 1;
   type: 'image' | 'encoding';
@@ -203,7 +204,20 @@ async function parseImageOrEmbeddedVibeFile(file: File): Promise<ParsedNovelAIVi
  */
 async function parseOfficialVibeTransferText(content: string, file: FileNameCarrier): Promise<ParsedNovelAIVibeFile[]> {
   const entries = parseOfficialVibeJson(content);
-  return Promise.all(entries.map((entry, index) => createOfficialVibePayload(file, entry, index)));
+  return Promise.all(
+    entries.map((entry, index) => createOfficialVibePayload(file, entry, index, JSON.stringify(entry))),
+  );
+}
+
+/**
+ * 读取模型在官方 Vibe 文件中的编码分组 key
+ * @param model NovelAI 模型
+ * @returns 官方编码分组 key
+ */
+export function getOfficialNovelAIVibeModelKey(model: NovelAIModel): string {
+  const key = OFFICIAL_MODEL_KEY_MAP[model];
+  if (!key) throw new Error('当前模型不支持写入官方 Vibe 文件');
+  return key;
 }
 
 /**
@@ -217,19 +231,23 @@ async function createOfficialVibePayload(
   file: FileNameCarrier,
   officialEntry: OfficialVibeTransferEntry,
   index: number,
+  officialFileData?: string,
 ): Promise<ParsedNovelAIVibeFile> {
-  const { cacheSecretKey, entry } = extractOfficialEncodingEntry(officialEntry);
+  const encodings = extractOfficialEncodingEntries(officialEntry);
+  const first = encodings[0];
   return {
-    sourceHash: await resolveOfficialSourceHash(officialEntry, entry),
-    sourceType: 'encoded-vibe',
+    sourceHash: await resolveOfficialSourceHash(officialEntry, first?.entry),
+    sourceType: officialEntry.image ? 'image' : 'encoded-vibe',
     fileName: resolveOfficialFileName(file, officialEntry, index),
     imageData: createOfficialImageData(officialEntry),
-    encodedData: entry.encoding,
-    cacheSecretKey,
+    encodedData: first?.entry.encoding,
+    cacheSecretKey: first?.cacheSecretKey,
     model: officialEntry.importInfo.model,
     referenceStrength: officialEntry.importInfo.strength,
-    informationExtracted: entry.params?.information_extracted ?? officialEntry.importInfo.information_extracted,
+    informationExtracted: first?.entry.params?.information_extracted ?? officialEntry.importInfo.information_extracted,
     thumbnailData: normalizeOfficialThumbnail(officialEntry.thumbnail),
+    officialFileData,
+    encodings: encodings.map(toParsedEncoding),
   };
 }
 
@@ -242,7 +260,12 @@ async function createOfficialVibePayload(
 async function parseImageVibeBuffer(file: File, buffer: ArrayBuffer): Promise<ParsedNovelAIVibeFile> {
   const sourceHash = await hashArrayBuffer(buffer);
   const mime = file.type || 'application/octet-stream';
-  return { sourceHash, sourceType: 'image', fileName: file.name, imageData: `data:${mime};base64,${arrayBufferToBase64(buffer)}` };
+  return {
+    sourceHash,
+    sourceType: 'image',
+    fileName: file.name,
+    imageData: `data:${mime};base64,${arrayBufferToBase64(buffer)}`,
+  };
 }
 
 /**
@@ -338,22 +361,38 @@ function isOfficialImportInfo(value: unknown): value is OfficialVibeTransferEntr
  * @param file 官网 vibe 文件
  * @returns 官网缓存 key 与编码内容
  */
-function extractOfficialEncodingEntry(file: OfficialVibeTransferEntry): { cacheSecretKey: string; entry: OfficialVibeEncodingEntry } {
-  const entries = getOfficialEncodingEntries(file);
-  const [cacheSecretKey, entry] = entries[0] ?? [];
-  if (cacheSecretKey && entry?.encoding) return { cacheSecretKey, entry };
-  throw new Error('官网 .naiv4vibe 文件缺少可用的编码数据');
+function extractOfficialEncodingEntries(file: OfficialVibeTransferEntry): Array<{
+  cacheSecretKey: string;
+  entry: OfficialVibeEncodingEntry;
+  model: NovelAIModel;
+  informationExtracted: number;
+}> {
+  return Object.entries(file.encodings).flatMap(([modelKey, encodings]) => {
+    const model = OFFICIAL_MODEL_BY_KEY.get(modelKey) ?? file.importInfo.model;
+    return Object.entries(encodings)
+      .filter(([, entry]) => Boolean(entry?.encoding))
+      .map(([cacheSecretKey, entry]) => ({
+        cacheSecretKey,
+        entry,
+        model,
+        informationExtracted: entry.params?.information_extracted ?? file.importInfo.information_extracted,
+      }));
+  });
 }
 
-/**
- * 读取官网编码候选
- * @param file 官网 vibe 条目
- * @returns 编码候选列表
- */
-function getOfficialEncodingEntries(file: OfficialVibeTransferEntry): Array<[string, OfficialVibeEncodingEntry]> {
-  const modelKey = OFFICIAL_MODEL_KEY_MAP[file.importInfo.model];
-  const preferred = modelKey ? Object.entries(file.encodings[modelKey] ?? {}) : [];
-  return preferred.length ? preferred : Object.values(file.encodings).flatMap(encodings => Object.entries(encodings));
+/** 将官方 encoding 转为缓存层使用的统一结构 */
+function toParsedEncoding(entry: {
+  cacheSecretKey: string;
+  entry: OfficialVibeEncodingEntry;
+  model: NovelAIModel;
+  informationExtracted: number;
+}): ParsedNovelAIVibeEncoding {
+  return {
+    model: entry.model,
+    informationExtracted: entry.informationExtracted,
+    encodedData: entry.entry.encoding,
+    cacheSecretKey: entry.cacheSecretKey,
+  };
 }
 
 /**
@@ -363,7 +402,11 @@ function getOfficialEncodingEntries(file: OfficialVibeTransferEntry): Array<[str
  * @param index 条目序号
  * @returns 展示名
  */
-function resolveOfficialFileName(file: FileNameCarrier, officialEntry: OfficialVibeTransferEntry, index: number): string {
+function resolveOfficialFileName(
+  file: FileNameCarrier,
+  officialEntry: OfficialVibeTransferEntry,
+  index: number,
+): string {
   return officialEntry.name.trim() || buildIndexedFileName(file, index);
 }
 
@@ -386,11 +429,12 @@ function buildIndexedFileName(file: FileNameCarrier, index: number): string {
  */
 async function resolveOfficialSourceHash(
   officialEntry: OfficialVibeTransferEntry,
-  encodingEntry: OfficialVibeEncodingEntry,
+  encodingEntry?: OfficialVibeEncodingEntry,
 ): Promise<string> {
   if (officialEntry.id) return officialEntry.id;
   if (officialEntry.image) return sha256Text(officialEntry.image);
-  return sha256Text(encodingEntry.encoding);
+  if (encodingEntry?.encoding) return sha256Text(encodingEntry.encoding);
+  return sha256Text(officialEntry.name);
 }
 
 /**

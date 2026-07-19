@@ -2,13 +2,11 @@ import { cloneInlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import type { InlineGalleryItem } from '@/composables/inlineImageGalleryView';
 import {
   deleteInlineImageFavorite,
-  listInlineImageFavoritesBySlot,
   saveInlineImageFavorite,
   type InlineImageFavoriteRecord,
 } from '@/services/inline-image/favorites-cache';
 import {
   ensureSlotShortcodeOnParagraph,
-  removeSlotShortcodeFromMessage,
   resolveParagraphSlotId,
 } from '@/services/inline-image/slot-bind';
 import { newSlotId } from '@/services/inline-image/slot-shortcode';
@@ -22,7 +20,7 @@ export interface GalleryFavoriteHost {
 }
 
 /**
- * 收藏图片：入库绑定 slot；raw 仅保证一枚短码；写 raw 失败保留 IDB
+ * 收藏图片：上传本地文件并绑定 slot；raw 仅保证一枚短码
  * @param group 画廊组
  * @param item 画廊项
  * @param bindSlot 把组升级为 slot 键的回调
@@ -53,7 +51,7 @@ export async function favoriteGalleryItem(
 }
 
 /**
- * 取消收藏：删 IDB；slot 空才去短码
+ * 取消收藏：删除本地文件；slot 空才去短码
  * @param group 画廊组
  * @param item 画廊项
  */
@@ -62,7 +60,7 @@ export async function unfavoriteGalleryItem(group: GalleryFavoriteHost, item: In
   const slotId = item.slotId ?? group.slotId;
   await deleteInlineImageFavorite(item.favoriteId);
   item.favoriteId = null;
-  if (slotId) await maybeRemoveEmptySlotShortcode(group, slotId);
+  item.slotId = slotId;
 }
 
 /**
@@ -74,7 +72,7 @@ export async function deleteFavoriteGalleryItem(group: GalleryFavoriteHost, item
   if (!item.favoriteId) return;
   const slotId = item.slotId ?? group.slotId;
   await deleteInlineImageFavorite(item.favoriteId);
-  if (slotId) await maybeRemoveEmptySlotShortcode(group, slotId);
+  item.slotId = slotId;
 }
 
 /**
@@ -97,7 +95,7 @@ function itemSlotFromGroup(group: GalleryFavoriteHost): string | null {
 }
 
 /**
- * 构建 IndexedDB 收藏记录（仅 scope + slotId + 图 + 快照 + 时间）
+ * 构建收藏文件记录（仅 scope + slotId + 图 + 快照 + 时间）
  * @param group 画廊组
  * @param item 画廊项
  * @param slotId 位点 id
@@ -117,21 +115,4 @@ function buildFavoriteRecord(
     promptSnapshot: cloneInlinePromptSnapshot(item.promptSnapshot),
     createdAt: item.createdAt,
   };
-}
-
-/**
- * slot 下已无收藏图时定点去掉短码
- * @param group 画廊组
- * @param slotId 位点 id
- */
-async function maybeRemoveEmptySlotShortcode(group: GalleryFavoriteHost, slotId: string): Promise<void> {
-  const rest = await listInlineImageFavoritesBySlot(slotId, getCurrentInlineFavoriteScope());
-  if (rest.length > 0) return;
-  const target = group.anchor.paragraph ?? group.anchor.mesId;
-  if (!target) return;
-  try {
-    await removeSlotShortcodeFromMessage(target, slotId);
-  } catch (error) {
-    console.warn('[CosmosVision] 移除空位短码失败', error);
-  }
 }

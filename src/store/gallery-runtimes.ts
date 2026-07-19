@@ -8,19 +8,25 @@ import {
   appendGeneratedSessionItem,
   clearAllGallerySessions,
   createSessionItemId,
+  persistGallerySessionItem,
+  removeSessionItemsByIds,
+  restoreGallerySessions,
   type GallerySessionItem,
   type GallerySessionRecord,
 } from '@/composables/inlineGallerySession';
 import type { InlineGeneratedImageResult } from '@/composables/inlineImageGeneratedResult';
 import {
+  ensureSlotRenderContainerForParagraph,
   findRenderContainerAfter,
   removeRenderContainer,
 } from '@/services/inline-image/cv-render-container';
 import { getCurrentInlineFavoriteScope } from '@/services/sillytavern/chat-context';
-import { consumeSilentMessageWrite } from '@/services/inline-image/message-raw';
+import { ensureSlotShortcodeOnParagraph, resolveParagraphSlotId } from '@/services/inline-image/slot-bind';
+import { newSlotId } from '@/services/inline-image/slot-shortcode';
 import type { InlineFavoriteAnchor } from '@/services/sillytavern/chat-dom';
 import { event_types, eventSource } from '@sillytavern/script';
 import { useSettingsStore } from '@/store/settings';
+import { pruneTemporaryImages } from '@/services/inline-image/temporary-images';
 
 /** 单画廊 mount 运行时 */
 export interface GalleryMountRuntime {
@@ -72,19 +78,12 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
   let started = false;
   let chain: Promise<void> = Promise.resolve();
 
-  const onChatChanged = () => {
-    // ST 换聊会先 CHAT_CHANGED；DOM 全量扫留给 chatLoaded / 单楼事件（TH 同款）
-    clearAllGallerySessions();
-    clearRuntimesOnly();
-  };
-  const onChatLoaded = () => scheduleJob({ kind: 'rerenderAll', clearSessions: true });
+  const onChatLoaded = () => scheduleRestore();
   const onMoreMessages = () => scheduleJob({ kind: 'audit' });
   const onMessageDeleted = () => scheduleJob({ kind: 'audit' });
   const onMessageFloor = (messageId: unknown) => {
     const id = normalizeMessageId(messageId);
     if (id === null) return;
-    const silentWrite = consumeSilentMessageWrite(id);
-    if (silentWrite) return;
     scheduleJob({ kind: 'floor', messageId: id });
   };
 
@@ -94,6 +93,22 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
       if (!started || disposed) return;
       if (enabled) scheduleJob({ kind: 'rerenderAll', clearSessions: false });
       else clearRuntimesOnly();
+    },
+  );
+
+  watch(
+    () => settingsStore.savedSettings.temporaryImageLimit,
+    limit => {
+      if (!started || disposed) return;
+      void pruneTemporaryImages(limit)
+        .then(removedIds => {
+          removeSessionItemsByIds(removedIds);
+          scheduleJob(removedIds.length ? { kind: 'rerenderAll', clearSessions: false } : { kind: 'audit' });
+        })
+        .catch(error => {
+          console.error('[CosmosVision] 临时图片数量清理失败', error);
+          toastr.error('临时图片数量清理失败');
+        });
     },
   );
 
@@ -121,7 +136,7 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
     started = true;
     disposed = false;
     bindEvents();
-    scheduleJob({ kind: 'rerenderAll', clearSessions: false });
+    scheduleRestore();
   }
 
   /**
@@ -164,18 +179,52 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
    * @param paragraph 锚点段落
    * @param result 生成结果
    */
-  function showGenerated(paragraph: HTMLElement, result: InlineGeneratedImageResult): void {
+  async function showGenerated(paragraph: HTMLElement, result: InlineGeneratedImageResult): Promise<void> {
     if (disposed || !settingsStore.savedSettings.enabled) return;
+    const slotId = resolveParagraphSlotId(paragraph) ?? newSlotId();
+    await ensureSlotShortcodeOnParagraph(paragraph, slotId);
     const item: GallerySessionItem = {
       id: createSessionItemId(),
       favoriteId: null,
-      slotId: null,
+      slotId,
       imageBlob: result.imageBlob,
       promptSnapshot: result.promptSnapshot,
       createdAt: Date.now(),
     };
-    const session = appendGeneratedSessionItem(paragraph, item);
+    const session = appendGeneratedSessionItem(slotId, item);
+    ensureSlotRenderContainerForParagraph(paragraph, slotId);
     upsertSessionMount(session, paragraph);
+    const scope = getCurrentInlineFavoriteScope();
+    if (!scope) {
+      console.warn('[CosmosVision] 当前聊天不可用，临时图片仅保留在内存中');
+      return;
+    }
+    void persistGallerySessionItem(session, item, scope, settingsStore.savedSettings.temporaryImageLimit)
+      .then(removedIds => removePrunedMounts(removedIds))
+      .catch(error => {
+        console.error('[CosmosVision] 临时图片持久化失败', error);
+        toastr.error('临时图片保存失败');
+      });
+  }
+
+  /** 从 IndexedDB 恢复当前聊天临时图片 */
+  function scheduleRestore(): void {
+    void enqueue(async () => {
+      const scope = getCurrentInlineFavoriteScope();
+      clearAllGallerySessions();
+      await pruneTemporaryImages(settingsStore.savedSettings.temporaryImageLimit);
+      if (scope) await restoreGallerySessions(scope);
+      await runJob({ kind: 'rerenderAll', clearSessions: false });
+    });
+  }
+
+  /**
+   * 移除因数量限制被淘汰的运行时挂载
+   * @param removedIds 被淘汰图片 ID
+   */
+  function removePrunedMounts(removedIds: string[]): void {
+    if (!removedIds.length) return;
+    scheduleJob({ kind: 'rerenderAll', clearSessions: false });
   }
 
   /**
@@ -195,8 +244,7 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
    * 绑定 ST 聊天事件
    */
   function bindEvents(): void {
-    // 对标 TH：全量靠 chatLoaded；CHAT_CHANGED 只清会话，避免与随后 RENDERED 叠扫
-    eventSource.makeLast(event_types.CHAT_CHANGED, onChatChanged);
+    // 对标 TH：全量靠 chatLoaded，不监听 CHAT_CHANGED 以防御重复清空问题
     eventSource.makeLast('chatLoaded', onChatLoaded);
     eventSource.makeLast(event_types.MORE_MESSAGES_LOADED, onMoreMessages);
     eventSource.makeLast(event_types.MESSAGE_DELETED, onMessageDeleted);
@@ -214,7 +262,6 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
    * 解除全部事件
    */
   function unbindEvents(): void {
-    eventSource.removeListener(event_types.CHAT_CHANGED, onChatChanged);
     eventSource.removeListener('chatLoaded', onChatLoaded);
     eventSource.removeListener(event_types.MORE_MESSAGES_LOADED, onMoreMessages);
     eventSource.removeListener(event_types.MESSAGE_DELETED, onMessageDeleted);
@@ -360,19 +407,6 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
   }
 
   /**
-   * 将临时画廊 mount 原地升级为收藏 slot，避免整层重扫导致聊天 DOM 闪烁
-   * @param key 当前 mount 键
-   * @param messageId 楼层 id
-   * @param slotId 收藏位点 id
-   */
-  function rekeyMountToSlot(key: string, messageId: number, slotId: string): void {
-    const runtime = runtimes.value.find(item => item.message_id === messageId);
-    const mount = runtime?.mounts.find(item => item.key === key);
-    if (!runtime || !mount || mount.mountKey.kind === 'slot') return;
-    mount.mountKey = { kind: 'slot', slotId };
-  }
-
-  /**
    * 摘掉空 mount 并可能移除空壳容器
    * @param key mount key
    * @param messageId 楼层
@@ -404,7 +438,6 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
     showGenerated,
     getHost,
     removeMount,
-    rekeyMountToSlot,
   };
 });
 

@@ -5,11 +5,10 @@ import {
   unfavoriteGalleryItem,
 } from '@/composables/inlineImageGalleryFavorite';
 import {
-  buildSlotSessionKey,
+  deletePersistedSessionItem,
   listSlotSessionItems,
-  listTempSessionItems,
   patchSessionItem,
-  rekeyTempSessionToSlot,
+  persistExistingSessionItem,
   removeSessionItem,
   appendGeneratedSessionItem,
   type GallerySessionItem,
@@ -19,15 +18,14 @@ import {
   type InlineImageFavoriteListItem,
 } from '@/services/inline-image/favorites-cache';
 import { getCurrentInlineFavoriteScope } from '@/services/sillytavern/chat-context';
-import {
-  rekeyRenderContainerToSlot,
-} from '@/services/inline-image/cv-render-container';
+import { removeSlotShortcodeFromMessage } from '@/services/inline-image/slot-bind';
 import type { GalleryMountRuntime } from '@/store/gallery-runtimes';
 import { useGalleryRuntimesStore } from '@/store/gallery-runtimes';
+import { useSettingsStore } from '@/store/settings';
 import type { InlineFavoriteAnchor } from '@/services/sillytavern/chat-dom';
 
 /**
- * 解析 mount 的画廊项列表（IDB favorites + 会话临时覆盖层）
+ * 解析 mount 的画廊项列表（本地文件收藏 + 会话临时覆盖层）
  * @param mount 运行时 mount
  * @param objectUrls 由调用方持有的 URL 集合，便于卸载释放
  * @returns 画廊项
@@ -36,10 +34,7 @@ export async function loadMountGalleryItems(
   mount: GalleryMountRuntime,
   objectUrls: Set<string>,
 ): Promise<InlineGalleryItem[]> {
-  if (mount.mountKey.kind === 'slot') {
-    return loadSlotMountItems(mount.mountKey.slotId, objectUrls);
-  }
-  return loadTempMountItems(mount.mountKey.tempId, objectUrls);
+  return loadSlotMountItems(mount.mountKey.slotId, objectUrls);
 }
 
 /**
@@ -56,21 +51,28 @@ export async function toggleMountFavorite(
   const host = buildFavoriteHost(mount, items);
   if (typeof item.favoriteId === 'number') {
     const favoriteId = item.favoriteId;
-    await unfavoriteGalleryItem(host, item);
-    ensureUnfavoritedItemInSession(mount, item, favoriteId);
+    const staged = await stageUnfavoriteSessionItem(mount, item, favoriteId);
+    try {
+      await unfavoriteGalleryItem(host, item);
+      await finalizeUnfavoriteSessionItem(staged.key, staged.itemId);
+    } catch (error) {
+      item.favoriteId = favoriteId;
+      patchSessionItem(staged.key, staged.itemId, { favoriteId });
+      throw error;
+    }
     toastr.success('已取消收藏');
     return;
   }
-  await favoriteAndUpgradeMount(mount, item, host);
+  await favoriteMountItem(mount, item, host);
 }
 
 /**
- * 收藏成功后写回 session，并在 temp→slot 时原地更新 mount
+ * 收藏成功后写回 slot 会话
  * @param mount 运行时
  * @param item 画廊项
  * @param host favorite host
  */
-async function favoriteAndUpgradeMount(
+async function favoriteMountItem(
   mount: GalleryMountRuntime,
   item: InlineGalleryItem,
   host: {
@@ -79,66 +81,93 @@ async function favoriteAndUpgradeMount(
     items: InlineGalleryItem[];
   },
 ): Promise<void> {
-  let upgradedSlotId: string | null = null;
-  const bound = await favoriteGalleryItem(host, item, slotId => {
-    upgradedSlotId = slotId;
-    rekeyRenderContainerToSlot(mount.element, slotId);
-    if (mount.mountKey.kind === 'temp') {
-      rekeyTempSessionToSlot(mount.mountKey.tempId, slotId);
-    }
-  });
-  if (bound) toastr.success('已收藏图片，将存储于浏览器中');
-  const sessionKey = upgradedSlotId ? buildSlotSessionKey(upgradedSlotId) : mount.key;
-  patchSessionItem(sessionKey, item.id, {
+  const bound = await favoriteGalleryItem(host, item, () => undefined);
+  if (bound) toastr.success('已收藏图片，将存储于 SillyTavern 本地文件');
+  patchSessionItem(mount.key, item.id, {
     favoriteId: item.favoriteId,
-    slotId: item.slotId,
     createdAt: item.createdAt,
   });
-  if (upgradedSlotId) {
-    useGalleryRuntimesStore().rekeyMountToSlot(mount.key, mount.messageId, upgradedSlotId);
-  }
+  await deletePersistedSessionItem(item.id);
 }
 
 /**
- * 取消收藏后把图保留在会话层，避免 reload 后消失
+ * 取消收藏前把图片暂存到会话层
  * @param mount 运行时
  * @param item 画廊项
  * @param favoriteId 取消前的收藏记录 id
+ * @returns 暂存会话位置
  */
-function ensureUnfavoritedItemInSession(
+async function stageUnfavoriteSessionItem(
   mount: GalleryMountRuntime,
   item: InlineGalleryItem,
   favoriteId: number,
-): void {
-  item.favoriteId = null;
-  const paragraph = mount.anchor.paragraph;
-  if (!paragraph) {
-    patchSessionItem(mount.key, item.id, { favoriteId: null });
-    return;
-  }
-  const sessionItem: GallerySessionItem = {
-    id: item.id,
-    favoriteId: null,
-    slotId: item.slotId,
-    imageBlob: item.imageBlob,
-    promptSnapshot: item.promptSnapshot,
-    createdAt: item.createdAt,
-  };
-  // 优先复用收藏前的临时会话项，防止收藏/取消后同图被追加为副本。
-  const sessionItems =
-    mount.mountKey.kind === 'slot'
-      ? listSlotSessionItems(mount.mountKey.slotId)
-      : listTempSessionItems(mount.mountKey.tempId);
-  const existing = sessionItems.find(candidate => candidate.favoriteId === favoriteId);
+): Promise<{ key: string; itemId: string }> {
+  const existing = findPreviousSessionItem(mount, favoriteId);
   if (existing) {
-    patchSessionItem(mount.key, existing.id, { favoriteId: null });
-    return;
+    patchSessionItem(mount.key, existing.id, { favoriteId, createdAt: Date.now() });
+    await persistUnfavoritedSessionItem(mount.key, existing.id);
+    return { key: mount.key, itemId: existing.id };
   }
-  appendGeneratedSessionItem(paragraph, sessionItem);
+  const sessionItem = createUnfavoritedSessionItem(item, mount.mountKey.slotId, favoriteId);
+  const session = appendGeneratedSessionItem(mount.mountKey.slotId, sessionItem);
+  await persistUnfavoritedSessionItem(session.key, sessionItem.id);
+  return { key: session.key, itemId: sessionItem.id };
 }
 
 /**
- * 移除画廊项（收藏删 IDB；临时仅会话）
+ * 把暂存项切换为未收藏
+ * @param key 会话键
+ * @param itemId 图片 ID
+ */
+async function finalizeUnfavoriteSessionItem(key: string, itemId: string): Promise<void> {
+  patchSessionItem(key, itemId, { favoriteId: null });
+  await persistUnfavoritedSessionItem(key, itemId);
+}
+
+/**
+ * 查找收藏前保留的临时会话项
+ * @param mount 运行时
+ * @param favoriteId 收藏 ID
+ * @returns 会话项或 undefined
+ */
+function findPreviousSessionItem(mount: GalleryMountRuntime, favoriteId: number): GallerySessionItem | undefined {
+  return listSlotSessionItems(mount.mountKey.slotId)
+    .find(candidate => candidate.favoriteId === favoriteId);
+}
+
+/**
+ * 创建取消收藏后的临时会话项
+ * @param item 画廊项
+ * @param slotId 短码位点
+ * @param favoriteId 取消前的收藏记录 id
+ * @returns 临时会话项
+ */
+function createUnfavoritedSessionItem(item: InlineGalleryItem, slotId: string, favoriteId: number): GallerySessionItem {
+  return {
+    id: item.id,
+    favoriteId,
+    slotId,
+    imageBlob: item.imageBlob,
+    promptSnapshot: item.promptSnapshot,
+    createdAt: Date.now(),
+  };
+}
+
+/**
+ * 将取消收藏后的图片重新写入临时仓储
+ * @param key 会话键
+ * @param itemId 图片 ID
+ */
+async function persistUnfavoritedSessionItem(key: string, itemId: string): Promise<void> {
+  const scope = getCurrentInlineFavoriteScope();
+  if (!scope) throw new Error('当前角色或聊天未就绪，无法保存临时图片');
+  const limit = useSettingsStore().savedSettings.temporaryImageLimit;
+  const persisted = await persistExistingSessionItem(key, itemId, scope, limit);
+  if (!persisted) throw new Error('临时图片已被数量限制清理，请重试取消收藏');
+}
+
+/**
+ * 移除画廊项（收藏删除本地文件；临时删除浏览器记录）
  * @param mount 运行时
  * @param item 项
  * @param items 当前 items
@@ -152,8 +181,10 @@ export async function removeMountItem(
   const host = buildFavoriteHost(mount, items);
   if (item.favoriteId) await deleteFavoriteGalleryItem(host, item);
   const remaining = items.filter(candidate => candidate.id !== item.id);
-  removeSessionItem(mount.key, item.id);
+  await removeSessionItem(mount.key, item.id);
   if (!remaining.length) {
+    const target = mount.anchor.paragraph ?? mount.messageId;
+    await removeSlotShortcodeFromMessage(target, mount.mountKey.slotId);
     useGalleryRuntimesStore().removeMount(mount.key, mount.messageId);
     return false;
   }
@@ -245,18 +276,6 @@ async function loadSlotMountItems(
 }
 
 /**
- * 加载 temp 画廊
- * @param tempId 临时 id
- * @param objectUrls URL 集合
- * @returns items
- */
-function loadTempMountItems(tempId: string, objectUrls: Set<string>): InlineGalleryItem[] {
-  return sortGalleryItems(
-    listTempSessionItems(tempId).map(item => sessionItemToGalleryItem(item, objectUrls)),
-  );
-}
-
-/**
  * IDB 记录 → 画廊项
  * @param record 收藏
  * @param slotId 位点
@@ -314,9 +333,7 @@ function buildFavoriteHost(
   anchor: InlineFavoriteAnchor;
   items: InlineGalleryItem[];
 } {
-  const slotId =
-    mount.mountKey.kind === 'slot' ? mount.mountKey.slotId : (items.find(i => i.slotId)?.slotId ?? null);
-  return { slotId, anchor: mount.anchor, items };
+  return { slotId: mount.mountKey.slotId, anchor: mount.anchor, items };
 }
 
 /**

@@ -1,13 +1,12 @@
 import { getTavernHelper } from '@/services/tavern-helper/availability';
+import { name2 } from '@sillytavern/script';
 
 /**
  * 获取当前角色绑定 key
  * @returns 当前角色名或 null
  */
 export function getCurrentCharacterKey(): string | null {
-  const tavernHelper = getTavernHelper({ silent: true });
-  const characterName = tavernHelper?.getCurrentCharacterName?.();
-  return normalizeBindingKey(characterName);
+  return normalizeBindingKey(name2);
 }
 
 /**

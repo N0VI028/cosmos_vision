@@ -17,6 +17,13 @@
             option-value="value"
           />
         </label>
+        <label class="cv-field">
+          <span>临时图片最大数量</span>
+          <div class="cv-field-control">
+            <InputNumber v-model="settings.temporaryImageLimit" :min="1" :step="1" :use-grouping="false" />
+            <div class="cv-field-hint">未收藏的临时图片仅存储于浏览器中，超过上限后按创建时间自动删除最旧图片。</div>
+          </div>
+        </label>
       </div>
 
       <h2 class="cv-section-title flex items-center justify-between">
@@ -215,7 +222,7 @@ async function deleteSelectedVibes(hashes: string[]): Promise<void> {
   if (!hashes.length) return;
   const confirmed = await confirmDangerAction(
     '删除选中 vibe 数据',
-    `确定要删除选中的 ${hashes.length} 个 vibe 浏览器缓存吗？预设引用会保留并显示为失效。`,
+    `确定要删除选中的 ${hashes.length} 个 Vibe 本地文件吗？预设引用会保留并显示为失效。`,
     '删除',
   );
   if (!confirmed) return;
@@ -227,14 +234,14 @@ async function deleteSelectedVibes(hashes: string[]): Promise<void> {
 }
 
 /**
- * 删除单行 vibe 浏览器缓存
+ * 删除单行 Vibe 本地文件
  * @param row vibe 列表行
  */
 async function deleteVibe(row: NovelAIVibeCacheListItem): Promise<void> {
   const fileName = row.fileName;
   const confirmed = await confirmDangerAction(
     '删除 vibe 数据',
-    `确定要删除“${fileName}”的浏览器缓存吗？预设引用会保留并显示为失效。`,
+    `确定要删除“${fileName}”的本地文件吗？预设引用会保留并显示为失效。`,
     '删除',
   );
   if (!confirmed) return;

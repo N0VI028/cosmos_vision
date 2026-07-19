@@ -1,7 +1,7 @@
 import '@sillytavern/lib/jszip.min';
 
 import { triggerBrowserDownload } from '@/services/browser-download';
-import { generateOfficialNovelAIVibeFile } from '@/services/novelai/vibe-official-file';
+import { readSillyTavernFileBlob } from '@/services/sillytavern/files';
 import type { NovelAIVibeDownloadPayload } from '@/services/novelai/vibe-types';
 
 interface DownloadZipArchive {
@@ -20,8 +20,8 @@ const DownloadJSZip = JSZip as unknown as DownloadZipConstructor;
  * @param payload 下载载荷
  */
 export async function downloadNovelAIVibe(payload: NovelAIVibeDownloadPayload): Promise<void> {
-  const file = await generateOfficialNovelAIVibeFile(payload);
-  triggerBrowserDownload(file.blob, file.fileName);
+  if (!payload.filePath) throw new Error('当前 Vibe 缺少官方文件路径');
+  triggerBrowserDownload(await readSillyTavernFileBlob(payload.filePath), getDownloadFileName(payload.fileName));
 }
 
 /**
@@ -29,11 +29,22 @@ export async function downloadNovelAIVibe(payload: NovelAIVibeDownloadPayload): 
  * @param payloads 下载载荷列表
  */
 export async function downloadAllNovelAIVibes(payloads: NovelAIVibeDownloadPayload[]): Promise<void> {
-  const files = await Promise.all(payloads.map(generateOfficialNovelAIVibeFile));
+  const files = await Promise.all(payloads.map(readDownloadFile));
   const zip = new DownloadJSZip();
   const usedPaths = new Set<string>();
   files.forEach(file => zip.file(getUniquePath(file.fileName, usedPaths), file.blob));
   triggerBrowserDownload(await zip.generateAsync({ type: 'blob' }), 'cosmos-vision-vibes.zip');
+}
+
+/** 读取本地官方 Vibe 文件用于下载 */
+async function readDownloadFile(payload: NovelAIVibeDownloadPayload): Promise<{ blob: Blob; fileName: string }> {
+  if (!payload.filePath) throw new Error(`Vibe 文件路径缺失：${payload.fileName}`);
+  return { blob: await readSillyTavernFileBlob(payload.filePath), fileName: getDownloadFileName(payload.fileName) };
+}
+
+/** 统一生成官方 Vibe 下载文件名 */
+function getDownloadFileName(fileName: string): string {
+  return /\.naiv4vibe(?:\.json)?$/i.test(fileName) ? fileName : `${fileName}.naiv4vibe.json`;
 }
 
 /**

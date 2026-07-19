@@ -6,8 +6,6 @@ import { findMessageId } from '@/services/sillytavern/chat-dom';
 export const CV_RENDER_CLASS = 'cv-render';
 /** slot 位点 data 属性 */
 export const CV_SLOT_ATTR = 'data-cv-slot';
-/** 临时画廊 data 属性 */
-export const CV_TEMP_ATTR = 'data-cv-temp';
 /** 归属楼层 data 属性 */
 export const CV_MESID_ATTR = 'data-cv-mesid';
 /** 独立短码 marker class */
@@ -23,8 +21,29 @@ export function ensureSlotRenderContainer(marker: HTMLElement, slotId: string): 
   marker.classList.add(CV_SLOT_MARKER_CLASS);
   marker.hidden = true;
   const element = ensureAfterContainer(marker, CV_SLOT_ATTR, slotId);
-  element.removeAttribute(CV_TEMP_ATTR);
   return element;
+}
+
+/**
+ * 确保段落后存在 slot marker 与画廊容器
+ * @param paragraph 宿主段落
+ * @param slotId 位点 id
+ * @returns 承载容器
+ */
+export function ensureSlotRenderContainerForParagraph(paragraph: HTMLElement, slotId: string): HTMLElement {
+  const existing = findRenderContainerAfter(paragraph);
+  if (existing) {
+    existing.setAttribute(CV_SLOT_ATTR, slotId);
+    return existing;
+  }
+  const next = paragraph.nextElementSibling;
+  if (next instanceof HTMLElement && next.textContent?.trim() === encodeSlotShortcode(slotId)) {
+    return ensureSlotRenderContainer(next, slotId);
+  }
+  const marker = document.createElement('p');
+  marker.textContent = encodeSlotShortcode(slotId);
+  paragraph.after(marker);
+  return ensureSlotRenderContainer(marker, slotId);
 }
 
 /**
@@ -38,44 +57,6 @@ export function removeRenderContainer(element: Element): void {
     marker.classList.remove(CV_SLOT_MARKER_CLASS);
   }
   element.remove();
-}
-
-/**
- * 确保段落后存在临时画廊容器
- * @param paragraph 宿主段落
- * @param tempId 临时键
- * @returns 承载容器
- */
-export function ensureTempRenderContainer(paragraph: HTMLElement, tempId: string): HTMLElement {
-  const element = ensureAfterContainer(paragraph, CV_TEMP_ATTR, tempId);
-  element.removeAttribute(CV_SLOT_ATTR);
-  return element;
-}
-
-/**
- * 把已有临时容器升级为 slot 容器
- * @param element 当前容器
- * @param slotId 位点 id
- */
-export function rekeyRenderContainerToSlot(element: HTMLElement, slotId: string): void {
-  ensureMarkerBeforeContainer(element, slotId);
-  element.setAttribute(CV_SLOT_ATTR, slotId);
-  element.removeAttribute(CV_TEMP_ATTR);
-}
-
-/**
- * 临时画廊晋升时补齐独立短码 marker
- * @param element 当前容器
- * @param slotId 位点 id
- */
-function ensureMarkerBeforeContainer(element: HTMLElement, slotId: string): void {
-  const previous = element.previousElementSibling;
-  if (previous instanceof HTMLElement && previous.classList.contains(CV_SLOT_MARKER_CLASS)) return;
-  const marker = document.createElement('p');
-  marker.textContent = encodeSlotShortcode(slotId);
-  marker.classList.add(CV_SLOT_MARKER_CLASS);
-  marker.hidden = true;
-  element.before(marker);
 }
 
 /**
@@ -122,7 +103,7 @@ function ensureAfterContainer(paragraph: HTMLElement, attr: string, value: strin
     writeMesId(existing, paragraph);
     return existing;
   }
-  const claimable = findClaimableContainer(paragraph, attr);
+  const claimable = findClaimableContainer(paragraph);
   if (claimable) {
     claimable.setAttribute(attr, value);
     writeMesId(claimable, paragraph);
@@ -151,17 +132,12 @@ function createRenderContainer(paragraph: HTMLElement, attr: string, value: stri
 /**
  * 查找同段可升级复用的 cv-render（避免 temp/slot 各建一个）
  * @param paragraph 宿主段落
- * @param attr 目标属性
  * @returns 可复用容器或 null
  */
-function findClaimableContainer(paragraph: HTMLElement, attr: string): HTMLElement | null {
+function findClaimableContainer(paragraph: HTMLElement): HTMLElement | null {
   const next = findRenderContainerAfter(paragraph);
   if (!next) return null;
-  // slot 升级可吃掉 temp；temp 不得降级吃 slot
-  if (attr === CV_SLOT_ATTR && next.hasAttribute(CV_TEMP_ATTR) && !next.hasAttribute(CV_SLOT_ATTR)) {
-    return next;
-  }
-  if (!next.hasAttribute(CV_SLOT_ATTR) && !next.hasAttribute(CV_TEMP_ATTR)) return next;
+  if (!next.hasAttribute(CV_SLOT_ATTR)) return next;
   return null;
 }
 

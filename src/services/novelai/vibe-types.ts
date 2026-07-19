@@ -3,6 +3,14 @@ import type { NovelAIModel } from '@/constants/novelai';
 /** NovelAI vibe 缓存来源类型 */
 export type NovelAIVibeSourceType = 'image' | 'encoded-vibe';
 
+/** 官方文件中的单条 encoding 数据 */
+export interface ParsedNovelAIVibeEncoding {
+  model: NovelAIModel;
+  informationExtracted: number;
+  encodedData: string;
+  cacheSecretKey?: string;
+}
+
 /** NovelAI vibe 文件解析结果 */
 export interface ParsedNovelAIVibeFile {
   sourceHash: string;
@@ -15,6 +23,8 @@ export interface ParsedNovelAIVibeFile {
   referenceStrength?: number;
   informationExtracted?: number;
   thumbnailData?: string;
+  officialFileData?: string;
+  encodings?: ParsedNovelAIVibeEncoding[];
 }
 
 /** NovelAI vibe IndexedDB 缓存记录 */
@@ -67,6 +77,7 @@ export interface NovelAIVibeDownloadPayload {
   informationExtracted: number;
   referenceStrength: number;
   thumbnailData?: string;
+  filePath?: string;
 }
 
 /** NovelAI 官方请求中的 vibe 三组数组 */

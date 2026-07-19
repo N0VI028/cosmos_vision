@@ -66,9 +66,7 @@ async function onForceDeleteShortcode(): Promise<void> {
   if (!settingsStore.savedSettings.enabled) return;
   try {
     const target = props.mount.anchor.paragraph ?? props.mount.messageId;
-    if (target && props.mount.mountKey.kind === 'slot') {
-      await removeSlotShortcodeFromMessage(target, props.mount.mountKey.slotId);
-    }
+    if (target) await removeSlotShortcodeFromMessage(target, props.mount.mountKey.slotId);
     removeMount(props.mount.key, props.mount.messageId);
     toastr.success('已成功移除失效短码并清理占位符');
   } catch (error) {
@@ -141,6 +139,13 @@ watch(
     if (item) appendGeneratedItem(item);
   },
 );
+
+onBeforeMount(() => {
+  // 移除该容器下已经存在的其他画廊元素，防止因为重复挂载而产生多余画廊（与酒馆助手逻辑一致）
+  const element = props.mount.element;
+  const existing = element.querySelectorAll('.cv-inline-img-wrap');
+  existing.forEach(el => el.remove());
+});
 
 void reloadItems();
 onUnmounted(() => {

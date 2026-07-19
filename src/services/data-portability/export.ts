@@ -100,7 +100,11 @@ function createSectionBuilders(
   darkMode: boolean,
 ): Record<DataPortabilitySectionId, () => Promise<unknown> | unknown> {
   return {
-    basicSettings: () => ({ enabled: settings.enabled, imageSource: settings.imageSource }),
+    basicSettings: () => ({
+      enabled: settings.enabled,
+      temporaryImageLimit: settings.temporaryImageLimit,
+      imageSource: settings.imageSource,
+    }),
     novelAISettings: () => stripNovelAISecrets(settings.novelai),
     novelAISecrets: () => ({ accounts: settings.novelai.accounts.map(account => ({ ...account })) }),
     comfyUISettings: () => _.cloneDeep(settings.comfyui),

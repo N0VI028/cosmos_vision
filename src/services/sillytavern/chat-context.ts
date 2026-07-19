@@ -9,7 +9,8 @@ import { getCurrentChatId } from '@sillytavern/script';
 export function getCurrentInlineFavoriteScope(): InlineImageFavoriteScope | null {
   const characterKey = getCurrentCharacterKey();
   const chatId = normalizeScopeKey(getCurrentChatId());
-  return characterKey && chatId ? { characterKey, chatId } : null;
+  if (!chatId) return null;
+  return { characterKey: characterKey ?? '__cosmos_vision_current_character__', chatId };
 }
 
 /**

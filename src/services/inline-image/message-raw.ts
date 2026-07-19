@@ -1,8 +1,5 @@
 import { getOptionalTavernHelper } from '@/services/tavern-helper/availability';
 
-const SILENT_WRITE_TTL_MS = 2000;
-const silentMessageWrites = new Map<number, number>();
-
 type ChatMessageReader = {
   getChatMessages: (
     range: string | number,
@@ -46,25 +43,7 @@ export async function writeChatMessageRaw(
   if (!helper) throw new Error('酒馆助手不可用，无法写入消息短码');
   const id = normalizeMessageId(messageId);
   if (id === null) throw new Error('消息楼层 ID 无效');
-  if (refresh === 'none') silentMessageWrites.set(id, Date.now() + SILENT_WRITE_TTL_MS);
-  try {
-    await helper.setChatMessages([{ message_id: id, message }], { refresh });
-  } catch (error) {
-    silentMessageWrites.delete(id);
-    throw error;
-  }
-}
-
-/**
- * 消费一次静默 raw 写入产生的楼层更新事件
- * @param messageId 楼层 ID
- * @returns 是否应跳过运行时重扫
- */
-export function consumeSilentMessageWrite(messageId: number): boolean {
-  const expiresAt = silentMessageWrites.get(messageId);
-  silentMessageWrites.delete(messageId);
-  const consumed = typeof expiresAt === 'number' && expiresAt >= Date.now();
-  return consumed;
+  await helper.setChatMessages([{ message_id: id, message }], { refresh });
 }
 /**
  * 读取可调用消息读写 API 的 TavernHelper

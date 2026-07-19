@@ -252,7 +252,12 @@ async function importSection(section: DataPortabilitySectionId, payload: unknown
  */
 function createSectionImporters(result: DataImportResult): Record<DataPortabilitySectionId, (payload: unknown) => Promise<void> | void> {
   return {
-    basicSettings: payload => assignObjectSection(result.settings, payload, ['enabled', 'imageSource'], result),
+    basicSettings: payload => assignObjectSection(
+      result.settings,
+      payload,
+      ['enabled', 'temporaryImageLimit', 'imageSource'],
+      result,
+    ),
     novelAISettings: payload => mergeNovelAISettings(result.settings.novelai, payload, result),
     novelAISecrets: payload => mergeObject(result.settings.novelai, payload, result),
     comfyUISettings: payload => mergeObject(result.settings.comfyui, payload, result),

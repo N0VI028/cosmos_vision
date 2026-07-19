@@ -1,10 +1,18 @@
-import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
+import { uuidv4 } from '@sillytavern/scripts/utils';
 
-const DB_NAME = 'cosmos-vision-inline-image-favorites';
-const STORE_NAME = 'favorites';
-const DB_VERSION = 3;
-const SCOPE_INDEX = 'scope';
-const SLOT_ID_INDEX = 'slotId';
+import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
+import {
+  blobToBase64,
+  deleteSillyTavernFile,
+  readSillyTavernFileBlobOrNull,
+  readSillyTavernJson,
+  uploadSillyTavernFile,
+  uploadSillyTavernJson,
+} from '@/services/sillytavern/files';
+
+const FAVORITE_MANIFEST_NAME = 'CV-favorites.json';
+const FAVORITE_MANIFEST_PATH = `/user/files/${FAVORITE_MANIFEST_NAME}`;
+const FAVORITE_MANIFEST_VERSION = 1;
 
 export interface InlineImageFavoriteScope {
   characterKey: string;
@@ -13,14 +21,13 @@ export interface InlineImageFavoriteScope {
 
 export interface InlineImageFavoriteRecord extends InlineImageFavoriteScope {
   id?: number;
-  /** 段落位点短码 id（画廊锚点） */
   slotId: string;
   imageBlob: Blob;
   promptSnapshot: InlinePromptSnapshot;
   createdAt: number;
 }
 
-export type InlineImageFavoriteListItem = InlineImageFavoriteRecord & { id: number };
+export type InlineImageFavoriteListItem = InlineImageFavoriteRecord & { id: number; filePath: string };
 
 export interface InlineImageFavoriteGroup extends InlineImageFavoriteScope {
   id: string;
@@ -29,320 +36,276 @@ export interface InlineImageFavoriteGroup extends InlineImageFavoriteScope {
   records: InlineImageFavoriteListItem[];
 }
 
+interface FavoriteManifestEntry extends InlineImageFavoriteScope {
+  id: number;
+  slotId: string;
+  filePath: string;
+  promptSnapshot: InlinePromptSnapshot;
+  createdAt: number;
+}
+
+interface FavoriteManifest {
+  version: 1;
+  records: FavoriteManifestEntry[];
+}
+
+let manifestWriteQueue = Promise.resolve();
+
 /**
  * 保存单张段落图片收藏记录
  * @param record 待保存的收藏记录
- * @returns IndexedDB 自增收藏 ID
+ * @returns 收藏 ID
  */
-export async function saveInlineImageFavorite(
-  record: Omit<InlineImageFavoriteRecord, 'id'>,
-): Promise<number> {
-  const db = await openInlineImageFavoriteDb();
-  const request = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).add(record);
-  return requestToPromise(request as IDBRequest<number>);
+export async function saveInlineImageFavorite(record: Omit<InlineImageFavoriteRecord, 'id'>): Promise<number> {
+  return mutateFavoriteManifest(async manifest => {
+    const id = nextFavoriteId(manifest.records);
+    const fileName = `CV-favorite-${uuidv4()}.${resolveBlobExtension(record.imageBlob)}`;
+    const filePath = await uploadSillyTavernFile(fileName, await blobToBase64(record.imageBlob));
+    manifest.records.push(createManifestEntry(record, id, filePath));
+    return id;
+  });
 }
 
 /**
- * 按 slotId 读取收藏图，按 createdAt 从新到旧；可选限定角色/聊天作用域
- * @param slotId 段落位点 id
- * @param scope 可选收藏作用域，缺省时不过滤 scope
- * @returns 收藏列表
+ * 按位点读取收藏图片
+ * @param slotId 段落位点 ID
+ * @param scope 可选角色与聊天作用域
+ * @returns 收藏图片列表
  */
 export async function listInlineImageFavoritesBySlot(
   slotId: string,
   scope?: InlineImageFavoriteScope | null,
 ): Promise<InlineImageFavoriteListItem[]> {
   if (!slotId) return [];
-  const db = await openInlineImageFavoriteDb();
-  const request = db
-    .transaction(STORE_NAME, 'readonly')
-    .objectStore(STORE_NAME)
-    .index(SLOT_ID_INDEX)
-    .getAll(slotId) as IDBRequest<InlineImageFavoriteRecord[]>;
-  const items = toInlineImageFavoriteListItems(await requestToPromise(request));
-  return sortInlineImageFavoriteRecords(scope ? items.filter(record => matchesFavoriteScope(record, scope)) : items);
+  const entries = (await readFavoriteManifest()).records.filter(entry => entry.slotId === slotId);
+  const scoped = scope ? entries.filter(entry => matchesFavoriteScope(entry, scope)) : entries;
+  return hydrateFavoriteEntries(sortFavoriteEntries(scoped));
 }
 
 /**
- * 读取当前角色与聊天下的全部段落图片收藏
- * @param scope 收藏作用域
- * @returns 带 ID 的收藏记录列表
+ * 读取指定作用域收藏图片
+ * @param scope 角色与聊天作用域
+ * @returns 收藏图片列表
  */
 export async function listInlineImageFavorites(
   scope: InlineImageFavoriteScope,
 ): Promise<InlineImageFavoriteListItem[]> {
-  return readInlineImageFavoritesByScope(scope);
+  const entries = (await readFavoriteManifest()).records.filter(entry => matchesFavoriteScope(entry, scope));
+  return hydrateFavoriteEntries(sortFavoriteEntries(entries));
 }
 
 /**
  * 读取全部收藏图片管理分组
- * @returns 按角色与聊天聚合后的收藏组
+ * @returns 收藏分组
  */
 export async function listInlineImageFavoriteGroups(): Promise<InlineImageFavoriteGroup[]> {
-  return buildInlineImageFavoriteGroups(await getAllInlineImageFavoriteRecords());
+  return buildInlineImageFavoriteGroups(await exportInlineImageFavoriteRecords());
 }
 
 /**
- * 读取全部收藏图片原始记录
- * @returns 可导出的收藏图片记录快照
+ * 导出全部收藏图片记录
+ * @returns 已水合的收藏记录
  */
 export async function exportInlineImageFavoriteRecords(): Promise<InlineImageFavoriteListItem[]> {
-  return (await getAllInlineImageFavoriteRecords()).map(record => ({ ...record }));
+  return hydrateFavoriteEntries(sortFavoriteEntries((await readFavoriteManifest()).records));
 }
 
 /**
- * 批量导入收藏图片记录:按业务键去重,命中则覆盖同 id,否则新增
- * @param records 待导入的收藏图片记录
- * @returns 成功写入数量
+ * 导入收藏图片记录
+ * @param records 外部收藏记录
+ * @returns 成功导入数量
  */
 export async function importInlineImageFavoriteRecords(records: InlineImageFavoriteRecord[]): Promise<number> {
-  const db = await openInlineImageFavoriteDb();
-  const store = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME);
-  const existing = (await requestToPromise(store.getAll() as IDBRequest<InlineImageFavoriteRecord[]>)).filter(
-    isInlineImageFavoriteListItem,
-  );
-  const existingIdByKey = new Map(existing.map(record => [buildFavoriteDedupKey(record), record.id]));
-  let imported = 0;
-  for (const record of records) {
-    const existingId = existingIdByKey.get(buildFavoriteDedupKey(record));
-    const value =
-      existingId !== undefined
-        ? { ...createImportFavoriteRecord(record), id: existingId }
-        : createImportFavoriteRecord(record);
-    await requestToPromise(store.put(value) as IDBRequest<number>);
-    imported += 1;
-  }
-  return imported;
+  for (const record of records) await saveInlineImageFavorite(record);
+  return records.length;
 }
 
 /**
- * 构建收藏去重业务键(同 scope 同 slot 同时间图)
- * @param record 收藏记录
- * @returns 去重键
- */
-function buildFavoriteDedupKey(record: InlineImageFavoriteRecord): string {
-  return [record.characterKey, record.chatId, record.slotId, record.createdAt].join('::');
-}
-
-/**
- * 构建无自增 ID 的导入收藏记录
- * @param record 外部收藏记录
- * @returns 可新增写入的收藏记录
- */
-function createImportFavoriteRecord(record: InlineImageFavoriteRecord): Omit<InlineImageFavoriteRecord, 'id'> {
-  return {
-    characterKey: record.characterKey,
-    chatId: record.chatId,
-    slotId: record.slotId,
-    imageBlob: record.imageBlob,
-    promptSnapshot: record.promptSnapshot,
-    createdAt: record.createdAt,
-  };
-}
-
-/**
- * 删除单张段落图片收藏记录
- * @param id 收藏记录 ID
+ * 删除单张收藏图片
+ * @param id 收藏 ID
  */
 export async function deleteInlineImageFavorite(id: number): Promise<void> {
-  const db = await openInlineImageFavoriteDb();
-  const request = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).delete(id);
-  await requestToPromise(request);
-}
-
-/**
- * 删除指定角色与聊天作用域下的全部收藏记录
- * @param scope 收藏作用域
- */
-export async function deleteInlineImageFavoriteScope(scope: InlineImageFavoriteScope): Promise<void> {
-  const ids = (await readInlineImageFavoritesByScope(scope)).map(record => record.id);
-  if (!ids.length) return;
-  const store = (await openInlineImageFavoriteDb()).transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME);
-  await Promise.all(ids.map(id => requestToPromise(store.delete(id))));
-}
-
-/**
- * 删除全部收藏图片记录
- */
-export async function clearInlineImageFavorites(): Promise<void> {
-  const store = (await openInlineImageFavoriteDb()).transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME);
-  await requestToPromise(store.clear());
-}
-
-/**
- * 打开段落图片收藏 IndexedDB
- * @returns 数据库连接
- */
-function openInlineImageFavoriteDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      prepareInlineImageFavoriteStore(request.result, request.transaction);
-    };
-    request.onerror = () => {
-      reject(request.error ?? new Error('段落图片收藏缓存打开失败'));
-    };
-    request.onsuccess = () => resolve(request.result);
+  await mutateFavoriteManifest(async manifest => {
+    const entry = manifest.records.find(record => record.id === id);
+    if (!entry) return;
+    await deleteSillyTavernFile(entry.filePath);
+    manifest.records = manifest.records.filter(record => record.id !== id);
   });
 }
 
 /**
- * 读取指定作用域下的收藏记录
- * @param scope 收藏作用域
- * @returns 带 ID 的收藏记录列表
+ * 删除指定作用域全部收藏图片
+ * @param scope 角色与聊天作用域
  */
-async function readInlineImageFavoritesByScope(
-  scope: InlineImageFavoriteScope,
-): Promise<InlineImageFavoriteListItem[]> {
-  const db = await openInlineImageFavoriteDb();
-  const range = IDBKeyRange.only([scope.characterKey, scope.chatId]);
-  const request = db
-    .transaction(STORE_NAME, 'readonly')
-    .objectStore(STORE_NAME)
-    .index(SCOPE_INDEX)
-    .getAll(range) as IDBRequest<InlineImageFavoriteRecord[]>;
-  return toInlineImageFavoriteListItems(await requestToPromise(request));
+export async function deleteInlineImageFavoriteScope(scope: InlineImageFavoriteScope): Promise<void> {
+  await mutateFavoriteManifest(async manifest => {
+    const targets = manifest.records.filter(record => matchesFavoriteScope(record, scope));
+    for (const target of targets) await deleteSillyTavernFile(target.filePath);
+    manifest.records = manifest.records.filter(record => !matchesFavoriteScope(record, scope));
+  });
 }
 
 /**
- * 读取全部收藏记录
- * @returns 带 ID 的收藏记录列表
+ * 删除全部收藏图片
  */
-async function getAllInlineImageFavoriteRecords(): Promise<InlineImageFavoriteListItem[]> {
-  const db = await openInlineImageFavoriteDb();
-  const request = db
-    .transaction(STORE_NAME, 'readonly')
-    .objectStore(STORE_NAME)
-    .getAll() as IDBRequest<InlineImageFavoriteRecord[]>;
-  return toInlineImageFavoriteListItems(await requestToPromise(request));
+export async function clearInlineImageFavorites(): Promise<void> {
+  await mutateFavoriteManifest(async manifest => {
+    for (const record of manifest.records) await deleteSillyTavernFile(record.filePath);
+    manifest.records = [];
+  });
 }
 
 /**
- * 初始化段落图片收藏表与索引
- * @param db 数据库连接
- * @param transaction 升级事务
+ * 读取并校验收藏清单
+ * @returns 收藏清单
  */
-function prepareInlineImageFavoriteStore(db: IDBDatabase, transaction: IDBTransaction | null): void {
-  const store = db.objectStoreNames.contains(STORE_NAME)
-    ? transaction?.objectStore(STORE_NAME)
-    : db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
-  if (!store) return;
-  createFavoriteIndexes(store);
+async function readFavoriteManifest(): Promise<FavoriteManifest> {
+  const manifest = await readSillyTavernJson<FavoriteManifest>(FAVORITE_MANIFEST_PATH);
+  if (!manifest) return createEmptyManifest();
+  if (manifest.version !== FAVORITE_MANIFEST_VERSION || !Array.isArray(manifest.records)) {
+    throw new Error('收藏图片清单格式无效');
+  }
+  return manifest;
 }
 
 /**
- * 创建收藏查询索引（仅 scope + slotId；排序在内存按 createdAt）
- * @param store 收藏 object store
+ * 串行写入收藏清单
+ * @param manifest 收藏清单
  */
-function createFavoriteIndexes(store: IDBObjectStore): void {
-  if (store.indexNames.contains('createdAt')) store.deleteIndex('createdAt');
-  if (!store.indexNames.contains(SCOPE_INDEX)) store.createIndex(SCOPE_INDEX, ['characterKey', 'chatId']);
-  if (!store.indexNames.contains(SLOT_ID_INDEX)) store.createIndex(SLOT_ID_INDEX, 'slotId');
+async function mutateFavoriteManifest<T>(mutate: (manifest: FavoriteManifest) => Promise<T>): Promise<T> {
+  const task = manifestWriteQueue.then(async () => {
+    const manifest = await readFavoriteManifest();
+    const result = await mutate(manifest);
+    await uploadSillyTavernJson(FAVORITE_MANIFEST_NAME, manifest);
+    return result;
+  });
+  manifestWriteQueue = task.then(
+    () => undefined,
+    () => undefined,
+  );
+  return task;
 }
 
 /**
- * 把原始 IndexedDB 记录收敛为可用列表项
- * @param records 原始记录列表
- * @returns 带有效 ID 的收藏记录
+ * 水合收藏清单记录
+ * @param entries 清单记录
+ * @returns 带 Blob 的收藏记录
  */
-function toInlineImageFavoriteListItems(records: InlineImageFavoriteRecord[]): InlineImageFavoriteListItem[] {
-  return records.filter(isInlineImageFavoriteListItem);
+async function hydrateFavoriteEntries(entries: FavoriteManifestEntry[]): Promise<InlineImageFavoriteListItem[]> {
+  const hydrated = await Promise.all(entries.map(hydrateFavoriteEntry));
+  return hydrated.filter((entry): entry is InlineImageFavoriteListItem => Boolean(entry));
 }
 
 /**
- * 判断收藏记录是否属于给定作用域
+ * 水合单条收藏清单记录
+ * @param entry 清单记录
+ * @returns 带 Blob 的收藏记录
+ */
+async function hydrateFavoriteEntry(entry: FavoriteManifestEntry): Promise<InlineImageFavoriteListItem | null> {
+  const imageBlob = await readSillyTavernFileBlobOrNull(entry.filePath);
+  return imageBlob ? { ...entry, imageBlob } : null;
+}
+
+/**
+ * 创建收藏清单记录
+ * @param record 收藏数据
+ * @param id 收藏 ID
+ * @param filePath 文件路径
+ * @returns 清单记录
+ */
+function createManifestEntry(
+  record: Omit<InlineImageFavoriteRecord, 'id'>,
+  id: number,
+  filePath: string,
+): FavoriteManifestEntry {
+  const { imageBlob: _imageBlob, ...metadata } = record;
+  return { ...metadata, id, filePath };
+}
+
+/**
+ * 构建收藏管理分组
+ * @param records 收藏记录
+ * @returns 分组列表
+ */
+function buildInlineImageFavoriteGroups(records: InlineImageFavoriteListItem[]): InlineImageFavoriteGroup[] {
+  const groups = new Map<string, InlineImageFavoriteListItem[]>();
+  records.forEach(record => appendFavoriteGroup(groups, record));
+  return [...groups.entries()].map(([id, items]) => createFavoriteGroup(id, items));
+}
+
+/**
+ * 追加收藏分组记录
+ * @param groups 分组映射
  * @param record 收藏记录
- * @param scope 角色/聊天作用域
+ */
+function appendFavoriteGroup(
+  groups: Map<string, InlineImageFavoriteListItem[]>,
+  record: InlineImageFavoriteListItem,
+): void {
+  const id = `${record.characterKey}::${record.chatId}`;
+  groups.set(id, [...(groups.get(id) ?? []), record]);
+}
+
+/**
+ * 创建收藏管理分组
+ * @param id 分组 ID
+ * @param records 收藏记录
+ * @returns 收藏分组
+ */
+function createFavoriteGroup(id: string, records: InlineImageFavoriteListItem[]): InlineImageFavoriteGroup {
+  const first = records[0];
+  return {
+    id,
+    characterKey: first.characterKey,
+    chatId: first.chatId,
+    count: records.length,
+    updatedAt: Math.max(...records.map(record => record.createdAt)),
+    records: sortFavoriteEntries(records),
+  };
+}
+
+/**
+ * 创建空收藏清单
+ * @returns 空清单
+ */
+function createEmptyManifest(): FavoriteManifest {
+  return { version: FAVORITE_MANIFEST_VERSION, records: [] };
+}
+
+/**
+ * 计算下一个收藏 ID
+ * @param records 当前清单记录
+ * @returns 新 ID
+ */
+function nextFavoriteId(records: FavoriteManifestEntry[]): number {
+  return records.reduce((max, record) => Math.max(max, record.id), 0) + 1;
+}
+
+/**
+ * 判断收藏作用域是否匹配
+ * @param record 收藏作用域
+ * @param scope 目标作用域
  * @returns 是否匹配
  */
-function matchesFavoriteScope(record: InlineImageFavoriteRecord, scope: InlineImageFavoriteScope): boolean {
+function matchesFavoriteScope(record: InlineImageFavoriteScope, scope: InlineImageFavoriteScope): boolean {
   return record.characterKey === scope.characterKey && record.chatId === scope.chatId;
 }
 
 /**
- * 构建收藏图片管理分组
- * @param records 全量收藏记录
- * @returns 聚合后的收藏组
+ * 按创建时间从新到旧排序
+ * @param records 待排序记录
+ * @returns 排序副本
  */
-function buildInlineImageFavoriteGroups(records: InlineImageFavoriteListItem[]): InlineImageFavoriteGroup[] {
-  const groups = records.reduce(reduceInlineImageFavoriteGroup, new Map<string, InlineImageFavoriteGroup>());
-  return [...groups.values()].sort((left, right) => right.updatedAt - left.updatedAt);
-}
-
-/**
- * 聚合单条收藏记录到管理分组
- * @param groups 已聚合分组
- * @param record 当前收藏记录
- * @returns 更新后的分组映射
- */
-function reduceInlineImageFavoriteGroup(
-  groups: Map<string, InlineImageFavoriteGroup>,
-  record: InlineImageFavoriteListItem,
-): Map<string, InlineImageFavoriteGroup> {
-  const groupId = buildInlineImageFavoriteGroupId(record);
-  const current = groups.get(groupId);
-  const nextRecords = sortInlineImageFavoriteRecords([record, ...(current?.records ?? [])]);
-  groups.set(groupId, createInlineImageFavoriteGroup(record, groupId, nextRecords));
-  return groups;
-}
-
-/**
- * 创建单个收藏管理分组
- * @param record 当前分组来源记录
- * @param id 分组 ID
- * @param records 当前分组全部记录
- * @returns 分组对象
- */
-function createInlineImageFavoriteGroup(
-  record: InlineImageFavoriteListItem,
-  id: string,
-  records: InlineImageFavoriteListItem[],
-): InlineImageFavoriteGroup {
-  return {
-    id,
-    characterKey: record.characterKey,
-    chatId: record.chatId,
-    count: records.length,
-    updatedAt: records[0]?.createdAt ?? 0,
-    records,
-  };
-}
-
-/**
- * 构建收藏管理分组 ID
- * @param scope 收藏作用域
- * @returns 唯一分组 ID
- */
-function buildInlineImageFavoriteGroupId(scope: InlineImageFavoriteScope): string {
-  return `${scope.characterKey}::${scope.chatId}`;
-}
-
-/**
- * 按收藏时间倒序排列记录
- * @param records 原始记录
- * @returns 排序后的记录
- */
-function sortInlineImageFavoriteRecords(records: InlineImageFavoriteListItem[]): InlineImageFavoriteListItem[] {
+function sortFavoriteEntries<T extends { createdAt: number }>(records: T[]): T[] {
   return [...records].sort((left, right) => right.createdAt - left.createdAt);
 }
 
 /**
- * 判断记录是否带有有效 ID
- * @param record 原始 IndexedDB 记录
- * @returns 是否可作为列表记录
+ * 根据 Blob MIME 推断安全扩展名
+ * @param blob 图片 Blob
+ * @returns 文件扩展名
  */
-function isInlineImageFavoriteListItem(record: InlineImageFavoriteRecord): record is InlineImageFavoriteListItem {
-  return typeof record.id === 'number';
-}
-
-/**
- * 包装 IndexedDB request 为 Promise
- * @param request IndexedDB request
- * @returns request 结果
- */
-function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    request.onerror = () => reject(request.error ?? new Error('段落图片收藏缓存请求失败'));
-    request.onsuccess = () => resolve(request.result);
-  });
+function resolveBlobExtension(blob: Blob): string {
+  const subtype = blob.type.split('/')[1]?.split('+')[0]?.toLowerCase();
+  return subtype?.replace('jpeg', 'jpg').replace(/[^a-z0-9]/g, '') || 'png';
 }
