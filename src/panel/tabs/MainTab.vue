@@ -66,11 +66,11 @@
       />
 
       <InlineFavoriteDataPanel
-        :groups="favoriteGroups"
-        :loading="isFavoriteGroupsLoading"
-        :busy="isFavoriteActionBusy"
-        @download-items="downloadFavoriteItems"
-        @delete-items="deleteFavoriteItems"
+        :items="managedImageItems"
+        :loading="isManagedImagesLoading"
+        :busy="isManagedImagesBusy"
+        @download-items="downloadManagedItems"
+        @delete-items="deleteManagedItems"
       />
     </template>
 
@@ -82,7 +82,8 @@
 </template>
 
 <script setup lang="ts">
-import { inject, ref, watch } from 'vue';
+import { computed, inject, ref, watch } from 'vue';
+import { removeSessionItemsByIds } from '@/composables/inlineGallerySession';
 import { IMAGE_SOURCES } from '@/constants/comfyui';
 import DataPortabilityPanel from '@/panel/components/DataPortabilityPanel.vue';
 import InlineFavoriteDataPanel from '@/panel/components/InlineFavoriteDataPanel.vue';
@@ -91,15 +92,27 @@ import {
   IMAGE_DOWNLOAD_OPTIONS_REQUEST_KEY,
   type InlineImageDownloadOptions,
 } from '@/services/inline-image/download-options';
-import { useSettingsStore } from '@/store/settings';
 import {
   deleteInlineImageFavorite,
   listInlineImageFavoriteGroups,
   type InlineImageFavoriteGroup,
 } from '@/services/inline-image/favorites-cache';
 import {
+  downloadInlineImageBlobItems,
   downloadInlineImageFavoriteItems,
 } from '@/services/inline-image/favorites-download';
+import {
+  mergeManagedImageItems,
+  parseManagedImageKey,
+  toManagedFavoriteItems,
+  toManagedTemporaryItems,
+  type ManagedImageItem,
+} from '@/services/inline-image/managed-images';
+import {
+  deleteTemporaryImage,
+  listAllTemporaryImages,
+  type TemporaryImageRecord,
+} from '@/services/inline-image/temporary-images';
 import {
   deleteNovelAIVibeSource,
   getNovelAIVibeDownloadPayload,
@@ -107,6 +120,8 @@ import {
 } from '@/services/novelai/vibe-cache';
 import { downloadAllNovelAIVibes, downloadNovelAIVibe } from '@/services/novelai/vibe-download';
 import type { NovelAIVibeCacheListItem } from '@/services/novelai/vibe-types';
+import { useGalleryRuntimesStore } from '@/store/gallery-runtimes';
+import { useSettingsStore } from '@/store/settings';
 import manifest from '../../../manifest.json';
 
 const props = defineProps<{ subTab: 'general' | 'data' | 'portability' }>();
@@ -117,8 +132,12 @@ const vibeRows = ref<NovelAIVibeCacheListItem[]>([]);
 const isVibeRowsLoading = ref(false);
 const isVibeActionBusy = ref(false);
 const favoriteGroups = ref<InlineImageFavoriteGroup[]>([]);
-const isFavoriteGroupsLoading = ref(false);
-const isFavoriteActionBusy = ref(false);
+const temporaryRecords = ref<TemporaryImageRecord[]>([]);
+const isManagedImagesLoading = ref(false);
+const isManagedImagesBusy = ref(false);
+const managedImageItems = computed(() =>
+  mergeManagedImageItems(toManagedFavoriteItems(favoriteGroups.value), toManagedTemporaryItems(temporaryRecords.value)),
+);
 
 const showConfirm =
   inject<
@@ -147,7 +166,7 @@ watch(
  * 刷新数据页全部缓存数据
  */
 async function refreshDataRows(): Promise<void> {
-  await Promise.all([refreshVibeRows(), refreshFavoriteGroups()]);
+  await Promise.all([refreshVibeRows(), refreshManagedImages()]);
 }
 
 /**
@@ -167,18 +186,36 @@ async function refreshVibeRows(): Promise<void> {
 }
 
 /**
- * 刷新收藏图片管理分组
+ * 并行刷新收藏与临时图片管理数据
  */
-async function refreshFavoriteGroups(): Promise<void> {
-  isFavoriteGroupsLoading.value = true;
+async function refreshManagedImages(): Promise<void> {
+  isManagedImagesLoading.value = true;
+  try {
+    await Promise.all([refreshManagedFavorites(), refreshManagedTemporaries()]);
+  } finally {
+    isManagedImagesLoading.value = false;
+  }
+}
+
+/** 独立刷新收藏图片，失败不影响临时图片 */
+async function refreshManagedFavorites(): Promise<void> {
   try {
     favoriteGroups.value = await listInlineImageFavoriteGroups();
   } catch (error) {
     favoriteGroups.value = [];
     toastr.error('读取收藏图片数据失败');
     console.error('读取收藏图片数据失败', error);
-  } finally {
-    isFavoriteGroupsLoading.value = false;
+  }
+}
+
+/** 独立刷新临时图片，失败不影响收藏图片 */
+async function refreshManagedTemporaries(): Promise<void> {
+  try {
+    temporaryRecords.value = await listAllTemporaryImages();
+  } catch (error) {
+    temporaryRecords.value = [];
+    toastr.error('读取临时图片数据失败');
+    console.error('读取临时图片数据失败', error);
   }
 }
 
@@ -253,15 +290,18 @@ async function deleteVibe(row: NovelAIVibeCacheListItem): Promise<void> {
 }
 
 /**
- * 批量下载选中的收藏图片
- * @param ids 选中的收藏记录 ID 列表
+ * 批量下载选中的管理图片（按类型分桶）
+ * @param keys 复合 key 列表
  */
-async function downloadFavoriteItems(ids: number[]): Promise<void> {
+async function downloadManagedItems(keys: string[]): Promise<void> {
+  const buckets = partitionManagedKeys(keys, managedImageItems.value);
+  if (!buckets.favoriteIds.length && !buckets.temporaryItems.length) return;
   const options = await requestInlineImageDownloadOptions();
   if (!options) return;
-  await runFavoriteAction(async () => {
-    await downloadInlineImageFavoriteItems(ids, favoriteGroups.value, options);
-  }, '下载选中收藏图片失败');
+  await runManagedAction(async () => {
+    const errors = await downloadManagedBuckets(buckets, options);
+    toastManagedErrors('下载', errors);
+  }, '下载选中图片失败');
 }
 
 /**
@@ -273,17 +313,180 @@ async function requestInlineImageDownloadOptions(): Promise<InlineImageDownloadO
 }
 
 /**
- * 批量删除选中的收藏图片
- * @param ids 选中的收藏记录 ID 列表
+ * 按类型分桶下载，失败标签汇总
+ * @param buckets 分桶结果
+ * @param options 下载配置
  */
-async function deleteFavoriteItems(ids: number[]): Promise<void> {
-  const confirmed = await confirmDangerAction('删除收藏图片', `确定要删除选中的 ${ids.length} 张收藏图片吗？`, '删除');
+async function downloadManagedBuckets(
+  buckets: ManagedKeyBuckets,
+  options: InlineImageDownloadOptions,
+): Promise<string[]> {
+  const errors: string[] = [];
+  await pushManagedStepError(errors, '收藏', '下载选中收藏图片失败', buckets.favoriteIds.length, () =>
+    downloadInlineImageFavoriteItems(buckets.favoriteIds, favoriteGroups.value, options),
+  );
+  await pushManagedStepError(errors, '临时', '下载选中临时图片失败', buckets.temporaryItems.length, () =>
+    downloadInlineImageBlobItems(buckets.temporaryItems, options, 'cosmos-vision-selected-temporary.zip'),
+  );
+  return errors;
+}
+
+/**
+ * 批量删除选中的管理图片（按类型分桶）
+ * @param keys 复合 key 列表
+ */
+async function deleteManagedItems(keys: string[]): Promise<void> {
+  const buckets = partitionManagedKeys(keys, managedImageItems.value);
+  if (!buckets.favoriteIds.length && !buckets.temporaryIds.length) return;
+  const confirmed = await confirmDangerAction(
+    '删除图片',
+    buildManagedDeleteMessage(buckets.favoriteIds.length, buckets.temporaryIds.length),
+    '删除',
+  );
   if (!confirmed) return;
-  await runFavoriteAction(async () => {
-    await Promise.all(ids.map(id => deleteInlineImageFavorite(id)));
-    await refreshFavoriteGroups();
-    toastr.success(`已删除 ${ids.length} 张收藏图片`);
-  }, '删除选中收藏图片失败');
+  await runManagedAction(() => executeManagedDelete(buckets), '删除选中图片失败');
+}
+
+/**
+ * 执行分桶删除并提示结果
+ * @param buckets 分桶结果
+ */
+async function executeManagedDelete(buckets: ManagedKeyBuckets): Promise<void> {
+  const errors = await deleteManagedBuckets(buckets);
+  await refreshManagedImages();
+  if (errors.length) {
+    toastManagedErrors('删除', errors);
+    return;
+  }
+  toastr.success(`已删除 ${buckets.favoriteIds.length + buckets.temporaryIds.length} 张图片`);
+}
+
+/**
+ * 按类型分桶删除，失败标签汇总
+ * @param buckets 分桶结果
+ */
+async function deleteManagedBuckets(buckets: ManagedKeyBuckets): Promise<string[]> {
+  const errors: string[] = [];
+  await pushManagedStepError(errors, '收藏', '删除选中收藏图片失败', buckets.favoriteIds.length, () =>
+    Promise.all(buckets.favoriteIds.map(id => deleteInlineImageFavorite(id))),
+  );
+  await pushManagedStepError(errors, '临时', '删除选中临时图片失败', buckets.temporaryIds.length, () =>
+    deleteManagedTemporaryIds(buckets.temporaryIds),
+  );
+  return errors;
+}
+
+/**
+ * 删除临时图：IDB + 内存会话同步 + 内嵌画廊刷新
+ * @param ids 临时图 ID
+ */
+async function deleteManagedTemporaryIds(ids: string[]): Promise<void> {
+  if (!ids.length) return;
+  const results = await Promise.allSettled(ids.map(id => deleteTemporaryImage(id)));
+  const deletedIds = collectDeletedTemporaryIds(ids, results);
+  if (deletedIds.length) {
+    removeSessionItemsByIds(deletedIds);
+    await useGalleryRuntimesStore().restoreAll();
+  }
+  const failedCount = ids.length - deletedIds.length;
+  if (failedCount) throw new Error(`${failedCount} 张临时图片删除失败`);
+}
+
+/**
+ * 收集实际删除成功的临时图片 ID
+ * @param ids 待删除 ID
+ * @param results 删除结果
+ * @returns 删除成功的 ID
+ */
+function collectDeletedTemporaryIds(ids: string[], results: PromiseSettledResult<void>[]): string[] {
+  return ids.filter((_, index) => results[index]?.status === 'fulfilled');
+}
+
+/**
+ * 有任务时执行管理步骤，失败则写入类型标签
+ * @param errors 失败标签列表
+ * @param label 类型标签
+ * @param logMessage 控制台错误文案
+ * @param count 待处理数量（0 则跳过）
+ * @param action 异步操作
+ */
+async function pushManagedStepError(
+  errors: string[],
+  label: string,
+  logMessage: string,
+  count: number,
+  action: () => Promise<unknown>,
+): Promise<void> {
+  if (!count) return;
+  try {
+    await action();
+  } catch (error) {
+    console.error(logMessage, error);
+    errors.push(label);
+  }
+}
+
+/**
+ * 提示分桶操作中的失败类型（另一类型可能已成功）
+ * @param actionLabel 操作名
+ * @param errors 失败类型标签
+ */
+function toastManagedErrors(actionLabel: string, errors: string[]): void {
+  if (!errors.length) return;
+  toastr.warning(`${actionLabel}失败：${errors.join('、')}（另一类型可能已成功）`);
+}
+
+/**
+ * 构建删除确认文案
+ * @param favoriteCount 收藏数量
+ * @param temporaryCount 临时数量
+ */
+function buildManagedDeleteMessage(favoriteCount: number, temporaryCount: number): string {
+  if (favoriteCount && temporaryCount) {
+    return `确定要删除选中的 ${favoriteCount} 张收藏与 ${temporaryCount} 张临时图片吗？`;
+  }
+  if (temporaryCount) return `确定要删除选中的 ${temporaryCount} 张临时图片吗？`;
+  return `确定要删除选中的 ${favoriteCount} 张收藏图片吗？`;
+}
+
+interface ManagedKeyBuckets {
+  favoriteIds: number[];
+  temporaryIds: string[];
+  temporaryItems: ManagedImageItem[];
+}
+
+/**
+ * 将复合 key 分桶为收藏 ID 与临时项
+ * @param keys 复合 key
+ * @param items 当前管理项（用于取临时图 blob）
+ */
+function partitionManagedKeys(keys: string[], items: ManagedImageItem[]): ManagedKeyBuckets {
+  const itemMap = new Map(items.map(item => [item.key, item]));
+  const buckets: ManagedKeyBuckets = { favoriteIds: [], temporaryIds: [], temporaryItems: [] };
+  keys.forEach(key => appendPartitionedKey(key, itemMap, buckets));
+  return buckets;
+}
+
+/**
+ * 解析单个复合 key 并写入分桶
+ * @param key 复合 key
+ * @param itemMap 当前管理项索引
+ * @param buckets 分桶结果
+ */
+function appendPartitionedKey(
+  key: string,
+  itemMap: Map<string, ManagedImageItem>,
+  buckets: ManagedKeyBuckets,
+): void {
+  const parsed = parseManagedImageKey(key);
+  if (!parsed) return;
+  if (parsed.kind === 'favorite') {
+    buckets.favoriteIds.push(Number(parsed.sourceId));
+    return;
+  }
+  buckets.temporaryIds.push(String(parsed.sourceId));
+  const item = itemMap.get(key);
+  if (item) buckets.temporaryItems.push(item);
 }
 
 /**
@@ -305,20 +508,21 @@ async function runVibeAction(action: () => Promise<void>, errorMessage: string):
 }
 
 /**
- * 执行收藏图片操作并统一处理忙碌态
+ * 执行图片管理操作并统一处理忙碌态
  * @param action 要执行的异步操作
  * @param errorMessage 失败提示
  */
-async function runFavoriteAction(action: () => Promise<void>, errorMessage: string): Promise<void> {
-  if (isFavoriteActionBusy.value) return;
-  isFavoriteActionBusy.value = true;
+async function runManagedAction(action: () => Promise<void>, errorMessage: string): Promise<void> {
+  if (isManagedImagesBusy.value) return;
+  isManagedImagesBusy.value = true;
   try {
     await action();
   } catch (error) {
-    toastr.error(errorMessage);
-    console.error(`${errorMessage}`, error);
+    const detail = error instanceof Error ? error.message : '';
+    toastr.error(detail || errorMessage);
+    console.error(errorMessage, error);
   } finally {
-    isFavoriteActionBusy.value = false;
+    isManagedImagesBusy.value = false;
   }
 }
 

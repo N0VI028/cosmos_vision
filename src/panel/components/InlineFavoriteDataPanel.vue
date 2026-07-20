@@ -1,5 +1,5 @@
 <template>
-  <StaticPanel title="收藏图片数据" class="cv-favorite-panel">
+  <StaticPanel title="图片管理" class="cv-favorite-panel">
     <template #actions>
       <CvMiniButton
         :label="isSelecting ? '取消选择' : '选择'"
@@ -22,10 +22,21 @@
       </CvDataCard>
     </div>
 
-    <div v-else-if="!groups.length" class="cv-favorite-empty">暂无收藏图片数据</div>
+    <div v-else-if="!items.length" class="cv-favorite-empty">暂无图片数据</div>
 
     <template v-else>
       <div class="cv-favorite-filter-row">
+        <div class="cv-favorite-filter-block">
+          <div class="cv-favorite-filter-label">类型</div>
+          <Select
+            v-model="selectedType"
+            :options="typeOptions"
+            option-label="label"
+            option-value="value"
+            class="cv-favorite-filter-select"
+          />
+        </div>
+
         <div class="cv-favorite-filter-block">
           <div class="cv-favorite-filter-label">角色</div>
           <Select
@@ -52,35 +63,36 @@
       <div v-if="visibleItems.length" class="cv-favorite-grid">
         <CvDataCard
           v-for="item in visibleItems"
-          :key="item.id"
-          :selected="isItemSelected(item.id)"
+          :key="item.key"
+          :selected="isItemSelected(item.key)"
           :selecting="isSelecting"
           :disabled="busy"
-          @toggle="toggleItem(item.id)"
+          @toggle="toggleItem(item.key)"
         >
           <div class="cv-favorite-card">
             <div v-if="isSelecting" class="cv-favorite-select" @click.stop>
               <Checkbox
                 binary
-                :model-value="isItemSelected(item.id)"
+                :model-value="isItemSelected(item.key)"
                 :disabled="busy"
-                @update:model-value="toggleItem(item.id)"
+                @update:model-value="toggleItem(item.key)"
               />
             </div>
 
             <div class="cv-favorite-thumb-wrap">
+              <span class="cv-favorite-kind-badge">{{ kindLabel(item.kind) }}</span>
               <LightboxImage
-                :src="getPreviewUrl(item.id)"
+                :src="getPreviewUrl(item.key)"
                 :snapshot="item.promptSnapshot"
-                :download-action="() => $emit('download-items', [item.id])"
+                :download-action="() => $emit('download-items', [item.key])"
                 :disabled="isSelecting"
-                alt="收藏图片预览"
+                alt="图片预览"
                 class="cv-favorite-thumb"
               />
             </div>
 
             <div class="cv-favorite-card-body">
-              <div class="cv-favorite-title">{{ formatInlineFavoriteImageLabel(item.createdAt) }}</div>
+              <div class="cv-favorite-title">{{ formatImageLabel(item.createdAt) }}</div>
               <div class="cv-favorite-meta">
                 {{ stripPngExtension(item.characterKey) }} · {{ stripPngExtension(item.chatId) }}
               </div>
@@ -91,20 +103,20 @@
                 icon="fa-solid fa-download"
                 aria-label="下载"
                 :disabled="busy"
-                @click="$emit('download-items', [item.id])"
+                @click="$emit('download-items', [item.key])"
               />
               <CvMiniButton
                 icon="fa-solid fa-trash"
                 tone="error"
                 aria-label="删除"
                 :disabled="busy"
-                @click="$emit('delete-items', [item.id])"
+                @click="$emit('delete-items', [item.key])"
               />
             </div>
           </div>
         </CvDataCard>
       </div>
-      <div v-else class="cv-favorite-empty">当前筛选范围暂无收藏图片</div>
+      <div v-else class="cv-favorite-empty">当前筛选范围暂无图片</div>
 
       <div v-if="isSelecting" class="cv-favorite-batch-bar">
         <span class="cv-favorite-batch-count">已选 {{ selectedCount }} 张</span>
@@ -140,12 +152,18 @@ import CvDataCard from '@/panel/components/CvDataCard.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import LightboxImage from '@/panel/components/LightboxImage.vue';
 import StaticPanel from '@/panel/components/StaticPanel.vue';
-import type { InlineImageFavoriteGroup, InlineImageFavoriteListItem } from '@/services/inline-image/favorites-cache';
+import {
+  managedChatGroupId,
+  type ManagedImageItem,
+  type ManagedImageKind,
+} from '@/services/inline-image/managed-images';
 
-interface FavoriteFilterOption {
+interface FilterOption {
   label: string;
   value: string;
 }
+
+type ManagedTypeFilter = 'all' | ManagedImageKind;
 
 const ALL_CHARACTER_KEY = '__all_character__';
 const ALL_CHAT_KEY = '__all_chat__';
@@ -157,41 +175,57 @@ const SKELETON_TOKENS = {
   },
 } satisfies SkeletonDesignTokens;
 
+const typeOptions: FilterOption[] = [
+  { label: '全部', value: 'all' },
+  { label: '收藏', value: 'favorite' },
+  { label: '临时', value: 'temporary' },
+];
+
 const props = defineProps<{
-  groups: InlineImageFavoriteGroup[];
+  items: ManagedImageItem[];
   loading: boolean;
   busy: boolean;
 }>();
 
 const emit = defineEmits<{
-  'download-items': [ids: number[]];
-  'delete-items': [ids: number[]];
+  'download-items': [keys: string[]];
+  'delete-items': [keys: string[]];
 }>();
 
+const selectedType = ref<ManagedTypeFilter>('all');
 const selectedCharacterKey = ref(ALL_CHARACTER_KEY);
 const selectedChatId = ref(ALL_CHAT_KEY);
 const isSelecting = ref(false);
-const selectedImageIds = ref<number[]>([]);
-const previewUrlMap = ref<Record<number, string>>({});
+const selectedKeys = ref<string[]>([]);
+const previewUrlMap = ref<Record<string, string>>({});
 const objectUrls = new Set<string>();
-const characterOptions = computed(() => buildCharacterOptions(props.groups));
-const filteredCharacterGroups = computed(() => filterGroupsByCharacter(props.groups, selectedCharacterKey.value));
-const chatOptions = computed(() => buildChatOptions(filteredCharacterGroups.value));
-const visibleGroups = computed(() => filterGroupsByChat(filteredCharacterGroups.value, selectedChatId.value));
-const visibleItems = computed(() => flattenFavoriteItems(visibleGroups.value));
-const selectedCount = computed(() => selectedImageIds.value.length);
+
+const typedItems = computed(() => filterItemsByType(props.items, selectedType.value));
+const characterOptions = computed(() => buildCharacterOptions(typedItems.value));
+const characterItems = computed(() => filterItemsByCharacter(typedItems.value, selectedCharacterKey.value));
+const chatOptions = computed(() => buildChatOptions(characterItems.value));
+const visibleItems = computed(() => filterItemsByChat(characterItems.value, selectedChatId.value));
+const selectedCount = computed(() => selectedKeys.value.length);
 const isAllSelected = computed(
   () => visibleItems.value.length > 0 && selectedCount.value === visibleItems.value.length,
 );
 const isSelectionToggleDisabled = computed(() => props.loading || props.busy || !visibleItems.value.length);
 
 watch(
-  () => props.groups,
-  groups => {
-    syncPreviewUrls(groups);
+  () => props.items,
+  items => {
+    syncPreviewUrls(items);
     reconcileCharacterSelection(characterOptions.value.map(option => option.value));
   },
   { immediate: true },
+);
+
+watch(
+  () => selectedType.value,
+  () => {
+    selectedCharacterKey.value = ALL_CHARACTER_KEY;
+    selectedChatId.value = ALL_CHAT_KEY;
+  },
 );
 
 watch(
@@ -211,10 +245,10 @@ watch(
 );
 
 watch(
-  () => visibleItems.value.map(item => item.id),
-  ids => {
-    selectedImageIds.value = selectedImageIds.value.filter(id => ids.includes(id));
-    if (!ids.length) isSelecting.value = false;
+  () => visibleItems.value.map(item => item.key),
+  keys => {
+    selectedKeys.value = selectedKeys.value.filter(key => keys.includes(key));
+    if (!keys.length) isSelecting.value = false;
   },
 );
 
@@ -222,82 +256,77 @@ onBeforeUnmount(() => {
   clearPreviewUrls();
 });
 
-/**
- * 切换显式多选模式
- */
+/** 切换显式多选模式 */
 function toggleSelectMode(): void {
   if (isSelectionToggleDisabled.value) return;
   isSelecting.value = !isSelecting.value;
-  if (!isSelecting.value) selectedImageIds.value = [];
+  if (!isSelecting.value) selectedKeys.value = [];
 }
 
-/**
- * 退出多选并清空已选项
- */
+/** 退出多选并清空已选项 */
 function clearSelection(): void {
   isSelecting.value = false;
-  selectedImageIds.value = [];
+  selectedKeys.value = [];
 }
 
 /**
  * 判断图片是否已被选中
- * @param id 收藏图片 ID
- * @returns 是否选中
+ * @param key 复合 key
  */
-function isItemSelected(id: number): boolean {
-  return selectedImageIds.value.includes(id);
+function isItemSelected(key: string): boolean {
+  return selectedKeys.value.includes(key);
 }
 
 /**
  * 切换单张图片选中状态
- * @param id 收藏图片 ID
+ * @param key 复合 key
  */
-function toggleItem(id: number): void {
+function toggleItem(key: string): void {
   if (!isSelecting.value || props.busy) return;
-  selectedImageIds.value = isItemSelected(id)
-    ? selectedImageIds.value.filter(itemId => itemId !== id)
-    : [...selectedImageIds.value, id];
+  selectedKeys.value = isItemSelected(key)
+    ? selectedKeys.value.filter(itemKey => itemKey !== key)
+    : [...selectedKeys.value, key];
 }
 
-/**
- * 切换当前可见范围的全选状态
- */
+/** 切换当前可见范围的全选状态 */
 function toggleSelectAll(): void {
   if (props.busy) return;
-  selectedImageIds.value = isAllSelected.value ? [] : visibleItems.value.map(item => item.id);
+  selectedKeys.value = isAllSelected.value ? [] : visibleItems.value.map(item => item.key);
 }
 
-/**
- * 批量下载当前已选图片
- */
+/** 批量下载当前已选图片 */
 function downloadSelected(): void {
   if (!selectedCount.value || props.busy) return;
-  emit('download-items', selectedImageIds.value);
+  emit('download-items', selectedKeys.value);
 }
 
-/**
- * 批量删除当前已选图片
- */
+/** 批量删除当前已选图片 */
 function deleteSelected(): void {
   if (!selectedCount.value || props.busy) return;
-  emit('delete-items', selectedImageIds.value);
+  emit('delete-items', selectedKeys.value);
 }
 
 /**
- * 读取图片缩略图预览地址
- * @param id 收藏图片 ID
- * @returns 预览 URL
+ * 读取缩略图预览地址
+ * @param key 复合 key
  */
-function getPreviewUrl(id: number): string {
-  return previewUrlMap.value[id] ?? '';
+function getPreviewUrl(key: string): string {
+  return previewUrlMap.value[key] ?? '';
 }
 
 /**
- * 格式化收藏图片标题
+ * 类型角标文案
+ * @param kind 图片类型
+ */
+function kindLabel(kind: ManagedImageKind): string {
+  return kind === 'favorite' ? '收藏' : '临时';
+}
+
+/**
+ * 格式化图片时间标题
  * @param createdAt 创建时间
- * @returns 时间风格标题
  */
-function formatInlineFavoriteImageLabel(createdAt: number): string {
+function formatImageLabel(createdAt: number): string {
   const date = new Date(createdAt);
   const pad = (value: number) => String(value).padStart(2, '0');
   return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
@@ -306,50 +335,44 @@ function formatInlineFavoriteImageLabel(createdAt: number): string {
 /**
  * 去除角色或聊天名称中的 .png 扩展名
  * @param name 原始名称
- * @returns 处理后的名称
  */
 function stripPngExtension(name: string): string {
   return name.replace('.png', '');
 }
 
 /**
- * 同步收藏缩略图 URL 映射
- * @param groups 收藏分组
+ * 同步缩略图 URL 映射
+ * @param items 管理项
  */
-function syncPreviewUrls(groups: InlineImageFavoriteGroup[]): void {
+function syncPreviewUrls(items: ManagedImageItem[]): void {
   clearPreviewUrls();
-  previewUrlMap.value = buildPreviewUrlMap(groups);
+  previewUrlMap.value = buildPreviewUrlMap(items);
 }
 
 /**
- * 构建收藏缩略图 URL 映射
- * @param groups 收藏分组
- * @returns ID 到 URL 的映射
+ * 构建缩略图 URL 映射
+ * @param items 管理项
  */
-function buildPreviewUrlMap(groups: InlineImageFavoriteGroup[]): Record<number, string> {
-  return groups.reduce(
-    (map, group) => {
-      group.records.forEach(record => {
-        const objectUrl = URL.createObjectURL(record.imageBlob);
-        objectUrls.add(objectUrl);
-        map[record.id] = objectUrl;
-      });
+function buildPreviewUrlMap(items: ManagedImageItem[]): Record<string, string> {
+  return items.reduce(
+    (map, item) => {
+      const objectUrl = URL.createObjectURL(item.imageBlob);
+      objectUrls.add(objectUrl);
+      map[item.key] = objectUrl;
       return map;
     },
-    {} as Record<number, string>,
+    {} as Record<string, string>,
   );
 }
 
-/**
- * 清理已创建的收藏缩略图 URL
- */
+/** 清理已创建的缩略图 URL */
 function clearPreviewUrls(): void {
   objectUrls.forEach(url => URL.revokeObjectURL(url));
   objectUrls.clear();
 }
 
 /**
- * 校正角色筛选值，避免刷新后越界
+ * 校正角色筛选值
  * @param values 当前可选角色值
  */
 function reconcileCharacterSelection(values: string[]): void {
@@ -358,67 +381,68 @@ function reconcileCharacterSelection(values: string[]): void {
 }
 
 /**
- * 构建角色筛选项
- * @param groups 收藏分组
- * @returns Select 选项
+ * 按类型筛选
+ * @param items 管理项
+ * @param type 类型筛选
  */
-function buildCharacterOptions(groups: InlineImageFavoriteGroup[]): FavoriteFilterOption[] {
-  return [{ label: '全部角色', value: ALL_CHARACTER_KEY }, ...collectCharacterOptions(groups)];
+function filterItemsByType(items: ManagedImageItem[], type: ManagedTypeFilter): ManagedImageItem[] {
+  if (type === 'all') return items;
+  return items.filter(item => item.kind === type);
 }
 
 /**
- * 收集去重后的角色筛选项
- * @param groups 收藏分组
- * @returns 去重后的角色筛选项
+ * 按角色筛选
+ * @param items 管理项
+ * @param characterKey 角色 key
  */
-function collectCharacterOptions(groups: InlineImageFavoriteGroup[]): FavoriteFilterOption[] {
-  return groups.reduce((options, group) => {
-    if (options.some(option => option.value === group.characterKey)) return options;
-    return [...options, { label: stripPngExtension(group.characterKey), value: group.characterKey }];
-  }, [] as FavoriteFilterOption[]);
+function filterItemsByCharacter(items: ManagedImageItem[], characterKey: string): ManagedImageItem[] {
+  if (characterKey === ALL_CHARACTER_KEY) return items;
+  return items.filter(item => item.characterKey === characterKey);
+}
+
+/**
+ * 按聊天筛选（已按时间倒序的输入保持顺序）
+ * @param items 管理项
+ * @param chatGroupId 聊天复合 id
+ */
+function filterItemsByChat(items: ManagedImageItem[], chatGroupId: string): ManagedImageItem[] {
+  if (chatGroupId === ALL_CHAT_KEY) return items;
+  return items.filter(item => managedChatGroupId(item) === chatGroupId);
+}
+
+/**
+ * 构建角色筛选项
+ * @param items 当前类型下的管理项
+ */
+function buildCharacterOptions(items: ManagedImageItem[]): FilterOption[] {
+  return [{ label: '全部角色', value: ALL_CHARACTER_KEY }, ...collectCharacterOptions(items)];
+}
+
+/**
+ * 收集去重角色选项
+ * @param items 管理项
+ */
+function collectCharacterOptions(items: ManagedImageItem[]): FilterOption[] {
+  return items.reduce((options, item) => {
+    if (options.some(option => option.value === item.characterKey)) return options;
+    return [...options, { label: stripPngExtension(item.characterKey), value: item.characterKey }];
+  }, [] as FilterOption[]);
 }
 
 /**
  * 构建聊天筛选项
- * @param groups 当前角色下的收藏分组
- * @returns Select 选项
+ * @param items 当前角色下的管理项
  */
-function buildChatOptions(groups: InlineImageFavoriteGroup[]): FavoriteFilterOption[] {
-  return [
-    { label: '全部聊天', value: ALL_CHAT_KEY },
-    ...groups.map(group => ({ label: stripPngExtension(group.chatId), value: group.id })),
-  ];
-}
-
-/**
- * 按角色过滤收藏分组
- * @param groups 收藏分组
- * @param characterKey 当前角色筛选值
- * @returns 过滤后的分组
- */
-function filterGroupsByCharacter(groups: InlineImageFavoriteGroup[], characterKey: string): InlineImageFavoriteGroup[] {
-  if (characterKey === ALL_CHARACTER_KEY) return groups;
-  return groups.filter(group => group.characterKey === characterKey);
-}
-
-/**
- * 按聊天范围过滤收藏分组
- * @param groups 当前角色下的收藏分组
- * @param chatId 当前聊天筛选值
- * @returns 过滤后的分组
- */
-function filterGroupsByChat(groups: InlineImageFavoriteGroup[], chatId: string): InlineImageFavoriteGroup[] {
-  if (chatId === ALL_CHAT_KEY) return groups;
-  return groups.filter(group => group.id === chatId);
-}
-
-/**
- * 展开当前筛选范围内的图片列表
- * @param groups 当前可见收藏分组
- * @returns 按时间倒序的图片列表
- */
-function flattenFavoriteItems(groups: InlineImageFavoriteGroup[]): InlineImageFavoriteListItem[] {
-  return groups.flatMap(group => group.records).sort((left, right) => right.createdAt - left.createdAt);
+function buildChatOptions(items: ManagedImageItem[]): FilterOption[] {
+  const seen = new Set<string>();
+  const chats: FilterOption[] = [];
+  for (const item of items) {
+    const id = managedChatGroupId(item);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    chats.push({ label: stripPngExtension(item.chatId), value: id });
+  }
+  return [{ label: '全部聊天', value: ALL_CHAT_KEY }, ...chats];
 }
 </script>
 
@@ -437,7 +461,7 @@ function flattenFavoriteItems(groups: InlineImageFavoriteGroup[]): InlineImageFa
 
 .cv-favorite-filter-block {
   @apply flex flex-col;
-  flex: 1 1 14rem;
+  flex: 1 1 12rem;
   min-width: 0;
   gap: var(--cv-space-md);
 }
@@ -471,10 +495,25 @@ function flattenFavoriteItems(groups: InlineImageFavoriteGroup[]): InlineImageFa
 }
 
 .cv-favorite-thumb-wrap {
-  @apply overflow-hidden;
+  @apply relative overflow-hidden;
   aspect-ratio: 1;
   border-bottom: var(--cv-border-width) solid color-mix(in srgb, var(--cv-surface-variant) 72%, transparent);
   background: var(--cv-surface-container-high);
+}
+
+.cv-favorite-kind-badge {
+  @apply absolute;
+  top: var(--cv-space-md);
+  right: var(--cv-space-md);
+  z-index: 1;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--cv-radius-sm);
+  background: color-mix(in srgb, var(--cv-surface) 82%, transparent);
+  color: var(--cv-on-surface);
+  font-size: var(--cv-font-size-2xs);
+  font-weight: 600;
+  line-height: 1.2;
+  pointer-events: none;
 }
 
 .cv-favorite-thumb {

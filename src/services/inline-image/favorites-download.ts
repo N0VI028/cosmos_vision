@@ -92,6 +92,88 @@ export async function downloadInlineImageFavoriteItems(
   await downloadFavoriteRecordsAsZip(records, options, SELECTED_ARCHIVE_NAME);
 }
 
+/** 可按 Blob 列表下载的通用图片记录 */
+export interface DownloadableImageBlobItem {
+  imageBlob: Blob;
+  createdAt: number;
+  characterKey?: string;
+  chatId?: string;
+}
+
+/**
+ * 批量下载任意 Blob 图片列表（临时图等复用）
+ * @param items 图片 Blob 列表
+ * @param options 下载配置
+ * @param archiveName 多图时的 ZIP 文件名
+ */
+export async function downloadInlineImageBlobItems(
+  items: DownloadableImageBlobItem[],
+  options: InlineImageDownloadOptions,
+  archiveName = 'cosmos-vision-selected-images.zip',
+): Promise<void> {
+  if (!items.length) return;
+  if (items.length === 1) {
+    const item = items[0];
+    await downloadInlineImageBlob(item.imageBlob, buildBlobDownloadBaseName(item), options);
+    return;
+  }
+  await downloadBlobItemsAsZip(items, options, archiveName);
+}
+
+/**
+ * 将 Blob 图片列表导出为 ZIP
+ * @param items 图片列表
+ * @param options 下载配置
+ * @param archiveName 压缩包文件名
+ */
+async function downloadBlobItemsAsZip(
+  items: DownloadableImageBlobItem[],
+  options: InlineImageDownloadOptions,
+  archiveName: string,
+): Promise<void> {
+  const zip = new DownloadJSZip();
+  const usedPaths = new Set<string>();
+  let succeededCount = 0;
+  let failedCount = 0;
+  for (const [index, item] of items.entries()) {
+    try {
+      const payload = await transformInlineImageForDownload(item.imageBlob, options);
+      const path = getUniquePath(buildBlobZipEntryName(item, index, payload.extension), usedPaths);
+      zip.file(path, payload.blob);
+      succeededCount += 1;
+    } catch (error) {
+      failedCount += 1;
+      console.warn(`[CosmosVision] 图片转换失败，已跳过第 ${index + 1} 项`, error);
+    }
+  }
+  if (!succeededCount) throw new Error('没有可成功导出的图片');
+  logFavoriteDownloadSkipSummary(failedCount);
+  triggerBrowserDownload(await zip.generateAsync({ type: 'blob' }), archiveName);
+}
+
+/**
+ * 构建单张 Blob 直下文件名主体
+ * @param item 图片记录
+ * @returns 不含扩展名的文件名
+ */
+function buildBlobDownloadBaseName(item: DownloadableImageBlobItem): string {
+  if (item.characterKey && item.chatId) {
+    return `${buildGroupFolderName({ characterKey: item.characterKey, chatId: item.chatId })}-${formatFavoriteTimestamp(item.createdAt)}`;
+  }
+  return `cosmos-vision-image-${formatFavoriteTimestamp(item.createdAt)}`;
+}
+
+/**
+ * 构建 Blob ZIP 内图片文件名
+ * @param item 图片记录
+ * @param index 当前序号
+ * @param extension 目标扩展名
+ * @returns 文件名
+ */
+function buildBlobZipEntryName(item: DownloadableImageBlobItem, index: number, extension: string): string {
+  return `${String(index + 1).padStart(3, '0')}-${formatFavoriteTimestamp(item.createdAt)}.${extension}`;
+}
+
 /**
  * 直接下载单张收藏图片
  * @param group 收藏图片分组
@@ -218,7 +300,7 @@ function formatFavoriteTimestamp(timestamp: number): string {
  * @param failedCount 失败数量
  */
 function logFavoriteDownloadSkipSummary(failedCount: number): void {
-  if (failedCount > 0) console.warn(`[CosmosVision] ${failedCount} 张收藏图片转换失败，已跳过`);
+  if (failedCount > 0) console.warn(`[CosmosVision] ${failedCount} 张图片转换失败，已跳过`);
 }
 
 /**

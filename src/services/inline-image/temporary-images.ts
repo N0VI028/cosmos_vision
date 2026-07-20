@@ -46,6 +46,17 @@ export async function listTemporaryImages(scope: InlineImageFavoriteScope): Prom
 }
 
 /**
+ * 读取全部临时图片（管理页全量列举）
+ * @returns 全部临时图片记录
+ */
+export async function listAllTemporaryImages(): Promise<TemporaryImageRecord[]> {
+  await temporaryImageWriteQueue;
+  const db = await openTemporaryImageDb();
+  const request = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll();
+  return requestToPromise(request as IDBRequest<TemporaryImageRecord[]>);
+}
+
+/**
  * 读取当前作用域临时图片
  * @param scope 角色与聊天作用域
  * @returns 临时图片记录
