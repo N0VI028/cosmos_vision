@@ -72,6 +72,7 @@
                   <span class="cv-text-input-dialog__label">X 坐标</span>
                   <InputNumber
                     v-model="character.x"
+                    class="cv-text-input-dialog__coord-input"
                     :min="0"
                     :max="1"
                     :step="0.05"
@@ -83,6 +84,7 @@
                   <span class="cv-text-input-dialog__label">Y 坐标</span>
                   <InputNumber
                     v-model="character.y"
+                    class="cv-text-input-dialog__coord-input"
                     :min="0"
                     :max="1"
                     :step="0.05"
@@ -307,6 +309,15 @@ function syncCharacterIdSeed(): void {
   gap: var(--cv-space-3xl);
   max-height: min(68vh, 34rem);
   overscroll-behavior: contain;
+  overflow-x: hidden;
+}
+
+.cv-text-input-dialog__body > * {
+  flex-shrink: 0;
+}
+
+.cv-confirm-message {
+  white-space: normal !important;
 }
 
 .cv-text-input-dialog__field {
@@ -359,6 +370,15 @@ function syncCharacterIdSeed(): void {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--cv-space-xl);
+}
+
+.cv-text-input-dialog__coord-input {
+  width: 100%;
+}
+
+:deep(.cv-text-input-dialog__coord-input input) {
+  width: 100%;
+  min-width: 0;
 }
 
 .cv-text-input-dialog__character-actions {
