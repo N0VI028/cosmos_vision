@@ -129,6 +129,21 @@ export function extractMessageParagraphs(targetP: HTMLElement): string[] {
 }
 
 /**
+ * 提取从消息开头到目标焦点段落的语义文本块
+ * @param targetP 目标焦点段落 DOM 元素
+ * @returns 截断后的历史文本块数组
+ */
+export function extractMessageParagraphsUntil(targetP: HTMLElement): string[] {
+  const messageBlocks = getMessageTextBlockElements(targetP);
+  const targetIndex = messageBlocks.indexOf(targetP);
+  const visibleBlocks = targetIndex >= 0 ? messageBlocks.slice(0, targetIndex + 1) : [targetP];
+  const paragraphs = extractMessageTextBlockTexts(visibleBlocks);
+  if (paragraphs.length > 0) return paragraphs;
+  const focusParagraph = extractCleanParagraphText(targetP);
+  return focusParagraph ? [focusParagraph] : [];
+}
+
+/**
  * 批量提取语义文本块文本
  * @param elements 语义文本块元素
  * @returns 清理后的文本块数组
@@ -307,7 +322,7 @@ export function getFocusedChatParagraphs(): HTMLElement[] {
 
 /**
  * 构建 Prompt LLM 历史消息数组
- * 焦点楼层始终保留，并追加到更早楼层原始消息之后
+ * 焦点楼层仅保留至焦点段落，避免将后续剧情作为既有历史发送
  * @param targetP 当前焦点段落
  * @param settings Prompt LLM 历史楼层设置
  * @returns 按时间顺序拼接的历史消息
@@ -316,7 +331,7 @@ function buildPromptLlmHistoryParagraphs(
   targetP: HTMLElement,
   settings: Pick<PromptLlmSettings, 'historyFloorCount' | 'ignoreUserMessagesInHistory'>,
 ): string[] {
-  const currentParagraphs = extractMessageParagraphs(targetP);
+  const currentParagraphs = extractMessageParagraphsUntil(targetP);
   const messageId = findMessageId(targetP);
   const previousMessages = readPromptLlmHistoryMessages(messageId, {
     historyFloorCount: settings.historyFloorCount,
