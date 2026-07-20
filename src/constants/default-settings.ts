@@ -163,7 +163,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     topK: 0,
     historyFloorCount: 2,
     ignoreUserMessagesInHistory: false,
-    preferJsonSchemaExtraction: true,
+    preferJsonSchemaExtraction: false,
     positivePromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.positive,
     negativePromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.negative,
     characterPromptsJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.characterPrompts,
