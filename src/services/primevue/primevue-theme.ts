@@ -383,6 +383,24 @@ export const cosmosPrimePreset = definePreset(Aura, {
         borderColor: 'var(--cv-surface-variant)',
       },
     },
+    dialog: {
+      root: {
+        background: 'var(--cv-surface-container-lowest)',
+        borderColor: 'transparent',
+        color: 'var(--cv-on-surface)',
+        borderRadius: 'var(--cv-radius-lg)',
+        shadow: 'var(--cv-floating-shadow)',
+      },
+      header: {
+        gap: '0.5em',
+      },
+      title: {
+        fontSize: 'var(--cv-font-size-2xl)',
+      },
+      footer: {
+        gap: '0.5em',
+      },
+    },
   },
 });
 

@@ -150,21 +150,3 @@
   border-radius: var(--cv-radius-md) !important;
 }
 
-/**
- * Dialog 根圆角直接钉死
- *
- * PrimeVue 的 `--p-dialog-border-radius` 在 `:root` 上已展开为字面值，
- * 子作用域 bridge token 不会回传，所以这里先直接兜底根圆角与容器视觉。
- */
-.cosmos-vision-root.cv-dialog {
-  @apply overflow-hidden;
-  background: var(--p-dialog-background, var(--cv-surface-container-lowest)) !important;
-  border: none !important;
-  border-radius: var(--cv-radius-lg) !important;
-  box-shadow: var(--p-dialog-shadow, var(--cv-floating-shadow)) !important;
-  color: var(--p-dialog-color, var(--cv-on-surface)) !important;
-}
-
-.cv-dialog-mask {
-  @apply absolute! flex h-dvh w-dvw items-center justify-center;
-}

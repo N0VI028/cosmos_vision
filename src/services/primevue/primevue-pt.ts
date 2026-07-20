@@ -7,7 +7,7 @@ const icon = { class: 'cv-prime-icon' } as const;
 const iconButton = { class: 'cv-prime-icon-button' } as const;
 const option = { class: 'cv-select-option' } as const;
 const overlay = { class: 'cosmos-vision-root' } as const;
-const dialogMask = { class: 'cv-dialog-mask' } as const;
+const dialogMask = { class: 'cv-dialog-mask absolute! flex h-dvh w-dvw items-center justify-center' } as const;
 const fieldOverlay = { class: 'cosmos-vision-root cv-prime-field-overlay' } as const;
 const checkInputClass = 'cv-prime-check-input' as const;
 const checkbox = {
@@ -115,7 +115,7 @@ type CosmosPrimePt = PrimeVuePTOptions & {
 export const cosmosPrimePt = {
   dialog: {
     mask: dialogMask,
-    root: { class: 'cosmos-vision-root cv-dialog' },
+    root: { class: 'cosmos-vision-root cv-dialog overflow-hidden' },
   },
   image: { previewMask: imagePreviewMask },
   inputtext: { root: fieldRoot },

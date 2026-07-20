@@ -41,17 +41,6 @@
   /* semantic: icon */
   --p-icon-size: 1em;
 
-  /* component: dialog */
-  --p-dialog-background: var(--cv-surface-container-lowest);
-  --p-dialog-border-color: transparent;
-  --p-dialog-color: var(--cv-on-surface);
-  --p-dialog-shadow: var(--cv-floating-shadow);
-  --p-dialog-header-gap: 0.5em;
-  --p-dialog-footer-gap: 0.5em;
-  --p-dialog-title-font-size: var(--cv-font-size-2xl);
-  --p-dialog-border: none;
-  --p-dialog-border-radius: var(--cv-radius-lg);
-
   /* component: tabs */
   --p-tabs-tab-padding: 1em 1.125em;
   --p-tabs-tab-gap: 0.5em;
