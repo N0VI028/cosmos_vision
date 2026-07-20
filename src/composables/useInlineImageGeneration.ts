@@ -4,7 +4,15 @@ import {
   type InlineGenerationSession,
 } from '@/composables/inlineGenerationSession';
 import { preventInlineEventBubbling } from '@/composables/inlineImageDom';
-import { cloneInlinePromptSnapshot, type InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
+import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
+import {
+  canEditInlineCharacterPrompts,
+  type InlineCharacterPromptDraft,
+} from '@/composables/inlineEditableCharacterPrompt';
+import {
+  createEditedPromptSnapshot,
+  readEditablePromptInput,
+} from '@/composables/inlineEditablePromptSnapshot';
 import { useGalleryRuntimesStore } from '@/store/gallery-runtimes';
 import {
   generateComfyUIImagesFromPrompts,
@@ -19,10 +27,6 @@ import {
   generateNovelAIImageFromPrompts,
   generateNovelAIImagesFromResolvedRequest,
 } from '@/services/novelai/api';
-import {
-  buildNovelAIFinalPromptsFromEditable,
-  readNovelAIEditablePrompts,
-} from '@/services/novelai/prompt-presets';
 import { createSelectionShellController } from '@/composables/inlineSelectionShell';
 import { nextParagraphSelection } from '@/composables/inlineParagraphSelection';
 import {
@@ -48,6 +52,9 @@ import { formatTimestampForFileName } from '@/services/inline-image/filename-uti
 type RuntimeEnabledGetter = () => boolean;
 type PromptLlmSchemaFields = ReturnType<typeof buildPromptLlmSchemaFields>;
 
+/** 编辑 TAG 弹窗中的角色提示词草稿 */
+export type { InlineCharacterPromptDraft } from '@/composables/inlineEditableCharacterPrompt';
+
 export interface InlineTextInputOptions {
   title?: string;
   message: string;
@@ -68,11 +75,16 @@ export interface InlinePromptPairInputOptions {
   negativeRows?: number;
   acceptLabel?: string;
   cancelLabel?: string;
+  /** 是否展示角色提示词编辑区（仅 NovelAI V4 / V4.5） */
+  enableCharacters?: boolean;
+  /** 角色提示词初始值 */
+  charactersDefaultValue?: InlineCharacterPromptDraft[];
 }
 
 export interface InlinePromptPairInputValue {
   positive: string;
   negative: string;
+  characters: InlineCharacterPromptDraft[];
 }
 
 interface InlineImageGenerationOptions {
@@ -683,64 +695,29 @@ export function useInlineImageGeneration(
   }
 
   /**
-   * 请求用户编辑当前图片保存的正负提示词
+   * 请求用户编辑当前图片保存的正负提示词（含角色）
    * @param snapshot 当前图片保存的提示词快照
    * @returns 编辑后的快照,取消时返回 null
    */
   async function requestEditedPromptSnapshot(snapshot: InlinePromptSnapshot): Promise<InlinePromptSnapshot | null> {
-    const initialPrompts = readEditablePromptInput(snapshot);
+    const initialPrompts = readEditablePromptInput(settings.novelai, snapshot);
+    const canEditCharacters = canEditInlineCharacterPrompts(settings.novelai.model);
     const prompts = await requestPromptPairInput({
       title: '编辑提示词后生图',
-      message: '直接编辑当前图片保存的提示词，确认后生成图片',
+      message: canEditCharacters
+        ? '直接编辑当前图片保存的全局提示词与角色提示词，确认后生成图片'
+        : '直接编辑当前图片保存的提示词，确认后生成图片',
       positiveLabel: '正向提示词',
       negativeLabel: '负向提示词',
       positiveDefaultValue: initialPrompts.positive,
       negativeDefaultValue: initialPrompts.negative,
       positiveRows: 6,
       negativeRows: 4,
+      enableCharacters: canEditCharacters,
+      charactersDefaultValue: initialPrompts.characters,
     });
     if (!prompts) return null;
-    return createEditedPromptSnapshot(snapshot, prompts.positive, prompts.negative);
-  }
-
-  /**
-   * 读取编辑弹窗默认展示的提示词
-   * NovelAI 会过滤内置质量标签和 UC 预设,避免把系统级提示词回填到输入框
-   * @param snapshot 当前图片保存的提示词快照
-   * @returns 可直接显示在编辑弹窗中的正负提示词
-   */
-  function readEditablePromptInput(snapshot: InlinePromptSnapshot): InlinePromptPairInputValue {
-    if (!snapshot.novelai) {
-      return { positive: snapshot.positivePrompt, negative: snapshot.negativePrompt };
-    }
-    const prompts = readNovelAIEditablePrompts(settings.novelai, snapshot.novelai);
-    return { positive: prompts.positivePrompt, negative: prompts.negativePrompt };
-  }
-
-  /**
-   * 创建替换正负提示词后的快照
-   * @param snapshot 原提示词快照
-   * @param positivePrompt 编辑后的正向提示词
-   * @param negativePrompt 编辑后的负向提示词
-   * @returns 更新后的提示词快照
-   */
-  function createEditedPromptSnapshot(
-    snapshot: InlinePromptSnapshot,
-    positivePrompt: string,
-    negativePrompt: string,
-  ): InlinePromptSnapshot {
-    const edited = cloneInlinePromptSnapshot(snapshot);
-    if (edited.novelai) {
-      const prompts = buildNovelAIFinalPromptsFromEditable(settings.novelai, { positivePrompt, negativePrompt });
-      edited.positivePrompt = prompts.positivePrompt;
-      edited.negativePrompt = prompts.negativePrompt;
-      Object.assign(edited.novelai, prompts);
-      return edited;
-    }
-    edited.positivePrompt = positivePrompt;
-    edited.negativePrompt = negativePrompt;
-    if (edited.comfyui) Object.assign(edited.comfyui, { positivePrompt, negativePrompt });
-    return edited;
+    return createEditedPromptSnapshot(settings.novelai, snapshot, prompts);
   }
 
   /**

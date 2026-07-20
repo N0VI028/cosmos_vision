@@ -30,6 +30,74 @@
           :rows="secondaryRows"
         />
       </div>
+      <div v-if="enableCharacters" class="cv-text-input-dialog__characters">
+        <div class="cv-text-input-dialog__label">角色提示词（{{ characters.length }}）</div>
+        <div class="cv-text-input-dialog__character-list">
+          <CollapsiblePanelItem
+            v-for="(character, index) in characters"
+            :key="character.id"
+            :title="getCharacterTitle(character, index)"
+            :collapsed="!expandedIds.has(character.id)"
+            @toggle="toggleCharacter(character.id)"
+          >
+            <template #actions>
+              <Button
+                icon="fa-solid fa-trash"
+                severity="danger"
+                text
+                size="small"
+                aria-label="删除角色"
+                @click="removeCharacter(character.id)"
+              />
+            </template>
+            <div class="cv-text-input-dialog__character-body">
+              <div class="cv-text-input-dialog__field">
+                <label class="cv-text-input-dialog__label">角色正面</label>
+                <Textarea
+                  v-model="character.positivePrompt"
+                  class="cv-text-input-dialog__textarea custom-scrollbar"
+                  :rows="3"
+                />
+              </div>
+              <div class="cv-text-input-dialog__field">
+                <label class="cv-text-input-dialog__label">角色负面</label>
+                <Textarea
+                  v-model="character.negativePrompt"
+                  class="cv-text-input-dialog__textarea custom-scrollbar"
+                  :rows="2"
+                />
+              </div>
+              <div class="cv-text-input-dialog__coords">
+                <label class="cv-text-input-dialog__field">
+                  <span class="cv-text-input-dialog__label">X 坐标</span>
+                  <InputNumber
+                    v-model="character.x"
+                    :min="0"
+                    :max="1"
+                    :step="0.05"
+                    :max-fraction-digits="2"
+                    :allow-empty="false"
+                  />
+                </label>
+                <label class="cv-text-input-dialog__field">
+                  <span class="cv-text-input-dialog__label">Y 坐标</span>
+                  <InputNumber
+                    v-model="character.y"
+                    :min="0"
+                    :max="1"
+                    :step="0.05"
+                    :max-fraction-digits="2"
+                    :allow-empty="false"
+                  />
+                </label>
+              </div>
+            </div>
+          </CollapsiblePanelItem>
+        </div>
+        <div class="cv-text-input-dialog__character-actions">
+          <CvAddEntryButton label="添加角色" @click="addCharacter" />
+        </div>
+      </div>
     </div>
     <template #footer>
       <div class="cv-confirm-actions">
@@ -44,12 +112,24 @@
 import { useMediaQuery } from '@vueuse/core';
 
 import { DARK_CLASS } from '@/constants/default-settings';
+import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
+import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
+
+/** 编辑弹窗中的角色提示词草稿 */
+export interface TextInputCharacterDraft {
+  id: number;
+  positivePrompt: string;
+  negativePrompt: string;
+  x: number;
+  y: number;
+}
 
 type TextInputRef = { $el?: HTMLElement } | HTMLElement | null;
 
 const visible = defineModel<boolean>('visible', { required: true });
 const value = defineModel<string>('value', { required: true });
 const secondaryValue = defineModel<string>('secondaryValue', { default: '' });
+const characters = defineModel<TextInputCharacterDraft[]>('characters', { default: () => [] });
 
 const props = withDefaults(
   defineProps<{
@@ -62,6 +142,7 @@ const props = withDefaults(
     acceptLabel?: string;
     cancelLabel?: string;
     darkMode?: boolean;
+    enableCharacters?: boolean;
   }>(),
   {
     primaryLabel: '',
@@ -71,15 +152,18 @@ const props = withDefaults(
     acceptLabel: '确定',
     cancelLabel: '取消',
     darkMode: false,
+    enableCharacters: false,
   },
 );
 
 const emit = defineEmits<{
-  submit: [value: { value: string; secondaryValue: string } | null];
+  submit: [value: { value: string; secondaryValue: string; characters: TextInputCharacterDraft[] } | null];
 }>();
 
 const inputRef = ref<TextInputRef>(null);
 const isMobile = useMediaQuery('(max-width: 66.6667em)');
+const expandedIds = ref(new Set<number>());
+let nextCharacterId = 0;
 
 const dialogClass = computed(() => ['cv-confirm-dialog', 'cv-text-input-dialog', { [DARK_CLASS]: props.darkMode }]);
 const hasSecondaryField = computed(() => Boolean(props.secondaryLabel));
@@ -96,13 +180,23 @@ const contentStyle = { overflow: 'hidden' } as const;
  */
 function submit(accept: boolean): void {
   visible.value = false;
-  emit('submit', accept ? { value: value.value.trim(), secondaryValue: secondaryValue.value.trim() } : null);
+  emit(
+    'submit',
+    accept
+      ? {
+          value: value.value.trim(),
+          secondaryValue: secondaryValue.value.trim(),
+          characters: characters.value.map(cloneCharacterDraft),
+        }
+      : null,
+  );
 }
 
 /**
  * 桌面端聚焦文本输入框
  */
 function focusInput(): void {
+  syncCharacterIdSeed();
   if (isMobile.value) return;
   nextTick(() => {
     const el = getTextInputElement();
@@ -119,15 +213,100 @@ function getTextInputElement(): HTMLTextAreaElement | null {
   const el = inputRef.value instanceof HTMLElement ? inputRef.value : inputRef.value?.$el;
   return el instanceof HTMLTextAreaElement ? el : null;
 }
+
+/**
+ * 生成角色折叠标题
+ * @param character 角色草稿
+ * @param index 序号
+ * @returns 标题
+ */
+function getCharacterTitle(character: TextInputCharacterDraft, index: number): string {
+  const preview = character.positivePrompt.trim() || '(空)';
+  const short = preview.length > 28 ? `${preview.slice(0, 28)}…` : preview;
+  return `角色 ${index + 1} · ${short}`;
+}
+
+/**
+ * 切换角色折叠
+ * @param id 角色 id
+ */
+function toggleCharacter(id: number): void {
+  const next = new Set(expandedIds.value);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  expandedIds.value = next;
+}
+
+/**
+ * 添加空角色
+ */
+function addCharacter(): void {
+  const character = createCharacterDraft();
+  characters.value = [...characters.value, character];
+  expandedIds.value = new Set([...expandedIds.value, character.id]);
+}
+
+/**
+ * 删除角色
+ * @param id 角色 id
+ */
+function removeCharacter(id: number): void {
+  characters.value = characters.value.filter(item => item.id !== id);
+  const next = new Set(expandedIds.value);
+  next.delete(id);
+  expandedIds.value = next;
+}
+
+/**
+ * 创建空角色草稿
+ * @returns 角色草稿
+ */
+function createCharacterDraft(): TextInputCharacterDraft {
+  return { id: ++nextCharacterId, positivePrompt: '', negativePrompt: '', x: 0.5, y: 0.5 };
+}
+
+/**
+ * 克隆角色草稿（提交用）
+ * @param character 角色草稿
+ * @returns 纯对象草稿
+ */
+function cloneCharacterDraft(character: TextInputCharacterDraft): TextInputCharacterDraft {
+  return {
+    id: character.id,
+    positivePrompt: character.positivePrompt,
+    negativePrompt: character.negativePrompt,
+    x: clampCoordinate(character.x),
+    y: clampCoordinate(character.y),
+  };
+}
+
+/**
+ * 将坐标夹到 0–1
+ * @param value 坐标
+ * @returns 合法坐标
+ */
+function clampCoordinate(value: number | null | undefined): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 0.5;
+  return Math.min(1, Math.max(0, value));
+}
+
+/**
+ * 打开弹窗时同步角色 id 种子并默认展开首个角色
+ */
+function syncCharacterIdSeed(): void {
+  nextCharacterId = characters.value.reduce((max, item) => Math.max(max, item.id), 0);
+  expandedIds.value = new Set(characters.value.slice(0, 1).map(item => item.id));
+}
 </script>
 
 <style scoped>
 @reference '../../global.css';
 
 .cv-text-input-dialog__body {
-  @apply flex w-full flex-col overflow-hidden;
+  @apply flex w-full flex-col overflow-y-auto;
   gap: var(--cv-space-3xl);
   max-height: min(68vh, 34rem);
+  overscroll-behavior: contain;
 }
 
 .cv-text-input-dialog__field {
@@ -153,6 +332,37 @@ function getTextInputElement(): HTMLTextAreaElement | null {
 .cv-text-input-dialog__field--secondary .cv-text-input-dialog__textarea {
   min-height: 5.5rem;
   max-height: min(24vh, 12rem);
+}
+
+.cv-text-input-dialog__characters {
+  @apply flex flex-col;
+  gap: var(--cv-space-xl);
+}
+
+.cv-text-input-dialog__character-list {
+  @apply flex flex-col;
+  gap: var(--cv-space-lg);
+}
+
+.cv-text-input-dialog__character-body {
+  @apply flex flex-col;
+  gap: var(--cv-space-xl);
+  padding: var(--cv-space-xl);
+}
+
+.cv-text-input-dialog__character-body .cv-text-input-dialog__textarea {
+  min-height: 4.5rem;
+  max-height: min(18vh, 9rem);
+}
+
+.cv-text-input-dialog__coords {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--cv-space-xl);
+}
+
+.cv-text-input-dialog__character-actions {
+  display: flow-root;
 }
 
 :deep(.cv-text-input-dialog .p-dialog-content) {

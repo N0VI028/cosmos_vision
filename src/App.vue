@@ -22,6 +22,7 @@
     v-model:visible="textInputDialogVisible"
     v-model:value="textInputDialogState.value"
     v-model:secondary-value="textInputDialogState.secondaryValue"
+    v-model:characters="textInputDialogState.characters"
     :title="textInputDialogState.title"
     :message="textInputDialogState.message"
     :primary-label="textInputDialogState.primaryLabel"
@@ -31,6 +32,7 @@
     :accept-label="textInputDialogState.acceptLabel"
     :cancel-label="textInputDialogState.cancelLabel"
     :dark-mode="darkMode"
+    :enable-characters="textInputDialogState.enableCharacters"
     @submit="handleTextInputDialog"
   />
   <ImageDownloadDialog
@@ -129,6 +131,7 @@ import TextInputDialog from '@/panel/components/TextInputDialog.vue';
 import { useSettingsStore } from '@/store/settings';
 import {
   useInlineImageGeneration,
+  type InlineCharacterPromptDraft,
   type InlinePromptPairInputOptions,
   type InlinePromptPairInputValue,
   type InlineTextInputOptions,
@@ -148,10 +151,12 @@ import {
   type InlineImageDownloadOptions,
 } from '@/services/inline-image/download-options';
 import { ensurePromptStripRegex } from '@/services/inline-image/prompt-strip-regex';
+import type { TextInputCharacterDraft } from '@/panel/components/TextInputDialog.vue';
 
 interface TextInputDialogSubmitValue {
   value: string;
   secondaryValue: string;
+  characters: TextInputCharacterDraft[];
 }
 
 interface TextInputDialogState {
@@ -165,6 +170,8 @@ interface TextInputDialogState {
   secondaryRows: number;
   acceptLabel: string;
   cancelLabel: string;
+  enableCharacters: boolean;
+  characters: TextInputCharacterDraft[];
   resolve: (value: TextInputDialogSubmitValue | null) => void;
 }
 
@@ -204,6 +211,8 @@ const textInputDialogState = ref<TextInputDialogState>({
   secondaryRows: 4,
   acceptLabel: '确定',
   cancelLabel: '取消',
+  enableCharacters: false,
+  characters: [],
   resolve: () => {},
 });
 const imageDownloadDialogOptions = ref(createDefaultInlineImageDownloadOptions());
@@ -366,6 +375,8 @@ function showTextInputDialog(options: InlineTextInputOptions): Promise<string | 
       secondaryRows: 4,
       acceptLabel: options.acceptLabel ?? '确定',
       cancelLabel: options.cancelLabel ?? '取消',
+      enableCharacters: false,
+      characters: [],
       resolve: result => resolve(result?.value ?? null),
     };
     textInputDialogVisible.value = true;
@@ -373,9 +384,9 @@ function showTextInputDialog(options: InlineTextInputOptions): Promise<string | 
 }
 
 /**
- * 显示正负提示词双输入弹窗
+ * 显示正负提示词双输入弹窗（可选角色提示词）
  * @param options 弹窗配置
- * @returns 用户输入的正负提示词或取消状态
+ * @returns 用户输入的正负与角色提示词或取消状态
  */
 function showPromptPairDialog(options: InlinePromptPairInputOptions): Promise<InlinePromptPairInputValue | null> {
   return new Promise(resolve => {
@@ -390,11 +401,50 @@ function showPromptPairDialog(options: InlinePromptPairInputOptions): Promise<In
       secondaryRows: options.negativeRows ?? 4,
       acceptLabel: options.acceptLabel ?? '确定',
       cancelLabel: options.cancelLabel ?? '取消',
+      enableCharacters: Boolean(options.enableCharacters),
+      characters: toTextInputCharacterDrafts(options.charactersDefaultValue ?? []),
       resolve: result =>
-        resolve(result ? { positive: result.value, negative: result.secondaryValue } : null),
+        resolve(
+          result
+            ? {
+                positive: result.value,
+                negative: result.secondaryValue,
+                characters: result.characters.map(toInlineCharacterDraft),
+              }
+            : null,
+        ),
     };
     textInputDialogVisible.value = true;
   });
+}
+
+/**
+ * 将内联角色草稿转为弹窗草稿（补 id）
+ * @param drafts 内联角色草稿
+ * @returns 弹窗角色草稿
+ */
+function toTextInputCharacterDrafts(drafts: InlineCharacterPromptDraft[]): TextInputCharacterDraft[] {
+  return drafts.map((draft, index) => ({
+    id: index + 1,
+    positivePrompt: draft.positivePrompt,
+    negativePrompt: draft.negativePrompt,
+    x: draft.x,
+    y: draft.y,
+  }));
+}
+
+/**
+ * 将弹窗角色草稿转回内联草稿
+ * @param draft 弹窗角色草稿
+ * @returns 内联角色草稿
+ */
+function toInlineCharacterDraft(draft: TextInputCharacterDraft): InlineCharacterPromptDraft {
+  return {
+    positivePrompt: draft.positivePrompt,
+    negativePrompt: draft.negativePrompt,
+    x: draft.x,
+    y: draft.y,
+  };
 }
 
 /**
