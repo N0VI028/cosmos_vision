@@ -161,7 +161,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     maxTokens: 32000,
     topP: 1.0,
     topK: 0,
-    historyFloorCount: 0,
+    historyFloorCount: 2,
     ignoreUserMessagesInHistory: false,
     preferJsonSchemaExtraction: true,
     positivePromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.positive,

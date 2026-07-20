@@ -646,6 +646,7 @@ Structure of your response must be:
 </output>
 
 - Final frame focus: The exact moment this long narrative passage should freeze on.
+- Environmental Continuity: Identify persistent environmental elements from <story_context> that are still active (e.g., location, weather, time of day, ongoing atmosphere) and must carry over, even if not explicitly repeated in the <main_scene>.
 - Current active information: Retain only descriptions that are currently true/active in the scene.
 - Invalidated information: Do not carry forward prior states, background settings, identity tags, common stereotypes, historical info, or metaphorical descriptions directly into the final image.
 - Conflict resolution: If descriptions conflict, states change, or settings differ from the visible frame, prioritize the most recently established, directly visible, and explicitly described content.
@@ -654,7 +655,7 @@ Structure of your response must be:
 
 [Base Layer - Global]
 - Subject & Count: {e.g., 1girl / 1boy / 2girls / solo, specify the exact number of main subjects in the frame}
-- Scene & Background: {current time + location + positive tags for environmental elements}
+- Scene & Background: {Combine the 'Environmental Continuity' inherited from history with new details from '<main_scene>', e.g., current time + location + weather}
 - Camera & Composition: {positive tags for camera shots, angles, and compositions, e.g., cowboy shot / from above / close-up / dynamic angle}
 - Lighting & Atmosphere: {translate the current mood and narrative atmosphere into visual lighting tags, e.g., cinematic lighting / volumetric light / cool color palette}
 - Style & Quality/Texture: {style preference and texture tags, e.g., anime screencap / digital painting / detailed texture}
@@ -666,6 +667,7 @@ For each character appearing in the current frame, analyze them in separate bloc
 - Clothing Details: {based on what they are actually wearing in the current frame, do not let identity settings or occupational stereotypes override this}
 - Expression: {positive tags for the current facial expression}
 - Action & Pose: {the character's individual action or pose}
+- Spatial Position: {relative position in the frame layout, e.g., left/right/center, foreground/background, front/back/above/below, or relative to another character}
 - Interactions/Relationships: {demonstrate the interactive relationship in multi-character scenes}
 
 [Supplementary Decisions]

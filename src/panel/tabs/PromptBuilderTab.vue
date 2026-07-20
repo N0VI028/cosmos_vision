@@ -5,7 +5,7 @@
       <div>
         <div class="flex flex-col gap-(--cv-space-5xl)">
           <label class="cv-field">
-            <span>发送的楼层数</span>
+            <span>发送的历史楼层数</span>
             <div class="cv-field-control">
               <InputNumber
                 v-model="settings.promptLlm.historyFloorCount"
