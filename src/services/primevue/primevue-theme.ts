@@ -1,9 +1,13 @@
 import Aura from '@primeuix/themes/aura';
 import { definePreset } from '@primeuix/themes';
 
-const formFieldColor = {
+/**
+ * 表单字段颜色 token —— light/dark 共用视觉（禁用态除外）
+ * InputText / Textarea / Select 等继承 formField；shadow 清零对齐扁平方块基线
+ * 禁用底色在 colorScheme 中按浅/深色拆分，避免浅色半透明看起来像深色禁用
+ */
+const formFieldColorBase = {
   background: 'var(--cv-surface-container-high)',
-  disabledBackground: 'color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent)',
   filledBackground: 'var(--cv-surface-container-high)',
   filledHoverBackground: 'var(--cv-surface-container)',
   filledFocusBackground: 'var(--cv-surface-container-high)',
@@ -15,6 +19,23 @@ const formFieldColor = {
   disabledColor: 'var(--cv-on-surface-variant)',
   placeholderColor: 'var(--cv-on-surface-variant)',
   invalidPlaceholderColor: 'color-mix(in srgb, var(--p-red-500) 75%, var(--cv-on-surface-variant))',
+  shadow: 'none',
+} as const;
+
+/**
+ * 浅色：禁用底比正常 field 更浅（surface 上极淡叠字色）
+ * 注意：ST 的 input:disabled { filter:brightness(0.5) } 会单独压暗，必须在 host-resets 清掉
+ */
+const formFieldColorLight = {
+  ...formFieldColorBase,
+  disabledBackground: 'color-mix(in srgb, var(--cv-on-surface) 8%, var(--cv-surface))',
+  disabledColor: 'color-mix(in srgb, var(--cv-on-surface-variant) 70%, var(--cv-surface))',
+} as const;
+
+/** 深色：保留半透明叠底，与暗表面对比适中 */
+const formFieldColorDark = {
+  ...formFieldColorBase,
+  disabledBackground: 'color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent)',
 } as const;
 
 /**
@@ -120,8 +141,8 @@ export const cosmosPrimePreset = definePreset(Aura, {
       borderRadius: 'var(--cv-radius-full)',
     },
     colorScheme: {
-      light: { formField: formFieldColor },
-      dark: { formField: formFieldColor },
+      light: { formField: formFieldColorLight },
+      dark: { formField: formFieldColorDark },
     },
   },
   components: {

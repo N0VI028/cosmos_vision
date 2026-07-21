@@ -23,7 +23,7 @@
             <template v-if="editingPersonId === person.id">
               <InputText
                 v-model="editingDraft"
-                class="cv-person-item__name-input"
+                class="mr-(--cv-space-lg) w-48 min-w-24 max-w-full"
                 size="small"
                 autofocus
                 @click.stop
@@ -641,14 +641,6 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 .cv-person-editor {
   padding: var(--cv-space-2xl);
   border-top: var(--cv-border-width) solid var(--cv-surface-variant);
-}
-
-.cv-person-item__name-input {
-  flex: 0 1 auto;
-  width: 12rem;
-  min-width: 6rem;
-  max-width: 100%;
-  margin-right: var(--cv-space-lg);
 }
 
 .cv-person-section-header {

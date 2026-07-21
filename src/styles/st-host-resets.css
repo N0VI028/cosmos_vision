@@ -107,14 +107,24 @@
  *     background-color: var(--ui-color-sec) !important;
  *     border: 固定描边 solid var(--ui-color-sec) !important;
  *   }
- * PrimeVue `.cv-prime-field` 压不过 ST 的标签级 + !important。
- * 这里用作用域锚点 + !important 反压，把背景 / 边框 / 文字色还原到 PrimeVue token。
+ * PrimeVue 的 token 样式没有 !important，压不过 ST。
+ * 这里只做宿主反压：把属性指回 `--p-inputtext-*` token，不写死颜色值。
+ * 禁用态必须单独映射 disabled token，否则会一直吃到普通 background。
  */
-.cosmos-vision-root input.cv-prime-field,
-#cosmos_vision input.cv-prime-field {
+.cosmos-vision-root input.cv-prime-field:not(:disabled),
+#cosmos_vision input.cv-prime-field:not(:disabled) {
   background: var(--p-inputtext-background) !important;
   border-color: var(--p-inputtext-border-color) !important;
   color: var(--p-inputtext-color) !important;
+}
+
+.cosmos-vision-root input.cv-prime-field:disabled,
+#cosmos_vision input.cv-prime-field:disabled {
+  background: var(--p-inputtext-disabled-background) !important;
+  border-color: var(--p-inputtext-border-color) !important;
+  color: var(--p-inputtext-disabled-color) !important;
+  /* ST st-tailwind: input:disabled { filter: brightness(0.5) } 会把浅底压成深灰 */
+  filter: none !important;
 }
 
 .cosmos-vision-root input.cv-prime-field.p-invalid,

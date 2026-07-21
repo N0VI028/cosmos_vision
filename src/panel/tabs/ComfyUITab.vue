@@ -8,7 +8,11 @@
           <span>ComfyUI URL</span>
           <div class="cv-field-control">
             <div class="cv-url-input-row">
-              <InputText v-model="settings.comfyui.url" placeholder="http://127.0.0.1:8188" class="cv-url-input" />
+              <InputText
+                v-model="settings.comfyui.url"
+                placeholder="http://127.0.0.1:8188"
+                class="min-w-0 flex-1"
+              />
               <Button
                 :icon="connectionTestIcon"
                 :severity="connectionTestSeverity"
@@ -413,9 +417,5 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
 .cv-url-input-row {
   @apply flex items-center;
   gap: var(--cv-space-md);
-}
-
-.cv-url-input {
-  @apply flex-1 min-w-0;
 }
 </style>

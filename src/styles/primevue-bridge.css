@@ -72,6 +72,7 @@
   --p-border-radius-xl: 0.2667em;
 
   /* PrimeVue 在 :root 已字面值化的组件圆角，需在作用域内逐项回写 */
+  --p-inputtext-border-radius: var(--cv-radius-full);
   --p-button-border-radius: var(--cv-radius-full);
   --p-select-border-radius: var(--cv-radius-full);
   --p-select-overlay-border-radius: var(--cv-radius-lg);

@@ -20,7 +20,7 @@
           <template v-if="editingAccountId === account.id">
             <InputText
               v-model="editingDraft"
-              class="cv-account-item__name-input"
+              class="mr-(--cv-space-lg) w-48 min-w-24 max-w-full"
               size="small"
               autofocus
               @click.stop
@@ -228,14 +228,6 @@ function removeAccount(index: number): void {
 .cv-account-list__items {
   @apply flex flex-col;
   gap: var(--cv-space-xl);
-}
-
-.cv-account-item__name-input {
-  flex: 0 1 auto;
-  width: 12rem;
-  min-width: 6rem;
-  max-width: 100%;
-  margin-right: var(--cv-space-lg);
 }
 
 .cv-account-item__body {
