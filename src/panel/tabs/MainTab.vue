@@ -84,7 +84,10 @@
 
 <script setup lang="ts">
 import { computed, inject, ref, watch } from 'vue';
-import { removeSessionItemsByIds } from '@/composables/inlineGallerySession';
+import {
+  appendGeneratedSessionItem,
+  removeSessionItemsByIds,
+} from '@/composables/inlineGallerySession';
 import { IMAGE_SOURCES } from '@/constants/comfyui';
 import DataPortabilityPanel from '@/panel/components/DataPortabilityPanel.vue';
 import InlineFavoriteDataPanel from '@/panel/components/InlineFavoriteDataPanel.vue';
@@ -102,12 +105,18 @@ import {
   downloadInlineImageBlobItems,
   downloadInlineImageFavoriteItems,
 } from '@/services/inline-image/favorites-download';
-import { convertManagedImageKind } from '@/services/inline-image/managed-kind-toggle';
+import {
+  convertManagedImageKind,
+  type ConvertImageKindResult,
+} from '@/services/inline-image/managed-kind-toggle';
 import {
   mergeManagedImageItems,
   parseManagedImageKey,
+  removeManagedFavoriteId,
   toManagedFavoriteItems,
   toManagedTemporaryItems,
+  toTemporaryRecordFromManaged,
+  upsertManagedFavoriteGroup,
   type ManagedImageItem,
 } from '@/services/inline-image/managed-images';
 import {
@@ -299,11 +308,70 @@ async function toggleManagedItemKind(key: string): Promise<void> {
   const item = managedImageItems.value.find(candidate => candidate.key === key);
   if (!item) return;
   await runManagedAction(async () => {
-    await convertManagedImageKind(item, settings.temporaryImageLimit);
-    if (item.kind === 'temporary') removeSessionItemsByIds([String(item.sourceId)]);
-    await Promise.all([refreshManagedImages(), useGalleryRuntimesStore().restoreAll()]);
-    toastr.success(item.kind === 'temporary' ? '已转为收藏' : '已转为临时');
+    const result = await convertManagedImageKind(item, settings.temporaryImageLimit);
+    applyManagedKindLocalPatch(item, result);
+    syncManagedKindSession(item, result);
+    useGalleryRuntimesStore().patchSlotKind(
+      item.slotId,
+      result.to === 'favorite'
+        ? {
+            to: 'favorite',
+            temporaryId: result.temporaryId,
+            favoriteId: result.favoriteId,
+            createdAt: result.createdAt,
+          }
+        : {
+            to: 'temporary',
+            favoriteId: result.favoriteId,
+            temporaryId: result.temporaryId,
+            createdAt: result.createdAt,
+          },
+    );
+    toastr.success(result.to === 'favorite' ? '已转为收藏' : '已转为临时');
   }, '切换图片状态失败');
+}
+
+/**
+ * 用已知 blob 就地更新管理列表（避免并行 refresh 中间态）
+ * @param item 原管理项
+ * @param result 互换结果
+ */
+function applyManagedKindLocalPatch(item: ManagedImageItem, result: ConvertImageKindResult): void {
+  if (result.from === 'temporary') {
+    temporaryRecords.value = temporaryRecords.value.filter(record => record.id !== result.temporaryId);
+    favoriteGroups.value = upsertManagedFavoriteGroup(
+      favoriteGroups.value,
+      item,
+      result.favoriteId,
+      result.filePath,
+    );
+    return;
+  }
+  favoriteGroups.value = removeManagedFavoriteId(favoriteGroups.value, result.favoriteId);
+  temporaryRecords.value = [
+    toTemporaryRecordFromManaged(item, result.temporaryId, result.createdAt),
+    ...temporaryRecords.value.filter(record => record.id !== result.temporaryId),
+  ];
+}
+
+/**
+ * 管理页类型互换后同步会话覆盖层
+ * @param item 原管理项
+ * @param result 互换结果
+ */
+function syncManagedKindSession(item: ManagedImageItem, result: ConvertImageKindResult): void {
+  if (result.from === 'temporary') {
+    removeSessionItemsByIds([result.temporaryId]);
+    return;
+  }
+  appendGeneratedSessionItem(item.slotId, {
+    id: result.temporaryId,
+    favoriteId: null,
+    slotId: item.slotId,
+    imageBlob: item.imageBlob,
+    promptSnapshot: item.promptSnapshot,
+    createdAt: result.createdAt,
+  });
 }
 
 /**

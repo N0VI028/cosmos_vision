@@ -28,6 +28,21 @@ import { event_types, eventSource } from '@sillytavern/script';
 import { useSettingsStore } from '@/store/settings';
 import { pruneTemporaryImages } from '@/services/inline-image/temporary-images';
 
+/** 管理页类型互换后的画廊就地补丁（保留 objectUrl，避免闪烁） */
+export type GalleryKindPatch =
+  | {
+      to: 'favorite';
+      temporaryId: string;
+      favoriteId: number;
+      createdAt: number;
+    }
+  | {
+      to: 'temporary';
+      favoriteId: number;
+      temporaryId: string;
+      createdAt: number;
+    };
+
 /** 单画廊 mount 运行时 */
 export interface GalleryMountRuntime {
   key: string;
@@ -36,6 +51,8 @@ export interface GalleryMountRuntime {
   mountKey: GalleryMountSpec['mountKey'];
   anchor: InlineFavoriteAnchor;
   generatedItem: GallerySessionItem | null;
+  /** 类型互换就地补丁 */
+  kindPatch: GalleryKindPatch | null;
 }
 
 /** 楼层粒度 runtime（对标 TH message runtime） */
@@ -172,6 +189,21 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
    */
   async function restoreAll(): Promise<void> {
     await enqueue(() => runJob({ kind: 'rerenderAll', clearSessions: false }));
+  }
+
+  /**
+   * 对指定 slot 下发类型互换就地补丁（不拆 DOM、不重建 objectUrl）
+   * @param slotId 短码位点
+   * @param patch 补丁
+   */
+  function patchSlotKind(slotId: string, patch: GalleryKindPatch): void {
+    if (!slotId || disposed || !settingsStore.savedSettings.enabled) return;
+    runtimes.value
+      .flatMap(runtime => runtime.mounts)
+      .filter(mount => mount.mountKey.slotId === slotId)
+      .forEach(mount => {
+        mount.kindPatch = { ...patch };
+      });
   }
 
   /**
@@ -435,6 +467,7 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
     cleanup,
     refreshTheme,
     restoreAll,
+    patchSlotKind,
     showGenerated,
     getHost,
     removeMount,
@@ -489,6 +522,7 @@ function toMountRuntime(mount: GalleryMountSpec): GalleryMountRuntime {
     element: markRaw(mount.element),
     mountKey: mount.mountKey,
     generatedItem: null,
+    kindPatch: null,
     anchor: {
       ...mount.anchor,
       target: markRaw(mount.anchor.target),

@@ -11,28 +11,48 @@ import {
   saveTemporaryImage,
 } from '@/services/inline-image/temporary-images';
 
+/** 管理图片状态互换结果 */
+export type ConvertImageKindResult =
+  | {
+      from: 'temporary';
+      to: 'favorite';
+      temporaryId: string;
+      favoriteId: number;
+      filePath: string;
+      createdAt: number;
+    }
+  | {
+      from: 'favorite';
+      to: 'temporary';
+      favoriteId: number;
+      temporaryId: string;
+      createdAt: number;
+    };
+
 /**
  * 互换管理图片的收藏/临时状态（先写入目标，再删除来源）
  * @param item 当前管理项
  * @param temporaryLimit 临时图数量上限
+ * @returns 互换结果
  */
 export async function convertManagedImageKind(
   item: ManagedImageItem,
   temporaryLimit: number,
-): Promise<void> {
+): Promise<ConvertImageKindResult> {
   if (item.kind === 'temporary') {
-    await promoteTemporaryToFavorite(item);
-    return;
+    return promoteTemporaryToFavorite(item);
   }
-  await demoteFavoriteToTemporary(item, temporaryLimit);
+  return demoteFavoriteToTemporary(item, temporaryLimit);
 }
 
 /**
  * 临时图转为收藏图
  * @param item 临时管理项
+ * @returns 互换结果
  */
-async function promoteTemporaryToFavorite(item: ManagedImageItem): Promise<void> {
-  await saveInlineImageFavorite({
+async function promoteTemporaryToFavorite(item: ManagedImageItem): Promise<ConvertImageKindResult> {
+  const temporaryId = String(item.sourceId);
+  const saved = await saveInlineImageFavorite({
     characterKey: item.characterKey,
     chatId: item.chatId,
     slotId: item.slotId,
@@ -40,30 +60,43 @@ async function promoteTemporaryToFavorite(item: ManagedImageItem): Promise<void>
     promptSnapshot: cloneInlinePromptSnapshot(item.promptSnapshot),
     createdAt: item.createdAt,
   });
-  await deleteTemporaryImage(String(item.sourceId));
+  await deleteTemporaryImage(temporaryId);
+  return {
+    from: 'temporary',
+    to: 'favorite',
+    temporaryId,
+    favoriteId: saved.id,
+    filePath: saved.filePath,
+    createdAt: item.createdAt,
+  };
 }
 
 /**
  * 收藏图转为临时图
  * @param item 收藏管理项
  * @param temporaryLimit 临时图数量上限
+ * @returns 互换结果
  */
 async function demoteFavoriteToTemporary(
   item: ManagedImageItem,
   temporaryLimit: number,
-): Promise<void> {
+): Promise<ConvertImageKindResult> {
+  const favoriteId = Number(item.sourceId);
+  const temporaryId = `temporary-${uuidv4()}`;
+  const createdAt = Date.now();
   await saveTemporaryImage(
     {
-      id: `temporary-${uuidv4()}`,
+      id: temporaryId,
       characterKey: item.characterKey,
       chatId: item.chatId,
       slotId: item.slotId,
       imageBlob: item.imageBlob,
       promptSnapshot: cloneInlinePromptSnapshot(item.promptSnapshot),
       // 用当前时间，避免旧收藏转入后立刻被数量上限淘汰
-      createdAt: Date.now(),
+      createdAt,
     },
     temporaryLimit,
   );
-  await deleteInlineImageFavorite(Number(item.sourceId));
+  await deleteInlineImageFavorite(favoriteId);
+  return { from: 'favorite', to: 'temporary', favoriteId, temporaryId, createdAt };
 }

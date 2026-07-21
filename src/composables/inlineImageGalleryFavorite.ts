@@ -38,7 +38,7 @@ export async function favoriteGalleryItem(
   item.slotId = slotId;
   const record = buildFavoriteRecord(group, item, slotId);
   if (!record) throw new Error('当前角色或聊天未就绪，暂时无法收藏图片');
-  item.favoriteId = await saveInlineImageFavorite(record);
+  item.favoriteId = (await saveInlineImageFavorite(record)).id;
   bindSlot(slotId);
   try {
     await ensureSlotShortcodeOnParagraph(paragraph, slotId);

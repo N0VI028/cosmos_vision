@@ -63,10 +63,10 @@
       <div v-if="visibleItems.length" class="cv-favorite-grid">
         <CvDataCard
           v-for="(item, index) in visibleItems"
-          :key="item.key"
+          :key="getPreviewUrl(item.key)"
           :selected="isItemSelected(item.key)"
           :selecting="isSelecting"
-          :disabled="busy"
+          :disabled="busy && isSelecting"
           @toggle="toggleItem(item.key)"
         >
           <div class="cv-favorite-card">
@@ -113,7 +113,7 @@
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                   class="cv-prime-icon"
-                  style="width: 1.5em; height: 1.5em; display: inline-block; vertical-align: middle; transform: translateY(-0.03em);"
+                  style="width: 1.25em; height: 1.25em; display: inline-block; vertical-align: middle; transform: translateY(0.03em);"
                 >
                   <defs>
                     <mask :id="'cv-star-slash-mask-' + index">
@@ -245,8 +245,8 @@ const isSelectionToggleDisabled = computed(() => props.loading || props.busy || 
 
 watch(
   () => props.items,
-  items => {
-    syncPreviewUrls(items);
+  (items, previous) => {
+    syncPreviewUrls(items, previous ?? []);
     reconcileCharacterSelection(characterOptions.value.map(option => option.value));
   },
   { immediate: true },
@@ -389,34 +389,47 @@ function stripPngExtension(name: string): string {
 }
 
 /**
- * 同步缩略图 URL 映射
- * @param items 管理项
+ * 同步缩略图 URL 映射（按 key 复用；key 变化时按 blob 引用复用）
+ * @param items 当前管理项
+ * @param previous 上一批管理项
  */
-function syncPreviewUrls(items: ManagedImageItem[]): void {
-  clearPreviewUrls();
-  previewUrlMap.value = buildPreviewUrlMap(items);
+function syncPreviewUrls(items: ManagedImageItem[], previous: ManagedImageItem[] = []): void {
+  const blobToUrl = new Map<Blob, string>();
+  previous.forEach(item => {
+    const url = previewUrlMap.value[item.key];
+    if (url) blobToUrl.set(item.imageBlob, url);
+  });
+  const nextMap: Record<string, string> = {};
+  const keepUrls = new Set<string>();
+  items.forEach(item => {
+    const objectUrl = previewUrlMap.value[item.key] ?? blobToUrl.get(item.imageBlob) ?? createPreviewUrl(item.imageBlob);
+    nextMap[item.key] = objectUrl;
+    keepUrls.add(objectUrl);
+  });
+  Object.values(previewUrlMap.value).forEach(url => {
+    if (keepUrls.has(url)) return;
+    URL.revokeObjectURL(url);
+    objectUrls.delete(url);
+  });
+  previewUrlMap.value = nextMap;
 }
 
 /**
- * 构建缩略图 URL 映射
- * @param items 管理项
+ * 创建并登记缩略图 URL
+ * @param imageBlob 图片数据
+ * @returns object URL
  */
-function buildPreviewUrlMap(items: ManagedImageItem[]): Record<string, string> {
-  return items.reduce(
-    (map, item) => {
-      const objectUrl = URL.createObjectURL(item.imageBlob);
-      objectUrls.add(objectUrl);
-      map[item.key] = objectUrl;
-      return map;
-    },
-    {} as Record<string, string>,
-  );
+function createPreviewUrl(imageBlob: Blob): string {
+  const objectUrl = URL.createObjectURL(imageBlob);
+  objectUrls.add(objectUrl);
+  return objectUrl;
 }
 
 /** 清理已创建的缩略图 URL */
 function clearPreviewUrls(): void {
   objectUrls.forEach(url => URL.revokeObjectURL(url));
   objectUrls.clear();
+  previewUrlMap.value = {};
 }
 
 /**

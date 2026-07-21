@@ -54,15 +54,17 @@ let manifestWriteQueue = Promise.resolve();
 /**
  * 保存单张段落图片收藏记录
  * @param record 待保存的收藏记录
- * @returns 收藏 ID
+ * @returns 收藏 ID 与文件路径
  */
-export async function saveInlineImageFavorite(record: Omit<InlineImageFavoriteRecord, 'id'>): Promise<number> {
+export async function saveInlineImageFavorite(
+  record: Omit<InlineImageFavoriteRecord, 'id'>,
+): Promise<{ id: number; filePath: string }> {
   return mutateFavoriteManifest(async manifest => {
     const id = nextFavoriteId(manifest.records);
     const fileName = `CV-favorite-${uuidv4()}.${resolveBlobExtension(record.imageBlob)}`;
     const filePath = await uploadSillyTavernFile(fileName, await blobToBase64(record.imageBlob));
     manifest.records.push(createManifestEntry(record, id, filePath));
-    return id;
+    return { id, filePath };
   });
 }
 

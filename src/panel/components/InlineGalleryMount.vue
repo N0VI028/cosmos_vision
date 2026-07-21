@@ -15,7 +15,7 @@ import {
   toggleMountFavorite,
 } from '@/composables/inlineGalleryMountActions';
 import { buildInlineActionHostClass } from '@/composables/inlineImageDom';
-import type { GalleryMountRuntime } from '@/store/gallery-runtimes';
+import type { GalleryKindPatch, GalleryMountRuntime } from '@/store/gallery-runtimes';
 import { useGalleryRuntimesStore } from '@/store/gallery-runtimes';
 import { useSettingsStore } from '@/store/settings';
 import { storeToRefs } from 'pinia';
@@ -27,7 +27,8 @@ const props = defineProps<{
 
 const settingsStore = useSettingsStore();
 const { darkMode } = storeToRefs(settingsStore);
-const { removeMount } = useGalleryRuntimesStore();
+const galleryStore = useGalleryRuntimesStore();
+const { removeMount } = galleryStore;
 
 const items = ref<InlineGalleryItem[]>([]);
 const activeItemId = ref('');
@@ -41,22 +42,66 @@ const hostClass = computed(() =>
 );
 
 /**
- * 加载 / 重载画廊图片
+ * 加载画廊图片
  */
 async function reloadItems(): Promise<void> {
-  revokeTrackedObjectUrls(objectUrls);
   loading.value = true;
+  const nextUrls = new Set<string>();
   try {
-    items.value = await loadMountGalleryItems(props.mount, objectUrls);
-    activeItemId.value = items.value[0]?.id ?? '';
-    isLost.value = !items.value.length;
+    const nextItems = await loadMountGalleryItems(props.mount, nextUrls);
+    revokeTrackedObjectUrls(objectUrls);
+    nextUrls.forEach(url => objectUrls.add(url));
+    items.value = nextItems;
+    activeItemId.value = nextItems.some(item => item.id === activeItemId.value)
+      ? activeItemId.value
+      : (nextItems[0]?.id ?? '');
+    isLost.value = !nextItems.length;
   } catch (error) {
     console.error('[CosmosVision] 加载画廊项失败', error);
+    revokeTrackedObjectUrls(nextUrls);
     items.value = [];
     isLost.value = true;
   } finally {
     loading.value = false;
   }
+}
+
+/**
+ * 应用管理页类型互换就地补丁（复用 objectUrl，避免重载闪烁）
+ * @param patch 补丁
+ */
+function applyKindPatch(patch: GalleryKindPatch): void {
+  const activeItem = items.value.find(item => item.id === activeItemId.value);
+  items.value = items.value.map(item => mapGalleryItemKind(item, patch));
+  activeItemId.value = activeItem
+    ? mapGalleryItemKind(activeItem, patch).id
+    : (items.value[0]?.id ?? '');
+  isLost.value = !items.value.length;
+}
+
+/**
+ * 单条画廊项应用类型补丁
+ * @param item 原项
+ * @param patch 补丁
+ * @returns 更新后的项
+ */
+function mapGalleryItemKind(item: InlineGalleryItem, patch: GalleryKindPatch): InlineGalleryItem {
+  if (patch.to === 'favorite') {
+    if (item.id !== patch.temporaryId) return item;
+    return {
+      ...item,
+      id: `favorite-${patch.favoriteId}`,
+      favoriteId: patch.favoriteId,
+      createdAt: patch.createdAt,
+    };
+  }
+  if (item.favoriteId !== patch.favoriteId) return item;
+  return {
+    ...item,
+    id: patch.temporaryId,
+    favoriteId: null,
+    createdAt: patch.createdAt,
+  };
 }
 
 /**
@@ -137,6 +182,14 @@ watch(
   () => props.mount.generatedItem,
   item => {
     if (item) appendGeneratedItem(item);
+  },
+);
+
+watch(
+  () => props.mount.kindPatch,
+  patch => {
+    if (!patch) return;
+    applyKindPatch(patch);
   },
 );
 
