@@ -62,10 +62,21 @@ function handleAccordionChange(): void {
 
 <style scoped>
 .cv-collapsible-panel {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
   overflow: hidden;
   border: var(--cv-border-width) solid var(--cv-surface-variant);
   border-radius: var(--cv-radius-sm);
   background: var(--cv-surface-container-low);
+}
+
+.cv-collapsible-panel :deep(.p-accordionpanel),
+.cv-collapsible-panel :deep(.p-accordioncontent-wrapper),
+.cv-collapsible-panel :deep(.p-accordioncontent) {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
 }
 
 .cv-collapsible-panel--disabled :deep(.p-accordionheader),
