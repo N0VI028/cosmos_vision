@@ -11,6 +11,8 @@ export interface ManagedImageItem {
   key: string;
   kind: ManagedImageKind;
   sourceId: number | string;
+  /** 段落画廊位点；收藏/临时互换时复用 */
+  slotId: string;
   characterKey: string;
   chatId: string;
   createdAt: number;
@@ -65,6 +67,7 @@ export function toManagedFavoriteItems(groups: InlineImageFavoriteGroup[]): Mana
       key: managedFavoriteKey(record.id),
       kind: 'favorite' as const,
       sourceId: record.id,
+      slotId: record.slotId,
       characterKey: record.characterKey,
       chatId: record.chatId,
       createdAt: record.createdAt,
@@ -84,6 +87,7 @@ export function toManagedTemporaryItems(records: TemporaryImageRecord[]): Manage
     key: managedTemporaryKey(record.id),
     kind: 'temporary' as const,
     sourceId: record.id,
+    slotId: record.slotId,
     characterKey: record.characterKey,
     chatId: record.chatId,
     createdAt: record.createdAt,

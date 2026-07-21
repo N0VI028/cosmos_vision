@@ -62,7 +62,7 @@
 
       <div v-if="visibleItems.length" class="cv-favorite-grid">
         <CvDataCard
-          v-for="item in visibleItems"
+          v-for="(item, index) in visibleItems"
           :key="item.key"
           :selected="isItemSelected(item.key)"
           :selecting="isSelecting"
@@ -80,7 +80,7 @@
             </div>
 
             <div class="cv-favorite-thumb-wrap">
-              <span class="cv-favorite-kind-badge">{{ kindLabel(item.kind) }}</span>
+              <span class="cv-favorite-kind-badge" :class="kindBadgeClass(item.kind)">{{ kindLabel(item.kind) }}</span>
               <LightboxImage
                 :src="getPreviewUrl(item.key)"
                 :snapshot="item.promptSnapshot"
@@ -99,6 +99,37 @@
             </div>
 
             <div v-if="!isSelecting" class="cv-favorite-actions" @click.stop>
+              <!-- 与下载同走 icon prop，保证字号/盒模型一致；收藏=空心星+斜线，临时=实心星 -->
+              <CvMiniButton
+                class="cv-kind-toggle-button"
+                :aria-label="kindToggleLabel(item.kind)"
+                :title="kindToggleLabel(item.kind)"
+                :disabled="busy"
+                @click="$emit('toggle-kind', item.key)"
+              >
+                <svg
+                  v-if="item.kind === 'favorite'"
+                  viewBox="0 0 576 512"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="cv-prime-icon"
+                  style="width: 1.5em; height: 1.5em; display: inline-block; vertical-align: middle; transform: translateY(-0.03em);"
+                >
+                  <defs>
+                    <mask :id="'cv-star-slash-mask-' + index">
+                      <rect width="576" height="512" fill="white" />
+                      <line x1="64" y1="448" x2="512" y2="64" stroke="black" stroke-width="96" stroke-linecap="round" />
+                    </mask>
+                  </defs>
+                  <path
+                    d="M287.9 0c9.2 0 17.6 5.2 21.6 13.5l68.6 141.3 153.2 22.6c9 1.3 16.5 7.6 19.3 16.3s.6 18.2-5.9 24.8L433.6 328.4l26.2 155.6c1.5 9-2.2 18.1-9.6 23.5s-17.3 6-25.3 1.7l-137-73.2L151 509.1c-8.1 4.3-17.9 3.7-25.3-1.7s-11.2-14.5-9.7-23.5l26.2-155.6L31.1 218.5c-6.5-6.6-8.7-16-5.9-24.8s10.3-15 19.3-16.3l153.2-22.6L266.3 13.5C270.3 5.2 278.7 0 287.9 0zm0 79L235.4 187.2c-3.5 7.1-10.2 12.1-18.1 13.3L99 217.9 184.9 303c5.5 5.5 8.1 13.3 6.8 21L171.4 443.7l105.2-56.2c7.1-3.8 15.6-3.8 22.6 0l105.2 56.2L384.2 324.1c-1.3-7.7 1.2-15.5 6.8-21l85.9-85.1L358.6 200.5c-7.8-1.2-14.6-6.1-18.1-13.3L287.9 79z"
+                    fill="currentColor"
+                    :mask="'url(#cv-star-slash-mask-' + index + ')'"
+                  />
+                  <line x1="64" y1="448" x2="512" y2="64" stroke="currentColor" stroke-width="64" stroke-linecap="round" />
+                </svg>
+                <span v-else class="cv-prime-icon fa-solid fa-star" />
+              </CvMiniButton>
               <CvMiniButton
                 icon="fa-solid fa-download"
                 aria-label="下载"
@@ -190,6 +221,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'download-items': [keys: string[]];
   'delete-items': [keys: string[]];
+  'toggle-kind': [key: string];
 }>();
 
 const selectedType = ref<ManagedTypeFilter>('all');
@@ -320,6 +352,22 @@ function getPreviewUrl(key: string): string {
  */
 function kindLabel(kind: ManagedImageKind): string {
   return kind === 'favorite' ? '收藏' : '临时';
+}
+
+/**
+ * 类型角标样式类
+ * @param kind 图片类型
+ */
+function kindBadgeClass(kind: ManagedImageKind): string {
+  return kind === 'favorite' ? 'cv-favorite-kind-badge--favorite' : 'cv-favorite-kind-badge--temporary';
+}
+
+/**
+ * 状态互换按钮文案
+ * @param kind 图片类型
+ */
+function kindToggleLabel(kind: ManagedImageKind): string {
+  return kind === 'favorite' ? '转为临时' : '转为收藏';
 }
 
 /**
@@ -508,12 +556,20 @@ function buildChatOptions(items: ManagedImageItem[]): FilterOption[] {
   z-index: 1;
   padding: 0.1rem 0.35rem;
   border-radius: var(--cv-radius-sm);
-  background: color-mix(in srgb, var(--cv-surface) 82%, transparent);
-  color: var(--cv-on-surface);
   font-size: var(--cv-font-size-2xs);
   font-weight: 600;
   line-height: 1.2;
   pointer-events: none;
+}
+
+.cv-favorite-kind-badge--favorite {
+  background: color-mix(in srgb, var(--p-yellow-400) 78%, var(--cv-surface));
+  color: color-mix(in srgb, var(--p-yellow-950, #422006) 88%, var(--cv-on-surface));
+}
+
+.cv-favorite-kind-badge--temporary {
+  background: color-mix(in srgb, var(--cv-surface) 82%, transparent);
+  color: var(--cv-on-surface-variant);
 }
 
 .cv-favorite-thumb {
@@ -551,6 +607,13 @@ function buildChatOptions(items: ManagedImageItem[]): FilterOption[] {
   gap: var(--cv-space-2xl);
   padding: 0 var(--cv-space-4xl) var(--cv-space-4xl);
 }
+
+.cv-kind-toggle-button {
+  @apply relative;
+  color: var(--cv-on-surface-variant);
+}
+
+
 
 .cv-favorite-batch-bar {
   @apply sticky flex flex-wrap items-center justify-between;

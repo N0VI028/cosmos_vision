@@ -393,10 +393,14 @@
   padding: 0 var(--cv-space-7xl) var(--cv-space-7xl);
 }
 
-.cosmos-vision-root .cv-confirm-message {
+.cosmos-vision-root .cv-confirm-message,
+.cv-confirm-message {
   color: var(--cv-on-surface);
   font-size: var(--cv-font-size-lg);
   line-height: 1.6;
+  white-space: normal !important;
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
 }
 
 .cosmos-vision-root .cv-confirm-actions {

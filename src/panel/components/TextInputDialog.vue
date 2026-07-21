@@ -316,10 +316,6 @@ function syncCharacterIdSeed(): void {
   flex-shrink: 0;
 }
 
-.cv-confirm-message {
-  white-space: normal !important;
-}
-
 .cv-text-input-dialog__field {
   @apply flex min-h-0 flex-col;
   gap: var(--cv-space-sm);

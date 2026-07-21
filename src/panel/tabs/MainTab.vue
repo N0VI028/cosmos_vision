@@ -71,6 +71,7 @@
         :busy="isManagedImagesBusy"
         @download-items="downloadManagedItems"
         @delete-items="deleteManagedItems"
+        @toggle-kind="toggleManagedItemKind"
       />
     </template>
 
@@ -101,6 +102,7 @@ import {
   downloadInlineImageBlobItems,
   downloadInlineImageFavoriteItems,
 } from '@/services/inline-image/favorites-download';
+import { convertManagedImageKind } from '@/services/inline-image/managed-kind-toggle';
 import {
   mergeManagedImageItems,
   parseManagedImageKey,
@@ -287,6 +289,21 @@ async function deleteVibe(row: NovelAIVibeCacheListItem): Promise<void> {
     await refreshVibeRows();
     toastr.success('已删除 vibe 数据');
   }, '删除 vibe 数据失败');
+}
+
+/**
+ * 互换单张管理图片的收藏/临时状态
+ * @param key 复合 key
+ */
+async function toggleManagedItemKind(key: string): Promise<void> {
+  const item = managedImageItems.value.find(candidate => candidate.key === key);
+  if (!item) return;
+  await runManagedAction(async () => {
+    await convertManagedImageKind(item, settings.temporaryImageLimit);
+    if (item.kind === 'temporary') removeSessionItemsByIds([String(item.sourceId)]);
+    await Promise.all([refreshManagedImages(), useGalleryRuntimesStore().restoreAll()]);
+    toastr.success(item.kind === 'temporary' ? '已转为收藏' : '已转为临时');
+  }, '切换图片状态失败');
 }
 
 /**
