@@ -73,7 +73,8 @@
                 :allow-duplicate="false"
                 add-on-blur
                 delimiter=","
-                class="cv-trigger-inputchips w-full min-w-0"
+                fluid
+                class="min-w-0"
                 @update:model-value="value => updateKeywordRow(index, value)"
               />
 

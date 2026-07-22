@@ -113,8 +113,12 @@
   --p-multiselect-option-border-radius: var(--cv-radius-md);
   --p-multiselect-chip-border-radius: var(--cv-radius-full);
   --p-chip-border-radius: var(--cv-radius-full);
+  /* InputTags：尺寸/圆角在作用域内回写（theme components.inputtags） */
   --p-inputtags-border-radius: var(--cv-radius-md);
   --p-inputtags-item-border-radius: var(--cv-radius-full);
+  --p-inputtags-padding-x: var(--cv-space-md);
+  --p-inputtags-padding-y: calc(var(--cv-space-md) * 2);
+  --p-inputtags-gap: var(--cv-space-xs);
   --p-togglebutton-border-radius: var(--cv-radius-full);
   --p-togglebutton-content-border-radius: var(--cv-radius-full);
   /* SelectButton 容器圆角（theme components.selectbutton.root.borderRadius） */
@@ -211,17 +215,18 @@
   --p-multiselect-option-group-color: var(--p-list-option-group-color);
   --p-multiselect-dropdown-color: var(--cv-on-surface-variant);
   --p-multiselect-clear-icon-color: var(--cv-on-surface-variant);
-  --p-inputtags-background: var(--cv-surface-container-high);
-  --p-inputtags-disabled-background: color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent);
-  --p-inputtags-filled-background: var(--cv-surface-container-high);
-  --p-inputtags-filled-hover-background: var(--cv-surface-container);
-  --p-inputtags-filled-focus-background: var(--cv-surface-container-high);
-  --p-inputtags-border-color: var(--cv-surface-variant);
-  --p-inputtags-hover-border-color: var(--cv-outline);
-  --p-inputtags-focus-border-color: var(--cv-primary-container);
-  --p-inputtags-invalid-border-color: var(--p-red-500);
-  --p-inputtags-color: var(--cv-on-surface);
-  --p-inputtags-disabled-color: var(--cv-on-surface-variant);
+  /* InputTags：颜色跟 formField light/dark（Aura 映射 form.field；桥接保证作用域可读） */
+  --p-inputtags-background: var(--p-form-field-background);
+  --p-inputtags-disabled-background: var(--p-form-field-disabled-background);
+  --p-inputtags-filled-background: var(--p-form-field-filled-background);
+  --p-inputtags-filled-hover-background: var(--p-form-field-filled-hover-background);
+  --p-inputtags-filled-focus-background: var(--p-form-field-filled-focus-background);
+  --p-inputtags-border-color: var(--p-form-field-border-color);
+  --p-inputtags-hover-border-color: var(--p-form-field-hover-border-color);
+  --p-inputtags-focus-border-color: var(--p-form-field-focus-border-color);
+  --p-inputtags-invalid-border-color: var(--p-form-field-invalid-border-color);
+  --p-inputtags-color: var(--p-form-field-color);
+  --p-inputtags-disabled-color: var(--p-form-field-disabled-color);
   --p-inputtags-shadow: none;
   --p-chip-background: color-mix(in srgb, var(--p-primary-color) 12%, transparent);
   --p-chip-focus-background: color-mix(in srgb, var(--p-primary-color) 18%, transparent);
@@ -373,7 +378,8 @@
 
 /**
  * InputTags / Chip 结构补齐
- * 圆角走 definePreset / bridge token；这里只补 token 未覆盖的结构尺寸与边框
+ * 圆角/颜色走 definePreset + --p-inputtags-* / --p-chip-*；
+ * 这里只补 token 未覆盖的结构：容器最小高度、内嵌字号、Chip 描边（token 无 border）
  */
 :is(#cosmos_vision, .cosmos-vision-root) .cv-prime-inputtags {
   min-height: calc(var(--cv-font-size-base) + var(--cv-space-lg) * 2 + var(--cv-border-width) * 2);
@@ -383,6 +389,7 @@
   font-size: var(--cv-font-size-sm);
 }
 
+/* Chip 无 border token；描边保证半透明底上标签可读（独立 Chip 回合再评估） */
 :is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip, .cv-prime-inputtags-chip) {
   border: var(--cv-border-width) solid var(--p-primary-color);
   box-shadow: none;

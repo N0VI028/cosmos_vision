@@ -87,7 +87,7 @@
                     :allow-duplicate="false"
                     add-on-blur
                     delimiter=","
-                    class="cv-trigger-inputchips"
+                    fluid
                   />
                   <div class="cv-field-hint">输入关键词，回车或逗号添加</div>
                 </div>
@@ -667,10 +667,6 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 
 .cv-person-section-title:first-child {
   margin-top: 0;
-}
-
-.cv-trigger-inputchips {
-  @apply w-full;
 }
 
 .cv-parse-tags-btn {

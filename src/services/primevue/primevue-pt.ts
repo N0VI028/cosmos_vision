@@ -89,6 +89,8 @@ const chip = {
 /**
  * InputTags Pass Through 集中配置
  * 仅注入语义类锚点；视觉走 definePreset / bridge token
+ * pcChip 与独立 chip 锚点分流，便于 InputTags 内嵌 chip 单独补结构
+ * pcAutoComplete.overlay 必须带 cosmos-vision-root（typeahead Teleport）
  */
 export const cosmosInputTagsPt = {
   root: { class: 'cv-prime-inputtags' },
@@ -102,6 +104,7 @@ export const cosmosInputTagsPt = {
     root: { class: 'cv-prime-inputtags-input' },
     input: { class: 'cv-prime-inputtags-input-item' },
     pcInputText: { root: { class: 'cv-prime-inputtags-input-field' } },
+    overlay: fieldOverlay,
   },
 } satisfies InputTagsPassThroughOptions;
 

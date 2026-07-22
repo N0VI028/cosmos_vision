@@ -285,14 +285,24 @@ export const cosmosPrimePreset = definePreset(Aura, {
     },
   },
   components: {
-    // InputTags 继承 form.field 颜色；圆角与 Textarea 一致
+    // InputTags：颜色全量继承 form.field（Aura root → {form.field.*}）
     // 官方样式 padding-block = padding.y / 2，故 paddingY 需写 2 倍以对齐 form-field 垂直内边距
+    // 圆角与 Textarea 一致 md（多行 chip 容器，非 pill）
+    // focusRing 清零 → 官方 .p-inputtags.p-focus 的 outline/box-shadow 不画外圈
+    // 内嵌 AutoComplete/Chip 视觉走各自 token；pcChip 描边见 bridge 结构规则
     inputtags: {
       root: {
         paddingX: 'var(--cv-space-md)',
         paddingY: 'calc(var(--cv-space-md) * 2)',
         gap: 'var(--cv-space-xs)',
         borderRadius: 'var(--cv-radius-md)',
+        focusRing: {
+          width: '0',
+          style: 'none',
+          color: 'transparent',
+          offset: '0',
+          shadow: 'none',
+        },
       },
       item: {
         borderRadius: 'var(--cv-radius-full)',
