@@ -5,11 +5,11 @@
       <div class="cv-workflow-input__actions">
         <template v-if="control.canPromptBind">
           <Chip
-            class="cv-workflow-action-chip"
             :class="[
               `is-${control.promptBinding ?? 'none'}`,
-              { 'is-disabled': !online }
+              { 'is-disabled': !online },
             ]"
+            :pt="workflowActionChipPt"
             @click="online && promptPopover?.toggle($event)"
           >
             <span class="flex items-center gap-1.5">
@@ -161,6 +161,7 @@
 </template>
 
 <script setup lang="ts">
+import type { ChipPassThroughOptions } from 'primevue/chip';
 import type { PopoverPassThroughOptions } from 'primevue/popover';
 import Popover from 'primevue/popover';
 import { COMFYUI_DIMENSION_PRESETS } from '@/constants/comfyui';
@@ -172,6 +173,12 @@ import {
 import type { ComfyUIInputControlDesc, PromptBinding, SeedMode } from '@/services/comfyui/types';
 
 import { fetchComfyUICheckpointNames } from '@/services/comfyui/api';
+
+/** 工作流 Prompt 绑定 Chip：局部 PT 锚点，避免依赖 .p-chip */
+const workflowActionChipPt = {
+  root: { class: 'cv-workflow-action-chip' },
+  label: { class: 'cv-workflow-action-chip-label' },
+} satisfies ChipPassThroughOptions;
 
 interface PromptBindingOption {
   value: PromptBinding | null;
@@ -362,55 +369,60 @@ const ckptOptions = computed(() => {
   @apply min-w-0;
 }
 
+/* Prompt 绑定 Chip：业务三态变体；覆盖全局 chip 默认 primary 与 min-height */
 :deep(.cv-workflow-action-chip) {
   cursor: pointer;
-  transition: all 0.2s ease;
   user-select: none;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
   font-size: var(--cv-font-size-2xs);
-  padding: 0.15rem 0.5rem;
+  padding: 0.15em 0.5em;
   line-height: 1.2;
   min-height: auto;
 }
 
 :deep(.cv-workflow-action-chip.is-disabled) {
   opacity: 0.5;
-  cursor: not-allowed !important;
+  cursor: not-allowed;
 }
 
 :deep(.cv-workflow-action-chip.is-disabled:hover) {
-  background: inherit !important;
-  border-color: inherit !important;
-  color: inherit !important;
+  background: inherit;
+  border-color: inherit;
+  color: inherit;
 }
 
 :deep(.cv-workflow-action-chip.is-none) {
-  background: var(--cv-surface-container-low) !important;
-  border-color: var(--cv-outline) !important;
-  color: var(--cv-on-surface-variant) !important;
+  background: var(--cv-surface-container-low);
+  border-color: var(--cv-outline);
+  color: var(--cv-on-surface-variant);
 }
 
 :deep(.cv-workflow-action-chip.is-none:hover) {
-  background: var(--cv-surface-container-high) !important;
+  background: var(--cv-surface-container-high);
 }
 
 :deep(.cv-workflow-action-chip.is-positive) {
-  background: color-mix(in srgb, var(--p-primary-color) 12%, transparent) !important;
-  border-color: var(--p-primary-color) !important;
-  color: var(--p-primary-color) !important;
+  background: color-mix(in srgb, var(--p-primary-color) 12%, transparent);
+  border-color: var(--p-primary-color);
+  color: var(--p-primary-color);
 }
 
 :deep(.cv-workflow-action-chip.is-positive:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent) !important;
+  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
 }
 
+/* 负向绑定：琥珀强调（业务语义，非全局 chip 默认） */
 :deep(.cv-workflow-action-chip.is-negative) {
-  background: color-mix(in srgb, #f59e0b 12%, transparent) !important;
-  border-color: #f59e0b !important;
-  color: #f59e0b !important;
+  background: color-mix(in srgb, var(--p-orange-500, #f59e0b) 12%, transparent);
+  border-color: var(--p-orange-500, #f59e0b);
+  color: var(--p-orange-500, #f59e0b);
 }
 
 :deep(.cv-workflow-action-chip.is-negative:hover) {
-  background: color-mix(in srgb, #f59e0b 20%, transparent) !important;
+  background: color-mix(in srgb, var(--p-orange-500, #f59e0b) 20%, transparent);
 }
 
 .cv-workflow-input__link {

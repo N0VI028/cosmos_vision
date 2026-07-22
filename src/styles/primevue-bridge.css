@@ -112,7 +112,12 @@
   --p-multiselect-overlay-border-radius: var(--cv-radius-lg);
   --p-multiselect-option-border-radius: var(--cv-radius-md);
   --p-multiselect-chip-border-radius: var(--cv-radius-full);
+  /* Chip：尺寸/圆角在作用域内回写（theme components.chip） */
   --p-chip-border-radius: var(--cv-radius-full);
+  --p-chip-padding-x: 0.6em;
+  --p-chip-padding-y: 0.25em;
+  --p-chip-gap: var(--cv-space-xs);
+  --p-chip-label-font-size: var(--cv-font-size-xs);
   /* InputTags：尺寸/圆角在作用域内回写（theme components.inputtags） */
   --p-inputtags-border-radius: var(--cv-radius-md);
   --p-inputtags-item-border-radius: var(--cv-radius-full);
@@ -228,12 +233,16 @@
   --p-inputtags-color: var(--p-form-field-color);
   --p-inputtags-disabled-color: var(--p-form-field-disabled-color);
   --p-inputtags-shadow: none;
+  /* Chip：颜色在作用域内回写，覆盖 Aura surface 灰阶；无 border token */
   --p-chip-background: color-mix(in srgb, var(--p-primary-color) 12%, transparent);
   --p-chip-focus-background: color-mix(in srgb, var(--p-primary-color) 18%, transparent);
   --p-chip-color: var(--p-primary-color);
   --p-chip-icon-color: var(--p-primary-color);
   --p-chip-remove-icon-color: var(--p-primary-color);
-  --p-chip-remove-icon-focus-ring-color: color-mix(in srgb, var(--cv-primary-container) 24%, transparent);
+  --p-chip-remove-icon-focus-ring-width: 0;
+  --p-chip-remove-icon-focus-ring-style: none;
+  --p-chip-remove-icon-focus-ring-color: transparent;
+  --p-chip-remove-icon-focus-ring-offset: 0;
   --p-chip-remove-icon-focus-ring-shadow: none;
   /* Checkbox：颜色/圆角在作用域内回写，保证 host-resets 与 Teleport 读到 cv token */
   --p-checkbox-border-radius: var(--cv-radius-sm);
@@ -379,7 +388,7 @@
 /**
  * InputTags / Chip 结构补齐
  * 圆角/颜色走 definePreset + --p-inputtags-* / --p-chip-*；
- * 这里只补 token 未覆盖的结构：容器最小高度、内嵌字号、Chip 描边（token 无 border）
+ * Chip design token 无 border*，描边只能 CSS（独立 Chip 与 InputTags pcChip 共用）
  */
 :is(#cosmos_vision, .cosmos-vision-root) .cv-prime-inputtags {
   min-height: calc(var(--cv-font-size-base) + var(--cv-space-lg) * 2 + var(--cv-border-width) * 2);
@@ -389,7 +398,6 @@
   font-size: var(--cv-font-size-sm);
 }
 
-/* Chip 无 border token；描边保证半透明底上标签可读（独立 Chip 回合再评估） */
 :is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip, .cv-prime-inputtags-chip) {
   border: var(--cv-border-width) solid var(--p-primary-color);
   box-shadow: none;

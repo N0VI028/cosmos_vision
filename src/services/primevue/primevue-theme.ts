@@ -41,7 +41,9 @@ const formFieldColorDark = {
 } as const;
 
 /**
- * Chip 颜色 token —— light/dark 共用，主色半透明底 + 主色文字
+ * Chip 颜色 token —— light/dark 共用
+ * 主色半透明底 + 主色文字；覆盖 Aura light-dark(surface.*) 灰阶
+ * 无 border token，描边见 bridge 结构规则
  */
 const chipColor = {
   root: {
@@ -55,7 +57,10 @@ const chipColor = {
   removeIcon: {
     color: 'var(--p-primary-color)',
     focusRing: {
-      color: 'color-mix(in srgb, var(--cv-primary-container) 24%, transparent)',
+      width: '0',
+      style: 'none',
+      color: 'transparent',
+      offset: '0',
       shadow: 'none',
     },
   },
@@ -308,7 +313,9 @@ export const cosmosPrimePreset = definePreset(Aura, {
         borderRadius: 'var(--cv-radius-full)',
       },
     },
-    // Chip：非颜色尺寸走 root，颜色走 colorScheme 覆盖 Aura light-dark 默认值
+    // Chip：非颜色尺寸走 root；颜色走 colorScheme 覆盖 Aura light-dark(surface) 灰阶
+    // design token 无 border*；描边结构见 bridge `.cv-prime-chip` / `.cv-prime-inputtags-chip`
+    // removeIcon.focusRing 清零对齐全局表单控件
     chip: {
       root: {
         borderRadius: 'var(--cv-radius-full)',

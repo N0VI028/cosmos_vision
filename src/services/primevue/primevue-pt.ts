@@ -80,8 +80,10 @@ const galleria = {
   thumbnailNextButton: galleriaNavButton,
   thumbnailNextIcon: galleriaNavIcon,
 } as const;
+/** Chip 语义锚点：独立 Chip / MultiSelect pcChip 共用；InputTags 内嵌走 cosmosInputTagsPt.pcChip */
 const chip = {
   root: { class: 'cv-prime-chip' },
+  icon: { class: 'cv-prime-chip-icon' },
   label: { class: 'cv-prime-chip-label' },
   removeIcon: { class: 'cv-prime-chip-remove-icon' },
 } as const;
