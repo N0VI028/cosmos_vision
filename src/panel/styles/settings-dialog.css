@@ -500,7 +500,7 @@
   font-weight: 500;
   letter-spacing: 0.05em;
   color: var(--cv-on-surface-variant);
-  word-break: break-all;
+  white-space: normal;
 }
 
 .cosmos-vision-root .cv-field-warn {
