@@ -6,9 +6,9 @@
  */
 
 /*
- * Message 关闭按钮等共享 cv-prime-icon-button 锚点的扁平方块视觉。
- * InputNumber 步进按钮颜色已迁到 components.inputnumber.button token，
- * 不再依赖本规则；Message 回合再收口时可删除。
+ * Message / ProgressSpinner / Skeleton 颜色与尺寸已迁 definePreset + bridge
+ * --p-message-* / --p-progressspinner-* / --p-skeleton-*。
+ * Message close 不再挂 cv-prime-icon-button；InputNumber 步进仍共用该锚点扁平方块视觉。
  * Password toggle 右内边距由官方 :has(.p-password-toggle-mask-icon) 规则 + form.field.padding.x 计算。
  */
 .cosmos-vision-root .cv-prime-icon-button,

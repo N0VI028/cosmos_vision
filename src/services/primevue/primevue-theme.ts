@@ -264,6 +264,93 @@ const dialogColor = {
 } as const;
 
 /**
+ * Message 单 severity 颜色 —— light/dark 共用
+ * shadow 清零；closeButton focusRing 清零（对齐全局无外圈）
+ * @param tone 半透明叠底的色阶变量（如 --p-blue-500）
+ * @param text 文字/图标色
+ */
+function messageSeverity(tone: string, text: string) {
+  return {
+    background: `color-mix(in srgb, ${tone} 14%, var(--cv-surface-container-high))`,
+    borderColor: `color-mix(in srgb, ${tone} 32%, transparent)`,
+    color: text,
+    shadow: 'none',
+    closeButton: {
+      hoverBackground: `color-mix(in srgb, ${tone} 18%, transparent)`,
+      focusRing: { color: 'transparent', shadow: 'none' },
+    },
+    outlined: { color: text, borderColor: text },
+    simple: { color: text },
+  } as const;
+}
+
+/**
+ * Message severity 色板 —— 覆盖 Aura light-dark(blue/green/…) 与 surface 灰阶
+ * secondary 走 cv surface（inline running 状态默认 severity）；其余走 p-* 色阶
+ */
+const messageColor = {
+  info: messageSeverity('var(--p-blue-500)', 'var(--p-blue-600)'),
+  success: messageSeverity('var(--p-green-500)', 'var(--p-green-600)'),
+  warn: messageSeverity('var(--p-yellow-500)', 'var(--p-yellow-600)'),
+  error: messageSeverity('var(--p-red-500)', 'var(--p-red-600)'),
+  secondary: {
+    background: 'var(--cv-surface-container-high)',
+    borderColor: 'var(--cv-surface-variant)',
+    color: 'var(--cv-on-surface-variant)',
+    shadow: 'none',
+    closeButton: {
+      hoverBackground: 'var(--cv-surface-variant)',
+      focusRing: { color: 'transparent', shadow: 'none' },
+    },
+    outlined: {
+      color: 'var(--cv-on-surface-variant)',
+      borderColor: 'var(--cv-surface-variant)',
+    },
+    simple: { color: 'var(--cv-on-surface-variant)' },
+  },
+  contrast: {
+    background: 'var(--cv-on-surface)',
+    borderColor: 'var(--cv-on-surface)',
+    color: 'var(--cv-surface)',
+    shadow: 'none',
+    closeButton: {
+      hoverBackground: 'color-mix(in srgb, var(--cv-surface) 14%, transparent)',
+      focusRing: { color: 'transparent', shadow: 'none' },
+    },
+    outlined: {
+      color: 'var(--cv-on-surface)',
+      borderColor: 'var(--cv-on-surface)',
+    },
+    simple: { color: 'var(--cv-on-surface)' },
+  },
+} as const;
+
+/**
+ * ProgressSpinner 四段色 —— light/dark 共用
+ * 覆盖 Aura red/blue/green/yellow 彩虹；统一主色语义
+ */
+const progressSpinnerColor = {
+  root: {
+    colorOne: 'var(--cv-primary-container)',
+    colorTwo: 'var(--p-primary-color)',
+    colorThree: 'var(--cv-primary-container)',
+    colorFour: 'var(--p-primary-color)',
+  },
+} as const;
+
+/**
+ * Skeleton 颜色 —— light/dark 共用
+ * 覆盖 Aura surface.200 / 半透明白；底与扫光对齐 cv surface 容器阶
+ */
+const skeletonColor = {
+  root: {
+    background: 'var(--cv-surface-container-high)',
+    animationBackground:
+      'color-mix(in srgb, var(--cv-surface-container-high) 68%, var(--cv-surface-container))',
+  },
+} as const;
+
+/**
  * Popover 颜色 token —— light/dark 共用
  * Aura 默认映射 overlay.popover.*；本项目对齐 surface-container-high + popover-shadow
  * gutter/arrowOffset/content.padding 等非颜色走 components.popover root 段
@@ -506,11 +593,65 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: passwordColor,
       },
     },
+    // Message：非颜色尺寸走 root/content/text/closeButton；severity 色走 colorScheme
+    // 覆盖 Aura blue/green/… 与 surface 灰阶 secondary；close focusRing 清零
     message: {
+      root: {
+        borderRadius: 'var(--cv-radius-lg)',
+        borderWidth: '1px',
+      },
+      content: {
+        padding: '0.5em 0.75em',
+        gap: 'var(--cv-space-sm)',
+        sm: { padding: '0.35em 0.55em' },
+        lg: { padding: '0.65em 0.9em' },
+      },
       text: {
         fontSize: 'var(--cv-font-size-sm)',
+        fontWeight: '500',
         sm: { fontSize: 'var(--cv-font-size-xs)' },
         lg: { fontSize: 'var(--cv-font-size-md)' },
+      },
+      icon: {
+        size: '1em',
+        sm: { size: '0.875em' },
+        lg: { size: '1.125em' },
+      },
+      closeButton: {
+        width: '1.5em',
+        height: '1.5em',
+        borderRadius: '50%',
+        focusRing: {
+          width: '0',
+          style: 'none',
+          offset: '0',
+        },
+      },
+      closeIcon: {
+        size: '0.875em',
+        sm: { size: '0.75em' },
+        lg: { size: '1em' },
+      },
+      colorScheme: {
+        light: messageColor,
+        dark: messageColor,
+      },
+    },
+    // ProgressSpinner：仅 root 四色；官方样式 circle-track 读 content.border，range 动画读 color.*
+    progressspinner: {
+      colorScheme: {
+        light: progressSpinnerColor,
+        dark: progressSpinnerColor,
+      },
+    },
+    // Skeleton：圆角非颜色走 root；底/扫光色走 colorScheme（覆盖 Aura surface 灰阶）
+    skeleton: {
+      root: {
+        borderRadius: 'var(--cv-radius-sm)',
+      },
+      colorScheme: {
+        light: skeletonColor,
+        dark: skeletonColor,
       },
     },
     // Slider：非颜色尺寸走 root；颜色走 colorScheme（覆盖 Aura content.border / primary / surface 灰阶）

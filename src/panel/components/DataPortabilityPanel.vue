@@ -58,7 +58,7 @@
           </div>
           <p v-if="importDescription" class="cv-portability-badge-desc">{{ importDescription }}</p>
         </div>
-        <Message v-if="previewWarnings.length" severity="warn" size="small" class="cv-portability-message">
+        <Message v-if="previewWarnings.length" severity="warn" size="small" class="w-full">
           {{ previewWarnings.join('；') }}
         </Message>
         <div class="cv-portability-action-row cv-portability-action-row--end">

@@ -737,7 +737,7 @@ body.dark .cv-inline-toolbar {
   backdrop-filter: blur(0.35em);
 }
 
-/* Message 全宽约束 */
+/* Message 全宽约束（布局，非 severity 色） */
 .cv-inline-generation-status .cv-prime-message {
   width: 100%;
 }
@@ -747,7 +747,7 @@ body.dark .cv-inline-toolbar {
   margin: 0.75em;
 }
 
-/* Message 内容紧凑排列:缩小 icon 与文本间距,让文本撑开把关闭按钮推到右侧 */
+/* Message 内容紧凑：文本撑开，业务按钮行靠右 */
 .cv-inline-generation-status .cv-prime-message-content {
   gap: 0.4em;
   padding: 0.35em 0.5em;
@@ -759,37 +759,18 @@ body.dark .cv-inline-toolbar {
   min-width: 0;
 }
 
-/* running 态:覆盖为主题色 (Basic 底 + 主题色) */
+/*
+ * running 态：绑定 ST SmartThemeQuoteColor，非固定 primary。
+ * Message token 无法表达宿主主题引用，故保留业务变体覆盖。
+ */
 .cv-inline-generation-message--running {
-  background: color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 14%, var(--cv-surface-container-high)) !important;
+  background: color-mix(
+    in srgb,
+    var(--SmartThemeQuoteColor, #3b82f6) 14%,
+    var(--cv-surface-container-high)
+  ) !important;
   border-color: color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 30%, transparent) !important;
   color: var(--SmartThemeQuoteColor, #3b82f6) !important;
-}
-
-/* 关闭按钮重置为文字按钮 */
-.cv-inline-generation-status .cv-prime-message-close-button {
-  flex: 0 0 auto;
-  width: auto !important;
-  height: auto !important;
-  padding: 0.2em 0.6em !important;
-  border: none !important;
-  border-radius: var(--cv-radius, 0.2667em) !important;
-  background: transparent !important;
-  color: inherit !important;
-  font-size: var(--cv-font-size-xs);
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.cv-inline-generation-status .cv-prime-message-close-button:hover {
-  background: color-mix(in srgb, currentColor 14%, transparent) !important;
-}
-
-.cv-inline-generation-close-text {
-  font-size: inherit;
-  line-height: 1.2;
-  white-space: nowrap;
-  flex-shrink: 0;
 }
 
 /* 状态条内部元素样式 */

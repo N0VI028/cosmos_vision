@@ -13,10 +13,10 @@
     <div v-if="loading" class="cv-favorite-grid">
       <CvDataCard v-for="index in 4" :key="index">
         <div class="cv-favorite-card">
-          <Skeleton height="100%" class="cv-favorite-skeleton-thumb" :dt="SKELETON_TOKENS" />
+          <Skeleton height="100%" class="cv-favorite-skeleton-thumb" />
           <div class="cv-favorite-card-body">
-            <Skeleton height="1rem" width="70%" :dt="SKELETON_TOKENS" />
-            <Skeleton height="0.9rem" width="52%" :dt="SKELETON_TOKENS" />
+            <Skeleton height="1rem" width="70%" />
+            <Skeleton height="0.9rem" width="52%" />
           </div>
         </div>
       </CvDataCard>
@@ -158,7 +158,6 @@
 </template>
 
 <script setup lang="ts">
-import type { SkeletonDesignTokens } from '@primeuix/themes/types/skeleton';
 import Checkbox from 'primevue/checkbox';
 import Select from 'primevue/select';
 import Skeleton from 'primevue/skeleton';
@@ -182,13 +181,6 @@ type ManagedTypeFilter = 'all' | ManagedImageKind;
 
 const ALL_CHARACTER_KEY = '__all_character__';
 const ALL_CHAT_KEY = '__all_chat__';
-const SKELETON_TOKENS = {
-  root: {
-    borderRadius: 'var(--cv-radius-sm)',
-    background: 'var(--cv-surface-container-high)',
-    animationBackground: 'color-mix(in srgb, var(--cv-surface-container-high) 68%, var(--cv-surface-container))',
-  },
-} satisfies SkeletonDesignTokens;
 
 const typeOptions: FilterOption[] = [
   { label: '全部', value: 'all' },

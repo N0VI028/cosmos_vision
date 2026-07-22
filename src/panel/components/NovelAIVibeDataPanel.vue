@@ -13,13 +13,13 @@
     <div v-if="loading" class="cv-vibe-grid">
       <CvDataCard v-for="index in 4" :key="index">
         <div class="cv-vibe-card">
-          <Skeleton height="100%" class="cv-vibe-skeleton-thumb" :dt="SKELETON_TOKENS" />
+          <Skeleton height="100%" class="cv-vibe-skeleton-thumb" />
           <div class="cv-vibe-card-body">
-            <Skeleton height="1rem" width="70%" :dt="SKELETON_TOKENS" />
-            <Skeleton height="0.9rem" width="52%" :dt="SKELETON_TOKENS" />
+            <Skeleton height="1rem" width="70%" />
+            <Skeleton height="0.9rem" width="52%" />
             <div class="cv-vibe-tag-row">
-              <Skeleton height="1.2rem" width="4rem" border-radius="999px" :dt="SKELETON_TOKENS" />
-              <Skeleton height="1.2rem" width="4.5rem" border-radius="999px" :dt="SKELETON_TOKENS" />
+              <Skeleton height="1.2rem" width="4rem" border-radius="999px" />
+              <Skeleton height="1.2rem" width="4.5rem" border-radius="999px" />
             </div>
           </div>
         </div>
@@ -135,7 +135,6 @@
 </template>
 
 <script setup lang="ts">
-import type { SkeletonDesignTokens } from '@primeuix/themes/types/skeleton';
 import Checkbox from 'primevue/checkbox';
 import Skeleton from 'primevue/skeleton';
 import Tag from 'primevue/tag';
@@ -168,14 +167,6 @@ const emit = defineEmits<{
   'download-items': [hashes: string[]];
   'delete-items': [hashes: string[]];
 }>();
-
-const SKELETON_TOKENS = {
-  root: {
-    borderRadius: 'var(--cv-radius-sm)',
-    background: 'var(--cv-surface-container-high)',
-    animationBackground: 'color-mix(in srgb, var(--cv-surface-container-high) 68%, var(--cv-surface-container))',
-  },
-} satisfies SkeletonDesignTokens;
 
 const isSelecting = ref(false);
 const selectedHashes = ref<string[]>([]);

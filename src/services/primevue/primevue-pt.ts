@@ -54,10 +54,17 @@ const tag = {
 const imagePreviewMask = {
   class: 'cv-prime-image-preview-mask',
 } as const;
+/** ProgressSpinner：对齐官方 PT 节点（root/circle/circleTrack/circleRange/value）；无 spin */
 const progressSpinner = {
   root: { class: 'cv-prime-progress-spinner' },
-  spin: { class: 'cv-prime-progress-spinner-spin' },
   circle: { class: 'cv-prime-progress-spinner-circle' },
+  circleTrack: { class: 'cv-prime-progress-spinner-track' },
+  circleRange: { class: 'cv-prime-progress-spinner-range' },
+  value: { class: 'cv-prime-progress-spinner-value' },
+} as const;
+/** Skeleton：仅 root 节点 */
+const skeleton = {
+  root: { class: 'cv-prime-skeleton' },
 } as const;
 const panelHeader = {
   class: 'cv-prime-panel-header',
@@ -199,16 +206,18 @@ export const cosmosPrimePt = {
   },
   button: { root: buttonRoot, icon, loadingIcon: icon, label: { class: 'cv-prime-button-label' } },
   panel: { root: { class: 'cv-prime-panel' }, header: panelHeader, content: panelContent },
+  // Message：语义锚点；close 用 message 专用 class（不再挂 icon-button 扁平方块视觉）
   message: {
     root: { class: 'cv-prime-message' },
     contentWrapper: { class: 'cv-prime-message-content-wrapper' },
     content: { class: 'cv-prime-message-content' },
     icon: { class: 'cv-prime-message-icon' },
     text: { class: 'cv-prime-message-text' },
-    closeButton: { class: 'cv-prime-icon-button cv-prime-message-close-button' },
-    closeIcon: icon,
+    closeButton: { class: 'cv-prime-message-close-button' },
+    closeIcon: { class: 'cv-prime-message-close-icon' },
   },
   progressspinner: progressSpinner,
+  skeleton,
   selectbutton: { root: selectButtonRoot, pcToggleButton: selectButtonToggle },
   togglebutton: {
     root: { class: 'cv-prime-togglebutton' },
