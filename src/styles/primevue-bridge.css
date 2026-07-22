@@ -116,6 +116,7 @@
   --p-inputtags-border-radius: var(--cv-radius-md);
   --p-inputtags-item-border-radius: var(--cv-radius-full);
   --p-togglebutton-border-radius: var(--cv-radius-full);
+  --p-togglebutton-content-border-radius: var(--cv-radius-full);
   --p-message-border-radius: var(--cv-radius-lg);
 }
 
@@ -317,6 +318,16 @@
   @apply flex w-full items-center justify-center whitespace-nowrap;
   gap: var(--cv-space-lg);
   box-shadow: none;
+}
+
+.cosmos-vision-root :is(.cv-prime-togglebutton-icon, .cv-prime-togglebutton .cv-prime-icon, .p-togglebutton-icon),
+#cosmos_vision :is(.cv-prime-togglebutton-icon, .cv-prime-togglebutton .cv-prime-icon, .p-togglebutton-icon) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25em;
+  flex-shrink: 0;
+  text-align: center;
 }
 
 .cosmos-vision-root .cv-prime-panel-header,

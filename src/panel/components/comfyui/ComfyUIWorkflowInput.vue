@@ -360,15 +360,6 @@ const ckptOptions = computed(() => {
 
 .cv-nai-mini-toggle {
   @apply min-w-0;
-  --p-togglebutton-sm-padding: var(--cv-space-xs) var(--cv-space-md);
-  --p-togglebutton-content-sm-padding: var(--cv-space-xs) var(--cv-space-md);
-  --p-togglebutton-sm-font-size: var(--cv-font-size-2xs);
-}
-
-.cv-nai-mini-toggle:deep(.cv-prime-togglebutton-content) {
-  gap: var(--cv-space-xs);
-  border-radius: var(--cv-radius-sm);
-  line-height: 1;
 }
 
 :deep(.cv-workflow-action-chip) {

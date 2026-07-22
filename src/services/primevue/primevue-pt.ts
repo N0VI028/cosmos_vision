@@ -21,6 +21,7 @@ const checkbox = {
 const selectButtonRoot = {
   class: 'cv-prime-selectbutton',
 } as const;
+const toggleButtonIcon = { class: 'cv-prime-icon cv-prime-togglebutton-icon' } as const;
 const selectButtonToggle = {
   root: {
     class: 'cv-prime-togglebutton',
@@ -28,6 +29,7 @@ const selectButtonToggle = {
   content: {
     class: 'cv-prime-togglebutton-content',
   },
+  icon: toggleButtonIcon,
 } as const;
 const sliderHandle = {
   class: 'cv-prime-slider-handle',
@@ -186,7 +188,7 @@ export const cosmosPrimePt = {
   togglebutton: {
     root: { class: 'cv-prime-togglebutton' },
     content: { class: 'cv-prime-togglebutton-content' },
-    icon,
+    icon: toggleButtonIcon,
     label: { class: 'cv-prime-togglebutton-label' },
   },
   slider: {

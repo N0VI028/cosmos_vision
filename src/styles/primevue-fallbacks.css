@@ -56,23 +56,7 @@
   box-shadow: none !important;
 }
 
-/* SelectButton / ToggleButton checked 状态：保证选中态不会回退到宿主色值。 */
-.cosmos-vision-root .cv-prime-togglebutton[data-p-checked='true'],
-#cosmos_vision .cv-prime-togglebutton[data-p-checked='true'] {
-  background: var(--cv-primary-container) !important;
-  border-color: var(--cv-primary-container) !important;
-  color: var(--cv-on-primary-container) !important;
-}
-
-.cosmos-vision-root .cv-prime-togglebutton[data-p-checked='true'] .cv-prime-togglebutton-content,
-#cosmos_vision .cv-prime-togglebutton[data-p-checked='true'] .cv-prime-togglebutton-content {
-  color: inherit !important;
-}
-
-.cosmos-vision-root .cv-prime-togglebutton[data-p-checked='true'] .cv-prime-togglebutton-content > *,
-#cosmos_vision .cv-prime-togglebutton[data-p-checked='true'] .cv-prime-togglebutton-content > * {
-  color: inherit !important;
-}
+/* ToggleButton / SelectButton 颜色与尺寸已迁 definePreset + bridge --p-togglebutton-*；无 !important 兜底 */
 
 /* ToggleSwitch 颜色/尺寸已迁 definePreset + bridge --p-toggleswitch-*；无 !important 兜底 */
 

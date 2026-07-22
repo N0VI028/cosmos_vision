@@ -62,30 +62,43 @@ const chipColor = {
 } as const;
 
 /**
- * ToggleButton 颜色 token —— light/dark 共用,颜色全部走 cv 自适应变量
+ * ToggleButton 颜色 token —— 显式覆盖 Aura light-dark/surface 灰阶
+ * 选中态走 primary-container + on-primary-container
  */
-const toggleButtonColor = {
+const toggleButtonColorLight = {
   root: {
-    padding: '0',
     background: 'var(--cv-surface-container-high)',
     hoverBackground: 'var(--cv-surface-variant)',
     checkedBackground: 'var(--cv-primary-container)',
     borderColor: 'var(--cv-surface-variant)',
     checkedBorderColor: 'var(--cv-primary-container)',
-    borderRadius: 'var(--cv-radius-full)',
     color: 'var(--cv-on-surface-variant)',
     hoverColor: 'var(--cv-on-surface)',
     checkedColor: 'var(--cv-on-primary-container)',
-    fontWeight: '500',
-    transitionDuration: '0.15s',
+    disabledBackground: 'color-mix(in srgb, var(--cv-on-surface) 8%, var(--cv-surface))',
+    disabledBorderColor: 'var(--cv-outline-variant)',
+    disabledColor: 'var(--cv-on-surface-variant)',
   },
   content: {
-    padding: 'var(--cv-space-3xl) var(--cv-space-lg)',
-    borderRadius: 'var(--cv-radius-full)',
     checkedBackground: 'transparent',
     checkedShadow: 'none',
   },
+  icon: {
+    color: 'inherit',
+    hoverColor: 'inherit',
+    checkedColor: 'var(--cv-on-primary-container)',
+    disabledColor: 'var(--cv-on-surface-variant)',
+  },
 } as const;
+
+const toggleButtonColorDark = {
+  ...toggleButtonColorLight,
+  root: {
+    ...toggleButtonColorLight.root,
+    disabledBackground: 'var(--cv-surface-container-high)',
+  },
+} as const;
+
 
 /**
  * ToggleSwitch 颜色 token 基线 —— light/dark 共用视觉（禁用底除外）
@@ -512,15 +525,37 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: toggleSwitchColorDark,
       },
     },
-    // ToggleButton:必须用 colorScheme.light/dark 显式覆盖 Aura 默认值。
-    // Aura 的 togglebutton 颜色仅定义在 colorScheme.light/dark(surface.100/950),
-    // 会覆盖 root 层的 cv 自适应变量;且 PrimeVue darkModeSelector 与 cv 变量的
-    // .cosmos-vision-app-dark 各自独立,把 cv 变量挂到 light/dark 两端可保证
-    // 无论哪个 colorScheme 激活,都走随深色自适应的 cv 变量,深色下不再回退浅色。
+    // ToggleButton：尺寸与结构走 root/content/sm；颜色走 colorScheme.light/dark
     togglebutton: {
+      root: {
+        padding: '0',
+        borderRadius: 'var(--cv-radius-full)',
+        gap: 'var(--cv-space-xs)',
+        fontWeight: '500',
+        transitionDuration: '0.15s',
+        focusRing: {
+          width: '0',
+          style: 'none',
+          color: 'transparent',
+          offset: '0',
+          shadow: 'none',
+        },
+        sm: {
+          fontSize: 'var(--cv-font-size-2xs)',
+          padding: '0',
+        },
+      },
+      content: {
+        padding: 'var(--cv-space-3xl) var(--cv-space-lg)',
+        borderRadius: 'var(--cv-radius-full)',
+        checkedShadow: 'none',
+        sm: {
+          padding: 'var(--cv-space-xs) var(--cv-space-md)',
+        },
+      },
       colorScheme: {
-        light: toggleButtonColor,
-        dark: toggleButtonColor,
+        light: toggleButtonColorLight,
+        dark: toggleButtonColorDark,
       },
     },
     accordion: {
