@@ -117,12 +117,16 @@
           <label class="cv-field">
             <span>Top P</span>
             <Slider v-model="settings.promptLlm.topP" :min="0" :max="1" :step="0.01" />
-            <div class="cv-slider-value">{{ settings.promptLlm.topP.toFixed(2) }}</div>
+            <div class="mt-(--cv-space-lg) text-center text-(length:--cv-font-size-md) font-medium text-(--cv-on-surface-variant)">
+              {{ settings.promptLlm.topP.toFixed(2) }}
+            </div>
           </label>
           <label class="cv-field">
             <span>Top K</span>
             <Slider v-model="settings.promptLlm.topK" :min="0" :max="100" :step="1" />
-            <div class="cv-slider-value">{{ settings.promptLlm.topK }}</div>
+            <div class="mt-(--cv-space-lg) text-center text-(length:--cv-font-size-md) font-medium text-(--cv-on-surface-variant)">
+              {{ settings.promptLlm.topK }}
+            </div>
           </label>
         </div>
       </div>
@@ -222,15 +226,6 @@ async function fetchModels(): Promise<void> {
 
 .cv-tab-content {
   @apply flex flex-col gap-0;
-}
-
-/* 滑块数值显示 */
-.cv-slider-value {
-  @apply mt-[var(--cv-space-lg)] text-center;
-  text-align: center;
-  font-size: var(--cv-font-size-md);
-  color: var(--cv-on-surface-variant);
-  font-weight: 500;
 }
 
 /* 模型选择行 */

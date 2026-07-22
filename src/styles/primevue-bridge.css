@@ -120,6 +120,17 @@
   /* SelectButton 容器圆角（theme components.selectbutton.root.borderRadius） */
   --p-selectbutton-border-radius: var(--cv-radius-full);
   --p-message-border-radius: var(--cv-radius-lg);
+
+  /* Slider：尺寸/圆角在作用域内回写（theme components.slider） */
+  --p-slider-track-border-radius: var(--cv-radius-full);
+  --p-slider-track-size: 0.2667em;
+  --p-slider-handle-width: 1.0667em;
+  --p-slider-handle-height: 1.0667em;
+  --p-slider-handle-border-radius: 50%;
+  --p-slider-handle-content-width: 0.4em;
+  --p-slider-handle-content-height: 0.4em;
+  --p-slider-handle-content-border-radius: 50%;
+  --p-slider-handle-content-shadow: none;
 }
 
 .cosmos-vision-root {
@@ -240,6 +251,13 @@
   --p-checkbox-icon-checked-hover-color: var(--cv-on-primary-container);
   --p-checkbox-icon-disabled-color: var(--cv-on-surface-variant);
   --p-checkbox-shadow: none;
+  /* Slider：颜色在作用域内回写，避免 :root 字面值与 Aura surface/primary 灰阶 */
+  --p-slider-track-background: var(--cv-surface-variant);
+  --p-slider-range-background: var(--cv-outline);
+  --p-slider-handle-background: var(--cv-surface-container);
+  --p-slider-handle-hover-background: var(--cv-surface-container-high);
+  --p-slider-handle-content-background: var(--cv-on-surface);
+  --p-slider-handle-content-hover-background: var(--cv-on-surface);
   --p-datatable-background: var(--cv-surface-container-low);
   --p-datatable-header-background: var(--cv-surface-container-low);
   --p-datatable-header-border-color: var(--cv-surface-variant);

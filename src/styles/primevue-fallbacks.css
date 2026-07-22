@@ -37,23 +37,14 @@
   border-color: var(--cv-outline) !important;
 }
 
-/* Slider：紧凑轨道与可见手柄，避免轨道阴影和默认留白异常。 */
-.cosmos-vision-root .cv-prime-slider,
-#cosmos_vision .cv-prime-slider {
-  border: 0 !important;
-  box-shadow: none !important;
-  margin: var(--cv-space-xl) var(--cv-space-lg) var(--cv-space-md);
-}
-
+/*
+ * Slider：token 无 handle.border；官方 handle 仅 background。
+ * 外圈描边用 PT 锚点兜底，保证内点/外圈对比可读。
+ * 颜色/尺寸/content.shadow 已迁 definePreset + bridge --p-slider-*。
+ */
 .cosmos-vision-root .cv-prime-slider-handle,
 #cosmos_vision .cv-prime-slider-handle {
   border: var(--cv-border-width) solid var(--cv-outline) !important;
-  box-shadow: none !important;
-}
-
-.cosmos-vision-root .cv-prime-slider-handle::before,
-#cosmos_vision .cv-prime-slider-handle::before {
-  box-shadow: none !important;
 }
 
 /* ToggleButton / SelectButton 颜色与尺寸已迁 definePreset + bridge --p-togglebutton-*；无 !important 兜底 */

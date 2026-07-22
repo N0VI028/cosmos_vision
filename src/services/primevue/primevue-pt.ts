@@ -30,6 +30,7 @@ const selectButtonToggle = {
   icon: toggleButtonIcon,
   label: { class: 'cv-prime-togglebutton-label' },
 } as const;
+/** Slider 手柄：单/双柄共用锚点；边框兜底见 fallbacks（token 无 handle.border） */
 const sliderHandle = {
   class: 'cv-prime-slider-handle',
 } as const;
@@ -192,10 +193,12 @@ export const cosmosPrimePt = {
   },
   slider: {
     root: { class: 'cv-prime-slider' },
+    // track 在运行时 ptm('track') 可用，但 SliderPassThroughOptions 类型未声明 → 不写入
     range: { class: 'cv-prime-slider-range' },
     handle: sliderHandle,
     startHandler: sliderHandle,
     endHandler: sliderHandle,
+    input: { class: 'cv-prime-slider-input' },
   },
   toggleswitch: {
     root: { class: 'cv-prime-toggleswitch' },

@@ -62,6 +62,28 @@ const chipColor = {
 } as const;
 
 /**
+ * Slider 颜色 token —— light/dark 共用
+ * 轨道 surface-variant；进度条 outline；手柄外圈 surface-container + 内点 on-surface
+ * 覆盖 Aura content.border / primary.color / surface.0 灰阶与 emerald
+ */
+const sliderColor = {
+  track: {
+    background: 'var(--cv-surface-variant)',
+  },
+  range: {
+    background: 'var(--cv-outline)',
+  },
+  handle: {
+    background: 'var(--cv-surface-container)',
+    hoverBackground: 'var(--cv-surface-container-high)',
+    content: {
+      background: 'var(--cv-on-surface)',
+      hoverBackground: 'var(--cv-on-surface)',
+    },
+  },
+} as const;
+
+/**
  * ToggleButton 颜色 token —— 显式覆盖 Aura light-dark/surface 灰阶
  * 选中态走 primary-container + on-primary-container
  */
@@ -396,6 +418,10 @@ export const cosmosPrimePreset = definePreset(Aura, {
         lg: { fontSize: 'var(--cv-font-size-md)' },
       },
     },
+    // Slider：非颜色尺寸走 root；颜色走 colorScheme（覆盖 Aura content.border / primary / surface 灰阶）
+    // range 空对象阻止继承 Aura root 层 range.background 与 colorScheme 冲突
+    // handle 无 border token；外圈描边仍见 fallbacks 中 .cv-prime-slider-handle
+    // focusRing 清零对齐表单控件（全局不画外圈）
     slider: {
       root: {
         transitionDuration: 'var(--p-transition-duration, 0.2s)',
@@ -416,46 +442,16 @@ export const cosmosPrimePreset = definePreset(Aura, {
           shadow: 'none',
         },
         focusRing: {
-          width: 'var(--p-focus-ring-width, 0.1333em)',
-          style: 'var(--p-focus-ring-style, solid)',
-          color: 'var(--p-focus-ring-color, color-mix(in srgb, var(--cv-primary-container) 10%, transparent))',
-          offset: 'var(--p-focus-ring-offset, 0)',
-          shadow: 'var(--p-focus-ring-shadow, none)',
+          width: '0',
+          style: 'none',
+          color: 'transparent',
+          offset: '0',
+          shadow: 'none',
         },
       },
       colorScheme: {
-        light: {
-          track: {
-            background: 'var(--cv-surface-variant)',
-          },
-          range: {
-            background: 'var(--cv-outline)',
-          },
-          handle: {
-            background: 'var(--cv-surface-container)',
-            hoverBackground: 'var(--cv-surface-container-high)',
-            content: {
-              background: 'var(--cv-on-surface)',
-              hoverBackground: 'var(--cv-on-surface)',
-            },
-          },
-        },
-        dark: {
-          track: {
-            background: 'var(--cv-surface-variant)',
-          },
-          range: {
-            background: 'var(--cv-outline)',
-          },
-          handle: {
-            background: 'var(--cv-surface-container)',
-            hoverBackground: 'var(--cv-surface-container-high)',
-            content: {
-              background: 'var(--cv-on-surface)',
-              hoverBackground: 'var(--cv-on-surface)',
-            },
-          },
-        },
+        light: sliderColor,
+        dark: sliderColor,
       },
     },
     panel: {

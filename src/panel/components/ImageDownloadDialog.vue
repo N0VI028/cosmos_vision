@@ -32,7 +32,7 @@
             <span>JPG 压缩质量</span>
             <span class="cv-image-download-dialog__value">{{ jpgQualityPercent }}%</span>
           </div>
-          <Slider v-model="jpgQualityPercent" :min="10" :max="100" class="cv-image-download-dialog__slider" />
+          <Slider v-model="jpgQualityPercent" :min="10" :max="100" />
           <div class="cv-image-download-dialog__hint">JPG 导出会默认清理元数据。</div>
         </div>
       </div>
@@ -159,10 +159,6 @@ function submit(accept: boolean): void {
   color: var(--cv-on-surface-variant);
   font-size: var(--cv-font-size-xs);
   line-height: 1.5;
-}
-
-.cv-image-download-dialog__slider.p-slider {
-  margin-inline: 0 !important;
 }
 
 :deep(.cv-image-download-dialog__root .p-dialog-content) {
