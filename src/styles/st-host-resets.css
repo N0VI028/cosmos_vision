@@ -132,11 +132,19 @@
   border-color: var(--p-inputtext-invalid-border-color, var(--p-red-500)) !important;
 }
 
-.cosmos-vision-root textarea.cv-prime-textarea,
-#cosmos_vision textarea.cv-prime-textarea {
+.cosmos-vision-root textarea.cv-prime-textarea:not(:disabled),
+#cosmos_vision textarea.cv-prime-textarea:not(:disabled) {
   background: var(--p-textarea-background) !important;
   border-color: var(--p-textarea-border-color) !important;
   color: var(--p-textarea-color) !important;
+}
+
+.cosmos-vision-root textarea.cv-prime-textarea:disabled,
+#cosmos_vision textarea.cv-prime-textarea:disabled {
+  background: var(--p-textarea-disabled-background) !important;
+  border-color: var(--p-textarea-border-color) !important;
+  color: var(--p-textarea-disabled-color) !important;
+  filter: none !important;
 }
 
 .cosmos-vision-root textarea.cv-prime-textarea.p-invalid,
@@ -191,10 +199,8 @@
  * ST 会给 button 注入 background-image / box-shadow / text-transform /
  * letter-spacing 等全局样式，这里只清理会破坏 PrimeVue 或扩展结构的宿主属性。
  */
-.cosmos-vision-root
-  :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button),
-#cosmos_vision
-  :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button) {
+.cosmos-vision-root :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button),
+#cosmos_vision :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button) {
   @apply shrink-0 whitespace-nowrap;
   background-image: none !important;
   box-shadow: none !important;
@@ -202,14 +208,8 @@
   letter-spacing: normal !important;
 }
 
-.cosmos-vision-root
-  :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button):not(
-    :disabled
-  ),
-#cosmos_vision
-  :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button):not(
-    :disabled
-  ) {
+.cosmos-vision-root :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button):not(:disabled),
+#cosmos_vision :is(.cv-prime-button, .cv-prime-icon-button, .cv-prime-galleria-nav-button):not(:disabled) {
   cursor: pointer !important;
 }
 

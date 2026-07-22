@@ -6,7 +6,7 @@
         :model-value="draft"
         rows="8"
         auto-resize
-        class="cv-full-textarea custom-scrollbar"
+        class="custom-scrollbar w-full font-mono"
         placeholder="可在此编辑 tag 草稿"
         @update:model-value="draft = $event"
       />

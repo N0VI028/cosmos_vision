@@ -9,7 +9,7 @@
       variant="outlined"
       @click="emit('toggle-json')"
     />
-    <div v-if="statusText" class="text-(--cv-font-size-sm) col-span-full" :class="statusClass">{{ statusText }}</div>
+    <div v-if="statusText" class="cv-field-hint" :class="statusClass">{{ statusText }}</div>
   </div>
 </template>
 

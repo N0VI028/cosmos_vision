@@ -34,8 +34,7 @@
 /* Outlined secondary 按钮在 hover 时的边框颜色补偿，当前仍需 CSS 兜底。 */
 .cosmos-vision-root
   .cv-prime-button[data-p~='outlined'][data-p-severity='secondary']:not([data-p-disabled='true']):hover,
-#cosmos_vision
-  .cv-prime-button[data-p~='outlined'][data-p-severity='secondary']:not([data-p-disabled='true']):hover {
+#cosmos_vision .cv-prime-button[data-p~='outlined'][data-p-severity='secondary']:not([data-p-disabled='true']):hover {
   border-color: var(--cv-outline) !important;
 }
 
@@ -95,9 +94,7 @@
   background: var(--cv-surface-container, var(--p-surface-300)) !important;
 }
 
-:is(#cosmos_vision, .cosmos-vision-root)
-  .cv-prime-toggleswitch[data-p-checked='true']
-  .cv-prime-toggleswitch-slider {
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-toggleswitch[data-p-checked='true'] .cv-prime-toggleswitch-slider {
   background: var(--cv-primary-container, var(--p-primary-color)) !important;
 }
 
@@ -105,9 +102,7 @@
   background: var(--cv-surface-container-lowest, var(--p-surface-0)) !important;
 }
 
-:is(#cosmos_vision, .cosmos-vision-root)
-  .cv-prime-toggleswitch[data-p-checked='true']
-  .cv-prime-toggleswitch-handle {
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-toggleswitch[data-p-checked='true'] .cv-prime-toggleswitch-handle {
   background: var(--cv-on-primary-container, var(--p-primary-contrast-color)) !important;
 }
 
@@ -144,9 +139,3 @@
 .cosmos-vision-root .p-multiselect-header {
   background: inherit !important;
 }
-
-#cosmos_vision .cv-prime-textarea,
-.cosmos-vision-root .cv-prime-textarea {
-  border-radius: var(--cv-radius-md) !important;
-}
-

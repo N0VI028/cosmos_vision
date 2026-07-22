@@ -5,7 +5,7 @@
       v-model="model"
       rows="3"
       auto-resize
-      class="cv-focused-paragraph-textarea w-full"
+      class="w-full resize-y text-(length:--cv-font-size-lg)"
       :placeholder="placeholder"
     />
     <Message v-if="!hasFocusedParagraph" severity="warn" size="small">
@@ -30,18 +30,3 @@ withDefaults(defineProps<Props>(), {
 
 const model = defineModel<string>({ required: true });
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-focused-paragraph-textarea {
-  @apply resize-y;
-  background: var(--cv-surface-variant);
-  border: var(--cv-border-width) solid var(--cv-outline);
-  color: var(--cv-on-surface);
-  border-radius: var(--cv-radius);
-  padding: var(--cv-space-xl);
-  font-family: inherit;
-  font-size: var(--cv-font-size-lg);
-}
-</style>

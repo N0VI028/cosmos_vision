@@ -21,11 +21,21 @@
       <template v-else>
         <div class="cv-field">
           <span>正面提示词</span>
-          <Textarea v-model="directPositivePrompt" rows="3" auto-resize class="cv-test-textarea w-full" />
+          <Textarea
+            v-model="directPositivePrompt"
+            rows="3"
+            auto-resize
+            class="w-full resize-y text-(length:--cv-font-size-lg)"
+          />
         </div>
         <div class="cv-field">
           <span>负面提示词</span>
-          <Textarea v-model="directNegativePrompt" rows="3" auto-resize class="cv-test-textarea w-full" />
+          <Textarea
+            v-model="directNegativePrompt"
+            rows="3"
+            auto-resize
+            class="w-full resize-y text-(length:--cv-font-size-lg)"
+          />
         </div>
         <div class="cv-direct-character-list">
           <CollapsiblePanelItem
@@ -48,11 +58,21 @@
             <div class="cv-direct-character-body">
               <div class="cv-field">
                 <span>角色正面提示词</span>
-                <Textarea v-model="character.positivePrompt" rows="3" auto-resize class="cv-test-textarea w-full" />
+                <Textarea
+                  v-model="character.positivePrompt"
+                  rows="3"
+                  auto-resize
+                  class="w-full resize-y text-(length:--cv-font-size-lg)"
+                />
               </div>
               <div class="cv-field">
                 <span>角色负面提示词</span>
-                <Textarea v-model="character.negativePrompt" rows="3" auto-resize class="cv-test-textarea w-full" />
+                <Textarea
+                  v-model="character.negativePrompt"
+                  rows="3"
+                  auto-resize
+                  class="w-full resize-y text-(length:--cv-font-size-lg)"
+                />
               </div>
               <div class="cv-field-grid cv-direct-character-coordinates">
                 <label class="cv-field">
@@ -637,17 +657,6 @@ function handleTestError(error: unknown): void {
   justify-content: flex-start;
   gap: var(--cv-space-xl);
   margin-bottom: 0;
-}
-
-.cv-test-textarea {
-  @apply resize-y;
-  background: var(--cv-surface-variant);
-  border: var(--cv-border-width) solid var(--cv-outline);
-  color: var(--cv-on-surface);
-  border-radius: var(--cv-radius);
-  padding: var(--cv-space-xl);
-  font-family: inherit;
-  font-size: var(--cv-font-size-lg);
 }
 
 .cv-action-row {

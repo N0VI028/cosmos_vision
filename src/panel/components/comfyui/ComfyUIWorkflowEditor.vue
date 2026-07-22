@@ -50,7 +50,7 @@
             <Textarea
               :model-value="modelValue"
               rows="8"
-              class="w-full resize-y overflow-y-auto rounded-(--cv-radius) border-solid border-(--cv-outline) bg-(--cv-surface-variant) p-(--cv-space-xl) font-mono text-(--cv-font-size-sm)"
+              class="w-full resize-y overflow-y-auto font-mono text-(length:--cv-font-size-sm)"
               :invalid="Boolean(parseError)"
               @update:model-value="onJsonEdit"
             />

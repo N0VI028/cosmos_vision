@@ -151,7 +151,7 @@
           ref="entryContentTextarea"
           :model-value="editorDraft.content"
           rows="10"
-          class="cv-message-editor-textarea custom-scrollbar"
+          class="custom-scrollbar h-48 min-h-24 w-full resize-y overflow-y-auto"
           placeholder="输入模板内容..."
           @click="rememberEntrySelection"
           @focus="rememberEntrySelection"
@@ -164,7 +164,7 @@
           :model-value="editorPreviewPlaceholder ?? editorPreviewText"
           rows="6"
           disabled
-          class="cv-message-editor-textarea custom-scrollbar"
+          class="custom-scrollbar h-48 min-h-24 w-full resize-y overflow-y-auto"
         />
       </div>
     </div>
@@ -771,11 +771,6 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
   .cv-source-pair-row {
     grid-template-columns: 1fr;
   }
-}
-.cv-message-editor-textarea {
-  @apply w-full resize-y overflow-y-auto;
-  height: 12rem;
-  min-height: 6rem;
 }
 .cv-message-editor-actions {
   @apply flex justify-end;

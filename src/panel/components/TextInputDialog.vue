@@ -18,7 +18,7 @@
         <Textarea
           ref="inputRef"
           v-model="value"
-          class="cv-text-input-dialog__textarea custom-scrollbar"
+          class="custom-scrollbar max-h-[min(28vh,14rem)] min-h-28 w-full resize-none overflow-y-auto overscroll-contain"
           :rows="rows"
         />
       </div>
@@ -26,7 +26,7 @@
         <label class="cv-text-input-dialog__label">{{ secondaryLabel }}</label>
         <Textarea
           v-model="secondaryValue"
-          class="cv-text-input-dialog__textarea custom-scrollbar"
+          class="custom-scrollbar max-h-[min(24vh,12rem)] min-h-[5.5rem] w-full resize-none overflow-y-auto overscroll-contain"
           :rows="secondaryRows"
         />
       </div>
@@ -55,7 +55,7 @@
                 <label class="cv-text-input-dialog__label">角色正面</label>
                 <Textarea
                   v-model="character.positivePrompt"
-                  class="cv-text-input-dialog__textarea custom-scrollbar"
+                  class="custom-scrollbar max-h-[min(18vh,9rem)] min-h-[4.5rem] w-full resize-none overflow-y-auto overscroll-contain"
                   :rows="3"
                 />
               </div>
@@ -63,7 +63,7 @@
                 <label class="cv-text-input-dialog__label">角色负面</label>
                 <Textarea
                   v-model="character.negativePrompt"
-                  class="cv-text-input-dialog__textarea custom-scrollbar"
+                  class="custom-scrollbar max-h-[min(18vh,9rem)] min-h-[4.5rem] w-full resize-none overflow-y-auto overscroll-contain"
                   :rows="2"
                 />
               </div>
@@ -328,19 +328,6 @@ function syncCharacterIdSeed(): void {
   line-height: 1.4;
 }
 
-.cv-text-input-dialog__textarea {
-  @apply w-full overflow-y-auto;
-  min-height: 7rem;
-  max-height: min(28vh, 14rem);
-  resize: none;
-  overscroll-behavior: contain;
-}
-
-.cv-text-input-dialog__field--secondary .cv-text-input-dialog__textarea {
-  min-height: 5.5rem;
-  max-height: min(24vh, 12rem);
-}
-
 .cv-text-input-dialog__characters {
   @apply flex flex-col;
   gap: var(--cv-space-xl);
@@ -355,11 +342,6 @@ function syncCharacterIdSeed(): void {
   @apply flex flex-col;
   gap: var(--cv-space-xl);
   padding: var(--cv-space-xl);
-}
-
-.cv-text-input-dialog__character-body .cv-text-input-dialog__textarea {
-  min-height: 4.5rem;
-  max-height: min(18vh, 9rem);
 }
 
 .cv-text-input-dialog__coords {

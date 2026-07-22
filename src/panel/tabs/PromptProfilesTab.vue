@@ -23,7 +23,7 @@
             <template v-if="editingPersonId === person.id">
               <InputText
                 v-model="editingDraft"
-                class="mr-(--cv-space-lg) w-48 min-w-24 max-w-full"
+                class="mr-(--cv-space-lg) w-48 max-w-full min-w-24"
                 size="small"
                 autofocus
                 @click.stop
@@ -108,7 +108,12 @@
             </div>
             <div class="cv-field">
               <div class="cv-field-control">
-                <Textarea v-model="person.staticTags" rows="3" auto-resize class="cv-full-textarea" />
+                <Textarea
+                  v-model="person.staticTags"
+                  rows="3"
+                  auto-resize
+                  class="w-full font-mono"
+                />
                 <div class="cv-field-hint">固定tag中的内容将在发送到LLM时，被强调原样保留在最终tag中</div>
               </div>
             </div>
@@ -182,7 +187,7 @@
             v-model="tagParseInput"
             rows="6"
             auto-resize
-            class="cv-tag-parse-textarea custom-scrollbar"
+            class="custom-scrollbar w-full min-h-36 resize-y"
             placeholder="输入人物资料、设定或描述..."
           />
         </label>
@@ -681,11 +686,6 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
   opacity: 1;
 }
 
-.cv-full-textarea {
-  @apply w-full;
-  font-family: Consolas, Monaco, monospace;
-}
-
 .cv-tag-parse-panel {
   @apply flex flex-col;
   gap: var(--cv-space-md);
@@ -739,11 +739,6 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
 
 .cv-tag-parse-input {
   margin-top: var(--cv-space-md);
-}
-
-.cv-tag-parse-textarea {
-  @apply w-full resize-y;
-  min-height: 9rem;
 }
 
 .cv-tag-parse-actions {

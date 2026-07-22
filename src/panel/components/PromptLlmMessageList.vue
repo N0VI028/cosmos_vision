@@ -168,7 +168,7 @@
           v-if="editorDraft.kind === 'custom'"
           ref="messageContentTextarea"
           :model-value="editorDraft.customContent"
-          class="cv-message-editor-textarea custom-scrollbar"
+          class="custom-scrollbar h-48 min-h-24 w-full resize-y overflow-y-auto"
           rows="10"
           placeholder="输入消息内容..."
           @click="rememberMessageSelection"
@@ -180,7 +180,7 @@
         <Textarea
           v-else
           :model-value="editorPreviewText"
-          class="cv-message-editor-textarea custom-scrollbar"
+          class="custom-scrollbar h-48 min-h-24 w-full resize-y overflow-y-auto"
           rows="6"
           disabled
         />
@@ -869,12 +869,6 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
 .cv-source-tokens {
   @apply flex items-center;
   width: max-content;
-}
-
-.cv-message-editor-textarea {
-  @apply w-full resize-y overflow-y-auto;
-  height: 12rem;
-  min-height: 6rem;
 }
 
 .cv-message-editor-actions {

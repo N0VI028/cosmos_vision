@@ -73,6 +73,8 @@
 
   /* PrimeVue 在 :root 已字面值化的组件圆角，需在作用域内逐项回写 */
   --p-inputtext-border-radius: var(--cv-radius-full);
+  /* Textarea 多行：md 圆角（theme components.textarea.root.borderRadius） */
+  --p-textarea-border-radius: var(--cv-radius-md);
   --p-button-border-radius: var(--cv-radius-full);
   --p-select-border-radius: var(--cv-radius-full);
   --p-select-overlay-border-radius: var(--cv-radius-lg);
