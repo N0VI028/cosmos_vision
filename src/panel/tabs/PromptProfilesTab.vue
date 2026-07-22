@@ -53,10 +53,9 @@
           </template>
 
           <template #actions>
-            <ToggleSwitch
+            <CvMiniToggleSwitch
               v-model="person.enabled"
               :aria-label="getPersonEnabledLabel(person)"
-              :dt="{ width: '2rem', height: '1.2rem', handle: { size: '0.8rem' } }"
             />
             <CvMiniButton
               icon="fa-solid fa-trash"
@@ -240,6 +239,7 @@
 <script setup lang="ts">
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
+import CvMiniToggleSwitch from '@/panel/components/CvMiniToggleSwitch.vue';
 import StaticTagsDraftResult from '@/panel/components/StaticTagsDraftResult.vue';
 import WdTaggerSource from '@/panel/components/WdTaggerSource.vue';
 import PromptSourceEntryList from '@/panel/components/PromptSourceEntryList.vue';

@@ -344,6 +344,7 @@ function formatFetchedAt(ts: number): string {
   font-size: var(--cv-font-size-md);
   line-height: 1.5;
   max-width: 24em;
+  white-space: normal;
 }
 
 @media (max-width: 48rem) {

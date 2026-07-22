@@ -53,7 +53,7 @@
             <i :class="isParsing(vibe.id) ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-wand-magic-sparkles'" />
             <span>解析</span>
           </div>
-          <ToggleSwitch
+          <CvMiniToggleSwitch
             :model-value="vibe.enabled"
             :aria-label="getEnabledLabel(vibe)"
             @update:model-value="updateVibe(vibe.id, { enabled: Boolean($event) })"
@@ -108,6 +108,7 @@ import {
 import { isNovelAIV3Model, type NovelAISettings } from '@/constants/novelai';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
+import CvMiniToggleSwitch from '@/panel/components/CvMiniToggleSwitch.vue';
 import { getNovelAIRequestAccounts } from '@/services/novelai/router';
 import { saveNovelAIVibeThumbnailData, summarizeNovelAIVibeCache } from '@/services/novelai/vibe-cache';
 import { getNovelAIVibeDisplayFileName } from '@/services/novelai/vibe-display';

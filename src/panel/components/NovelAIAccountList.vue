@@ -48,10 +48,10 @@
         </template>
 
         <template #actions>
-          <ToggleSwitch
+          <CvMiniToggleSwitch
             v-model="account.enabled"
             :title="account.enabled ? '禁用账号' : '启用账号'"
-            :dt="{ width: '2rem', height: '1.2rem', handle: { size: '0.8rem' } }"
+            :aria-label="account.enabled ? '禁用账号' : '启用账号'"
           />
           <CvMiniButton
             icon="fa-solid fa-arrow-up"
@@ -102,6 +102,7 @@ import { uuidv4 } from '@sillytavern/scripts/utils';
 import { createNovelAIAccount, NOVELAI_DEFAULT_URL, type NovelAIAccount } from '@/constants/novelai';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
+import CvMiniToggleSwitch from '@/panel/components/CvMiniToggleSwitch.vue';
 
 const accounts = defineModel<NovelAIAccount[]>({ required: true });
 

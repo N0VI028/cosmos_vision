@@ -12,10 +12,8 @@
     </template>
 
     <template #actions="{ entry }">
-      <ToggleSwitch
+      <CvMiniToggleSwitch
         v-model="entry.enabled"
-        class="shrink-0"
-        :dt="{ width: '2rem', height: '1.2rem', handle: { size: '0.8rem' } }"
         :aria-label="entry.enabled ? '禁用条目' : '启用条目'"
       />
       <Button
@@ -197,6 +195,7 @@ import PromptEntryList from '@/panel/components/PromptEntryList.vue';
 import { createCustomPromptPersonTemplateEntry } from '@/services/prompt-profiles/runtime';
 import { PROMPT_EDITOR_DIALOG_PT, PROMPT_EDITOR_DIALOG_STYLE } from '@/panel/components/prompt-editor-dialog';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
+import CvMiniToggleSwitch from '@/panel/components/CvMiniToggleSwitch.vue';
 import {
   MACRO_POPOVER_BASE_Z_INDEX,
   MACRO_POPOVER_PT,
