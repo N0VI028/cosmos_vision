@@ -73,7 +73,11 @@
           @toggle="toggleItem(item.key)"
         >
           <div class="cv-favorite-card">
-            <div v-if="isSelecting" class="cv-favorite-select" @click.stop>
+            <div
+              v-if="isSelecting"
+              class="absolute top-(--cv-space-lg) left-(--cv-space-lg) z-1"
+              @click.stop
+            >
               <Checkbox
                 binary
                 :model-value="isItemSelected(item.key)"
@@ -524,12 +528,6 @@ function buildChatOptions(items: ManagedImageItem[]): FilterOption[] {
   @apply relative flex min-w-0 flex-col;
 }
 
-.cv-favorite-select {
-  @apply absolute;
-  top: var(--cv-space-lg);
-  left: var(--cv-space-lg);
-  z-index: 1;
-}
 
 .cv-favorite-thumb-wrap {
   @apply relative overflow-hidden;

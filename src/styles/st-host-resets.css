@@ -66,6 +66,10 @@
     color var(--p-checkbox-transition-duration, 0.2s);
 }
 
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox-indicator {
+  @apply inline-flex items-center justify-center;
+}
+
 :is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox-icon {
   width: var(--p-checkbox-icon-size, 0.875rem);
   height: var(--p-checkbox-icon-size, 0.875rem);
@@ -91,10 +95,7 @@
 }
 
 :is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox[data-p-disabled='true'] .cv-prime-checkbox-box {
-  background: var(
-    --p-checkbox-disabled-background,
-    color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent)
-  );
+  background: var(--p-checkbox-disabled-background, var(--p-form-field-disabled-background));
   border-color: var(--p-checkbox-checked-disabled-border-color, var(--cv-surface-variant));
   color: var(--p-checkbox-icon-disabled-color, var(--cv-on-surface-variant));
 }

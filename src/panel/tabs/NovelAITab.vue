@@ -182,14 +182,23 @@
             fluid
             :disabled="settings.novelai.autoSampler && isV3Model"
           />
-          <div v-if="isV3Model" class="cv-nai-option-row">
-            <label class="cv-nai-check-option">
+          <div v-if="isV3Model" class="flex flex-wrap items-center gap-(--cv-space-xl)">
+            <label
+              class="inline-flex min-h-7 items-center gap-(--cv-space-lg) text-(length:--cv-font-size-md) text-(--cv-on-surface)"
+            >
               <Checkbox v-model="settings.novelai.smea" binary />
-              <span>SMEA</span>
+              <span class="min-w-0 leading-[1.35]">SMEA</span>
             </label>
-            <label class="cv-nai-check-option" :class="{ 'cv-nai-check-option--disabled': !settings.novelai.smea }">
+            <label
+              class="inline-flex min-h-7 items-center gap-(--cv-space-lg) text-(length:--cv-font-size-md)"
+              :class="
+                settings.novelai.smea
+                  ? 'text-(--cv-on-surface)'
+                  : 'text-(--cv-on-surface-variant) opacity-62'
+              "
+            >
               <Checkbox v-model="settings.novelai.smeaDyn" binary :disabled="!settings.novelai.smea" />
-              <span>DYN</span>
+              <span class="min-w-0 leading-[1.35]">DYN</span>
             </label>
           </div>
         </div>
@@ -237,9 +246,12 @@
               />
             </label>
           </div>
-          <label v-if="isV4OnlyModel" class="cv-nai-check-option cv-nai-legacy-option">
+          <label
+            v-if="isV4OnlyModel"
+            class="inline-flex min-h-7 items-center gap-(--cv-space-lg) self-start text-(length:--cv-font-size-md) text-(--cv-on-surface)"
+          >
             <Checkbox v-model="settings.novelai.legacyPromptMode" binary />
-            <span>旧版提示词条件模式（不推荐）</span>
+            <span class="min-w-0 leading-[1.35]">旧版提示词条件模式（不推荐）</span>
           </label>
       </div>
     </template>
@@ -403,11 +415,6 @@ const proxyPreview = computed(() => {
   @apply flex flex-col gap-0;
 }
 
-.cv-nai-option-row {
-  @apply flex flex-wrap items-center;
-  gap: var(--cv-space-xl);
-}
-
 .cv-nai-field-title-row {
   @apply flex flex-wrap items-end justify-between;
   gap: var(--cv-space-lg);
@@ -434,25 +441,4 @@ const proxyPreview = computed(() => {
   line-height: 1;
 }
 
-.cv-nai-check-option {
-  @apply inline-flex items-center;
-  gap: var(--cv-space-lg);
-  min-height: 1.75rem;
-  color: var(--cv-on-surface);
-  font-size: var(--cv-font-size-md);
-}
-
-.cv-nai-check-option > span {
-  @apply min-w-0;
-  line-height: 1.35;
-}
-
-.cv-nai-check-option--disabled {
-  color: var(--cv-on-surface-variant);
-  opacity: 0.62;
-}
-
-.cv-nai-legacy-option {
-  @apply self-start;
-}
 </style>

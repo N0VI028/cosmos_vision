@@ -46,7 +46,11 @@
           @toggle="toggleItem(item.sourceHash)"
         >
           <div class="cv-vibe-card">
-            <div v-if="isSelecting" class="cv-vibe-select" @click.stop>
+            <div
+              v-if="isSelecting"
+              class="absolute top-(--cv-space-lg) left-(--cv-space-lg) z-1"
+              @click.stop
+            >
               <Checkbox
                 binary
                 :model-value="isItemSelected(item.sourceHash)"
@@ -276,12 +280,6 @@ function formatCreatedAt(createdAt: number): string {
   @apply relative flex min-w-0 flex-col;
 }
 
-.cv-vibe-select {
-  @apply absolute;
-  top: var(--cv-space-lg);
-  left: var(--cv-space-lg);
-  z-index: 1;
-}
 
 .cv-vibe-thumb-wrap {
   @apply flex items-center justify-center overflow-hidden;

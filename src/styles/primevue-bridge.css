@@ -192,20 +192,27 @@
   --p-chip-remove-icon-color: var(--p-primary-color);
   --p-chip-remove-icon-focus-ring-color: color-mix(in srgb, var(--cv-primary-container) 24%, transparent);
   --p-chip-remove-icon-focus-ring-shadow: none;
+  /* Checkbox：颜色/圆角在作用域内回写，保证 host-resets 与 Teleport 读到 cv token */
+  --p-checkbox-border-radius: var(--cv-radius-sm);
   --p-checkbox-background: var(--cv-surface-container-high);
-  --p-checkbox-disabled-background: color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent);
+  --p-checkbox-filled-background: var(--cv-surface-container-high);
+  /* 跟 formField light/dark 禁用底，避免 bridge 写死深色半透明覆盖浅色 token */
+  --p-checkbox-disabled-background: var(--p-form-field-disabled-background);
   --p-checkbox-border-color: var(--cv-surface-variant);
   --p-checkbox-hover-border-color: var(--cv-outline);
+  --p-checkbox-focus-border-color: var(--cv-surface-variant);
   --p-checkbox-checked-background: var(--cv-primary-container);
   --p-checkbox-checked-hover-background: var(--cv-primary-container);
   --p-checkbox-checked-border-color: var(--cv-primary-container);
   --p-checkbox-checked-hover-border-color: var(--cv-primary-container);
+  --p-checkbox-checked-focus-border-color: var(--cv-primary-container);
   --p-checkbox-checked-disabled-border-color: var(--cv-surface-variant);
+  --p-checkbox-invalid-border-color: var(--p-red-500);
   --p-checkbox-icon-color: var(--cv-on-surface);
   --p-checkbox-icon-checked-color: var(--cv-on-primary-container);
   --p-checkbox-icon-checked-hover-color: var(--cv-on-primary-container);
   --p-checkbox-icon-disabled-color: var(--cv-on-surface-variant);
-  --p-checkbox-border-radius: var(--cv-radius-sm);
+  --p-checkbox-shadow: none;
   --p-datatable-background: var(--cv-surface-container-low);
   --p-datatable-header-background: var(--cv-surface-container-low);
   --p-datatable-header-border-color: var(--cv-surface-variant);

@@ -154,6 +154,53 @@ const passwordColor = {
 } as const;
 
 /**
+ * Checkbox 颜色 token 基线 —— light/dark 共用视觉（禁用底除外）
+ * Aura 将颜色挂在 root/icon；本项目按规范拆到 colorScheme
+ * 选中态用 primary-container + on-primary-container，对齐 Material 容器色而非 solid primary
+ */
+const checkboxColorBase = {
+  root: {
+    background: 'var(--cv-surface-container-high)',
+    checkedBackground: 'var(--cv-primary-container)',
+    checkedHoverBackground: 'var(--cv-primary-container)',
+    filledBackground: 'var(--cv-surface-container-high)',
+    borderColor: 'var(--cv-surface-variant)',
+    hoverBorderColor: 'var(--cv-outline)',
+    focusBorderColor: 'var(--cv-surface-variant)',
+    checkedBorderColor: 'var(--cv-primary-container)',
+    checkedHoverBorderColor: 'var(--cv-primary-container)',
+    checkedFocusBorderColor: 'var(--cv-primary-container)',
+    checkedDisabledBorderColor: 'var(--cv-surface-variant)',
+    invalidBorderColor: 'var(--p-red-500)',
+    shadow: 'none',
+  },
+  icon: {
+    color: 'var(--cv-on-surface)',
+    checkedColor: 'var(--cv-on-primary-container)',
+    checkedHoverColor: 'var(--cv-on-primary-container)',
+    disabledColor: 'var(--cv-on-surface-variant)',
+  },
+} as const;
+
+/** 浅色 Checkbox：禁用底与 formField 浅色禁用一致 */
+const checkboxColorLight = {
+  root: {
+    ...checkboxColorBase.root,
+    disabledBackground: 'color-mix(in srgb, var(--cv-on-surface) 8%, var(--cv-surface))',
+  },
+  icon: checkboxColorBase.icon,
+} as const;
+
+/** 深色 Checkbox：半透明叠底 */
+const checkboxColorDark = {
+  root: {
+    ...checkboxColorBase.root,
+    disabledBackground: 'color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent)',
+  },
+  icon: checkboxColorBase.icon,
+} as const;
+
+/**
  * PrimeVue 主题 preset
  */
 export const cosmosPrimePreset = definePreset(Aura, {
@@ -267,27 +314,16 @@ export const cosmosPrimePreset = definePreset(Aura, {
         paddingY: 'var(--p-form-field-padding-y)',
       },
     },
+    // Checkbox：非颜色尺寸走 root；颜色走 colorScheme（覆盖 Aura primary solid / form.field 引用）
+    // PT 锚点 + st-host-resets 反压 ST 对 input[type=checkbox] 的尺寸/伪元素污染
+    // width/height/icon.size 沿用 Aura 默认，不在此硬改
     checkbox: {
       root: {
         borderRadius: 'var(--cv-radius-sm)',
-        background: 'var(--cv-surface-container-high)',
-        checkedBackground: 'var(--cv-primary-container)',
-        checkedHoverBackground: 'var(--cv-primary-container)',
-        disabledBackground: 'color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent)',
-        borderColor: 'var(--cv-surface-variant)',
-        hoverBorderColor: 'var(--cv-outline)',
-        checkedBorderColor: 'var(--cv-primary-container)',
-        checkedHoverBorderColor: 'var(--cv-primary-container)',
-        checkedFocusBorderColor: 'var(--cv-primary-container)',
-        checkedDisabledBorderColor: 'var(--cv-surface-variant)',
-        invalidBorderColor: 'var(--p-red-500)',
-        shadow: 'none',
       },
-      icon: {
-        color: 'var(--cv-on-surface)',
-        checkedColor: 'var(--cv-on-primary-container)',
-        checkedHoverColor: 'var(--cv-on-primary-container)',
-        disabledColor: 'var(--cv-on-surface-variant)',
+      colorScheme: {
+        light: checkboxColorLight,
+        dark: checkboxColorDark,
       },
     },
     textarea: { root: { borderRadius: 'var(--cv-radius-md)' } },

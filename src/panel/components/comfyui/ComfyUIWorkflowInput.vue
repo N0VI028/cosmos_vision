@@ -113,7 +113,10 @@
       class="w-full"
       @update:model-value="emit('update:value', $event)"
     />
-    <div v-else-if="control.kind === 'boolean'" class="cv-workflow-input__boolean">
+    <div
+      v-else-if="control.kind === 'boolean'"
+      class="flex items-center gap-(--cv-space-lg)"
+    >
       <Checkbox
         binary
         :model-value="Boolean(control.value)"
@@ -425,10 +428,6 @@ const ckptOptions = computed(() => {
   font-family: Consolas, Monaco, monospace;
 }
 
-.cv-workflow-input__boolean {
-  @apply flex items-center;
-  gap: var(--cv-space-lg);
-}
 </style>
 
 <!-- Popover 挂到 body，scoped 无法命中 -->

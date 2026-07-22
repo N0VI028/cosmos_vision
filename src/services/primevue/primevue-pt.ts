@@ -9,11 +9,13 @@ const option = { class: 'cv-select-option' } as const;
 const overlay = { class: 'cosmos-vision-root' } as const;
 const dialogMask = { class: 'cv-dialog-mask absolute! flex h-dvh w-dvw items-center justify-center' } as const;
 const fieldOverlay = { class: 'cosmos-vision-root cv-prime-field-overlay' } as const;
+/** Checkbox / MultiSelect 内嵌勾选：语义锚点供 host-resets 反压 ST input[type=checkbox] */
 const checkInputClass = 'cv-prime-check-input' as const;
 const checkbox = {
   root: { class: 'cv-prime-checkbox' },
   input: { class: `${checkInputClass} cv-prime-checkbox-input` },
   box: { class: 'cv-prime-checkbox-box' },
+  indicator: { class: 'cv-prime-checkbox-indicator' },
   icon: { class: 'cv-prime-checkbox-icon' },
 } as const;
 const selectButtonRoot = {
