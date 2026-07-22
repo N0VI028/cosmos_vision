@@ -21,7 +21,6 @@
       :show-upload-button="false"
       :show-cancel-button="false"
       custom-upload
-      :dt="fileUploadTheme"
       :pt="fileUploadPt"
       class="cv-wd-tagger-source__upload"
       @select="selectUpload"
@@ -87,39 +86,14 @@ import { getWdAvatarPath, readWdAvatarFile, validateWdImageFile } from '@/servic
 import type { WdImageSource } from '@/services/wd-tagger/types';
 
 const MAX_IMAGE_FILE_SIZE = 10 * 1024 * 1024;
+/**
+ * FileUpload 局部 PT：自定义 header 面板 + 隐藏默认 content 列表
+ * 颜色/圆角已迁全局 fileupload token；此处只做结构
+ */
 const fileUploadPt = {
-  header: {
-    style: {
-      position: 'relative',
-    },
-  },
-  content: {
-    style: {
-      display: 'none',
-    },
-  },
-} as const;
-const fileUploadTheme = {
-  root: {
-    background: 'var(--cv-surface-container-low)',
-    borderColor: 'var(--cv-surface-variant)',
-    color: 'var(--cv-on-surface)',
-    borderRadius: 'var(--cv-radius-md)',
-  },
-  header: {
-    background: 'transparent',
-    color: 'var(--cv-on-surface)',
-    padding: '0',
-    borderColor: 'transparent',
-    borderWidth: '0',
-    borderRadius: 'var(--cv-radius-md)',
-    gap: '0',
-  },
-  content: {
-    highlightBorderColor: 'var(--p-primary-color)',
-    padding: '0',
-    gap: '0',
-  },
+  root: { class: 'cv-wd-tagger-source__upload-root' },
+  header: { class: 'cv-wd-tagger-source__upload-header relative' },
+  content: { class: 'cv-wd-tagger-source__upload-content hidden' },
 } as const;
 
 /**

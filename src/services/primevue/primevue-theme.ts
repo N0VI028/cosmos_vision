@@ -351,6 +351,198 @@ const skeletonColor = {
 } as const;
 
 /**
+ * Tag severity 色 —— light/dark 共用
+ * primary 实心主色（版本号徽章）；其余半透明 tone 叠 surface，覆盖 Aura surface/primary 灰阶
+ */
+const tagColor = {
+  primary: {
+    background: 'var(--p-primary-color)',
+    color: 'var(--cv-background)',
+  },
+  secondary: {
+    background: 'var(--cv-surface-container-high)',
+    color: 'var(--cv-on-surface-variant)',
+  },
+  success: {
+    background: 'color-mix(in srgb, var(--p-green-500) 16%, var(--cv-surface-container-high))',
+    color: 'var(--p-green-600)',
+  },
+  info: {
+    background: 'color-mix(in srgb, var(--p-blue-500) 16%, var(--cv-surface-container-high))',
+    color: 'var(--p-blue-600)',
+  },
+  warn: {
+    background: 'color-mix(in srgb, var(--p-yellow-500) 16%, var(--cv-surface-container-high))',
+    color: 'var(--p-yellow-600)',
+  },
+  danger: {
+    background: 'color-mix(in srgb, var(--p-red-500) 16%, var(--cv-surface-container-high))',
+    color: 'var(--p-red-600)',
+  },
+  contrast: {
+    background: 'var(--cv-on-surface)',
+    color: 'var(--cv-surface)',
+  },
+} as const;
+
+/**
+ * Card 颜色 —— light/dark 共用
+ * 默认表面对齐数据卡；包装组件 CvDataCard 仍可用局部 :dt 覆盖
+ */
+const cardColor = {
+  root: {
+    background: 'var(--cv-surface-container-low)',
+    color: 'var(--cv-on-surface)',
+    shadow: 'none',
+  },
+  subtitle: {
+    color: 'var(--cv-on-surface-variant)',
+  },
+} as const;
+
+/**
+ * Galleria 导航/缩略图色 —— light/dark 共用
+ * 覆盖 Aura 半透明白/surface 灰阶；inline 画廊业务布局仍在 inline-image.css
+ */
+const galleriaColor = {
+  root: {
+    borderColor: 'transparent',
+  },
+  navButton: {
+    background: 'color-mix(in srgb, var(--cv-surface-container-high) 72%, transparent)',
+    hoverBackground: 'var(--cv-surface-container-high)',
+    color: 'var(--cv-on-surface)',
+    hoverColor: 'var(--cv-on-surface)',
+    focusRing: {
+      width: '0',
+      style: 'none',
+      color: 'transparent',
+      offset: '0',
+      shadow: 'none',
+    },
+  },
+  thumbnailsContent: {
+    background: 'var(--cv-surface-container-low)',
+  },
+  thumbnailNavButton: {
+    hoverBackground: 'var(--cv-surface-variant)',
+    color: 'var(--cv-on-surface-variant)',
+    hoverColor: 'var(--cv-on-surface)',
+    focusRing: {
+      width: '0',
+      style: 'none',
+      color: 'transparent',
+      offset: '0',
+      shadow: 'none',
+    },
+  },
+  caption: {
+    background: 'color-mix(in srgb, var(--cv-surface) 55%, transparent)',
+    color: 'var(--cv-on-surface)',
+  },
+  indicatorButton: {
+    background: 'var(--cv-surface-variant)',
+    hoverBackground: 'var(--cv-outline)',
+    activeBackground: 'var(--p-primary-color)',
+    focusRing: {
+      width: '0',
+      style: 'none',
+      color: 'transparent',
+      offset: '0',
+      shadow: 'none',
+    },
+  },
+  closeButton: {
+    background: 'color-mix(in srgb, var(--cv-surface-container-high) 72%, transparent)',
+    hoverBackground: 'var(--cv-surface-container-high)',
+    color: 'var(--cv-on-surface)',
+    hoverColor: 'var(--cv-on-surface)',
+    focusRing: {
+      width: '0',
+      style: 'none',
+      color: 'transparent',
+      offset: '0',
+      shadow: 'none',
+    },
+  },
+} as const;
+
+/**
+ * FileUpload 颜色 —— light/dark 共用
+ * 对齐 WD Tagger 上传区局部 :dt；header 透明，内容高亮主色
+ */
+const fileUploadColor = {
+  root: {
+    background: 'var(--cv-surface-container-low)',
+    borderColor: 'var(--cv-surface-variant)',
+    color: 'var(--cv-on-surface)',
+  },
+  header: {
+    background: 'transparent',
+    color: 'var(--cv-on-surface)',
+    borderColor: 'transparent',
+  },
+  content: {
+    highlightBorderColor: 'var(--p-primary-color)',
+  },
+  file: {
+    borderColor: 'var(--cv-surface-variant)',
+  },
+  fileName: {
+    color: 'var(--cv-on-surface)',
+  },
+  fileSize: {
+    color: 'var(--cv-on-surface-variant)',
+  },
+} as const;
+
+/**
+ * Accordion 颜色 —— light/dark 共用
+ * 全局透明壳：边框/底色由 CollapsiblePanelItem / TriggerEditor 业务壳承担
+ */
+const accordionColor = {
+  panel: {
+    borderColor: 'transparent',
+  },
+  header: {
+    color: 'var(--cv-on-surface)',
+    hoverColor: 'var(--cv-on-surface)',
+    activeColor: 'var(--cv-on-surface)',
+    activeHoverColor: 'var(--cv-on-surface)',
+    background: 'transparent',
+    hoverBackground: 'transparent',
+    activeBackground: 'transparent',
+    activeHoverBackground: 'transparent',
+    borderColor: 'transparent',
+    toggleIcon: {
+      color: 'var(--cv-on-surface-variant)',
+      hoverColor: 'var(--cv-on-surface)',
+      activeColor: 'var(--cv-on-surface-variant)',
+      activeHoverColor: 'var(--cv-on-surface)',
+    },
+  },
+  content: {
+    background: 'transparent',
+    borderColor: 'transparent',
+    color: 'var(--cv-on-surface)',
+  },
+} as const;
+
+/**
+ * Divider 颜色 —— light/dark 共用
+ * 线色 surface-variant；content 字色 on-surface
+ */
+const dividerColor = {
+  root: {
+    borderColor: 'var(--cv-surface-variant)',
+  },
+  content: {
+    background: 'var(--cv-surface-container)',
+    color: 'var(--cv-on-surface)',
+  },
+} as const;
+
+/**
  * Popover 颜色 token —— light/dark 共用
  * Aura 默认映射 overlay.popover.*；本项目对齐 surface-container-high + popover-shadow
  * gutter/arrowOffset/content.padding 等非颜色走 components.popover root 段
@@ -809,41 +1001,114 @@ export const cosmosPrimePreset = definePreset(Aura, {
         },
       },
     },
+    // Tag：非颜色尺寸走 root；severity 色走 colorScheme 覆盖 Aura surface/primary 灰阶
+    // PT 锚点见 primevue-pt tag.*；业务紧凑变体用 class + --p-tag-font-size / padding
+    tag: {
+      root: {
+        fontSize: 'var(--cv-font-size-2xs)',
+        fontWeight: '600',
+        padding: '0.08rem 0.32rem',
+        gap: 'var(--cv-space-xs)',
+        borderRadius: 'var(--cv-radius-sm)',
+        roundedBorderRadius: 'var(--cv-radius-full)',
+      },
+      icon: {
+        size: '0.7em',
+      },
+      colorScheme: {
+        light: tagColor,
+        dark: tagColor,
+      },
+    },
+    // Card：默认数据卡表面；CvDataCard 局部 :dt 与 scoped 边框状态覆盖
+    // 颜色走 colorScheme；body 零 padding 交给内容自管
+    card: {
+      root: {
+        borderRadius: 'var(--cv-radius-sm)',
+      },
+      body: {
+        padding: '0',
+        gap: '0',
+      },
+      colorScheme: {
+        light: cardColor,
+        dark: cardColor,
+      },
+    },
+    // Accordion：全局透明壳；边框/底色由 CollapsiblePanelItem / TriggerEditor 业务壳承担
+    // 颜色拆 colorScheme；focusRing 清零对齐表单控件
     accordion: {
       panel: {
         borderWidth: '0',
-        borderColor: 'transparent',
       },
       header: {
-        background: 'transparent',
-        hoverBackground: 'transparent',
-        activeBackground: 'transparent',
-        activeHoverBackground: 'transparent',
         borderWidth: '0',
-        borderColor: 'transparent',
         padding: 'var(--cv-space-2xl)',
         focusRing: {
-          width: '2px',
-          style: 'solid',
-          color: 'var(--p-primary-color)',
-          offset: '2px',
+          width: '0',
+          style: 'none',
+          color: 'transparent',
+          offset: '0',
           shadow: 'none',
         },
       },
       content: {
-        background: 'transparent',
         borderWidth: '0',
         padding: '0',
       },
-    },
-    galleria: {
-      root: {
-        borderRadius: '0',
+      colorScheme: {
+        light: accordionColor,
+        dark: accordionColor,
       },
     },
-    divider: {
+    // Galleria：inline 画廊无边框；导航/缩略图色走 colorScheme；业务布局见 inline-image.css
+    galleria: {
       root: {
-        borderColor: 'var(--cv-surface-variant)',
+        borderWidth: '0',
+        borderRadius: '0',
+      },
+      navButton: {
+        size: '2.25rem',
+        gutter: '0.5rem',
+        prev: { borderRadius: '50%' },
+        next: { borderRadius: '50%' },
+      },
+      thumbnailNavButton: {
+        size: '1.75rem',
+        borderRadius: 'var(--cv-radius-sm)',
+        gutter: '0.5rem',
+      },
+      colorScheme: {
+        light: galleriaColor,
+        dark: galleriaColor,
+      },
+    },
+    // FileUpload：默认对齐 WD Tagger 上传区；业务仍可局部 :dt 覆盖
+    fileupload: {
+      root: {
+        borderRadius: 'var(--cv-radius-md)',
+      },
+      header: {
+        padding: '0',
+        borderWidth: '0',
+        borderRadius: 'var(--cv-radius-md)',
+        gap: '0',
+      },
+      content: {
+        padding: '0',
+        gap: '0',
+      },
+      colorScheme: {
+        light: fileUploadColor,
+        dark: fileUploadColor,
+      },
+    },
+    // Divider：线色 colorScheme；水平保留 Aura 默认外边距（Tag 提取规则分组线）
+    // 紧凑场景（Comfy inspector）用局部 :dt horizontal.margin:0
+    divider: {
+      colorScheme: {
+        light: dividerColor,
+        dark: dividerColor,
       },
     },
     // Dialog：非颜色尺寸走 root；颜色走 colorScheme（覆盖 Aura overlay.modal surface 灰阶）

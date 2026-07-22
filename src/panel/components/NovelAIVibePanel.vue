@@ -527,11 +527,10 @@ function handleVibeError(error: unknown, fallback: string): void {
   opacity: 0.6;
 }
 
+/* 失效 Tag：尺寸跟全局 tag token；仅保留 flex 布局 */
 .cv-vibe-missing-tag {
   flex: 0 0 auto;
-  font-size: var(--cv-font-size-2xs) !important;
-  line-height: 1 !important;
-  padding: 0.08rem 0.32rem !important;
+  line-height: 1;
 }
 
 .cv-vibe-editor {

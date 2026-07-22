@@ -180,6 +180,40 @@
   --p-message-close-icon-size: 0.875em;
   /* Skeleton：圆角回写（theme components.skeleton） */
   --p-skeleton-border-radius: var(--cv-radius-sm);
+  /* Tag：尺寸/圆角（theme components.tag） */
+  --p-tag-font-size: var(--cv-font-size-2xs);
+  --p-tag-font-weight: 600;
+  --p-tag-padding: 0.08rem 0.32rem;
+  --p-tag-gap: var(--cv-space-xs);
+  --p-tag-border-radius: var(--cv-radius-sm);
+  --p-tag-rounded-border-radius: var(--cv-radius-full);
+  --p-tag-icon-size: 0.7em;
+  /* Card：默认数据卡圆角（theme components.card） */
+  --p-card-border-radius: var(--cv-radius-sm);
+  --p-card-body-padding: 0;
+  --p-card-body-gap: 0;
+  /* Galleria：无边框壳（theme components.galleria） */
+  --p-galleria-border-width: 0;
+  --p-galleria-border-radius: 0;
+  --p-galleria-nav-button-size: 2.25rem;
+  --p-galleria-nav-button-gutter: 0.5rem;
+  --p-galleria-nav-button-prev-border-radius: 50%;
+  --p-galleria-nav-button-next-border-radius: 50%;
+  --p-galleria-thumbnail-nav-button-size: 1.75rem;
+  --p-galleria-thumbnail-nav-button-border-radius: var(--cv-radius-sm);
+  --p-galleria-thumbnail-nav-button-gutter: 0.5rem;
+  /* FileUpload：WD Tagger 默认壳（theme components.fileupload） */
+  --p-fileupload-border-radius: var(--cv-radius-md);
+  --p-fileupload-header-padding: 0;
+  --p-fileupload-header-border-width: 0;
+  --p-fileupload-header-border-radius: var(--cv-radius-md);
+  --p-fileupload-header-gap: 0;
+  --p-fileupload-content-padding: 0;
+  --p-fileupload-content-gap: 0;
+  /* Accordion：header padding（颜色见 colorScheme 回写段） */
+  --p-accordion-header-padding: var(--cv-space-2xl);
+  --p-accordion-content-padding: 0;
+  /* Divider 线色见下方 color 段；水平 margin 走 Aura 默认，紧凑场景局部 :dt */
 
   /* Slider：尺寸/圆角在作用域内回写（theme components.slider） */
   --p-slider-track-border-radius: var(--cv-radius-full);
@@ -397,6 +431,88 @@
     var(--cv-surface-container-high) 68%,
     var(--cv-surface-container)
   );
+  /* Tag severity：覆盖 Aura primary/surface 灰阶 */
+  --p-tag-primary-background: var(--p-primary-color);
+  --p-tag-primary-color: var(--cv-background);
+  --p-tag-secondary-background: var(--cv-surface-container-high);
+  --p-tag-secondary-color: var(--cv-on-surface-variant);
+  --p-tag-success-background: color-mix(in srgb, var(--p-green-500) 16%, var(--cv-surface-container-high));
+  --p-tag-success-color: var(--p-green-600);
+  --p-tag-info-background: color-mix(in srgb, var(--p-blue-500) 16%, var(--cv-surface-container-high));
+  --p-tag-info-color: var(--p-blue-600);
+  --p-tag-warn-background: color-mix(in srgb, var(--p-yellow-500) 16%, var(--cv-surface-container-high));
+  --p-tag-warn-color: var(--p-yellow-600);
+  --p-tag-danger-background: color-mix(in srgb, var(--p-red-500) 16%, var(--cv-surface-container-high));
+  --p-tag-danger-color: var(--p-red-600);
+  --p-tag-contrast-background: var(--cv-on-surface);
+  --p-tag-contrast-color: var(--cv-surface);
+  /* Card：默认数据卡表面 */
+  --p-card-background: var(--cv-surface-container-low);
+  --p-card-color: var(--cv-on-surface);
+  --p-card-shadow: none;
+  --p-card-subtitle-color: var(--cv-on-surface-variant);
+  /* Galleria：导航/缩略图/遮罩色 */
+  --p-galleria-border-color: transparent;
+  --p-galleria-nav-button-background: color-mix(in srgb, var(--cv-surface-container-high) 72%, transparent);
+  --p-galleria-nav-button-hover-background: var(--cv-surface-container-high);
+  --p-galleria-nav-button-color: var(--cv-on-surface);
+  --p-galleria-nav-button-hover-color: var(--cv-on-surface);
+  --p-galleria-nav-button-focus-ring-width: 0;
+  --p-galleria-nav-button-focus-ring-style: none;
+  --p-galleria-nav-button-focus-ring-color: transparent;
+  --p-galleria-nav-button-focus-ring-offset: 0;
+  --p-galleria-nav-button-focus-ring-shadow: none;
+  --p-galleria-thumbnails-content-background: var(--cv-surface-container-low);
+  --p-galleria-thumbnail-nav-button-hover-background: var(--cv-surface-variant);
+  --p-galleria-thumbnail-nav-button-color: var(--cv-on-surface-variant);
+  --p-galleria-thumbnail-nav-button-hover-color: var(--cv-on-surface);
+  --p-galleria-thumbnail-nav-button-focus-ring-width: 0;
+  --p-galleria-thumbnail-nav-button-focus-ring-style: none;
+  --p-galleria-thumbnail-nav-button-focus-ring-color: transparent;
+  --p-galleria-thumbnail-nav-button-focus-ring-offset: 0;
+  --p-galleria-thumbnail-nav-button-focus-ring-shadow: none;
+  --p-galleria-caption-background: color-mix(in srgb, var(--cv-surface) 55%, transparent);
+  --p-galleria-caption-color: var(--cv-on-surface);
+  --p-galleria-indicator-button-background: var(--cv-surface-variant);
+  --p-galleria-indicator-button-hover-background: var(--cv-outline);
+  --p-galleria-indicator-button-active-background: var(--p-primary-color);
+  --p-galleria-close-button-background: color-mix(in srgb, var(--cv-surface-container-high) 72%, transparent);
+  --p-galleria-close-button-hover-background: var(--cv-surface-container-high);
+  --p-galleria-close-button-color: var(--cv-on-surface);
+  --p-galleria-close-button-hover-color: var(--cv-on-surface);
+  /* FileUpload：WD Tagger 默认色 */
+  --p-fileupload-background: var(--cv-surface-container-low);
+  --p-fileupload-border-color: var(--cv-surface-variant);
+  --p-fileupload-color: var(--cv-on-surface);
+  --p-fileupload-header-background: transparent;
+  --p-fileupload-header-color: var(--cv-on-surface);
+  --p-fileupload-header-border-color: transparent;
+  --p-fileupload-content-highlight-border-color: var(--p-primary-color);
+  --p-fileupload-file-border-color: var(--cv-surface-variant);
+  --p-fileupload-file-name-color: var(--cv-on-surface);
+  --p-fileupload-file-size-color: var(--cv-on-surface-variant);
+  /* Accordion：透明壳 + 字色 */
+  --p-accordion-panel-border-color: transparent;
+  --p-accordion-header-color: var(--cv-on-surface);
+  --p-accordion-header-hover-color: var(--cv-on-surface);
+  --p-accordion-header-active-color: var(--cv-on-surface);
+  --p-accordion-header-active-hover-color: var(--cv-on-surface);
+  --p-accordion-header-background: transparent;
+  --p-accordion-header-hover-background: transparent;
+  --p-accordion-header-active-background: transparent;
+  --p-accordion-header-active-hover-background: transparent;
+  --p-accordion-header-border-color: transparent;
+  --p-accordion-header-toggle-icon-color: var(--cv-on-surface-variant);
+  --p-accordion-header-toggle-icon-hover-color: var(--cv-on-surface);
+  --p-accordion-header-toggle-icon-active-color: var(--cv-on-surface-variant);
+  --p-accordion-header-toggle-icon-active-hover-color: var(--cv-on-surface);
+  --p-accordion-content-background: transparent;
+  --p-accordion-content-border-color: transparent;
+  --p-accordion-content-color: var(--cv-on-surface);
+  /* Divider：线色 + content 字色 */
+  --p-divider-border-color: var(--cv-surface-variant);
+  --p-divider-content-background: var(--cv-surface-container);
+  --p-divider-content-color: var(--cv-on-surface);
   --p-datatable-background: var(--cv-surface-container-low);
   --p-datatable-header-background: var(--cv-surface-container-low);
   --p-datatable-header-border-color: var(--cv-surface-variant);

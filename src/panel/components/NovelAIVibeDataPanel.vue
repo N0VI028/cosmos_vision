@@ -332,8 +332,9 @@ function formatCreatedAt(createdAt: number): string {
   gap: var(--cv-space-sm);
 }
 
+/* 全局 tag font-size 已是 2xs；业务行仅保留布局 class */
 .cv-vibe-tag {
-  --p-tag-font-size: var(--cv-font-size-2xs);
+  @apply leading-none;
 }
 
 .cv-vibe-meta {

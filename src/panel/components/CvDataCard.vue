@@ -1,6 +1,5 @@
 <template>
   <Card
-    :dt="cardTokens"
     :pt="cardPt"
     :class="cardClass"
     :tabindex="selecting && !disabled ? 0 : undefined"
@@ -15,7 +14,6 @@
 </template>
 
 <script setup lang="ts">
-import type { CardDesignTokens } from '@primeuix/themes/types/card';
 import type { CardPassThroughOptions } from 'primevue/card';
 import Card from 'primevue/card';
 import { computed } from 'vue';
@@ -35,18 +33,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{ toggle: [] }>();
 
-const cardTokens = {
-  root: {
-    background: 'var(--cv-surface-container-low)',
-    borderRadius: 'var(--cv-radius-sm)',
-    color: 'var(--cv-on-surface)',
-    shadow: 'none',
-  },
-  body: {
-    padding: '0',
-    gap: '0',
-  },
-} satisfies CardDesignTokens;
+/** 全局 card token 已是数据卡默认；局部仅叠业务状态 class 锚点 */
 const cardPt = {
   root: { class: 'cv-data-card-root' },
   body: { class: 'cv-data-card-body' },

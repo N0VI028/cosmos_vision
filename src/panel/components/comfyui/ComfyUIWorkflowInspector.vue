@@ -60,7 +60,10 @@
             @update:preset-settings="emit('update:lora-preset-settings', $event)"
             @refresh-options="emit('refresh-lora-options')"
           />
-          <Divider v-if="showLoraPanel && loraPresetSettings && parameterControls.length" :dt="dividerTokens" />
+          <Divider
+            v-if="showLoraPanel && loraPresetSettings && parameterControls.length"
+            :dt="dividerTokens"
+          />
           <ComfyUIWorkflowInput
             v-for="control in parameterControls"
             :key="`${control.nodeId}:${control.inputName}`"
@@ -136,7 +139,6 @@
 </template>
 
 <script setup lang="ts">
-import type { DividerDesignTokens } from '@primeuix/themes/types/divider';
 import type { ComfyUILoraPresetSettings } from '@/constants/comfyui';
 import ComfyUILoraPresetPanel from '@/panel/components/ComfyUILoraPresetPanel.vue';
 import ComfyUIResultBindingButton from '@/panel/components/comfyui/ComfyUIResultBindingButton.vue';
@@ -151,8 +153,9 @@ import type {
   PromptBinding,
   SeedMode,
 } from '@/services/comfyui/types';
+import type { DividerDesignTokens } from '@primeuix/themes/types/divider';
 
-/** Divider 去掉水平分割线默认上下外边距 */
+/** 紧凑 inspector：去掉水平分割线默认上下外边距（全局 Divider 保留 Aura margin 给 Tag 提取规则） */
 const dividerTokens = {
   horizontal: { margin: '0' },
 } as const satisfies DividerDesignTokens;

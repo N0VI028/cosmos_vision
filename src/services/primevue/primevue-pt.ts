@@ -51,6 +51,52 @@ const tag = {
   icon: { class: 'cv-prime-tag-icon' },
   label: { class: 'cv-prime-tag-label' },
 } as const;
+/** Card 语义锚点：CvDataCard 局部 PT 可叠 class；全局默认数据卡表面 */
+const card = {
+  root: { class: 'cv-prime-card' },
+  header: { class: 'cv-prime-card-header' },
+  body: { class: 'cv-prime-card-body' },
+  caption: { class: 'cv-prime-card-caption' },
+  title: { class: 'cv-prime-card-title' },
+  subtitle: { class: 'cv-prime-card-subtitle' },
+  content: { class: 'cv-prime-card-content' },
+  footer: { class: 'cv-prime-card-footer' },
+} as const;
+/** FileUpload：WD Tagger 等业务用局部 header/content style；全局仅语义锚点 */
+const fileUpload = {
+  root: { class: 'cv-prime-fileupload' },
+  input: { class: 'cv-prime-fileupload-input' },
+  header: { class: 'cv-prime-fileupload-header' },
+  content: { class: 'cv-prime-fileupload-content' },
+  empty: { class: 'cv-prime-fileupload-empty' },
+  file: { class: 'cv-prime-fileupload-file' },
+  fileThumbnail: { class: 'cv-prime-fileupload-file-thumbnail' },
+  fileInfo: { class: 'cv-prime-fileupload-file-info' },
+  fileName: { class: 'cv-prime-fileupload-file-name' },
+  fileSize: { class: 'cv-prime-fileupload-file-size' },
+  fileActions: { class: 'cv-prime-fileupload-file-actions' },
+} as const;
+/** Accordion 族：仅语义锚点；边框/底色由业务壳 CollapsiblePanelItem / TriggerEditor 承担 */
+const accordion = {
+  root: { class: 'cv-prime-accordion' },
+} as const;
+const accordionPanel = {
+  root: { class: 'cv-prime-accordion-panel' },
+} as const;
+const accordionHeader = {
+  root: { class: 'cv-prime-accordion-header' },
+  toggleicon: { class: 'cv-prime-accordion-toggle-icon' },
+} as const;
+const accordionContent = {
+  root: { class: 'cv-prime-accordion-content-root' },
+  contentWrapper: { class: 'cv-prime-accordion-content-wrapper' },
+  content: { class: 'cv-prime-accordion-content' },
+} as const;
+/** Divider：线色走 token；业务水平间距用外层 gap */
+const divider = {
+  root: { class: 'cv-prime-divider' },
+  content: { class: 'cv-prime-divider-content' },
+} as const;
 const imagePreviewMask = {
   class: 'cv-prime-image-preview-mask',
 } as const;
@@ -80,7 +126,11 @@ const galleriaNavIcon = {
 } as const;
 const galleria = {
   root: { class: 'cv-prime-galleria' },
+  closeButton: { class: 'cv-prime-galleria-close-button' },
+  closeIcon: { class: 'cv-prime-galleria-close-icon' },
+  header: { class: 'cv-prime-galleria-header' },
   content: { class: 'cv-prime-galleria-content' },
+  footer: { class: 'cv-prime-galleria-footer' },
   itemsContainer: { class: 'cv-prime-galleria-items-container' },
   items: { class: 'cv-prime-galleria-items' },
   prevButton: galleriaNavButton,
@@ -88,6 +138,10 @@ const galleria = {
   item: { class: 'cv-prime-galleria-item' },
   nextButton: galleriaNavButton,
   nextIcon: galleriaNavIcon,
+  caption: { class: 'cv-prime-galleria-caption' },
+  indicatorList: { class: 'cv-prime-galleria-indicator-list' },
+  indicator: { class: 'cv-prime-galleria-indicator' },
+  indicatorButton: { class: 'cv-prime-galleria-indicator-button' },
   thumbnails: { class: 'cv-prime-galleria-thumbnails' },
   thumbnailContent: { class: 'cv-prime-galleria-thumbnail-content' },
   thumbnailPrevButton: galleriaNavButton,
@@ -98,6 +152,8 @@ const galleria = {
   thumbnail: { class: 'cv-prime-galleria-thumbnail' },
   thumbnailNextButton: galleriaNavButton,
   thumbnailNextIcon: galleriaNavIcon,
+  // fullscreen mask 若启用须带 cosmos-vision-root
+  mask: { class: 'cosmos-vision-root cv-prime-galleria-mask' },
 } as const;
 /** Chip 语义锚点：独立 Chip / MultiSelect pcChip 共用；InputTags 内嵌走 cosmosInputTagsPt.pcChip */
 const chip = {
@@ -154,6 +210,13 @@ export const cosmosPrimePt = {
   image: { previewMask: imagePreviewMask },
   inputtext: { root: fieldRoot },
   galleria,
+  card,
+  fileupload: fileUpload,
+  accordion,
+  accordionpanel: accordionPanel,
+  accordionheader: accordionHeader,
+  accordioncontent: accordionContent,
+  divider,
   textarea: { root: { class: 'cv-prime-field cv-prime-textarea' } },
   select: {
     root: fieldRoot,

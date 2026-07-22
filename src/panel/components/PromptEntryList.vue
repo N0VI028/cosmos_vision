@@ -184,7 +184,7 @@ defineExpose({ scrollToEnd });
 
 .cv-message-actions {
   @apply flex items-center;
-  gap: var(--cv-space-xs);
+  gap: var(--cv-space-lg);
   opacity: 0.35;
   transition: opacity 0.2s ease;
 }

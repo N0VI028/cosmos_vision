@@ -33,8 +33,11 @@
     <Accordion :value="activePanel" :pt="ACCORDION_PT" @update:value="val => activePanel = val">
       <AccordionPanel v-for="(row, index) in conditionRows" :key="row.id" :value="row.id" :pt="ACCORDION_PANEL_PT">
         <AccordionHeader :pt="ACCORDION_HEADER_PT">
-          <div class="cv-trigger-accordion-header-content">
-            <span class="cv-trigger-accordion-summary">
+          <!-- gap 在内层：header 根受官方 all:unset，utility 无效 -->
+          <div
+            class="flex min-w-0 flex-1 items-center gap-(--cv-space-lg) bg-(--cv-surface-container-low) p-(--cv-space-md) text-(--cv-on-surface) select-none transition-colors duration-200 hover:bg-(--cv-surface-container)"
+          >
+            <span class="cv-trigger-accordion-summary min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
               {{ getConditionSummary(row) }}
             </span>
             <Button
@@ -43,7 +46,7 @@
               text
               size="small"
               aria-label="删除条件"
-              class="cv-trigger-delete-btn"
+              class="cv-trigger-delete-btn shrink-0"
               @click.stop="removeConditionRow(index)"
             />
           </div>
@@ -196,33 +199,40 @@ const conditionMatchMode = computed<ConditionMatchMode>(() =>
 const activePanel = ref<string | string[] | null | undefined>(null);
 
 /**
- * PrimeVue Accordion Pass Through (PT) 样式声明
+ * Accordion 业务壳 PT：布局/边框用 Tailwind 规范任意值；视觉不依赖 .p-accordion*
  */
 const ACCORDION_PT = {
   root: {
-    class: 'w-full flex flex-col gap-[var(--cv-space-md)]'
-  }
+    class: 'flex w-full flex-col gap-(--cv-space-md)',
+  },
 };
 
 const ACCORDION_PANEL_PT = {
   root: {
-    class: 'border border-[var(--cv-border-width)] border-[var(--cv-surface-variant)] rounded-[var(--cv-radius-sm)] overflow-hidden bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)]'
-  }
+    class:
+      'overflow-hidden rounded-(--cv-radius-sm) border border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)]',
+  },
 };
 
+/**
+ * Header 根：布局/gap/底色放 slot 内层（避开 all:unset）。
+ * padding:0 用 inline style（特异性高于官方 all:unset 后再写回的 token padding）。
+ */
 const ACCORDION_HEADER_PT = {
   root: {
-    class: 'flex items-center gap-[var(--cv-space-lg)] p-[var(--cv-space-md)] cursor-pointer select-none bg-[var(--cv-surface-container-low)] text-[var(--cv-on-surface)] transition-colors duration-200 hover:bg-[var(--cv-surface-container)]'
+    class: 'cv-trigger-accordion-header cursor-pointer',
+    style: { padding: '0' },
   },
-  toggleIcon: {
-    class: 'text-[var(--cv-on-surface-variant)] shrink-0'
-  }
+  toggleicon: {
+    class: 'shrink-0 text-(--cv-on-surface-variant)',
+  },
 };
 
 const ACCORDION_CONTENT_PT = {
   content: {
-    class: 'p-[var(--cv-space-2xl)] md:p-[var(--cv-space-3xl)] bg-[color-mix(in_srgb,var(--cv-surface-container-low)_20%,transparent)] border-t border-[var(--cv-border-width)] border-[var(--cv-surface-variant)]'
-  }
+    class:
+      'border-t border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_20%,transparent)] p-(--cv-space-2xl) md:p-(--cv-space-3xl)',
+  },
 };
 
 /**
@@ -502,22 +512,11 @@ function nextRowId(): string {
   @apply flex w-full min-w-0 flex-col gap-(--cv-space-md);
 }
 
-.cv-trigger-accordion-header-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex: 1;
-  @apply min-w-0;
-}
-
+/* header 布局已迁 slot 内层 Tailwind；summary 仅字重/字号 */
 .cv-trigger-accordion-summary {
   font-weight: 500;
-  color: var(--cv-on-surface);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-right: var(--cv-space-md);
   font-size: var(--cv-font-size-sm);
+  color: var(--cv-on-surface);
 }
 
 .cv-trigger-accordion-body {

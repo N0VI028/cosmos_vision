@@ -826,11 +826,12 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
   background: color-mix(in srgb, var(--p-red-500) 10%, transparent);
 }
 
+/* 列表行紧凑 Tag：覆盖全局 padding/字号的业务变体 */
 .cv-status-tag-mini {
-  height: auto !important;
-  padding: 0.05rem 0.2rem !important;
-  font-size: 0.65rem !important;
-  line-height: 1 !important;
+  --p-tag-font-size: 0.65rem;
+  --p-tag-padding: 0.05rem 0.2rem;
+  height: auto;
+  line-height: 1;
 }
 
 .cv-message-editor {

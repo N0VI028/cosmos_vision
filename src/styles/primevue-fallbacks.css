@@ -6,8 +6,9 @@
  */
 
 /*
- * Message / ProgressSpinner / Skeleton 颜色与尺寸已迁 definePreset + bridge
- * --p-message-* / --p-progressspinner-* / --p-skeleton-*。
+ * Message / ProgressSpinner / Skeleton / Tag / Card / FileUpload / Accordion / Divider
+ * 颜色与尺寸已迁 definePreset + bridge --p-*。
+ * Galleria 导航色已迁 token；pointer-events 兜底因 ST/inline 宿主仍需保留。
  * Message close 不再挂 cv-prime-icon-button；InputNumber 步进仍共用该锚点扁平方块视觉。
  * Password toggle 右内边距由官方 :has(.p-password-toggle-mask-icon) 规则 + form.field.padding.x 计算。
  */

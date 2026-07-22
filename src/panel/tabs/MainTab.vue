@@ -29,7 +29,12 @@
 
       <h2 class="cv-section-title flex items-center justify-between">
         <span>关于插件</span>
-        <Tag :value="'v' + manifest.version" class="font-(--cv-font-headline)! text-(length:--cv-font-size-xs)! bg-(--p-primary-color)! py-(--cv-space-sm)! px-(--cv-space-md)! leading-none! h-auto! text-(--cv-background)!" rounded />
+        <Tag
+          :value="'v' + manifest.version"
+          severity="primary"
+          rounded
+          class="font-(--cv-font-headline)! text-(length:--cv-font-size-xs)! py-(--cv-space-sm)! px-(--cv-space-md)! leading-none! h-auto!"
+        />
       </h2>
       <div class="cv-section-body">
         <div class="cv-field-inline">
