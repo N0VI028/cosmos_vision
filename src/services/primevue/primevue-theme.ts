@@ -193,6 +193,43 @@ const inputNumberButtonColor = {
 } as const;
 
 /**
+ * Button secondary 实心色 —— 覆盖 Aura light-dark(surface.*) 灰阶
+ * 与 formField / ToggleButton 中性表面语义对齐
+ */
+const buttonSecondarySolid = {
+  background: 'var(--cv-surface-container-high)',
+  hoverBackground: 'var(--cv-surface-variant)',
+  activeBackground: 'var(--cv-surface-container)',
+  borderColor: 'var(--cv-surface-variant)',
+  hoverBorderColor: 'var(--cv-outline)',
+  activeBorderColor: 'var(--cv-outline)',
+  color: 'var(--cv-on-surface)',
+  hoverColor: 'var(--cv-on-surface)',
+  activeColor: 'var(--cv-on-surface)',
+  focusRing: { color: 'transparent', shadow: 'none' },
+} as const;
+
+/**
+ * Button outlined.secondary —— 边框对齐 form.field；hover 半透明 surface-variant
+ * 官方 outlined hover 只读 border.color（无 hoverBorder），故边框保持 surface-variant
+ */
+const buttonOutlinedSecondary = {
+  hoverBackground: 'color-mix(in srgb, var(--cv-surface-variant) 50%, transparent)',
+  activeBackground: 'color-mix(in srgb, var(--cv-surface-variant) 70%, transparent)',
+  borderColor: 'var(--cv-surface-variant)',
+  color: 'var(--cv-on-surface-variant)',
+} as const;
+
+/**
+ * Button text.secondary —— 中性字色 + 半透明 hover 底
+ */
+const buttonTextSecondary = {
+  hoverBackground: 'color-mix(in srgb, var(--cv-surface-variant) 50%, transparent)',
+  activeBackground: 'color-mix(in srgb, var(--cv-surface-variant) 70%, transparent)',
+  color: 'var(--cv-on-surface-variant)',
+} as const;
+
+/**
  * Password 颜色 token —— light/dark 共用
  * 内嵌 pcInputText 继承 formField；此处只管 meter / icon / strength-overlay
  */
@@ -387,23 +424,36 @@ export const cosmosPrimePreset = definePreset(Aura, {
         gutterEnd: '0.375em',
       },
     },
+    // Button：结构尺寸走 root；颜色走 colorScheme 覆盖 Aura surface 灰阶
+    // 默认圆角 --cv-radius（0.5em，非 pill）；rounded 变体走 roundedBorderRadius full
+    // focusRing 清零对齐全局表单；primary solid/text/outlined 继续继承 Aura primary 语义
+    // secondary 实心/描边/文字改 cv surface；outlined secondary 边框对齐 form.field
+    // CvMiniButton 紧凑变体用局部 :dt（getMiniButtonRootTokens），不污染全局
     button: {
-      // outlined secondary 边框接到自适应 cv token,与表单输入框边框一致;
-      // 避免回退 Aura 的 {surface.xxx} 调色板,导致深色下边框过亮、与浅色无差异
+      root: {
+        borderRadius: 'var(--cv-radius)',
+        roundedBorderRadius: 'var(--cv-radius-full)',
+        gap: '0.5em',
+        iconOnlyWidth: '2.5em',
+        badgeSize: '1em',
+        focusRing: {
+          width: '0',
+          style: 'none',
+          offset: '0',
+        },
+        sm: { iconOnlyWidth: '2em' },
+        lg: { iconOnlyWidth: '3em' },
+      },
       colorScheme: {
         light: {
-          outlined: {
-            secondary: {
-              borderColor: 'var(--cv-surface-variant)',
-            },
-          },
+          root: { secondary: buttonSecondarySolid },
+          outlined: { secondary: buttonOutlinedSecondary },
+          text: { secondary: buttonTextSecondary },
         },
         dark: {
-          outlined: {
-            secondary: {
-              borderColor: 'var(--cv-surface-variant)',
-            },
-          },
+          root: { secondary: buttonSecondarySolid },
+          outlined: { secondary: buttonOutlinedSecondary },
+          text: { secondary: buttonTextSecondary },
         },
       },
     },

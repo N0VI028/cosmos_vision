@@ -16,14 +16,19 @@
         v-model="entry.enabled"
         :aria-label="entry.enabled ? '禁用条目' : '启用条目'"
       />
-      <Button
+      <CvMiniButton
         icon="fa-solid fa-pen"
-        class="cv-source-edit-btn"
-        text
         size="small"
+        aria-label="编辑条目"
         @click="openEntryEditor(entry as PromptPersonTemplateEntry)"
       />
-      <Button icon="fa-solid fa-trash" severity="danger" text size="small" @click="removeEntry(entry.id)" />
+      <CvMiniButton
+        icon="fa-solid fa-trash"
+        tone="danger"
+        size="small"
+        aria-label="删除条目"
+        @click="removeEntry(entry.id)"
+      />
     </template>
   </PromptEntryList>
   <button type="button" class="cv-add-entry-btn-flat-wide" @click="addEntry">
@@ -736,13 +741,6 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0;
-}
-.cv-source-edit-btn {
-  color: color-mix(in srgb, var(--cv-on-surface) 60%, transparent) !important;
-}
-.cv-source-edit-btn:hover {
-  background: var(--cv-surface-container-high) !important;
-  color: var(--cv-on-surface) !important;
 }
 .cv-source-indicator {
   @apply shrink-0 rounded-full;

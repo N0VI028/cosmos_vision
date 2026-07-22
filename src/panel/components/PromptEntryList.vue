@@ -198,12 +198,6 @@ defineExpose({ scrollToEnd });
   pointer-events: none;
 }
 
-.cv-message-actions :deep(.cv-prime-button) {
-  @apply min-w-0 p-0;
-  width: 1.8rem !important;
-  height: 1.8rem !important;
-}
-
 .cv-empty-hint {
   @apply mb-(--cv-space-5xl) flex flex-col items-center justify-center text-center;
   gap: var(--cv-space-3xl);

@@ -165,22 +165,6 @@
   opacity: 0.65 !important;
 }
 
-/**
- * InputTags 内嵌输入层反压
- * 官方样式已设 transparent；这里只压 ST 全局 input 标签规则
- */
-:is(#cosmos_vision, .cosmos-vision-root) input.cv-prime-inputtags-input-field {
-  background: transparent !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  color: var(--p-inputtags-color, var(--p-inputtext-color)) !important;
-}
-
-:is(#cosmos_vision, .cosmos-vision-root) input.cv-prime-inputtags-input-field::placeholder {
-  color: var(--p-inputtext-placeholder-color, var(--cv-on-surface-variant)) !important;
-  opacity: 0.65 !important;
-}
-
 /* focus 状态：还原 PrimeVue focus token，避免被 ST `:focus` 规则覆盖 */
 .cosmos-vision-root input.cv-prime-field:focus,
 #cosmos_vision input.cv-prime-field:focus {
@@ -195,13 +179,26 @@
 }
 
 /**
- * ST 宿主：input/textarea/select:focus-visible { outline: 1px solid var(--interactable-outline-color-faint) }
- * Select 官方 focus 视觉走 root.p-focus 的 select.focus.ring.* token（已清零）；
- * 内嵌 label 为 input 时仍会被 ST 标签规则打 outline，token/dt 管不到原生伪类 → PT 锚点反压
+ * 复合组件内嵌 input 标签反压 (InputTags, Select editable 等)
+ *
+ * 容器（.p-select / .p-inputtags）已统一承载背景与边框，
+ * 内嵌原生 input 标签必须保持透明、无边框、无额外阴影与轮廓。
  */
-.cosmos-vision-root input.cv-prime-select-label:focus-visible,
-#cosmos_vision input.cv-prime-select-label:focus-visible {
+:is(#cosmos_vision, .cosmos-vision-root) :is(input.cv-prime-inputtags-input-field, input.cv-prime-select-label) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
   outline: none !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) :is(input.cv-prime-inputtags-input-field, input.cv-prime-select-label):is(:focus, :focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+:is(#cosmos_vision, .cosmos-vision-root) :is(input.cv-prime-inputtags-input-field, input.cv-prime-select-label)::placeholder {
+  color: var(--p-select-placeholder-color, var(--p-inputtext-placeholder-color, var(--cv-on-surface-variant))) !important;
+  opacity: 0.65 !important;
 }
 
 /**

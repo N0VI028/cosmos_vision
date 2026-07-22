@@ -232,10 +232,4 @@ async function fetchModels(): Promise<void> {
 .cv-model-row {
   @apply flex items-center gap-(--cv-space-3xl);
 }
-
-/* 非 rounded 变体统一圆角;rounded 按钮交还 PrimeVue 自身规则 */
-.cv-model-row > .cv-prime-button:not([data-p~='rounded']) {
-  @apply shrink-0;
-  border-radius: var(--cv-radius);
-}
 </style>

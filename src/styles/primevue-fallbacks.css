@@ -24,18 +24,7 @@
   touch-action: manipulation;
 }
 
-/* Button 默认圆角钉死，避免子作用域 bridge token 无法回传到 PrimeVue 已展开的半径字面值。 */
-.cosmos-vision-root .cv-prime-button:not([data-p~='rounded']),
-#cosmos_vision .cv-prime-button:not([data-p~='rounded']) {
-  border-radius: var(--cv-radius, 0.1333em) !important;
-}
-
-/* Outlined secondary 按钮在 hover 时的边框颜色补偿，当前仍需 CSS 兜底。 */
-.cosmos-vision-root
-  .cv-prime-button[data-p~='outlined'][data-p-severity='secondary']:not([data-p-disabled='true']):hover,
-#cosmos_vision .cv-prime-button[data-p~='outlined'][data-p-severity='secondary']:not([data-p-disabled='true']):hover {
-  border-color: var(--cv-outline) !important;
-}
+/* Button：圆角/secondary 色已迁 definePreset + bridge --p-button-*；无 !important 兜底 */
 
 /*
  * Slider：token 无 handle.border；官方 handle 仅 background。
