@@ -34,9 +34,43 @@
   --p-navigation-submenu-label-padding: 0.5em 0.75em;
   --p-navigation-submenu-icon-size: 0.875em;
 
-  /* semantic: overlay */
-  --p-overlay-popover-padding: 0.75em;
-  --p-overlay-modal-padding: 1.25em;
+  /* semantic: overlay —— Dialog/Popover Aura 默认映射这些；作用域回写对齐 cv */
+  --p-overlay-popover-background: var(--cv-surface-container-high);
+  --p-overlay-popover-border-color: var(--cv-outline);
+  --p-overlay-popover-color: var(--cv-on-surface);
+  --p-overlay-popover-border-radius: var(--cv-radius);
+  --p-overlay-popover-padding: var(--cv-space-sm);
+  --p-overlay-popover-shadow: var(--cv-popover-shadow);
+  --p-overlay-modal-background: var(--cv-surface-container-lowest);
+  --p-overlay-modal-border-color: transparent;
+  --p-overlay-modal-color: var(--cv-on-surface);
+  --p-overlay-modal-border-radius: var(--cv-radius-lg);
+  --p-overlay-modal-padding: var(--cv-space-5xl);
+  --p-overlay-modal-shadow: var(--cv-floating-shadow);
+
+  /* Dialog：尺寸/颜色在作用域内回写（theme components.dialog） */
+  --p-dialog-background: var(--cv-surface-container-lowest);
+  --p-dialog-border-color: transparent;
+  --p-dialog-color: var(--cv-on-surface);
+  --p-dialog-border-radius: var(--cv-radius-lg);
+  --p-dialog-shadow: var(--cv-floating-shadow);
+  --p-dialog-header-gap: var(--cv-space-md);
+  --p-dialog-header-padding: var(--cv-space-7xl) var(--cv-space-7xl) 0;
+  --p-dialog-title-font-size: var(--cv-font-size-2xl);
+  --p-dialog-title-font-weight: 600;
+  --p-dialog-content-padding: var(--cv-space-5xl) var(--cv-space-7xl);
+  --p-dialog-footer-gap: var(--cv-space-md);
+  --p-dialog-footer-padding: 0 var(--cv-space-7xl) var(--cv-space-7xl);
+
+  /* Popover：尺寸/颜色在作用域内回写（theme components.popover） */
+  --p-popover-background: var(--cv-surface-container-high);
+  --p-popover-border-color: var(--cv-outline);
+  --p-popover-color: var(--cv-on-surface);
+  --p-popover-border-radius: var(--cv-radius);
+  --p-popover-shadow: var(--cv-popover-shadow);
+  --p-popover-gutter: var(--cv-space-xs);
+  --p-popover-arrow-offset: 1.125rem;
+  --p-popover-content-padding: var(--cv-space-sm);
 
   /* semantic: icon */
   --p-icon-size: 1em;

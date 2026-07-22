@@ -1,4 +1,3 @@
-import type { PopoverDesignTokens } from '@primeuix/themes/types/popover';
 import type { PopoverPassThroughOptions } from 'primevue/popover';
 import './prompt-llm-macro-popover.css';
 
@@ -30,21 +29,14 @@ export interface MacroPopoverInstance {
 
 export const MACRO_POPOVER_BASE_Z_INDEX = 3200;
 
-export const MACRO_POPOVER_TOKENS = {
-  root: {
-    background: 'var(--cv-surface-container-high)',
-    borderColor: 'var(--cv-outline)',
-    borderRadius: 'var(--cv-radius)',
-    color: 'var(--cv-on-surface)',
-    gutter: 'var(--cv-space-xs)',
-    shadow: 'var(--cv-popover-shadow)',
-  },
-  content: { padding: 'var(--cv-space-sm)' },
-} satisfies PopoverDesignTokens;
-
+/**
+ * 宏插入 Popover 局部 PT
+ * 视觉已迁全局 definePreset components.popover；全局 PT 已含 cosmos-vision-root
+ * 此处仅追加业务布局类（ptOptions.mergeProps 会与全局 class 合并）
+ */
 export const MACRO_POPOVER_PT = {
   root: {
-    class: 'cosmos-vision-root cv-macro-popover',
+    class: 'cv-macro-popover',
   },
   content: {
     class: 'cv-macro-popover-content',

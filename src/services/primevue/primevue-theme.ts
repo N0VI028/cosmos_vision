@@ -213,6 +213,34 @@ const passwordColor = {
 } as const;
 
 /**
+ * Dialog 颜色 token —— light/dark 共用
+ * Aura 默认映射 overlay.modal.*（surface 灰阶）；本项目改 cv surface/floating
+ * 非颜色尺寸（radius/header.gap/title/padding）走 components.dialog root 段
+ */
+const dialogColor = {
+  root: {
+    background: 'var(--cv-surface-container-lowest)',
+    borderColor: 'transparent',
+    color: 'var(--cv-on-surface)',
+    shadow: 'var(--cv-floating-shadow)',
+  },
+} as const;
+
+/**
+ * Popover 颜色 token —— light/dark 共用
+ * Aura 默认映射 overlay.popover.*；本项目对齐 surface-container-high + popover-shadow
+ * gutter/arrowOffset/content.padding 等非颜色走 components.popover root 段
+ */
+const popoverColor = {
+  root: {
+    background: 'var(--cv-surface-container-high)',
+    borderColor: 'var(--cv-outline)',
+    color: 'var(--cv-on-surface)',
+    shadow: 'var(--cv-popover-shadow)',
+  },
+} as const;
+
+/**
  * Checkbox 颜色 token 基线 —— light/dark 共用视觉（禁用底除外）
  * Aura 将颜色挂在 root/icon；本项目按规范拆到 colorScheme
  * 选中态用 primary-container + on-primary-container，对齐 Material 容器色而非 solid primary
@@ -627,22 +655,49 @@ export const cosmosPrimePreset = definePreset(Aura, {
         borderColor: 'var(--cv-surface-variant)',
       },
     },
+    // Dialog：非颜色尺寸走 root；颜色走 colorScheme（覆盖 Aura overlay.modal surface 灰阶）
+    // padding 对齐确认框默认（header 顶+侧 / content 全侧 / footer 底+侧）
+    // 设置主壳 Dialog 用 contentStyle padding:0 覆盖；showHeader=false 不读 header padding
+    // PT 锚点见 primevue-pt dialog.*；Teleport 根 class 含 cosmos-vision-root
     dialog: {
       root: {
-        background: 'var(--cv-surface-container-lowest)',
-        borderColor: 'transparent',
-        color: 'var(--cv-on-surface)',
         borderRadius: 'var(--cv-radius-lg)',
-        shadow: 'var(--cv-floating-shadow)',
       },
       header: {
-        gap: '0.5em',
+        gap: 'var(--cv-space-md)',
+        padding: 'var(--cv-space-7xl) var(--cv-space-7xl) 0',
       },
       title: {
         fontSize: 'var(--cv-font-size-2xl)',
+        fontWeight: '600',
+      },
+      content: {
+        padding: 'var(--cv-space-5xl) var(--cv-space-7xl)',
       },
       footer: {
-        gap: '0.5em',
+        gap: 'var(--cv-space-md)',
+        padding: '0 var(--cv-space-7xl) var(--cv-space-7xl)',
+      },
+      colorScheme: {
+        light: dialogColor,
+        dark: dialogColor,
+      },
+    },
+    // Popover：非颜色 gutter/radius/content.padding 走 root；颜色走 colorScheme
+    // 业务紧凑变体（宏插入/绑定）可用局部 :dt 覆盖 padding/gutter
+    // PT root 必须带 cosmos-vision-root（Teleport 到 body）
+    popover: {
+      root: {
+        borderRadius: 'var(--cv-radius)',
+        gutter: 'var(--cv-space-xs)',
+        arrowOffset: '1.125rem',
+      },
+      content: {
+        padding: 'var(--cv-space-sm)',
+      },
+      colorScheme: {
+        light: popoverColor,
+        dark: popoverColor,
       },
     },
   },

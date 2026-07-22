@@ -119,7 +119,6 @@
             <Popover
               ref="locatePopover"
               :base-z-index="3200"
-              :dt="MACRO_POPOVER_TOKENS"
               :pt="locatePopoverPt"
             >
               <div class="cv-workflow-locate-popover-content">
@@ -241,7 +240,6 @@ import { createReusableTemplate } from '@vueuse/core';
 import ComfyUIWorkflowCanvas from '@/panel/components/comfyui/ComfyUIWorkflowCanvas.vue';
 import ComfyUIWorkflowInspector from '@/panel/components/comfyui/ComfyUIWorkflowInspector.vue';
 import ComfyUIWorkflowToolbar from '@/panel/components/comfyui/ComfyUIWorkflowToolbar.vue';
-import { MACRO_POPOVER_TOKENS } from '@/panel/components/prompt-llm-macro-popover';
 
 const [DefineIconButton, ReuseIconButton] = createReusableTemplate<{
   title: string;
@@ -300,8 +298,9 @@ const locateOptions = computed(() => {
   ];
 });
 
+/** 定位 Popover：全局已有 cosmos-vision-root；仅追加业务布局类 */
 const locatePopoverPt = {
-  root: { class: 'cosmos-vision-root cv-workflow-locate-popover' },
+  root: { class: 'cv-workflow-locate-popover' },
   content: { class: 'cv-workflow-locate-popover-content' },
 };
 

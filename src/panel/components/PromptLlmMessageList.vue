@@ -158,7 +158,6 @@
             <Popover
               ref="macroPopover"
               :base-z-index="MACRO_POPOVER_BASE_Z_INDEX"
-              :dt="MACRO_POPOVER_TOKENS"
               :pt="MACRO_POPOVER_PT"
             >
               <CvMiniButton
@@ -220,7 +219,6 @@ import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import {
   MACRO_POPOVER_BASE_Z_INDEX,
   MACRO_POPOVER_PT,
-  MACRO_POPOVER_TOKENS,
   type MacroPopoverInstance,
   PROMPT_LLM_TOKEN_OPTIONS,
 } from '@/panel/components/prompt-llm-macro-popover';

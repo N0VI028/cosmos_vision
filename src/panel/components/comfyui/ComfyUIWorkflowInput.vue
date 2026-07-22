@@ -21,7 +21,6 @@
           <Popover
             ref="promptPopover"
             :base-z-index="MACRO_POPOVER_BASE_Z_INDEX"
-            :dt="MACRO_POPOVER_TOKENS"
             :pt="bindingPopoverPt"
           >
             <button
@@ -167,7 +166,6 @@ import Popover from 'primevue/popover';
 import { COMFYUI_DIMENSION_PRESETS } from '@/constants/comfyui';
 import {
   MACRO_POPOVER_BASE_Z_INDEX,
-  MACRO_POPOVER_TOKENS,
   type MacroPopoverInstance,
 } from '@/panel/components/prompt-llm-macro-popover';
 import type { ComfyUIInputControlDesc, PromptBinding, SeedMode } from '@/services/comfyui/types';
@@ -192,8 +190,9 @@ const BINDING_OPTIONS: PromptBindingOption[] = [
   { value: 'negative', label: '负向提示词', icon: 'fa-solid fa-circle-minus' },
 ];
 
+/** 绑定 Popover：全局已有 cosmos-vision-root；仅追加业务布局类 */
 const bindingPopoverPt = {
-  root: { class: 'cosmos-vision-root cv-workflow-input__binding-popover' },
+  root: { class: 'cv-workflow-input__binding-popover' },
   content: { class: 'cv-workflow-input__binding-popover-content' },
 } satisfies PopoverPassThroughOptions;
 

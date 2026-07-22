@@ -70,8 +70,8 @@ const emit = defineEmits<{
 
 const isMobile = useMediaQuery('(max-width: 87.5em)');
 
+/** 全局 dialog.root 已含 cosmos-vision-root；此处只叠业务/确认框变体与 dark */
 const dialogClass = computed(() => [
-  'cosmos-vision-root',
   'cv-confirm-dialog',
   'cv-image-download-dialog__root',
   { [DARK_CLASS]: props.darkMode },
@@ -161,7 +161,5 @@ function submit(accept: boolean): void {
   line-height: 1.5;
 }
 
-:deep(.cv-image-download-dialog__root .p-dialog-content) {
-  overflow: hidden;
-}
+/* content overflow 已由 :content-style；勿依赖 .p-dialog-content */
 </style>

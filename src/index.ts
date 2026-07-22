@@ -32,6 +32,10 @@ app.use(PrimeVue, {
     },
   },
   pt: cosmosPrimePt,
+  // 局部 :pt 的 class/style 与全局 PT 合并（默认 false 会覆盖，导致丢 cosmos-vision-root）
+  ptOptions: {
+    mergeProps: true,
+  },
   // overlay/menu 必须高于全屏工作流编辑器 (z-99999)；modal 保持 ST 对话框之上
   zIndex: {
     modal: 3101,

@@ -360,17 +360,7 @@
   font-size: var(--cv-font-size-2xl);
 }
 
-.cosmos-vision-root.cv-confirm-dialog .p-dialog-header {
-  padding: var(--cv-space-7xl) var(--cv-space-7xl) 0;
-}
-
-.cosmos-vision-root.cv-confirm-dialog .p-dialog-content {
-  padding: var(--cv-space-5xl) var(--cv-space-7xl);
-}
-
-.cosmos-vision-root.cv-confirm-dialog .p-dialog-footer {
-  padding: 0 var(--cv-space-7xl) var(--cv-space-7xl);
-}
+/* Dialog header/content/footer padding 已迁 definePreset components.dialog + bridge --p-dialog-* */
 
 .cosmos-vision-root .cv-confirm-message,
 .cv-confirm-message {

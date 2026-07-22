@@ -356,7 +356,5 @@ function syncCharacterIdSeed(): void {
   display: flow-root;
 }
 
-:deep(.cv-text-input-dialog .p-dialog-content) {
-  overflow: hidden;
-}
+/* content overflow 已由 :content-style；勿依赖 .p-dialog-content */
 </style>

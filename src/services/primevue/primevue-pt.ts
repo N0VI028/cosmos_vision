@@ -7,8 +7,20 @@ const icon = { class: 'cv-prime-icon' } as const;
 const iconButton = { class: 'cv-prime-icon-button' } as const;
 const option = { class: 'cv-select-option' } as const;
 const overlay = { class: 'cosmos-vision-root' } as const;
+/** Dialog mask：绝对铺满 + 居中；与官方 inlineStyles 叠加以保证 ST 宿主下定位稳定 */
 const dialogMask = { class: 'cv-dialog-mask absolute! flex h-dvh w-dvw items-center justify-center' } as const;
+/** Dialog 根：Teleport 后必须带 cosmos-vision-root，才能读到 cv token / darkModeSelector */
+const dialogRoot = { class: 'cosmos-vision-root cv-dialog overflow-hidden' } as const;
+/** Dialog 语义子节点锚点：供业务/host 定位，避免依赖 .p-dialog-* */
+const dialogHeader = { class: 'cv-dialog-header' } as const;
+const dialogTitle = { class: 'cv-dialog-title' } as const;
+const dialogHeaderActions = { class: 'cv-dialog-header-actions' } as const;
+const dialogContent = { class: 'cv-dialog-content' } as const;
+const dialogFooter = { class: 'cv-dialog-footer' } as const;
 const fieldOverlay = { class: 'cosmos-vision-root cv-prime-field-overlay' } as const;
+/** Popover 根：Teleport 到 body 时注入 cosmos-vision-root + 语义锚点 */
+const popoverRoot = { class: 'cosmos-vision-root cv-prime-popover' } as const;
+const popoverContent = { class: 'cv-prime-popover-content' } as const;
 /** Checkbox / MultiSelect 内嵌勾选：语义锚点供 host-resets 反压 ST input[type=checkbox] */
 const checkInputClass = 'cv-prime-check-input' as const;
 const checkbox = {
@@ -122,9 +134,15 @@ type CosmosPrimePt = PrimeVuePTOptions & {
  * PrimeVue Pass Through 集中配置
  */
 export const cosmosPrimePt = {
+  // Dialog：mask 布局 + root Teleport 主题根；子节点语义锚点替代 .p-dialog-*
   dialog: {
     mask: dialogMask,
-    root: { class: 'cosmos-vision-root cv-dialog overflow-hidden' },
+    root: dialogRoot,
+    header: dialogHeader,
+    title: dialogTitle,
+    headerActions: dialogHeaderActions,
+    content: dialogContent,
+    footer: dialogFooter,
   },
   image: { previewMask: imagePreviewMask },
   inputtext: { root: fieldRoot },
@@ -155,8 +173,10 @@ export const cosmosPrimePt = {
   autocomplete: { overlay: fieldOverlay },
   checkbox,
   datepicker: { panel: overlay },
+  // Fluid：无 design token；仅语义锚点。子控件通过 inject $fluid 自动 fluid，不靠 CSS 宽度
   fluid: { root: { class: 'cv-prime-fluid' } },
-  popover: { root: overlay },
+  // Popover：root 必须 cosmos-vision-root；content 语义锚点
+  popover: { root: popoverRoot, content: popoverContent },
   confirmpopup: { root: overlay },
   tag,
   password: {
