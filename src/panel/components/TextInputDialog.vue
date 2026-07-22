@@ -165,7 +165,7 @@ const emit = defineEmits<{
 }>();
 
 const inputRef = ref<TextInputRef>(null);
-const isMobile = useMediaQuery('(max-width: 66.6667em)');
+const isMobile = useMediaQuery('(max-width: 87.5em)');
 const expandedIds = ref(new Set<number>());
 let nextCharacterId = 0;
 

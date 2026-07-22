@@ -63,7 +63,7 @@ defineEmits<{
   font-weight: 500;
 }
 
-@media (max-width: 66.6667em) {
+@media (max-width: 87.5em) {
   .cv-subtab-nav {
     @apply w-full overflow-x-auto;
   }

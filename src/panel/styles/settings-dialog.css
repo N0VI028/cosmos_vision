@@ -515,7 +515,7 @@
   gap: var(--cv-space-8xl);
 }
 
-@media (max-width: 66.6667em) {
+@media (max-width: 87.5em) {
   .cosmos-vision-root {
     --cv-sidebar-width: 3.5em;
   }

@@ -68,7 +68,7 @@ const emit = defineEmits<{
   submit: [value: InlineImageDownloadOptions | null];
 }>();
 
-const isMobile = useMediaQuery('(max-width: 66.6667em)');
+const isMobile = useMediaQuery('(max-width: 87.5em)');
 
 const dialogClass = computed(() => [
   'cosmos-vision-root',

@@ -354,7 +354,7 @@ const { darkMode } = storeToRefs(settingsStore);
 const settingsDialogClass = computed(() => ({ [DARK_CLASS]: darkMode.value }));
 const confirmDialogClass = computed(() => ['cv-confirm-dialog', settingsDialogClass.value]);
 
-const isMobile = useMediaQuery('(max-width: 66.6667em)');
+const isMobile = useMediaQuery('(max-width: 87.5em)');
 const dialogStyle = computed(() =>
   isMobile.value ? { width: '95vw', height: '90vh' } : { width: '40vw', height: '70vh', maxHeight: '80vh' },
 );
