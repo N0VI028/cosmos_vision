@@ -12,6 +12,7 @@
               :options="routingModeOptions"
               option-label="label"
               option-value="value"
+              fluid
             />
             <div class="cv-field-hint">{{ routingModeHint }}</div>
           </div>
@@ -36,7 +37,13 @@
       <div class="cv-section-body">
         <label class="cv-field">
           <span>模型</span>
-          <Select v-model="settings.novelai.model" :options="modelOptions" option-label="label" option-value="value" />
+          <Select
+            v-model="settings.novelai.model"
+            :options="modelOptions"
+            option-label="label"
+            option-value="value"
+            fluid
+          />
         </label>
         <label class="cv-field">
           <span>尺寸预设</span>
@@ -45,6 +52,7 @@
             :options="resolutionPresetOptions"
             option-label="label"
             option-value="value"
+            fluid
           />
         </label>
         <div v-if="isCustomResolution" class="cv-field-grid">
@@ -171,6 +179,7 @@
             :options="samplerOptions"
             option-label="label"
             option-value="value"
+            fluid
             :disabled="settings.novelai.autoSampler && isV3Model"
           />
           <div v-if="isV3Model" class="cv-nai-option-row">
@@ -191,6 +200,7 @@
             :options="ucPresetOptions"
             option-label="label"
             option-value="value"
+            fluid
           />
         </label>
         <label class="cv-field-inline">
@@ -223,6 +233,7 @@
                 :options="noiseScheduleOptions"
                 option-label="label"
                 option-value="value"
+                fluid
               />
             </label>
           </div>

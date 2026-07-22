@@ -76,7 +76,8 @@
           option-label="label"
           option-value="value"
           placeholder="选择条目来源"
-          class="cv-source-select"
+          fluid
+          class="w-full"
           :loading="isLoadingWorldbookSources"
           @update:model-value="updateEditorSource"
         />
@@ -92,7 +93,8 @@
               option-label="label"
               option-value="value"
               placeholder="选择世界书"
-              class="cv-source-select"
+              fluid
+              class="w-full"
               :loading="isLoadingWorldbookSources"
               @update:model-value="updateSelectedWorldbookName"
             />
@@ -105,7 +107,8 @@
               option-label="label"
               option-value="value"
               placeholder="选择条目"
-              class="cv-source-select"
+              fluid
+              class="w-full"
               :disabled="worldbookEntryOptions.length === 0"
               @update:model-value="updateSelectedWorldbookEntryUid"
             />
@@ -130,7 +133,13 @@
       <Fluid class="cv-role-trigger-row">
         <label class="cv-field cv-role-field">
           <span>角色</span>
-          <Select v-model="editorDraft.role" :options="ROLE_OPTIONS" option-label="label" option-value="value" />
+          <Select
+            v-model="editorDraft.role"
+            :options="ROLE_OPTIONS"
+            option-label="label"
+            option-value="value"
+            fluid
+          />
         </label>
         <PromptLlmTriggerEditor v-model="editorDraft" />
       </Fluid>
@@ -850,10 +859,6 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
 
 .cv-role-field {
   @apply min-w-0;
-}
-
-.cv-source-select {
-  @apply w-full;
 }
 
 .cv-source-pair-row {

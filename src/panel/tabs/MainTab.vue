@@ -15,6 +15,7 @@
             :options="imageSourceOptions"
             option-label="label"
             option-value="value"
+            fluid
           />
         </label>
         <label class="cv-field">

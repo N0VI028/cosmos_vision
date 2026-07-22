@@ -173,12 +173,8 @@ async function handleDeleteActiveClick(): Promise<void> {
   gap: var(--cv-space-md);
 }
 
+/* 伪装链接式 Select：全局 focusRing 已清零，仅保留布局与主色 */
 .cv-preset-select {
-  --p-select-focus-ring-color: transparent;
-  --p-select-focus-ring-offset: 0;
-  --p-select-focus-ring-shadow: none;
-  --p-select-focus-ring-style: none;
-  --p-select-focus-ring-width: 0;
   @apply inline-flex min-w-0 cursor-pointer items-center border-0 bg-transparent p-0 shadow-none;
   flex: 0 1 9em;
   width: 9em !important;

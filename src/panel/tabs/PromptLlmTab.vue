@@ -17,6 +17,7 @@
             option-label="name"
             option-value="name"
             placeholder="选择酒馆中已配置的代理预设"
+            fluid
           />
         </label>
 
@@ -39,6 +40,7 @@
             option-label="label"
             option-value="value"
             placeholder="选择聊天补全来源"
+            fluid
           />
         </label>
 
@@ -50,7 +52,8 @@
               :options="modelOptions"
               placeholder="选择模型"
               :loading="isLoadingModels"
-              class="cv-model-input"
+              class="cv-model-input min-w-0 flex-1"
+              fluid
             />
             <Button
               icon="fa-solid fa-rotate"
@@ -232,13 +235,7 @@ async function fetchModels(): Promise<void> {
 
 /* 模型选择行 */
 .cv-model-row {
-  @apply flex items-center;
-  gap: var(--cv-space-3xl);
-}
-
-.cv-model-row > .cv-model-input {
-  @apply min-w-0;
-  flex: 1;
+  @apply flex items-center gap-(--cv-space-3xl);
 }
 
 /* 非 rounded 变体统一圆角;rounded 按钮交还 PrimeVue 自身规则 */

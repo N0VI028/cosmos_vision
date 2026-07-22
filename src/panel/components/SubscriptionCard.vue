@@ -28,6 +28,7 @@
             option-label="label"
             option-value="value"
             class="nai-sub-account-select"
+            :pt="ACCOUNT_SELECT_PT"
           />
           <span v-else>账号订阅</span>
         </div>
@@ -89,6 +90,12 @@ import { useNovelAISubscription } from '@/composables/useNovelAISubscription';
 import { useSettingsStore } from '@/store/settings';
 
 const { settings, savedSettings } = useSettingsStore();
+
+/** 订阅卡标题伪装 Select：局部 PT 锚点，避免 :deep(.p-select-*) */
+const ACCOUNT_SELECT_PT = {
+  label: { class: 'cv-prime-field-text nai-sub-account-select-label' },
+  dropdown: { class: 'cv-prime-select-dropdown nai-sub-account-select-dropdown' },
+} as const;
 
 /** 当前选中的账号序号 (0-based)，用于切换展示哪个账号的订阅 */
 const selectedIndex = ref(0);
@@ -186,9 +193,7 @@ function formatFetchedAt(ts: number): string {
 
 /* 伪装成标题的 Select：去掉边框/背景，只保留文字和下拉箭头 */
 .nai-sub-account-select {
-  --p-select-focus-ring-width: 0;
-  --p-select-focus-ring-shadow: none;
-  @apply inline-flex items-center h-auto cursor-pointer border-0 bg-transparent p-0 shadow-none;
+  @apply inline-flex h-auto cursor-pointer items-center border-0 bg-transparent p-0 shadow-none;
   height: auto !important;
   padding: 0 !important;
   background: transparent !important;
@@ -200,13 +205,13 @@ function formatFetchedAt(ts: number): string {
   color: var(--cv-on-surface) !important;
 }
 
-.nai-sub-account-select :deep(.p-select-label) {
+.nai-sub-account-select :deep(.nai-sub-account-select-label) {
   padding: 0 var(--cv-space-xs) 0 0;
   color: var(--cv-on-surface);
   font-weight: 600;
 }
 
-.nai-sub-account-select :deep(.p-select-dropdown) {
+.nai-sub-account-select :deep(.nai-sub-account-select-dropdown) {
   width: auto;
   color: var(--cv-on-surface-variant);
 }

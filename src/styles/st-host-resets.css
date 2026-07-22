@@ -194,6 +194,16 @@
 }
 
 /**
+ * ST 宿主：input/textarea/select:focus-visible { outline: 1px solid var(--interactable-outline-color-faint) }
+ * Select 官方 focus 视觉走 root.p-focus 的 select.focus.ring.* token（已清零）；
+ * 内嵌 label 为 input 时仍会被 ST 标签规则打 outline，token/dt 管不到原生伪类 → PT 锚点反压
+ */
+.cosmos-vision-root input.cv-prime-select-label:focus-visible,
+#cosmos_vision input.cv-prime-select-label:focus-visible {
+  outline: none !important;
+}
+
+/**
  * 反压 ST 全局 button 标签污染
  *
  * ST 会给 button 注入 background-image / box-shadow / text-transform /

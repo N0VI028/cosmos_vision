@@ -75,6 +75,7 @@
                 :options="INSERT_MODE_OPTIONS"
                 option-label="label"
                 option-value="value"
+                fluid
               />
             </label>
 

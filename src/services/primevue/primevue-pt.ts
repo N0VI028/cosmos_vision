@@ -123,7 +123,12 @@ export const cosmosPrimePt = {
   textarea: { root: { class: 'cv-prime-field cv-prime-textarea' } },
   select: {
     root: fieldRoot,
-    label: { class: 'cv-prime-field-text' },
+    // label 在 editable 等模式下是 input；锚点供 host-resets 清 ST input:focus-visible outline
+    label: { class: 'cv-prime-field-text cv-prime-select-label' },
+    dropdown: { class: 'cv-prime-select-dropdown' },
+    dropdownIcon: icon,
+    clearIcon: icon,
+    loadingIcon: icon,
     overlay: fieldOverlay,
     option,
   },

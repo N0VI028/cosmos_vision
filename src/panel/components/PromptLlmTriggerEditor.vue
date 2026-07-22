@@ -6,7 +6,8 @@
       :options="TOP_MODE_OPTIONS"
       option-label="label"
       option-value="value"
-      class="cv-trigger-mode-select"
+      fluid
+      class="w-full"
       @update:model-value="updateTopMode"
     />
   </label>
@@ -18,7 +19,8 @@
       :options="CONDITION_MATCH_MODE_OPTIONS"
       option-label="label"
       option-value="value"
-      class="cv-trigger-mode-select"
+      fluid
+      class="w-full"
       @update:model-value="updateConditionMatchMode"
     />
   </label>
@@ -55,7 +57,8 @@
                 :options="buildTypeOptions()"
                 option-label="label"
                 option-value="value"
-                class="cv-trigger-type-select"
+                fluid
+                class="w-full"
                 @update:model-value="value => updateRowType(index, value)"
               />
             </div>
@@ -70,7 +73,7 @@
                 :allow-duplicate="false"
                 add-on-blur
                 delimiter=","
-                class="cv-trigger-inputchips"
+                class="cv-trigger-inputchips w-full min-w-0"
                 @update:model-value="value => updateKeywordRow(index, value)"
               />
 
@@ -84,7 +87,8 @@
                   placeholder="选择或输入模型 ID"
                   filter
                   editable
-                  class="cv-trigger-model-select"
+                  fluid
+                  class="min-w-0 flex-1"
                   @update:model-value="value => updateModelRow(index, value)"
                 />
                 <Button
@@ -106,7 +110,8 @@
                 option-label="label"
                 option-value="value"
                 placeholder="选择生图源"
-                class="cv-trigger-source-select"
+                fluid
+                class="w-full min-w-0"
                 @update:model-value="value => updateImageSourceRow(index, value)"
               />
             </div>
@@ -492,15 +497,8 @@ function nextRowId(): string {
   @apply min-w-0;
 }
 
-.cv-trigger-mode-select {
-  @apply w-full;
-}
-
 .cv-trigger-conditions-field {
-  @apply w-full min-w-0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--cv-space-md);
+  @apply flex w-full min-w-0 flex-col gap-(--cv-space-md);
 }
 
 .cv-trigger-accordion-header-content {
@@ -528,23 +526,8 @@ function nextRowId(): string {
   padding: var(--cv-space-lg);
 }
 
-.cv-trigger-type-select {
-  @apply w-full;
-}
-
-.cv-trigger-model-select,
-.cv-trigger-source-select,
-.cv-trigger-inputchips {
-  @apply w-full min-w-0;
-}
-
 .cv-trigger-model-control {
-  @apply flex min-w-0 items-center;
-  gap: var(--cv-space-md);
-}
-
-.cv-trigger-model-control > .cv-trigger-model-select {
-  flex: 1;
+  @apply flex min-w-0 items-center gap-(--cv-space-md);
 }
 
 .cv-add-condition-btn-flat-wide {

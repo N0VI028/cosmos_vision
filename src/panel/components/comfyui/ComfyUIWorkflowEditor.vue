@@ -29,7 +29,8 @@
           filter
           filter-placeholder="搜索节点名称或 ID"
           placeholder="快速选择节点"
-          class="cv-workflow-node-select w-full"
+          class="cv-workflow-node-select w-full shrink-0 bg-(--cv-surface-container-high)"
+          fluid
           :filter-fields="['label', 'classType']"
         />
       </DefineNodeSelect>
@@ -681,15 +682,6 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.cv-workflow-editor__inspector-stack .cv-workflow-node-select {
-  @apply shrink-0;
-  background: var(--cv-surface-container-high);
-}
-
-.cv-workflow-node-select {
-  --p-select-focus-ring-color: transparent;
-  --p-select-focus-ring-width: 0;
-}
 </style>
 
 <!-- Popover 挂到 body，scoped 无法命中 -->

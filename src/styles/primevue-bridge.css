@@ -54,7 +54,7 @@
   --p-button-lg-icon-only-width: 3em;
   --p-button-badge-size: 1em;
 
-  /* component: select */
+  /* component: select —— 尺寸/gutter（theme components.select；:root 字面值需作用域回写） */
   --p-select-dropdown-width: 2.5em;
   --p-select-checkmark-gutter-start: -0.375em;
   --p-select-checkmark-gutter-end: 0.375em;
@@ -117,13 +117,23 @@
   --p-text-muted-color: var(--cv-on-surface-variant);
   --p-text-hover-color: var(--cv-on-surface);
   --p-text-hover-muted-color: var(--cv-on-surface);
+  /* Select 颜色：对齐 formField；overlay/option 指回 semantic list / overlay.select */
   --p-select-background: var(--cv-surface-container-high);
+  --p-select-disabled-background: var(--p-form-field-disabled-background);
+  --p-select-filled-background: var(--cv-surface-container-high);
+  --p-select-filled-hover-background: var(--cv-surface-container);
+  --p-select-filled-focus-background: var(--cv-surface-container-high);
   --p-select-border-color: var(--cv-surface-variant);
   --p-select-hover-border-color: var(--cv-outline);
   --p-select-focus-border-color: var(--cv-primary-container);
   --p-select-invalid-border-color: var(--p-red-500);
   --p-select-color: var(--cv-on-surface);
+  --p-select-disabled-color: var(--p-form-field-disabled-color);
   --p-select-placeholder-color: var(--cv-on-surface-variant);
+  --p-select-invalid-placeholder-color: var(--p-form-field-invalid-placeholder-color);
+  --p-select-shadow: none;
+  --p-select-dropdown-color: var(--cv-on-surface-variant);
+  --p-select-clear-icon-color: var(--cv-on-surface-variant);
   --p-select-overlay-background: var(--p-overlay-select-background);
   --p-select-overlay-border-color: var(--p-overlay-select-border-color);
   --p-select-overlay-color: var(--p-overlay-select-color);

@@ -45,7 +45,8 @@
           option-label="label"
           option-value="value"
           placeholder="选择条目来源"
-          class="cv-source-select"
+          fluid
+          class="w-full"
           @update:model-value="updateEditorSource"
         />
       </label>
@@ -57,7 +58,8 @@
           option-label="label"
           option-value="value"
           placeholder="选择角色卡"
-          class="cv-source-select"
+          fluid
+          class="w-full"
           @update:model-value="updateSelectedCharacterName"
         />
       </label>
@@ -69,7 +71,8 @@
           option-label="label"
           option-value="value"
           placeholder="选择用户人设"
-          class="cv-source-select"
+          fluid
+          class="w-full"
           @update:model-value="updateSelectedPersonaKey"
         />
       </label>
@@ -83,7 +86,8 @@
               option-label="label"
               option-value="value"
               placeholder="选择世界书"
-              class="cv-source-select"
+              fluid
+              class="w-full"
               :loading="isLoadingWorldbookNames"
               @update:model-value="updateSelectedWorldbookName"
             />
@@ -96,7 +100,8 @@
               option-label="label"
               option-value="value"
               placeholder="选择条目"
-              class="cv-source-select"
+              fluid
+              class="w-full"
               :disabled="worldbookEntryOptions.length === 0"
               :loading="isLoadingWorldbookEntries"
               @update:model-value="updateSelectedWorldbookEntryUid"
@@ -755,9 +760,6 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
 }
 .cv-message-editor-dialog {
   @apply flex flex-col;
-}
-.cv-source-select {
-  @apply w-full;
 }
 .cv-source-pair-row {
   @apply grid;

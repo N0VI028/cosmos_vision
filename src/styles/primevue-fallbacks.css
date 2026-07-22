@@ -105,6 +105,7 @@
   background: var(--cv-on-primary-container, var(--p-primary-contrast-color)) !important;
 }
 
+/* Select 选中项胶囊圆角：token 只能设统一 option.borderRadius；选中态 full 需状态选择器 */
 .cosmos-vision-root .cv-select-option[data-p-selected='true'] {
   border-radius: var(--cv-radius-full) !important;
 }

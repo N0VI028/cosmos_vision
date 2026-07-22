@@ -33,7 +33,8 @@
             :options="typeOptions"
             option-label="label"
             option-value="value"
-            class="cv-favorite-filter-select"
+            fluid
+            class="w-full"
           />
         </div>
 
@@ -44,7 +45,8 @@
             :options="characterOptions"
             option-label="label"
             option-value="value"
-            class="cv-favorite-filter-select"
+            fluid
+            class="w-full"
           />
         </div>
 
@@ -55,7 +57,8 @@
             :options="chatOptions"
             option-label="label"
             option-value="value"
-            class="cv-favorite-filter-select"
+            fluid
+            class="w-full"
           />
         </div>
       </div>
@@ -508,10 +511,6 @@ function buildChatOptions(items: ManagedImageItem[]): FilterOption[] {
   color: var(--cv-on-surface-variant);
   font-size: var(--cv-font-size-xs);
   font-weight: 600;
-}
-
-.cv-favorite-filter-select {
-  @apply w-full;
 }
 
 .cv-favorite-grid {

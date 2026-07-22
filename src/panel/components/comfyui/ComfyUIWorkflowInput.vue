@@ -64,7 +64,8 @@
         option-value="value"
         filter
         placeholder="选择或同步模型..."
-        class="flex-1 min-w-0"
+        class="min-w-0 flex-1"
+        fluid
         :disabled="isValueDisabled"
         @update:model-value="emit('update:value', $event)"
       />
@@ -85,6 +86,7 @@
       :model-value="Number(control.value ?? 0)"
       :options="COMFYUI_DIMENSION_PRESETS"
       editable
+      fluid
       class="w-full"
       :disabled="isValueDisabled"
       @update:model-value="onDimensionChange"
@@ -95,6 +97,7 @@
       :options="selectOptions"
       option-label="label"
       option-value="value"
+      fluid
       class="w-full"
       :disabled="isValueDisabled"
       @update:model-value="emit('update:value', $event)"

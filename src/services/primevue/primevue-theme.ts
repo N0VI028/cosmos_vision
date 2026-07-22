@@ -4,6 +4,7 @@ import { definePreset } from '@primeuix/themes';
 /**
  * 表单字段颜色 token —— light/dark 共用视觉（禁用态除外）
  * InputText / Textarea / Select 等继承 formField；shadow 清零对齐扁平方块基线
+ * iconColor 供 Select dropdown/clearIcon 等 form.field.icon 引用
  * 禁用底色在 colorScheme 中按浅/深色拆分，避免浅色半透明看起来像深色禁用
  */
 const formFieldColorBase = {
@@ -19,6 +20,7 @@ const formFieldColorBase = {
   disabledColor: 'var(--cv-on-surface-variant)',
   placeholderColor: 'var(--cv-on-surface-variant)',
   invalidPlaceholderColor: 'color-mix(in srgb, var(--p-red-500) 75%, var(--cv-on-surface-variant))',
+  iconColor: 'var(--cv-on-surface-variant)',
   shadow: 'none',
 } as const;
 
@@ -211,10 +213,32 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: chipColor,
       },
     },
+    // Select：root 颜色全量继承 form.field；此处只补 dropdown / overlay / option 结构尺寸
+    // focusRing 显式清零 → 官方 .p-select.p-focus 的 outline/box-shadow 走 select.focus.ring.*
+    // 内嵌 input.p-select-label 的 ST input:focus-visible 不在 token 范围，见 pt 锚点 + host-resets
+    // 颜色仍走 semantic.formField + bridge 中 --p-overlay-select / --p-list-option / --p-select-*
     select: {
       root: {
-        paddingX: 'var(--p-form-field-padding-x)',
-        paddingY: 'var(--p-form-field-padding-y)',
+        focusRing: {
+          width: '0',
+          style: 'none',
+          color: 'transparent',
+          offset: '0',
+          shadow: 'none',
+        },
+      },
+      dropdown: {
+        width: '2.5em',
+      },
+      overlay: {
+        borderRadius: 'var(--cv-radius-lg)',
+      },
+      option: {
+        borderRadius: 'var(--cv-radius-md)',
+      },
+      checkmark: {
+        gutterStart: '-0.375em',
+        gutterEnd: '0.375em',
       },
     },
     button: {

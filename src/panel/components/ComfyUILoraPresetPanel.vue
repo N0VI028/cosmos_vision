@@ -38,7 +38,8 @@
             option-label="label"
             option-value="value"
             placeholder="选择 ComfyUI LoRA"
-            class="cv-lora-select w-full max-w-full"
+            class="min-w-0 w-full max-w-full"
+            fluid
             :loading="props.isLoadingLoras"
             aria-label="LoRA 文件"
             filter
@@ -381,10 +382,6 @@ function getFallbackPresetId(presets: ComfyUILoraPreset[], preferredId: string):
 .cv-lora-toggle,
 .cv-lora-delete {
   @apply self-center;
-}
-
-.cv-lora-select {
-  @apply min-w-0;
 }
 
 .cv-empty-lora-state {
