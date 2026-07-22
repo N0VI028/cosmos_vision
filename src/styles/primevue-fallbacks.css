@@ -11,7 +11,11 @@
   padding-inline-end: 2.5rem !important;
 }
 
-/* InputNumber 步进按钮 / Message 关闭按钮：扁平方块，跟随 input 边框 token */
+/*
+ * Message 关闭按钮等共享 cv-prime-icon-button 锚点的扁平方块视觉。
+ * InputNumber 步进按钮颜色已迁到 components.inputnumber.button token，
+ * 不再依赖本规则；Message 回合再收口时可删除。
+ */
 .cosmos-vision-root .cv-prime-icon-button,
 #cosmos_vision .cv-prime-icon-button {
   background: transparent !important;

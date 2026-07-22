@@ -52,8 +52,10 @@
             :min-fraction-digits="0"
             :max-fraction-digits="3"
             :use-grouping="false"
+            fluid
             placeholder="强度"
-            class="cv-lora-strength"
+            class="cv-lora-strength min-w-0"
+            :pt="loraStrengthPt"
             aria-label="LoRA 强度"
             @update:model-value="updateLora(lora.id, { strength: normalizeStrength($event) })"
           />
@@ -103,6 +105,11 @@ interface PresetOption {
 }
 
 const defaultPresetId = DEFAULT_COMFYUI_LORA_PRESET_ID;
+
+/** LoRA 强度 InputNumber：内嵌 input 全宽居中，避免 :deep(.cv-prime-field) */
+const loraStrengthPt = {
+  pcInputText: { root: { class: 'cv-prime-field w-full text-center' } },
+} as const;
 
 const props = defineProps<{
   presetSettings: ComfyUILoraPresetSettings;
@@ -378,14 +385,6 @@ function getFallbackPresetId(presets: ComfyUILoraPreset[], preferredId: string):
 
 .cv-lora-select {
   @apply min-w-0;
-}
-
-.cv-lora-strength {
-  @apply min-w-0 w-full;
-}
-
-.cv-lora-strength :deep(.cv-prime-field) {
-  @apply w-full text-center;
 }
 
 .cv-empty-lora-state {

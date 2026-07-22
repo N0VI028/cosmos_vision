@@ -116,6 +116,22 @@ const toggleSwitchColor = {
 } as const;
 
 /**
+ * InputNumber 步进按钮颜色 —— light/dark 共用自适应 cv 变量
+ * 覆盖 Aura surface 灰阶，避免深色回退浅灰；内嵌 input 仍走 formField / InputText
+ */
+const inputNumberButtonColor = {
+  background: 'transparent',
+  hoverBackground: 'var(--cv-surface-variant)',
+  activeBackground: 'var(--cv-surface-container)',
+  borderColor: 'var(--cv-surface-variant)',
+  hoverBorderColor: 'var(--cv-outline)',
+  activeBorderColor: 'var(--cv-outline)',
+  color: 'var(--cv-on-surface-variant)',
+  hoverColor: 'var(--cv-on-surface)',
+  activeColor: 'var(--cv-on-surface)',
+} as const;
+
+/**
  * PrimeVue 主题 preset
  */
 export const cosmosPrimePreset = definePreset(Aura, {
@@ -231,6 +247,18 @@ export const cosmosPrimePreset = definePreset(Aura, {
       },
     },
     textarea: { root: { borderRadius: 'var(--cv-radius-md)' } },
+    // InputNumber：按钮非颜色尺寸走 root.button；颜色走 colorScheme 覆盖 Aura surface 灰阶
+    // 内嵌 pcInputText 继承 formField / InputText，不在此重复写 input 色
+    inputnumber: {
+      button: {
+        width: '2.25em',
+        borderRadius: 'var(--cv-radius-full)',
+      },
+      colorScheme: {
+        light: { button: inputNumberButtonColor },
+        dark: { button: inputNumberButtonColor },
+      },
+    },
     password: {
       content: { gap: '0.5em' },
       meter: { height: '0.75em' },
