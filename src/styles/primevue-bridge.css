@@ -77,6 +77,9 @@
   --p-textarea-border-radius: var(--cv-radius-md);
   /* InputNumber 步进按钮圆角（theme components.inputnumber.button.borderRadius） */
   --p-inputnumber-button-border-radius: var(--cv-radius-full);
+  /* Password：强度条 / 强度 overlay 圆角（theme components.password） */
+  --p-password-meter-border-radius: var(--cv-radius-full);
+  --p-password-overlay-border-radius: var(--cv-radius-lg);
   --p-button-border-radius: var(--cv-radius-full);
   --p-select-border-radius: var(--cv-radius-full);
   --p-select-overlay-border-radius: var(--cv-radius-lg);

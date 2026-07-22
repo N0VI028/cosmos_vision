@@ -27,7 +27,7 @@
           </label>
           <label class="cv-field">
             <span>接口密钥</span>
-            <Password v-model="settings.promptLlm.apiKey" :feedback="false" toggle-mask :input-class="'w-full'" />
+            <Password v-model="settings.promptLlm.apiKey" fluid :feedback="false" toggle-mask />
           </label>
         </template>
 

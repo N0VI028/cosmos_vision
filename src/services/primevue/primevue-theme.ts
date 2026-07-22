@@ -132,6 +132,26 @@ const inputNumberButtonColor = {
 } as const;
 
 /**
+ * Password 颜色 token —— light/dark 共用
+ * 内嵌 pcInputText 继承 formField；此处只管 meter / icon / strength-overlay
+ */
+const passwordColor = {
+  meter: { background: 'var(--cv-surface-variant)' },
+  icon: { color: 'var(--cv-on-surface-variant)' },
+  overlay: {
+    background: 'var(--cv-surface-container-high)',
+    borderColor: 'var(--cv-surface-variant)',
+    color: 'var(--cv-on-surface)',
+    shadow: 'var(--cv-popover-shadow)',
+  },
+  strength: {
+    weakBackground: 'var(--p-red-500)',
+    mediumBackground: 'var(--p-amber-500)',
+    strongBackground: 'var(--p-green-500)',
+  },
+} as const;
+
+/**
  * PrimeVue 主题 preset
  */
 export const cosmosPrimePreset = definePreset(Aura, {
@@ -259,9 +279,23 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: { button: inputNumberButtonColor },
       },
     },
+    // Password：非颜色尺寸走 root；颜色走 colorScheme
+    // 内嵌 pcInputText 继承 formField / InputText；toggle 右内边距由官方 :has 规则算 form.field.padding.x
     password: {
-      content: { gap: '0.5em' },
-      meter: { height: '0.75em' },
+      content: { gap: 'var(--cv-space-md)' },
+      meter: {
+        height: '0.5em',
+        borderRadius: 'var(--cv-radius-full)',
+      },
+      meterText: { fontSize: 'var(--cv-font-size-sm)' },
+      overlay: {
+        borderRadius: 'var(--cv-radius-lg)',
+        padding: 'var(--cv-space-lg)',
+      },
+      colorScheme: {
+        light: passwordColor,
+        dark: passwordColor,
+      },
     },
     message: {
       text: {

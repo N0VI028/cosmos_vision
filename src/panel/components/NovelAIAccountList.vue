@@ -83,7 +83,7 @@
           </label>
           <label class="cv-field">
             <span>API Key</span>
-            <Password v-model="account.apiKey" class="w-full" :feedback="false" toggle-mask :input-class="'w-full'" />
+            <Password v-model="account.apiKey" fluid :feedback="false" toggle-mask />
           </label>
         </div>
       </CollapsiblePanelItem>
