@@ -28,7 +28,7 @@
         <div v-for="lora in activePreset.loras" :key="lora.id" class="cv-lora-row">
           <ToggleSwitch
             :model-value="lora.enabled"
-            class="cv-lora-toggle"
+            class="self-center"
             :aria-label="`${lora.name || '未命名 LoRA'} 启用状态`"
             @update:model-value="updateLora(lora.id, { enabled: Boolean($event) })"
           />
@@ -379,7 +379,6 @@ function getFallbackPresetId(presets: ComfyUILoraPreset[], preferredId: string):
   padding-bottom: 0;
 }
 
-.cv-lora-toggle,
 .cv-lora-delete {
   @apply self-center;
 }

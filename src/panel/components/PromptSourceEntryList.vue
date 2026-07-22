@@ -12,7 +12,12 @@
     </template>
 
     <template #actions="{ entry }">
-      <ToggleSwitch v-model="entry.enabled" class="cv-source-toggle" />
+      <ToggleSwitch
+        v-model="entry.enabled"
+        class="shrink-0"
+        :dt="{ width: '2rem', height: '1.2rem', handle: { size: '0.8rem' } }"
+        :aria-label="entry.enabled ? '禁用条目' : '启用条目'"
+      />
       <Button
         icon="fa-solid fa-pen"
         class="cv-source-edit-btn"
@@ -734,11 +739,6 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0;
-}
-.cv-source-toggle {
-  flex-shrink: 0;
-  margin-right: 0;
-  transform: scale(0.7);
 }
 .cv-source-edit-btn {
   color: color-mix(in srgb, var(--cv-on-surface) 60%, transparent) !important;

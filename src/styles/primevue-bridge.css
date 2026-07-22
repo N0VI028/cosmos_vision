@@ -59,10 +59,34 @@
   --p-select-checkmark-gutter-start: -0.375em;
   --p-select-checkmark-gutter-end: 0.375em;
 
-  /* component: toggleswitch */
+  /* ToggleSwitch：尺寸/颜色在作用域内回写，避免 :root 字面值与 Aura surface 灰阶 */
   --p-toggleswitch-width: 2.5em;
   --p-toggleswitch-height: 1.5em;
+  --p-toggleswitch-border-radius: var(--cv-radius-full);
+  --p-toggleswitch-gap: 0.25em;
+  --p-toggleswitch-shadow: none;
+  --p-toggleswitch-border-width: 1px;
+  --p-toggleswitch-border-color: transparent;
+  --p-toggleswitch-hover-border-color: transparent;
+  --p-toggleswitch-checked-border-color: transparent;
+  --p-toggleswitch-checked-hover-border-color: transparent;
+  --p-toggleswitch-invalid-border-color: var(--p-red-500);
+  --p-toggleswitch-background: var(--cv-surface-container-high);
+  --p-toggleswitch-hover-background: var(--cv-surface-container);
+  --p-toggleswitch-checked-background: var(--cv-primary-container);
+  --p-toggleswitch-checked-hover-background: var(--cv-primary-container);
+  --p-toggleswitch-disabled-background: var(--p-form-field-disabled-background);
   --p-toggleswitch-handle-size: 1em;
+  --p-toggleswitch-handle-border-radius: 50%;
+  --p-toggleswitch-handle-background: var(--cv-surface-container-lowest);
+  --p-toggleswitch-handle-hover-background: var(--cv-surface-container-lowest);
+  --p-toggleswitch-handle-checked-background: var(--cv-on-primary-container);
+  --p-toggleswitch-handle-checked-hover-background: var(--cv-on-primary-container);
+  --p-toggleswitch-handle-disabled-background: var(--cv-surface-container-lowest);
+  --p-toggleswitch-handle-color: var(--cv-on-surface-variant);
+  --p-toggleswitch-handle-hover-color: var(--cv-on-surface);
+  --p-toggleswitch-handle-checked-color: var(--cv-primary-container);
+  --p-toggleswitch-handle-checked-hover-color: var(--cv-primary-container);
 
   /* PrimeVue 圆角 token */
   --p-border-radius-xs: 0.0667em;

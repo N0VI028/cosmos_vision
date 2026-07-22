@@ -88,15 +88,16 @@ const toggleButtonColor = {
 } as const;
 
 /**
- * ToggleSwitch 颜色 token —— 显式挂到 light/dark,避免 Aura colorScheme 回退覆盖默认轨道色
+ * ToggleSwitch 颜色 token 基线 —— light/dark 共用视觉（禁用底除外）
+ * 显式挂 colorScheme 两端，避免 Aura light-dark/surface 灰阶覆盖 cv 自适应变量
+ * 选中轨道用 primary-container，手柄用 on-primary-container，对齐 Checkbox 容器色语义
  */
-const toggleSwitchColor = {
+const toggleSwitchColorBase = {
   root: {
     background: 'var(--cv-surface-container-high)',
     hoverBackground: 'var(--cv-surface-container)',
     checkedBackground: 'var(--cv-primary-container)',
     checkedHoverBackground: 'var(--cv-primary-container)',
-    disabledBackground: 'color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent)',
     borderColor: 'transparent',
     hoverBorderColor: 'transparent',
     checkedBorderColor: 'transparent',
@@ -115,6 +116,24 @@ const toggleSwitchColor = {
     checkedColor: 'var(--cv-primary-container)',
     checkedHoverColor: 'var(--cv-primary-container)',
   },
+} as const;
+
+/** 浅色 ToggleSwitch：禁用轨道与 formField 浅色禁用一致 */
+const toggleSwitchColorLight = {
+  root: {
+    ...toggleSwitchColorBase.root,
+    disabledBackground: 'color-mix(in srgb, var(--cv-on-surface) 8%, var(--cv-surface))',
+  },
+  handle: toggleSwitchColorBase.handle,
+} as const;
+
+/** 深色 ToggleSwitch：半透明叠底 */
+const toggleSwitchColorDark = {
+  root: {
+    ...toggleSwitchColorBase.root,
+    disabledBackground: 'color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent)',
+  },
+  handle: toggleSwitchColorBase.handle,
 } as const;
 
 /**
@@ -472,10 +491,25 @@ export const cosmosPrimePreset = definePreset(Aura, {
         },
       },
     },
+    // ToggleSwitch：非颜色尺寸走 root/handle；颜色走 colorScheme（覆盖 Aura surface/primary solid）
+    // PT 锚点 + st-host-resets 反压 ST 对 input[type=checkbox] 的 margin/transform/::before
+    // 业务紧凑变体用局部 :dt 覆盖 width/height/handle.size（见账号列表 / 人物条目）
     toggleswitch: {
+      root: {
+        width: '2.5em',
+        height: '1.5em',
+        borderRadius: 'var(--cv-radius-full)',
+        gap: '0.25em',
+        borderWidth: '1px',
+        shadow: 'none',
+      },
+      handle: {
+        size: '1em',
+        borderRadius: '50%',
+      },
       colorScheme: {
-        light: toggleSwitchColor,
-        dark: toggleSwitchColor,
+        light: toggleSwitchColorLight,
+        dark: toggleSwitchColorDark,
       },
     },
     // ToggleButton:必须用 colorScheme.light/dark 显式覆盖 Aura 默认值。
