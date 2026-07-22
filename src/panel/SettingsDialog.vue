@@ -106,6 +106,7 @@
             v-if="!isMobile"
             v-model="darkMode"
             class="cv-theme-toggle"
+            fluid
             :options="THEME_OPTIONS"
             option-label="label"
             option-value="value"

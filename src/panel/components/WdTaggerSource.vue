@@ -63,7 +63,7 @@
       </div>
     </div>
 
-    <p class="cv-wd-tagger-source__notice">
+    <p class="cv-field-hint">
       图片会上传至第三方公共 WD Tagger 测试服务；该服务可能排队、限流或临时不可用。
     </p>
 
@@ -365,8 +365,7 @@ defineExpose({ cancel });
   @apply overflow-hidden text-ellipsis whitespace-nowrap;
 }
 
-.cv-wd-tagger-source__upload-copy > small,
-.cv-wd-tagger-source__notice {
+.cv-wd-tagger-source__upload-copy > small {
   color: var(--cv-on-surface-variant);
   font-size: var(--cv-font-size-xs);
 }
@@ -374,13 +373,6 @@ defineExpose({ cancel });
 .cv-wd-tagger-source__thresholds {
   @apply grid grid-cols-2;
   gap: var(--cv-space-xl);
-}
-
-.cv-wd-tagger-source__notice {
-  margin: 0;
-  padding: var(--cv-space-lg);
-  border: var(--cv-border-width) solid var(--cv-surface-variant);
-  border-radius: var(--cv-radius-md);
 }
 
 .cv-wd-tagger-source__actions {

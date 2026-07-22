@@ -92,7 +92,16 @@
           </div>
         </div>
       </div>
-      <SelectButton v-model="extractMode" :options="extractModeOptions" option-label="label" option-value="value" size="small"/>
+      <SelectButton
+        v-model="extractMode"
+        fluid
+        size="small"
+        :options="extractModeOptions"
+        option-label="label"
+        option-value="value"
+        :allow-empty="false"
+        aria-label="提取模式"
+      />
       <template v-if="extractMode === 'json'">
         <div>
           <span class="cv-subsection-title">全局提示词</span>

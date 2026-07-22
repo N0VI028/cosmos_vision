@@ -117,6 +117,8 @@
   --p-inputtags-item-border-radius: var(--cv-radius-full);
   --p-togglebutton-border-radius: var(--cv-radius-full);
   --p-togglebutton-content-border-radius: var(--cv-radius-full);
+  /* SelectButton 容器圆角（theme components.selectbutton.root.borderRadius） */
+  --p-selectbutton-border-radius: var(--cv-radius-full);
   --p-message-border-radius: var(--cv-radius-lg);
 }
 
@@ -297,12 +299,22 @@
  *
  * 这些样式来自 `primevue-pt.ts` 注入的语义类，只承接跨组件复用的结构与尺寸，
  * 不承载主题色或宿主反压职责。
+ *
+ * SelectButton：Aura styles 硬编码连体 segmented（子项 radius:0 / 缺左边框），
+ * token 无法表达独立 pill，故覆盖结构；颜色仍走 --p-togglebutton-*
  */
 .cosmos-vision-root .cv-prime-selectbutton,
 #cosmos_vision .cv-prime-selectbutton {
   @apply flex w-full;
   gap: var(--cv-space-lg);
   box-shadow: none;
+  border-radius: var(--p-selectbutton-border-radius);
+}
+
+.cosmos-vision-root .cv-prime-selectbutton .cv-prime-togglebutton,
+#cosmos_vision .cv-prime-selectbutton .cv-prime-togglebutton {
+  border-radius: var(--p-togglebutton-border-radius);
+  border-width: 1px;
 }
 
 .cosmos-vision-root .cv-prime-togglebutton,

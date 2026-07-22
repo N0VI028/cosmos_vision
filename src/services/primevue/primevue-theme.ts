@@ -558,6 +558,25 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: toggleButtonColorDark,
       },
     },
+    // SelectButton：仅 root 容器 token；子项视觉走 togglebutton + pcToggleButton
+    // Aura 默认是连体 segmented，本项目用独立 pill + gap（bridge 覆盖硬编码边框）
+    selectbutton: {
+      root: {
+        borderRadius: 'var(--cv-radius-full)',
+      },
+      colorScheme: {
+        light: {
+          root: {
+            invalidBorderColor: 'var(--p-red-500)',
+          },
+        },
+        dark: {
+          root: {
+            invalidBorderColor: 'var(--p-red-500)',
+          },
+        },
+      },
+    },
     accordion: {
       panel: {
         borderWidth: '0',

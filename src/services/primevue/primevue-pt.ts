@@ -18,18 +18,17 @@ const checkbox = {
   indicator: { class: 'cv-prime-checkbox-indicator' },
   icon: { class: 'cv-prime-checkbox-icon' },
 } as const;
+/** SelectButton 根：语义锚点；视觉走 definePreset + bridge 结构 */
 const selectButtonRoot = {
   class: 'cv-prime-selectbutton',
 } as const;
 const toggleButtonIcon = { class: 'cv-prime-icon cv-prime-togglebutton-icon' } as const;
+/** SelectButton 内嵌 ToggleButton：与独立 togglebutton PT 节点对齐 */
 const selectButtonToggle = {
-  root: {
-    class: 'cv-prime-togglebutton',
-  },
-  content: {
-    class: 'cv-prime-togglebutton-content',
-  },
+  root: { class: 'cv-prime-togglebutton' },
+  content: { class: 'cv-prime-togglebutton-content' },
   icon: toggleButtonIcon,
+  label: { class: 'cv-prime-togglebutton-label' },
 } as const;
 const sliderHandle = {
   class: 'cv-prime-slider-handle',
