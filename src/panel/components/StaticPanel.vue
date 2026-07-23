@@ -1,13 +1,16 @@
 <template>
-  <section class="cv-static-panel">
-    <header class="cv-static-panel-header">
-      <h2 class="cv-section-title cv-static-panel-title">{{ title }}</h2>
-      <div v-if="$slots.actions" class="cv-static-panel-actions">
+  <section class="flex flex-col">
+    <header class="flex items-center justify-between gap-(--cv-space-lg)">
+      <h2 class="cv-section-title min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{{ title }}</h2>
+      <div
+        v-if="$slots.actions"
+        class="mt-(--cv-space-10xl) mb-(--cv-space-3xl) flex flex-wrap items-center justify-end gap-(--cv-space-3xl)"
+      >
         <slot name="actions" />
       </div>
     </header>
-    <div class="cv-section-body cv-static-panel-body">
-      <div class="cv-static-panel-content">
+    <div class="cv-section-body mb-0">
+      <div class="min-w-0">
         <slot />
       </div>
     </div>
@@ -21,34 +24,3 @@
  */
 defineProps<{ title: string }>();
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-static-panel {
-  @apply flex flex-col;
-}
-
-.cv-static-panel-header {
-  @apply flex items-center justify-between;
-  gap: var(--cv-space-lg);
-}
-
-.cv-static-panel-title {
-  @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
-}
-
-.cv-static-panel-actions {
-  @apply flex flex-wrap items-center justify-end;
-  gap: var(--cv-space-3xl);
-  margin: var(--cv-space-10xl) 0 var(--cv-space-3xl) 0;
-}
-
-.cv-static-panel-body {
-  margin-bottom: 0;
-}
-
-.cv-static-panel-content {
-  min-width: 0;
-}
-</style>

@@ -1,10 +1,10 @@
 <template>
-  <div class="cv-tab-content cv-test-tab">
+  <div class="cv-tab-content flex flex-col gap-0">
     <h2 class="cv-section-title">测试模式</h2>
     <div class="cv-section-body">
       <div class="cv-field">
         <div class="cv-field-control">
-          <div class="cv-field-inline cv-mode-switch">
+          <div class="cv-field-inline mb-0 justify-start gap-(--cv-space-xl)">
             <span>{{ modeTitle }}</span>
             <ToggleSwitch v-model="useLlmMode" />
           </div>
@@ -40,7 +40,7 @@
       </template>
     </div>
 
-    <div class="cv-action-row">
+    <div class="mt-(--cv-space-5xl)">
       <Button
         :label="actionLabel"
         :icon="actionIcon"
@@ -53,16 +53,27 @@
 
     <h2 class="cv-section-title">测试结果</h2>
     <div class="cv-section-body">
-      <div class="cv-log-container">
-        <div v-if="testStatus === 'running'" class="cv-status-banner cv-status-banner--pending">
+      <div
+        class="overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl)"
+      >
+        <div
+          v-if="testStatus === 'running'"
+          class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--p-primary-color)_30%,transparent)] bg-[color-mix(in_srgb,var(--p-primary-color)_10%,transparent)] p-(--cv-space-xl) font-semibold text-(--p-primary-color)"
+        >
           <i class="fa-solid fa-spinner fa-spin" />
           <span>{{ runningStateText }}</span>
         </div>
-        <div v-else-if="testStatus === 'success'" class="cv-status-banner cv-status-banner--success">
+        <div
+          v-else-if="testStatus === 'success'"
+          class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--p-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--p-green-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--p-green-500)"
+        >
           <i class="fa-solid fa-circle-check" />
           <span>{{ successStateText }}</span>
         </div>
-        <div v-else-if="testStatus === 'error'" class="cv-status-banner cv-status-banner--error">
+        <div
+          v-else-if="testStatus === 'error'"
+          class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--p-red-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--p-red-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--p-red-500)"
+        >
           <i class="fa-solid fa-circle-exclamation" />
           <span>{{ errorMessage }}</span>
         </div>
@@ -76,45 +87,67 @@
 
     <h2 class="cv-section-title">最终提示词</h2>
     <div class="cv-section-body">
-      <div class="cv-log-container">
-        <div v-if="requestSnapshot" class="cv-prompt-log">
-          <div class="preview-header">正面提示词</div>
-          <pre class="preview-content">{{ requestSnapshot.positivePrompt || '(空)' }}</pre>
-          <div class="preview-header">负面提示词</div>
-          <pre class="preview-content">{{ requestSnapshot.negativePrompt || '(空)' }}</pre>
+      <div
+        class="overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl)"
+      >
+        <div v-if="requestSnapshot" class="flex flex-col gap-(--cv-space-xl)">
+          <div class="text-(length:--cv-font-size-md) font-semibold text-(--cv-on-surface-variant)">正面提示词</div>
+          <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm) text-(--cv-on-surface) break-all">{{ requestSnapshot.positivePrompt || '(空)' }}</pre>
+          <div class="text-(length:--cv-font-size-md) font-semibold text-(--cv-on-surface-variant)">负面提示词</div>
+          <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm) text-(--cv-on-surface) break-all">{{ requestSnapshot.negativePrompt || '(空)' }}</pre>
         </div>
-        <div v-else class="cv-empty-state">尚未生成最终提示词</div>
+        <div v-else class="p-(--cv-space-8xl) text-center text-(--cv-on-surface-variant)">尚未生成最终提示词</div>
       </div>
     </div>
 
     <h2 class="cv-section-title">工作流快照</h2>
     <div class="cv-section-body">
-      <div class="cv-log-container">
-        <div v-if="requestSnapshot" class="cv-log-param-grid">
-          <div v-for="row in snapshotRows" :key="row.label" class="cv-log-param-row">
-            <span class="param-label">{{ row.label }}</span>
-            <span class="param-value" :class="{ 'code-font': row.code }">{{ row.value }}</span>
+      <div
+        class="overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl)"
+      >
+        <div v-if="requestSnapshot" class="flex flex-col gap-(--cv-space-xl)">
+          <div
+            v-for="row in snapshotRows"
+            :key="row.label"
+            class="flex items-center justify-between gap-(--cv-space-xl) border-b border-solid border-(--cv-surface-variant) pb-(--cv-space-md) last:border-b-0 last:pb-0"
+          >
+            <span class="text-(length:--cv-font-size-md) text-(--cv-on-surface-variant)">{{ row.label }}</span>
+            <span
+              class="break-all text-right text-(--cv-on-surface)"
+              :class="row.code && 'font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm)'"
+            >{{ row.value }}</span>
           </div>
         </div>
-        <div v-else class="cv-empty-state">尚未生成 ComfyUI 工作流快照</div>
+        <div v-else class="p-(--cv-space-8xl) text-center text-(--cv-on-surface-variant)">尚未生成 ComfyUI 工作流快照</div>
       </div>
     </div>
 
     <template v-if="showLlmLogs">
       <h2 class="cv-section-title">LLM 原始返回</h2>
       <div class="cv-section-body">
-        <div class="cv-log-container">
-          <pre class="preview-content">{{ llmRawResponse || '尚未收到 LLM 返回结果' }}</pre>
+        <div
+          class="overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl)"
+        >
+          <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm) text-(--cv-on-surface) break-all">{{ llmRawResponse || '尚未收到 LLM 返回结果' }}</pre>
         </div>
       </div>
 
       <h2 class="cv-section-title">LLM 参数配置</h2>
       <div class="cv-section-body">
-        <div class="cv-log-container">
-          <div class="cv-log-param-grid">
-            <div v-for="row in llmParamRows" :key="row.label" class="cv-log-param-row">
-              <span class="param-label">{{ row.label }}</span>
-              <span class="param-value" :class="{ 'code-font': row.code }">{{ row.value }}</span>
+        <div
+          class="overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl)"
+        >
+          <div class="flex flex-col gap-(--cv-space-xl)">
+            <div
+              v-for="row in llmParamRows"
+              :key="row.label"
+              class="flex items-center justify-between gap-(--cv-space-xl) border-b border-solid border-(--cv-surface-variant) pb-(--cv-space-md) last:border-b-0 last:pb-0"
+            >
+              <span class="text-(length:--cv-font-size-md) text-(--cv-on-surface-variant)">{{ row.label }}</span>
+              <span
+                class="break-all text-right text-(--cv-on-surface)"
+                :class="row.code && 'font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm)'"
+              >{{ row.value }}</span>
             </div>
           </div>
         </div>
@@ -122,8 +155,10 @@
 
       <h2 class="cv-section-title">LLM 发送请求日志</h2>
       <div class="cv-section-body">
-        <div class="cv-log-container">
-          <pre class="preview-content">{{ llmSentPromptLog || '尚未发送 LLM 测试请求' }}</pre>
+        <div
+          class="overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl)"
+        >
+          <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm) text-(--cv-on-surface) break-all">{{ llmSentPromptLog || '尚未发送 LLM 测试请求' }}</pre>
         </div>
       </div>
     </template>
@@ -418,117 +453,3 @@ function handleTestError(error: unknown): void {
 }
 
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-test-tab {
-  @apply flex flex-col gap-0;
-}
-
-.cv-mode-switch {
-  @apply justify-start;
-  justify-content: flex-start;
-  gap: var(--cv-space-xl);
-  margin-bottom: 0;
-}
-
-.cv-action-row {
-  margin-top: var(--cv-space-5xl);
-  margin-bottom: 0;
-}
-
-.cv-log-container {
-  @apply overflow-hidden;
-  background: var(--cv-surface-container);
-  border: var(--cv-border-width) solid var(--cv-surface-variant);
-  border-radius: var(--cv-radius);
-  padding: var(--cv-space-2xl);
-}
-
-.cv-status-banner {
-  @apply mb-(--cv-space-2xl) flex items-center;
-  gap: var(--cv-space-lg);
-  padding: var(--cv-space-xl);
-  border-radius: var(--cv-radius-sm);
-  font-weight: 600;
-}
-
-.cv-status-banner--pending {
-  background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--p-primary-color) 30%, transparent);
-  color: var(--p-primary-color);
-}
-
-.cv-status-banner--success {
-  background: color-mix(in srgb, var(--p-green-500) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--p-green-500) 30%, transparent);
-  color: var(--p-green-500);
-}
-
-.cv-status-banner--error {
-  background: color-mix(in srgb, var(--p-red-500) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--p-red-500) 30%, transparent);
-  color: var(--p-red-500);
-}
-
-.cv-prompt-log {
-  @apply flex flex-col;
-  gap: var(--cv-space-xl);
-}
-
-.cv-log-param-grid {
-  @apply flex flex-col;
-  gap: var(--cv-space-xl);
-}
-
-.cv-log-param-row {
-  @apply flex items-center justify-between;
-  gap: var(--cv-space-xl);
-  border-bottom: 1px solid var(--cv-surface-variant);
-  padding-bottom: var(--cv-space-md);
-}
-
-.cv-log-param-row:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.param-label {
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-md);
-}
-
-.param-value {
-  @apply text-right break-all;
-  color: var(--cv-on-surface);
-}
-
-.code-font {
-  font-family: Consolas, Monaco, monospace;
-  font-size: var(--cv-font-size-sm);
-}
-
-.preview-header {
-  font-size: var(--cv-font-size-md);
-  color: var(--cv-on-surface-variant);
-  font-weight: 600;
-}
-
-.preview-content {
-  @apply m-0 overflow-y-auto break-all whitespace-pre-wrap;
-  background: var(--cv-surface-variant);
-  border: var(--cv-border-width) solid var(--cv-surface-variant);
-  color: var(--cv-on-surface);
-  font-family: Consolas, Monaco, monospace;
-  font-size: var(--cv-font-size-sm);
-  padding: var(--cv-space-2xl);
-  border-radius: var(--cv-radius-sm);
-  max-height: 20rem;
-}
-
-.cv-empty-state {
-  @apply p-(--cv-space-8xl) text-center;
-  color: var(--cv-on-surface-variant);
-}
-</style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="cv-tab-content">
+  <div class="flex flex-col gap-0">
     <!-- API Tab -->
     <template v-if="subTab === 'api'">
       <h2 class="cv-section-title">连接信息</h2>
@@ -91,13 +91,13 @@
             <InputNumber v-model="settings.novelai.steps" :min="1" :max="50" show-buttons />
           </label>
           <div class="cv-field">
-            <div class="cv-nai-field-title-row">
+            <div class="flex flex-wrap items-end justify-between gap-(--cv-space-lg) font-semibold text-(--cv-on-surface)">
               <span>提示词引导</span>
-              <div v-if="supportsVarietyPlus || isV3Model" class="cv-nai-title-actions">
+              <div v-if="supportsVarietyPlus || isV3Model" class="ml-auto flex flex-wrap items-end justify-end gap-(--cv-space-xs)">
                 <ToggleButton
                   v-if="supportsVarietyPlus"
                   v-model="settings.novelai.varietyPlus"
-                  class="cv-nai-mini-toggle"
+                  class="min-w-0 shrink-0 grow-0 basis-auto"
                   on-label="Var+"
                   off-label="Var+"
                   on-icon="fa-solid fa-check"
@@ -108,7 +108,7 @@
                 <ToggleButton
                   v-if="isV3Model"
                   v-model="settings.novelai.decrisp"
-                  class="cv-nai-mini-toggle"
+                  class="min-w-0 shrink-0 grow-0 basis-auto"
                   on-label="Dec"
                   off-label="Dec"
                   on-icon="fa-solid fa-check"
@@ -134,12 +134,12 @@
             />
           </label>
           <div class="cv-field">
-            <div class="cv-nai-field-title-row">
+            <div class="flex flex-wrap items-end justify-between gap-(--cv-space-lg) font-semibold text-(--cv-on-surface)">
               <span>种子</span>
-              <div class="cv-nai-title-actions">
+              <div class="ml-auto flex flex-wrap items-end justify-end gap-(--cv-space-xs)">
                 <ToggleButton
                   v-model="seedRandom"
-                  class="cv-nai-mini-toggle"
+                  class="min-w-0 shrink-0 grow-0 basis-auto"
                   on-label="随机"
                   off-label="随机"
                   on-icon="fa-solid fa-check"
@@ -160,12 +160,12 @@
           </div>
         </div>
         <div class="cv-field">
-          <div class="cv-nai-field-title-row">
+          <div class="flex flex-wrap items-end justify-between gap-(--cv-space-lg) font-semibold text-(--cv-on-surface)">
             <span>采样器</span>
             <ToggleButton
               v-if="isV3Model"
               v-model="settings.novelai.autoSampler"
-              class="cv-nai-mini-toggle"
+              class="min-w-0 shrink-0 grow-0 basis-auto"
               on-label="Auto"
               off-label="Auto"
               on-icon="fa-solid fa-check"
@@ -407,28 +407,3 @@ const proxyPreview = computed(() => {
   }
 });
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-tab-content {
-  @apply flex flex-col gap-0;
-}
-
-.cv-nai-field-title-row {
-  @apply flex flex-wrap items-end justify-between;
-  gap: var(--cv-space-lg);
-  font-weight: 600;
-  color: var(--cv-on-surface);
-}
-
-.cv-nai-title-actions {
-  @apply ml-auto flex flex-wrap items-end justify-end;
-  gap: var(--cv-space-xs);
-}
-
-.cv-nai-mini-toggle {
-  /* 覆盖全局 .cv-prime-togglebutton 的 flex-1，避免标题行内被拉满 */
-  @apply min-w-0 shrink-0 grow-0 basis-auto;
-}
-</style>

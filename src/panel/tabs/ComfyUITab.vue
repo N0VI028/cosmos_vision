@@ -1,5 +1,5 @@
 <template>
-  <div class="cv-tab-content">
+  <div class="flex flex-col gap-0">
     <!-- API Tab -->
     <template v-if="subTab === 'api'">
       <h2 class="cv-section-title">连接信息</h2>
@@ -7,7 +7,7 @@
         <label class="cv-field">
           <span>ComfyUI URL</span>
           <div class="cv-field-control">
-            <div class="cv-url-input-row">
+            <div class="flex items-center gap-(--cv-space-md)">
               <InputText
                 v-model="settings.comfyui.url"
                 placeholder="http://127.0.0.1:8188"
@@ -32,12 +32,12 @@
 
     <!-- 配置 Tab -->
     <template v-else-if="subTab === 'config'">
-      <h2 class="cv-section-title cv-workflow-title">
+      <h2 class="cv-section-title inline-flex items-center gap-(--cv-space-sm)">
         <span>工作流</span>
         <button
           v-if="isDefaultWorkflowActive"
           type="button"
-          class="cv-reset-default-workflow"
+          class="inline-flex size-[1.65em] cursor-pointer items-center justify-center rounded-(--cv-radius-sm) border-0 bg-transparent p-0 text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant) outline-none hover:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] hover:text-(--p-red-500) focus-visible:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] focus-visible:text-(--p-red-500)"
           title="重置默认工作流"
           aria-label="重置默认工作流"
           @click="resetDefaultWorkflow"
@@ -385,37 +385,3 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
   }
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-tab-content {
-  @apply flex flex-col gap-0;
-}
-
-.cv-workflow-title {
-  @apply inline-flex items-center;
-  gap: var(--cv-space-sm);
-}
-
-.cv-reset-default-workflow {
-  @apply inline-flex cursor-pointer items-center justify-center border-0 bg-transparent p-0;
-  width: 1.65em;
-  height: 1.65em;
-  border-radius: var(--cv-radius-sm);
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-2xs);
-}
-
-.cv-reset-default-workflow:focus-visible,
-.cv-reset-default-workflow:hover {
-  color: var(--p-red-500);
-  background: color-mix(in srgb, var(--p-red-500) 10%, transparent);
-  outline: none;
-}
-
-.cv-url-input-row {
-  @apply flex items-center;
-  gap: var(--cv-space-md);
-}
-</style>

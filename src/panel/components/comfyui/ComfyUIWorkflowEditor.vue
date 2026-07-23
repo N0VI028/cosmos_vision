@@ -4,8 +4,8 @@
       :class="[
         'cv-workflow-editor-container',
         fullscreen
-          ? 'absolute inset-0 z-99999 overflow-hidden bg-(--cv-background) p-(--cv-space-lg) flex flex-col gap-(--cv-space-lg)'
-          : 'flex flex-col gap-(--cv-space-xl)'
+          ? 'absolute! inset-0! z-99999! h-full! w-full! overflow-hidden bg-(--cv-background) p-(--cv-space-lg) flex flex-col gap-(--cv-space-lg)'
+          : 'flex flex-col gap-(--cv-space-xl)',
       ]"
     >
       <DefineIconButton v-slot="{ $slots, title, disabled }">
@@ -62,7 +62,15 @@
         <div v-if="parseError" class="cv-field-warn">{{ parseError }}</div>
       </template>
 
-      <div v-if="workflow" class="cv-workflow-canvas-wrapper relative">
+      <div
+        v-if="workflow"
+        class="cv-workflow-canvas-wrapper relative w-full min-h-0 overflow-hidden"
+        :class="
+          fullscreen
+            ? 'min-h-0 flex-1 aspect-auto! max-h-none! h-auto!'
+            : 'aspect-video max-h-72 h-auto!'
+        "
+      >
         <ComfyUIWorkflowCanvas
           ref="canvasRef"
           :layout="layout"
@@ -72,9 +80,9 @@
         />
 
         <!-- 悬浮状态提示与右侧操作按钮的统一容器，避免绝对定位冲突导致覆盖 -->
-        <div class="absolute top-(--cv-space-lg) left-(--cv-space-lg) right-(--cv-space-lg) z-2 flex justify-between items-start gap-(--cv-space-md) pointer-events-none">
+        <div class="pointer-events-none absolute top-(--cv-space-lg) right-(--cv-space-lg) left-(--cv-space-lg) z-2 flex items-start justify-between gap-(--cv-space-md)">
           <!-- 左侧统一状态提示 -->
-          <div class="flex-1 min-w-0">
+          <div class="min-w-0 flex-1">
             <Transition
               enter-active-class="transition duration-300 ease"
               enter-from-class="opacity-0 -translate-y-[4px]"
@@ -85,21 +93,21 @@
             >
               <div
                 v-if="isStatusFloatingVisible"
-                class="flex items-center gap-(--cv-space-sm) px-(--cv-space-lg) py-(--cv-space-sm) text-(length:--cv-font-size-xs) bg-(--cv-surface-container-high) text-(--cv-on-surface) rounded border border-solid border-(--cv-outline) shadow-md w-fit max-w-full"
+                class="flex w-fit max-w-full items-center gap-(--cv-space-sm) rounded border border-solid border-(--cv-outline) bg-(--cv-surface-container-high) px-(--cv-space-lg) py-(--cv-space-sm) text-(length:--cv-font-size-xs) text-(--cv-on-surface) shadow-md"
               >
                 <i
                   v-if="statusTone === 'error'"
-                  class="fa-solid fa-circle-xmark text-(--p-red-500) shrink-0"
+                  class="fa-solid fa-circle-xmark shrink-0 text-(--p-red-500)"
                   aria-hidden="true"
                 />
                 <i
                   v-else-if="statusTone === 'warn'"
-                  class="fa-solid fa-triangle-exclamation text-(--p-orange-500) shrink-0"
+                  class="fa-solid fa-triangle-exclamation shrink-0 text-(--p-orange-500)"
                   aria-hidden="true"
                 />
                 <i
                   v-else
-                  class="fa-solid fa-circle-info text-(--cv-primary) shrink-0"
+                  class="fa-solid fa-circle-info shrink-0 text-(--cv-primary)"
                   aria-hidden="true"
                 />
                 <span class="whitespace-break-spaces">{{ statusText }}</span>
@@ -108,7 +116,7 @@
           </div>
 
           <!-- 右侧操作按钮 -->
-          <div class="flex gap-(--cv-space-sm) shrink-0 pointer-events-auto">
+          <div class="pointer-events-auto flex shrink-0 gap-(--cv-space-sm)">
             <ReuseIconButton
               title="定位绑定节点"
               @click="locatePopover?.toggle($event)"
@@ -121,20 +129,20 @@
               :base-z-index="3200"
               :pt="locatePopoverPt"
             >
-              <div class="cv-workflow-locate-popover-content">
+              <div class="flex w-full flex-col items-stretch gap-(--cv-space-xs) p-(--cv-space-xs)">
                 <button
                   v-for="option in locateOptions"
                   :key="option.key"
                   type="button"
-                  class="cv-workflow-locate-option"
+                  class="flex w-full cursor-pointer items-center gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent px-(--cv-space-lg) py-(--cv-space-sm) text-left text-(length:--cv-font-size-sm) whitespace-nowrap text-(--cv-on-surface) hover:enabled:bg-(--cv-surface-container-highest) disabled:cursor-not-allowed disabled:opacity-45"
                   :disabled="!option.nodeId"
                   @click="onLocateNode(option.nodeId)"
                 >
-                  <span class="cv-workflow-locate-option__icon">
+                  <span class="flex w-[1.125rem] items-center justify-center text-base">
                     <i :class="option.icon" :style="{ color: option.nodeId ? option.color : undefined }" aria-hidden="true" />
                   </span>
                   <span>{{ option.label }}</span>
-                  <span class="cv-workflow-locate-option__sub">
+                  <span class="ml-auto pl-(--cv-space-lg) text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)">
                     {{ option.nodeId ? `#${option.nodeId}` : '未绑定' }}
                   </span>
                 </button>
@@ -166,8 +174,11 @@
           </div>
         </div>
 
-        <!-- 全屏：节点选择 + Inspector 叠在画布底部 -->
-        <div v-if="fullscreen" class="cv-workflow-editor__inspector-stack">
+        <!-- 全屏：节点选择 + Inspector 叠在画布底部；pointer-events 分层避免挡画布 -->
+        <div
+          v-if="fullscreen"
+          class="pointer-events-none absolute right-0 bottom-0 left-0 z-2 flex max-h-[85%] flex-col gap-(--cv-space-sm) px-(--cv-space-lg) *:pointer-events-auto [&_.cv-lightbox-info]:relative [&_.cv-lightbox-info]:inset-auto [&_.cv-lightbox-info]:bottom-auto [&_.cv-lightbox-info]:left-auto [&_.cv-lightbox-info]:right-auto [&_.cv-lightbox-info]:max-h-none [&_.cv-lightbox-info]:min-h-0 [&_.cv-lightbox-info]:flex-1 [&_.cv-lightbox-info]:overflow-hidden"
+        >
           <ReuseNodeSelect />
           <ComfyUIWorkflowInspector
             :fullscreen="true"
@@ -629,112 +640,13 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
-@reference '../../../global.css';
-
-.cv-workflow-canvas-wrapper {
-  width: 100%;
-  height: auto !important;
-  aspect-ratio: 16 / 9;
-  max-height: 18rem;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.cv-workflow-editor-container.absolute {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  z-index: 99999 !important;
-}
-
-.cv-workflow-editor-container.absolute .cv-workflow-canvas-wrapper {
-  @apply flex-1 min-h-0;
-  height: auto !important;
-  aspect-ratio: auto !important;
-  max-height: none !important;
-}
-
-/* 全屏底部叠层：不拦截画布指针，子元素自行接收 */
-.cv-workflow-editor__inspector-stack {
-  @apply absolute bottom-0 left-0 right-0 z-2 flex flex-col;
-  gap: var(--cv-space-sm);
-  padding: 0 var(--cv-space-lg);
-  pointer-events: none;
-  max-height: 85%;
-}
-
-.cv-workflow-editor__inspector-stack > * {
-  pointer-events: auto;
-}
-
-/* Inspector 原为 absolute 贴底，叠层内改为相对流式布局 */
-.cv-workflow-editor__inspector-stack :deep(.cv-lightbox-info) {
-  position: relative;
-  bottom: auto;
-  left: auto;
-  right: auto;
-  max-height: none;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
-}
-
-</style>
-
-<!-- Popover 挂到 body，scoped 无法命中 -->
+<!--
+  定位 Popover 挂到 body，scoped 无法命中宽度。
+  迁移条件：全局 PT 注入业务 width 或改 Teleport 目标后可删。
+-->
 <style>
 .cv-workflow-locate-popover {
   width: max-content;
   min-width: 160px;
-}
-
-.cv-workflow-locate-popover-content {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--cv-space-xs);
-  padding: var(--cv-space-xs);
-}
-
-.cv-workflow-locate-option {
-  display: flex;
-  align-items: center;
-  gap: var(--cv-space-md);
-  padding: var(--cv-space-sm) var(--cv-space-lg);
-  border: var(--cv-border-width) solid transparent;
-  border-radius: var(--cv-radius-sm);
-  background: transparent;
-  color: var(--cv-on-surface);
-  font-size: var(--cv-font-size-sm);
-  cursor: pointer;
-  text-align: left;
-  white-space: nowrap;
-  width: 100%;
-}
-
-.cv-workflow-locate-option:hover:not(:disabled) {
-  background: var(--cv-surface-container-highest);
-}
-
-.cv-workflow-locate-option:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.cv-workflow-locate-option__icon {
-  width: 1.125rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 1rem;
-}
-
-.cv-workflow-locate-option__sub {
-  font-size: var(--cv-font-size-2xs);
-  color: var(--cv-on-surface-variant);
-  margin-left: auto;
-  padding-left: var(--cv-space-lg);
 }
 </style>

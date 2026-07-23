@@ -1,5 +1,5 @@
 <template>
-  <StaticPanel title="图片管理" class="cv-favorite-panel">
+  <StaticPanel title="图片管理" class="[--cv-favorite-grid-max-h:36rem]">
     <template #actions>
       <CvMiniButton
         :label="isSelecting ? '取消选择' : '选择'"
@@ -10,11 +10,14 @@
       />
     </template>
 
-    <div v-if="loading" class="cv-favorite-grid">
+    <div
+      v-if="loading"
+      class="grid max-h-(--cv-favorite-grid-max-h,36rem) grid-cols-3 gap-(--cv-space-4xl) overflow-y-auto max-[56rem]:grid-cols-2 max-[38rem]:grid-cols-1"
+    >
       <CvDataCard v-for="index in 4" :key="index">
-        <div class="cv-favorite-card">
-          <Skeleton height="100%" class="cv-favorite-skeleton-thumb" />
-          <div class="cv-favorite-card-body">
+        <div class="relative flex min-w-0 flex-col">
+          <Skeleton height="100%" class="block aspect-square" />
+          <div class="flex min-w-0 flex-col gap-(--cv-space-sm) p-(--cv-space-4xl)">
             <Skeleton height="1rem" width="70%" />
             <Skeleton height="0.9rem" width="52%" />
           </div>
@@ -22,12 +25,17 @@
       </CvDataCard>
     </div>
 
-    <div v-else-if="!items.length" class="cv-favorite-empty">暂无图片数据</div>
+    <div
+      v-else-if="!items.length"
+      class="flex min-h-36 items-center justify-center rounded-(--cv-radius) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)] p-(--cv-space-2xl) text-center text-(--cv-on-surface-variant)"
+    >
+      暂无图片数据
+    </div>
 
     <template v-else>
-      <div class="cv-favorite-filter-row">
-        <div class="cv-favorite-filter-block">
-          <div class="cv-favorite-filter-label">类型</div>
+      <div class="mb-(--cv-space-4xl) flex flex-wrap items-end gap-(--cv-space-4xl)">
+        <div class="flex min-w-0 flex-1 basis-48 flex-col gap-(--cv-space-md) max-[38rem]:basis-full">
+          <div class="text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface-variant)">类型</div>
           <Select
             v-model="selectedType"
             :options="typeOptions"
@@ -38,8 +46,8 @@
           />
         </div>
 
-        <div class="cv-favorite-filter-block">
-          <div class="cv-favorite-filter-label">角色</div>
+        <div class="flex min-w-0 flex-1 basis-48 flex-col gap-(--cv-space-md) max-[38rem]:basis-full">
+          <div class="text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface-variant)">角色</div>
           <Select
             v-model="selectedCharacterKey"
             :options="characterOptions"
@@ -50,8 +58,8 @@
           />
         </div>
 
-        <div class="cv-favorite-filter-block">
-          <div class="cv-favorite-filter-label">聊天</div>
+        <div class="flex min-w-0 flex-1 basis-48 flex-col gap-(--cv-space-md) max-[38rem]:basis-full">
+          <div class="text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface-variant)">聊天</div>
           <Select
             v-model="selectedChatId"
             :options="chatOptions"
@@ -63,7 +71,10 @@
         </div>
       </div>
 
-      <div v-if="visibleItems.length" class="cv-favorite-grid">
+      <div
+        v-if="visibleItems.length"
+        class="grid max-h-(--cv-favorite-grid-max-h,36rem) grid-cols-3 gap-(--cv-space-4xl) overflow-y-auto max-[56rem]:grid-cols-2 max-[38rem]:grid-cols-1"
+      >
         <CvDataCard
           v-for="item in visibleItems"
           :key="getPreviewUrl(item.key)"
@@ -72,7 +83,7 @@
           :disabled="busy && isSelecting"
           @toggle="toggleItem(item.key)"
         >
-          <div class="cv-favorite-card">
+          <div class="relative flex min-w-0 flex-col">
             <div
               v-if="isSelecting"
               class="absolute top-(--cv-space-lg) left-(--cv-space-lg) z-1"
@@ -86,28 +97,41 @@
               />
             </div>
 
-            <div class="cv-favorite-thumb-wrap">
-              <span class="cv-favorite-kind-badge" :class="kindBadgeClass(item.kind)">{{ kindLabel(item.kind) }}</span>
+            <div
+              class="relative aspect-square overflow-hidden border-b border-(length:--cv-border-width) border-solid border-[color-mix(in_srgb,var(--cv-surface-variant)_72%,transparent)] bg-(--cv-surface-container-high)"
+            >
+              <span
+                class="pointer-events-none absolute top-(--cv-space-md) right-(--cv-space-md) z-1 rounded-(--cv-radius-sm) px-[0.35rem] py-[0.1rem] text-(length:--cv-font-size-2xs) leading-[1.2] font-semibold"
+                :class="kindBadgeClass(item.kind)"
+              >{{ kindLabel(item.kind) }}</span>
               <LightboxImage
                 :src="getPreviewUrl(item.key)"
                 :snapshot="item.promptSnapshot"
                 :download-action="() => $emit('download-items', [item.key])"
                 :disabled="isSelecting"
                 alt="图片预览"
-                class="cv-favorite-thumb"
+                class="block size-full object-cover"
               />
             </div>
 
-            <div class="cv-favorite-card-body">
-              <div class="cv-favorite-title">{{ formatImageLabel(item.createdAt) }}</div>
-              <div class="cv-favorite-meta">
+            <div class="flex min-w-0 flex-col gap-(--cv-space-sm) p-(--cv-space-4xl)">
+              <div class="text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)">
+                {{ formatImageLabel(item.createdAt) }}
+              </div>
+              <div
+                class="overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)"
+              >
                 {{ stripPngExtension(item.characterKey) }} · {{ stripPngExtension(item.chatId) }}
               </div>
             </div>
 
-            <div v-if="!isSelecting" class="cv-favorite-actions" @click.stop>
+            <div
+              v-if="!isSelecting"
+              class="flex items-center justify-end gap-(--cv-space-2xl) px-(--cv-space-4xl) pb-(--cv-space-4xl)"
+              @click.stop
+            >
               <CvMiniButton
-                class="cv-kind-toggle-button"
+                class="relative text-(--cv-on-surface-variant)"
                 :icon="item.kind === 'favorite' ? 'fa-solid fa-star-half-alt' : 'fa-solid fa-star'"
                 :aria-label="kindToggleLabel(item.kind)"
                 :title="kindToggleLabel(item.kind)"
@@ -131,11 +155,19 @@
           </div>
         </CvDataCard>
       </div>
-      <div v-else class="cv-favorite-empty">当前筛选范围暂无图片</div>
+      <div
+        v-else
+        class="flex min-h-36 items-center justify-center rounded-(--cv-radius) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)] p-(--cv-space-2xl) text-center text-(--cv-on-surface-variant)"
+      >
+        当前筛选范围暂无图片
+      </div>
 
-      <div v-if="isSelecting" class="cv-favorite-batch-bar">
-        <span class="cv-favorite-batch-count">已选 {{ selectedCount }} 张</span>
-        <div class="cv-favorite-batch-actions">
+      <div
+        v-if="isSelecting"
+        class="sticky bottom-0 mt-(--cv-space-4xl) flex flex-wrap items-center justify-between gap-(--cv-space-md) border-t border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) pt-(--cv-space-4xl)"
+      >
+        <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">已选 {{ selectedCount }} 张</span>
+        <div class="flex flex-wrap items-center justify-end gap-(--cv-space-3xl)">
           <CvMiniButton
             :label="isAllSelected ? '取消全选' : '全选'"
             :disabled="busy || !visibleItems.length"
@@ -335,7 +367,9 @@ function kindLabel(kind: ManagedImageKind): string {
  * @param kind 图片类型
  */
 function kindBadgeClass(kind: ManagedImageKind): string {
-  return kind === 'favorite' ? 'cv-favorite-kind-badge--favorite' : 'cv-favorite-kind-badge--temporary';
+  return kind === 'favorite'
+    ? 'bg-[color-mix(in_srgb,var(--p-yellow-400)_78%,var(--cv-surface))] text-[color-mix(in_srgb,var(--p-yellow-950,#422006)_88%,var(--cv-on-surface))]'
+    : 'bg-[color-mix(in_srgb,var(--cv-surface)_82%,transparent)] text-(--cv-on-surface-variant)';
 }
 
 /**
@@ -482,160 +516,3 @@ function buildChatOptions(items: ManagedImageItem[]): FilterOption[] {
   return [{ label: '全部聊天', value: ALL_CHAT_KEY }, ...chats];
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-favorite-panel {
-  --cv-favorite-grid-max-h: 36rem;
-}
-
-.cv-favorite-filter-row {
-  @apply flex flex-wrap items-end;
-  gap: var(--cv-space-4xl);
-  margin-bottom: var(--cv-space-4xl);
-}
-
-.cv-favorite-filter-block {
-  @apply flex flex-col;
-  flex: 1 1 12rem;
-  min-width: 0;
-  gap: var(--cv-space-md);
-}
-
-.cv-favorite-filter-label {
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-xs);
-  font-weight: 600;
-}
-
-.cv-favorite-grid {
-  @apply grid overflow-y-auto;
-  max-height: var(--cv-favorite-grid-max-h, 36rem);
-  gap: var(--cv-space-4xl);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.cv-favorite-card {
-  @apply relative flex min-w-0 flex-col;
-}
-
-
-.cv-favorite-thumb-wrap {
-  @apply relative overflow-hidden;
-  aspect-ratio: 1;
-  border-bottom: var(--cv-border-width) solid color-mix(in srgb, var(--cv-surface-variant) 72%, transparent);
-  background: var(--cv-surface-container-high);
-}
-
-.cv-favorite-kind-badge {
-  @apply absolute;
-  top: var(--cv-space-md);
-  right: var(--cv-space-md);
-  z-index: 1;
-  padding: 0.1rem 0.35rem;
-  border-radius: var(--cv-radius-sm);
-  font-size: var(--cv-font-size-2xs);
-  font-weight: 600;
-  line-height: 1.2;
-  pointer-events: none;
-}
-
-.cv-favorite-kind-badge--favorite {
-  background: color-mix(in srgb, var(--p-yellow-400) 78%, var(--cv-surface));
-  color: color-mix(in srgb, var(--p-yellow-950, #422006) 88%, var(--cv-on-surface));
-}
-
-.cv-favorite-kind-badge--temporary {
-  background: color-mix(in srgb, var(--cv-surface) 82%, transparent);
-  color: var(--cv-on-surface-variant);
-}
-
-.cv-favorite-thumb {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.cv-favorite-skeleton-thumb {
-  display: block;
-  aspect-ratio: 1;
-}
-
-.cv-favorite-card-body {
-  @apply flex min-w-0 flex-col;
-  gap: var(--cv-space-sm);
-  padding: var(--cv-space-4xl);
-}
-
-.cv-favorite-title {
-  color: var(--cv-on-surface);
-  font-size: var(--cv-font-size-xs);
-  font-weight: 600;
-}
-
-.cv-favorite-meta {
-  @apply overflow-hidden text-ellipsis whitespace-nowrap;
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-2xs);
-}
-
-.cv-favorite-actions {
-  @apply flex items-center justify-end;
-  gap: var(--cv-space-2xl);
-  padding: 0 var(--cv-space-4xl) var(--cv-space-4xl);
-}
-
-.cv-kind-toggle-button {
-  @apply relative;
-  color: var(--cv-on-surface-variant);
-}
-
-
-
-.cv-favorite-batch-bar {
-  @apply sticky flex flex-wrap items-center justify-between;
-  bottom: 0;
-  gap: var(--cv-space-md);
-  margin-top: var(--cv-space-4xl);
-  padding: var(--cv-space-4xl) 0 0;
-  border-top: var(--cv-border-width) solid var(--cv-surface-variant);
-}
-
-.cv-favorite-batch-count {
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-xs);
-}
-
-.cv-favorite-batch-actions {
-  @apply flex flex-wrap items-center justify-end;
-  gap: var(--cv-space-3xl);
-}
-
-.cv-favorite-empty {
-  @apply flex items-center justify-center text-center;
-  min-height: 9rem;
-  padding: var(--cv-space-2xl);
-  border: var(--cv-border-width) dashed var(--cv-surface-variant);
-  border-radius: var(--cv-radius);
-  background: color-mix(in srgb, var(--cv-surface-container-low) 42%, transparent);
-  color: var(--cv-on-surface-variant);
-}
-
-@media (max-width: 56rem) {
-  .cv-favorite-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 38rem) {
-  .cv-favorite-filter-block {
-    flex-basis: 100%;
-  }
-
-  .cv-favorite-grid {
-    grid-template-columns: 1fr;
-  }
-}
-</style>

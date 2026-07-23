@@ -1,15 +1,15 @@
 <template>
-  <div class="cv-placeholder-editor-wrap">
+  <div class="block">
     <div
       ref="editorEl"
-      class="cv-placeholder-editor"
+      class="min-h-24 whitespace-pre-wrap wrap-break-word rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--p-content-border-color) bg-(--p-inputtext-background) p-(--cv-space-3xl) leading-[1.5] text-(--p-inputtext-color) outline-none focus-within:border-(--p-primary-color) focus-within:shadow-[0_0_0_1px_color-mix(in_srgb,var(--p-primary-color)_45%,transparent)]"
       :class="{ 'is-dragging': isDragging }"
       role="textbox"
       aria-multiline="true"
     >
       <span
         ref="beforeEl"
-        class="cv-placeholder-text"
+        class="min-w-[0.5em] outline-none"
         contenteditable="plaintext-only"
         data-part="before"
         @input="syncFromDom"
@@ -17,7 +17,8 @@
       />
       <span
         ref="tokenEl"
-        class="cv-placeholder-token"
+        class="mx-(--cv-space-sm) inline-flex min-h-5 cursor-grab touch-none select-none items-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-[color-mix(in_srgb,var(--p-primary-color)_60%,var(--p-content-border-color))] bg-[color-mix(in_srgb,var(--p-primary-color)_14%,transparent)] px-(--cv-space-lg) text-(--p-primary-color) active:cursor-grabbing"
+        :class="{ 'pointer-events-none opacity-75': isDragging }"
         contenteditable="false"
         tabindex="0"
         title="拖动调整 LLM 标签位置"
@@ -31,7 +32,7 @@
       </span>
       <span
         ref="afterEl"
-        class="cv-placeholder-text"
+        class="min-w-[0.5em] outline-none"
         contenteditable="plaintext-only"
         data-part="after"
         @input="syncFromDom"
@@ -316,54 +317,3 @@ function getBeforeLength(): number {
   return beforeEl.value?.textContent?.length ?? 0;
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-placeholder-editor-wrap {
-  @apply block;
-}
-
-.cv-placeholder-editor {
-  @apply whitespace-pre-wrap break-words outline-none;
-  min-height: 6rem;
-  padding: var(--cv-space-3xl);
-  border: var(--cv-border-width) solid var(--p-content-border-color);
-  border-radius: var(--cv-radius-sm);
-  background: var(--p-inputtext-background);
-  color: var(--p-inputtext-color);
-  line-height: 1.5;
-}
-
-.cv-placeholder-editor:focus-within {
-  border-color: var(--p-primary-color);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--p-primary-color) 45%, transparent);
-}
-
-.cv-placeholder-text {
-  min-width: 0.5em;
-  @apply outline-none;
-}
-
-.cv-placeholder-token {
-  @apply inline-flex cursor-grab select-none items-center;
-  gap: var(--cv-space-sm);
-  min-height: 1.25rem;
-  margin: 0 var(--cv-space-sm);
-  padding: 0 var(--cv-space-lg);
-  border: var(--cv-border-width) solid color-mix(in srgb, var(--p-primary-color) 60%, var(--p-content-border-color));
-  border-radius: var(--cv-radius-sm);
-  background: color-mix(in srgb, var(--p-primary-color) 14%, transparent);
-  color: var(--p-primary-color);
-  touch-action: none;
-}
-
-.cv-placeholder-token:active {
-  cursor: grabbing;
-}
-
-.cv-placeholder-editor.is-dragging .cv-placeholder-token {
-  @apply pointer-events-none;
-  opacity: 0.75;
-}
-</style>

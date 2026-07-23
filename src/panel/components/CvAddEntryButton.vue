@@ -1,5 +1,9 @@
 <template>
-  <button v-bind="$attrs" type="button" class="cv-add-entry-button">
+  <button
+    v-bind="$attrs"
+    type="button"
+    class="mb-(--cv-space-5xl) flex w-full cursor-pointer items-center justify-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)] py-(--cv-space-md) text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant) transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] hover:border-(--cv-outline) hover:bg-(--cv-surface-container-low) hover:text-(--p-primary-color) hover:shadow-[0_var(--cv-space-sm)_var(--cv-space-3xl)_color-mix(in_srgb,var(--cv-on-surface)_10%,transparent)]"
+  >
     <i class="fa-solid fa-plus" />
     <span>{{ label }}</span>
   </button>
@@ -14,26 +18,3 @@ interface Props {
 
 defineProps<Props>();
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-add-entry-button {
-  @apply mb-(--cv-space-5xl) flex w-full cursor-pointer items-center justify-center;
-  gap: var(--cv-space-sm);
-  padding: var(--cv-space-md) 0;
-  border: var(--cv-border-width) dashed var(--cv-surface-variant);
-  border-radius: var(--cv-radius-sm);
-  background: color-mix(in srgb, var(--cv-surface-container-low) 42%, transparent);
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-sm);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.cv-add-entry-button:hover {
-  border-color: var(--cv-outline);
-  background: var(--cv-surface-container-low);
-  color: var(--p-primary-color);
-  box-shadow: 0 var(--cv-space-sm) var(--cv-space-3xl) color-mix(in srgb, var(--cv-on-surface) 10%, transparent);
-}
-</style>

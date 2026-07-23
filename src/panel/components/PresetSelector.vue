@@ -1,29 +1,37 @@
 <template>
-  <div class="cv-preset-selector">
+  <div
+    class="cv-preset-selector flex items-center gap-(--cv-space-md) max-[48rem]:flex-nowrap"
+  >
     <Select
       :model-value="activePresetId"
       :options="presets"
       option-label="name"
       option-value="id"
       placeholder="选择预设"
-      class="cv-preset-select"
+      class="cv-preset-select inline-flex h-auto! w-[9em]! min-w-0 flex-[0_1_9em] cursor-pointer items-center border-0 bg-transparent p-0 text-(length:--cv-font-size-sm)! font-semibold text-(--p-primary-color)! shadow-none max-[48rem]:w-auto! max-[48rem]:min-w-0 max-[48rem]:flex-[1_1_auto] [&_.cv-preset-select-dropdown]:w-auto [&_.cv-preset-select-dropdown]:text-(--p-primary-color) [&_.cv-preset-select-label]:pr-(--cv-space-sm) [&_.cv-preset-select-label]:pl-0 [&_.cv-preset-select-label]:text-(--p-primary-color)"
       :pt="PRESET_SELECT_PT"
       @update:model-value="$emit('update:activePresetId', $event)"
     />
-    <div class="cv-preset-actions">
+    <div class="cv-preset-actions ml-auto flex items-center gap-(--cv-space-sm) max-[48rem]:shrink-0">
       <input
         ref="fileInput"
         type="file"
         :accept="importAccept"
-        class="cv-preset-file-input"
+        class="hidden"
         @change="handleFileChange"
       />
-      <button type="button" class="cv-preset-btn" title="新建预设" aria-label="新建预设" @click="$emit('create')">
+      <button
+        type="button"
+        class="inline-flex size-[2em] cursor-pointer items-center justify-center rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent p-0 text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out hover:border-[color-mix(in_srgb,var(--p-primary-color)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--p-primary-color)_10%,transparent)] hover:text-(--p-primary-color)"
+        title="新建预设"
+        aria-label="新建预设"
+        @click="$emit('create')"
+      >
         <i class="fa-solid fa-plus" />
       </button>
       <button
         type="button"
-        class="cv-preset-btn"
+        class="inline-flex size-[2em] cursor-pointer items-center justify-center rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent p-0 text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out hover:border-[color-mix(in_srgb,var(--p-primary-color)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--p-primary-color)_10%,transparent)] hover:text-(--p-primary-color)"
         title="克隆当前预设"
         aria-label="克隆当前预设"
         @click="$emit('clone')"
@@ -32,7 +40,7 @@
       </button>
       <button
         type="button"
-        class="cv-preset-btn"
+        class="inline-flex size-[2em] cursor-pointer items-center justify-center rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent p-0 text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out hover:border-[color-mix(in_srgb,var(--p-primary-color)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--p-primary-color)_10%,transparent)] hover:text-(--p-primary-color)"
         title="重命名当前预设"
         aria-label="重命名当前预设"
         @click="$emit('rename')"
@@ -42,7 +50,7 @@
       <button
         v-if="showPortability"
         type="button"
-        class="cv-preset-btn"
+        class="inline-flex size-[2em] cursor-pointer items-center justify-center rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent p-0 text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out hover:border-[color-mix(in_srgb,var(--p-primary-color)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--p-primary-color)_10%,transparent)] hover:text-(--p-primary-color)"
         title="导出当前预设"
         aria-label="导出当前预设"
         @click="$emit('export-preset')"
@@ -52,7 +60,7 @@
       <button
         v-if="showPortability"
         type="button"
-        class="cv-preset-btn"
+        class="inline-flex size-[2em] cursor-pointer items-center justify-center rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent p-0 text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out hover:border-[color-mix(in_srgb,var(--p-primary-color)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--p-primary-color)_10%,transparent)] hover:text-(--p-primary-color)"
         title="导入预设"
         aria-label="导入预设"
         @click="openFilePicker"
@@ -61,7 +69,7 @@
       </button>
       <button
         type="button"
-        class="cv-preset-btn cv-preset-btn-danger"
+        class="inline-flex size-[2em] cursor-pointer items-center justify-center rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent p-0 text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out hover:border-[color-mix(in_srgb,var(--p-red-500)_40%,transparent)] hover:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] hover:text-(--p-red-500)"
         title="删除当前预设"
         aria-label="删除当前预设"
         @click="handleDeleteActiveClick"
@@ -164,83 +172,3 @@ async function handleDeleteActiveClick(): Promise<void> {
   }
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-preset-selector {
-  @apply flex items-center;
-  gap: var(--cv-space-md);
-}
-
-/* 伪装链接式 Select：全局 focusRing 已清零，仅保留布局与主色 */
-.cv-preset-select {
-  @apply inline-flex min-w-0 cursor-pointer items-center border-0 bg-transparent p-0 shadow-none;
-  flex: 0 1 9em;
-  width: 9em !important;
-  height: auto !important;
-  color: var(--p-primary-color) !important;
-  font-size: var(--cv-font-size-sm) !important;
-  font-weight: 600;
-}
-
-.cv-preset-select :deep(.cv-preset-select-label) {
-  padding: 0 var(--cv-space-sm) 0 0;
-  color: var(--p-primary-color);
-}
-
-.cv-preset-select :deep(.cv-preset-select-dropdown) {
-  width: auto;
-  color: var(--p-primary-color);
-}
-
-.cv-preset-actions {
-  @apply ml-auto flex items-center;
-  gap: var(--cv-space-sm);
-}
-
-.cv-preset-btn {
-  @apply inline-flex cursor-pointer items-center justify-center;
-  width: 2em;
-  height: 2em;
-  padding: 0;
-  background: transparent;
-  border: var(--cv-border-width) solid transparent;
-  border-radius: var(--cv-radius-sm);
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-2xs);
-  transition: all 0.15s ease;
-}
-
-.cv-preset-btn:hover {
-  color: var(--p-primary-color);
-  background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
-  border-color: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
-}
-
-.cv-preset-btn-danger:hover {
-  color: var(--p-red-500);
-  background: color-mix(in srgb, var(--p-red-500) 10%, transparent);
-  border-color: color-mix(in srgb, var(--p-red-500) 40%, transparent);
-}
-
-.cv-preset-file-input {
-  @apply hidden;
-}
-
-@media (max-width: 48rem) {
-  .cv-preset-selector {
-    @apply flex-nowrap;
-  }
-
-  .cv-preset-select {
-    flex: 1 1 auto;
-    width: auto !important;
-    @apply min-w-0;
-  }
-
-  .cv-preset-actions {
-    @apply shrink-0;
-  }
-}
-</style>

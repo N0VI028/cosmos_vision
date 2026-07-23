@@ -1,9 +1,19 @@
 <template>
-  <div v-if="enabledMessages.length === 0" class="cv-preview-empty">暂无已启用条目</div>
-  <div v-else class="cv-preview-list custom-scrollbar">
-    <section v-for="message in enabledMessages" :key="message.id" class="cv-preview-block">
-      <div class="cv-preview-body">
-        <pre class="cv-preview-text">{{ getMessagePreviewText(message) }}</pre>
+  <div
+    v-if="enabledMessages.length === 0"
+    class="mb-(--cv-space-5xl) flex min-h-64 items-center justify-center rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--p-content-border-color) bg-(--p-content-background) p-(--cv-space-8xl) text-center text-(--p-text-muted-color)"
+  >
+    暂无已启用条目
+  </div>
+  <div
+    v-else
+    class="custom-scrollbar mb-(--cv-space-5xl) flex h-64 min-h-24 resize-y flex-col gap-(--cv-space-4xl) overflow-y-auto rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--p-content-border-color) bg-(--p-content-background) p-(--cv-space-5xl)"
+  >
+    <section v-for="message in enabledMessages" :key="message.id">
+      <div class="flex min-h-6 items-start">
+        <pre
+          class="m-0 min-h-6 w-full whitespace-pre-wrap wrap-break-word text-(length:--cv-font-size-md) leading-[1.5] text-(--cv-on-surface)"
+        >{{ getMessagePreviewText(message) }}</pre>
       </div>
     </section>
   </div>
@@ -69,55 +79,3 @@ async function readSourcePreview(message: PromptLlmMessage): Promise<string> {
   return '来源失效，运行时会跳过该条目';
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-preview-list {
-  @apply flex flex-col overflow-y-auto;
-  gap: var(--cv-space-4xl);
-  height: 16rem;
-  min-height: 6rem;
-  resize: vertical;
-  padding: var(--cv-space-5xl);
-  background: var(--p-content-background);
-  border: var(--cv-border-width) solid var(--p-content-border-color);
-  border-radius: var(--cv-radius);
-  margin: 0 0 var(--cv-space-5xl) 0;
-}
-
-.cv-preview-body {
-  @apply flex items-start;
-  min-height: 1.5rem;
-}
-
-.cv-preview-token {
-  @apply inline-flex select-none items-center;
-  gap: var(--cv-space-sm);
-  min-height: 2rem;
-  padding: 0 var(--cv-space-lg);
-  border: var(--cv-border-width) solid color-mix(in srgb, var(--p-primary-color) 60%, var(--p-content-border-color));
-  border-radius: var(--cv-radius-sm);
-  background: color-mix(in srgb, var(--p-primary-color) 14%, transparent);
-  color: var(--p-primary-color);
-}
-
-.cv-preview-text {
-  @apply m-0 w-full whitespace-pre-wrap break-words;
-  min-height: 1.5rem;
-  font-size: var(--cv-font-size-md);
-  line-height: 1.5;
-  color: var(--cv-on-surface);
-}
-
-.cv-preview-empty {
-  @apply flex items-center justify-center text-center;
-  min-height: 16rem;
-  padding: var(--cv-space-8xl);
-  color: var(--p-text-muted-color);
-  background: var(--p-content-background);
-  border: var(--cv-border-width) solid var(--p-content-border-color);
-  border-radius: var(--cv-radius);
-  margin: 0 0 var(--cv-space-5xl) 0;
-}
-</style>

@@ -1,6 +1,6 @@
 <template>
-  <div class="cv-tab-content cv-profiles-tab">
-    <div class="cv-profiles-layout">
+  <div class="cv-tab-content flex flex-col gap-0">
+    <div class="mt-(--cv-space-5xl) flex flex-col gap-(--cv-space-4xl)">
       <Button
         label="新建人物"
         icon="fa-solid fa-user-plus"
@@ -10,7 +10,7 @@
         @click="createBlankPerson"
       />
 
-      <div v-if="filteredProfiles.length > 0" class="cv-person-panel-list">
+      <div v-if="filteredProfiles.length > 0" class="flex flex-col gap-(--cv-space-xl)">
         <CollapsiblePanelItem
           v-for="person in filteredProfiles"
           :key="person.id"
@@ -66,7 +66,9 @@
             />
           </template>
 
-          <section class="cv-person-editor">
+          <section
+            class="flex flex-col gap-0 border-t border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) p-(--cv-space-2xl)"
+          >
             <label class="cv-field">
               <span>触发模式</span>
               <Select
@@ -79,7 +81,11 @@
             </label>
 
             <template v-if="person.insertMode === 'keyword'">
-              <h3 class="cv-person-section-title">关键词</h3>
+              <h3
+                class="mt-(--cv-space-5xl) mb-(--cv-space-xl) text-(length:--cv-font-size-lg) font-bold text-(--cv-on-surface) first:mt-0"
+              >
+                关键词
+              </h3>
               <div class="cv-field">
                 <div class="cv-field-control">
                   <InputTags
@@ -94,12 +100,12 @@
               </div>
             </template>
 
-            <div class="cv-person-section-header">
-              <h3 class="cv-person-section-title">固定 tag</h3>
+            <div class="mt-(--cv-space-5xl) mb-(--cv-space-xl) flex items-center justify-between">
+              <h3 class="m-0 shrink-0 text-(length:--cv-font-size-lg) font-bold text-(--cv-on-surface)">固定 tag</h3>
               <Button
                 label="从资料解析"
                 icon="fa-solid fa-dice-d20"
-                class="cv-parse-tags-btn"
+                class="w-auto shrink-0 text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)! opacity-[0.78] hover:bg-(--cv-surface-container-high)! hover:text-(--cv-on-surface)! hover:opacity-100"
                 text
                 size="small"
                 :loading="isParsingTags && person.id === parsingPersonId"
@@ -118,7 +124,11 @@
               </div>
             </div>
 
-            <h3 class="cv-person-section-title">人物模板条目</h3>
+            <h3
+              class="mt-(--cv-space-5xl) mb-(--cv-space-xl) text-(length:--cv-font-size-lg) font-bold text-(--cv-on-surface) first:mt-0"
+            >
+              人物模板条目
+            </h3>
             <PromptSourceEntryList
               v-model="person.templateEntries"
               :kind="person.kind"
@@ -129,7 +139,10 @@
         </CollapsiblePanelItem>
       </div>
 
-      <section v-else class="cv-person-empty-panel">
+      <section
+        v-else
+        class="flex min-h-64 flex-col justify-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) p-(--cv-space-5xl) text-center text-(--cv-on-surface-variant)"
+      >
         <i class="fa-solid fa-user-gear" />
         <span>请创建一个人物设置</span>
       </section>
@@ -152,36 +165,46 @@
       @replace="replaceStaticTags"
       @append="appendToStaticTags"
     />
-    <div v-else class="cv-tag-parse-panel">
+    <div v-else class="flex flex-col gap-(--cv-space-md)">
       <button
         type="button"
-        class="cv-tag-parse-option"
-        :class="{ 'cv-tag-parse-option--active': tagParseMode === 'template' }"
+        class="grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) p-(--cv-space-lg) text-left text-(--cv-on-surface) hover:border-(--p-primary-color) hover:bg-[color-mix(in_srgb,var(--p-primary-color)_10%,var(--cv-surface-container-low))]"
+        :class="
+          tagParseMode === 'template' &&
+          'border-(--p-primary-color) bg-[color-mix(in_srgb,var(--p-primary-color)_10%,var(--cv-surface-container-low))] [&_i]:text-(--p-primary-color)'
+        "
         :aria-pressed="tagParseMode === 'template'"
         @click="selectTagParseMode('template')"
       >
-        <i class="fa-solid fa-layer-group" />
-        <span class="cv-tag-parse-option-content">
-          <span class="cv-tag-parse-option-title">发送人物模板条目</span>
-          <span class="cv-tag-parse-option-desc">使用当前人物的模板条目生成固定 tag 草稿</span>
+        <i class="fa-solid fa-layer-group mt-(--cv-space-xs) text-(--cv-on-surface-variant)" />
+        <span class="flex min-w-0 flex-col gap-(--cv-space-xs)">
+          <span class="text-(length:--cv-font-size-md) font-semibold">发送人物模板条目</span>
+          <span class="text-(length:--cv-font-size-xs) leading-[1.35] text-(--cv-on-surface-variant)"
+            >使用当前人物的模板条目生成固定 tag 草稿</span
+          >
         </span>
       </button>
 
-      <div class="cv-tag-parse-custom-block">
+      <div class="flex flex-col">
         <button
           type="button"
-          class="cv-tag-parse-option"
-          :class="{ 'cv-tag-parse-option--active': tagParseMode === 'custom' }"
+          class="grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) p-(--cv-space-lg) text-left text-(--cv-on-surface) hover:border-(--p-primary-color) hover:bg-[color-mix(in_srgb,var(--p-primary-color)_10%,var(--cv-surface-container-low))]"
+          :class="
+            tagParseMode === 'custom' &&
+            'border-(--p-primary-color) bg-[color-mix(in_srgb,var(--p-primary-color)_10%,var(--cv-surface-container-low))] [&_i]:text-(--p-primary-color)'
+          "
           :aria-pressed="tagParseMode === 'custom'"
           @click="selectTagParseMode('custom')"
         >
-          <i class="fa-solid fa-keyboard" />
-          <span class="cv-tag-parse-option-content">
-            <span class="cv-tag-parse-option-title">手动输入内容</span>
-            <span class="cv-tag-parse-option-desc">输入资料或描述后生成固定 tag 草稿</span>
+          <i class="fa-solid fa-keyboard mt-(--cv-space-xs) text-(--cv-on-surface-variant)" />
+          <span class="flex min-w-0 flex-col gap-(--cv-space-xs)">
+            <span class="text-(length:--cv-font-size-md) font-semibold">手动输入内容</span>
+            <span class="text-(length:--cv-font-size-xs) leading-[1.35] text-(--cv-on-surface-variant)"
+              >输入资料或描述后生成固定 tag 草稿</span
+            >
           </span>
         </button>
-        <label v-if="tagParseMode === 'custom'" class="cv-field cv-tag-parse-input">
+        <label v-if="tagParseMode === 'custom'" class="cv-field mt-(--cv-space-md)">
           <span>输入内容</span>
           <Textarea
             v-model="tagParseInput"
@@ -193,18 +216,23 @@
         </label>
       </div>
 
-      <div class="cv-tag-parse-custom-block">
+      <div class="flex flex-col">
         <button
           type="button"
-          class="cv-tag-parse-option"
-          :class="{ 'cv-tag-parse-option--active': tagParseMode === 'image' }"
+          class="grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) p-(--cv-space-lg) text-left text-(--cv-on-surface) hover:border-(--p-primary-color) hover:bg-[color-mix(in_srgb,var(--p-primary-color)_10%,var(--cv-surface-container-low))]"
+          :class="
+            tagParseMode === 'image' &&
+            'border-(--p-primary-color) bg-[color-mix(in_srgb,var(--p-primary-color)_10%,var(--cv-surface-container-low))] [&_i]:text-(--p-primary-color)'
+          "
           :aria-pressed="tagParseMode === 'image'"
           @click="selectTagParseMode('image')"
         >
-          <i class="fa-solid fa-image" />
-          <span class="cv-tag-parse-option-content">
-            <span class="cv-tag-parse-option-title">从图片提取</span>
-            <span class="cv-tag-parse-option-desc">使用 WD Tagger 提取 Danbooru 风格标签草稿</span>
+          <i class="fa-solid fa-image mt-(--cv-space-xs) text-(--cv-on-surface-variant)" />
+          <span class="flex min-w-0 flex-col gap-(--cv-space-xs)">
+            <span class="text-(length:--cv-font-size-md) font-semibold">从图片提取</span>
+            <span class="text-(length:--cv-font-size-xs) leading-[1.35] text-(--cv-on-surface-variant)"
+              >使用 WD Tagger 提取 Danbooru 风格标签草稿</span
+            >
           </span>
         </button>
         <WdTaggerSource
@@ -213,7 +241,7 @@
           v-model:general-threshold="taggerGeneralThreshold"
           v-model:character-threshold="taggerCharacterThreshold"
           :person-kind="tagParseDialogPerson.kind"
-          class="cv-tag-parse-input"
+          class="mt-(--cv-space-md)"
           @draft="showTagDraft"
           @error="showTagParseError"
           @parsing="updateTaggerParsing"
@@ -222,7 +250,7 @@
     </div>
 
     <template #footer>
-      <div class="cv-tag-parse-actions">
+      <div class="flex justify-end gap-(--cv-space-sm)">
         <Button
           v-if="!tagParseDraft && tagParseMode !== 'image'"
           label="生成草稿"
@@ -625,136 +653,3 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
   return Array.from(new Set(values.map(value => value?.trim() ?? '').filter(Boolean)));
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-profiles-tab,
-.cv-person-editor {
-  @apply flex flex-col gap-0;
-}
-
-.cv-profiles-layout {
-  @apply mt-(--cv-space-5xl) flex flex-col;
-  gap: var(--cv-space-4xl);
-}
-
-.cv-person-panel-list {
-  @apply flex flex-col;
-  gap: var(--cv-space-xl);
-}
-
-.cv-person-editor {
-  padding: var(--cv-space-2xl);
-  border-top: var(--cv-border-width) solid var(--cv-surface-variant);
-}
-
-.cv-person-section-header {
-  @apply flex items-center justify-between;
-  margin: var(--cv-space-5xl) 0 var(--cv-space-xl);
-}
-
-.cv-person-section-header > .cv-person-section-title {
-  @apply m-0 shrink-0;
-}
-
-.cv-person-section-title {
-  margin: var(--cv-space-5xl) 0 var(--cv-space-xl);
-  color: var(--cv-on-surface);
-  font-size: var(--cv-font-size-lg);
-  font-weight: 700;
-}
-
-.cv-person-section-title:first-child {
-  margin-top: 0;
-}
-
-.cv-parse-tags-btn {
-  flex: 0 0 auto;
-  width: auto;
-  color: var(--cv-on-surface-variant) !important;
-  font-size: var(--cv-font-size-xs);
-  opacity: 0.78;
-}
-
-.cv-parse-tags-btn:hover {
-  background: var(--cv-surface-container-high) !important;
-  color: var(--cv-on-surface) !important;
-  opacity: 1;
-}
-
-.cv-tag-parse-panel {
-  @apply flex flex-col;
-  gap: var(--cv-space-md);
-}
-
-.cv-tag-parse-custom-block {
-  @apply flex flex-col;
-}
-
-.cv-tag-parse-option {
-  @apply grid w-full cursor-pointer text-left;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: var(--cv-space-md);
-  padding: var(--cv-space-lg);
-  border: var(--cv-border-width) solid var(--cv-surface-variant);
-  border-radius: var(--cv-radius-sm);
-  background: var(--cv-surface-container-low);
-  color: var(--cv-on-surface);
-}
-
-.cv-tag-parse-option:hover,
-.cv-tag-parse-option--active {
-  border-color: var(--p-primary-color);
-  background: color-mix(in srgb, var(--p-primary-color) 10%, var(--cv-surface-container-low));
-}
-
-.cv-tag-parse-option > i {
-  margin-top: var(--cv-space-xs);
-  color: var(--cv-on-surface-variant);
-}
-
-.cv-tag-parse-option--active > i {
-  color: var(--p-primary-color);
-}
-
-.cv-tag-parse-option-content {
-  @apply flex min-w-0 flex-col;
-  gap: var(--cv-space-xs);
-}
-
-.cv-tag-parse-option-title {
-  font-size: var(--cv-font-size-md);
-  font-weight: 600;
-}
-
-.cv-tag-parse-option-desc {
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-xs);
-  line-height: 1.35;
-}
-
-.cv-tag-parse-input {
-  margin-top: var(--cv-space-md);
-}
-
-.cv-tag-parse-actions {
-  @apply flex justify-end;
-  gap: var(--cv-space-sm);
-}
-
-.cv-profiles-empty,
-.cv-person-empty-panel {
-  @apply p-(--cv-space-5xl) text-center;
-  color: var(--cv-on-surface-variant);
-}
-
-.cv-person-empty-panel {
-  @apply flex flex-col justify-center;
-  gap: var(--cv-space-lg);
-  min-height: 16rem;
-  border: var(--cv-border-width) solid var(--cv-surface-variant);
-  border-radius: var(--cv-radius-sm);
-  background: var(--cv-surface-container-low);
-}
-</style>

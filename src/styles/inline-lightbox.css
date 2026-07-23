@@ -2,6 +2,21 @@
 
 /**
  * 内联生图大图预览与提示词详情
+ *
+ * Batch B3 残留：`inlineImageLightbox.ts` 以 innerHTML/createElement 挂 body
+ *
+ * 为何不迁 Tailwind 行内：
+ * 1. 节点树由字符串模板拼装，class 名是 JS 选择器契约（toggle / copy / collapse），
+ *    改工具类需同步重写 composable 全部 querySelector 与状态 class。
+ * 2. 伪元素：`.cv-lightbox-title-pos|neg|char::before` 色点指示器。
+ * 3. 滚动条：`::-webkit-scrollbar*` 自定义。
+ * 4. 布局特例：`100dvh` / `env(safe-area-inset-*)` / `max-height: min(70vh, 70dvh)` /
+ *    sticky 角色标题 / collapsed max-height 动画态。
+ * 5. `@media (max-width: 640px)` 全屏图与 info 面板响应。
+ * 6. 固定深色毛玻璃叠层（与 `--cv-*` 设置壳无关的独立视觉语言）。
+ *
+ * 迁移条件：Lightbox 改为 Vue 组件模板渲染后，可再评估布局子集行内化；
+ * 伪元素与 scrollbar 仍须 CSS。
  */
 
 .cv-lightbox-overlay {

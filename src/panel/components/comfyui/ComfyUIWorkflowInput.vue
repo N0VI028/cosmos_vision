@@ -1,14 +1,14 @@
 <template>
-  <div class="cv-workflow-input">
-    <div class="cv-workflow-input__header">
-      <span class="cv-workflow-input__label">{{ control.label }}</span>
-      <div class="cv-workflow-input__actions">
+  <div
+    class="cv-workflow-input flex flex-col gap-(--cv-space-sm) border-b-(length:--cv-border-width) border-b-solid border-b-(--cv-surface-variant) py-(--cv-space-lg) last:border-b-0"
+  >
+    <div class="flex items-center justify-between gap-(--cv-space-lg)">
+      <span class="text-(length:--cv-font-size-sm) font-semibold text-(--cv-on-surface)">{{ control.label }}</span>
+      <div class="flex items-center gap-(--cv-space-sm)">
         <template v-if="control.canPromptBind">
+          <!-- 三态 Chip：class 挂在 Chip 根（PT root）；全局 chip 默认被业务变体覆盖 -->
           <Chip
-            :class="[
-              `is-${control.promptBinding ?? 'none'}`,
-              { 'is-disabled': !online },
-            ]"
+            :class="chipRootClass"
             :pt="workflowActionChipPt"
             @click="online && promptPopover?.toggle($event)"
           >
@@ -27,8 +27,8 @@
               v-for="option in alternateBindings"
               :key="option.value ?? 'none'"
               type="button"
-              class="cv-workflow-input__binding-option"
-              :class="`is-${option.value ?? 'none'}`"
+              class="cv-workflow-input__binding-option flex items-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent px-(--cv-space-lg) py-(--cv-space-xs) text-left text-(length:--cv-font-size-2xs) leading-[1.2] whitespace-nowrap cursor-pointer hover:bg-(--cv-surface-container-highest)"
+              :class="bindingOptionColorClass(option.value)"
               @click="selectPromptBinding(option.value)"
             >
               <i :class="option.icon" aria-hidden="true" />
@@ -40,7 +40,7 @@
         <ToggleButton
           v-if="showSeedMode"
           :model-value="isSeedRandom"
-          class="cv-nai-mini-toggle"
+          class="min-w-0"
           on-label="随机"
           off-label="随机"
           on-icon="fa-solid fa-check"
@@ -52,10 +52,13 @@
       </div>
     </div>
 
-    <div v-if="control.kind === 'link'" class="cv-workflow-input__link">
+    <div
+      v-if="control.kind === 'link'"
+      class="font-mono text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant)"
+    >
       来自节点 #{{ control.linkSource?.nodeId }} 输出 {{ control.linkSource?.outputIndex }}
     </div>
-    <div v-else-if="isCkptControl" class="flex gap-(--cv-space-sm) items-center w-full">
+    <div v-else-if="isCkptControl" class="flex w-full items-center gap-(--cv-space-sm)">
       <Select
         :model-value="String(control.value ?? '')"
         :options="ckptOptions"
@@ -163,6 +166,7 @@
 import type { ChipPassThroughOptions } from 'primevue/chip';
 import type { PopoverPassThroughOptions } from 'primevue/popover';
 import Popover from 'primevue/popover';
+import { computed } from 'vue';
 import { COMFYUI_DIMENSION_PRESETS } from '@/constants/comfyui';
 import {
   MACRO_POPOVER_BASE_Z_INDEX,
@@ -172,7 +176,7 @@ import type { ComfyUIInputControlDesc, PromptBinding, SeedMode } from '@/service
 
 import { fetchComfyUICheckpointNames } from '@/services/comfyui/api';
 
-/** 工作流 Prompt 绑定 Chip：局部 PT 锚点，避免依赖 .p-chip */
+/** 工作流 Prompt 绑定 Chip：局部 PT 锚点（语义 class，样式在根 class 串） */
 const workflowActionChipPt = {
   root: { class: 'cv-workflow-action-chip' },
   label: { class: 'cv-workflow-action-chip-label' },
@@ -225,6 +229,49 @@ const alternateBindings = computed(() => {
   const current = props.control.promptBinding ?? null;
   return BINDING_OPTIONS.filter(opt => opt.value !== current);
 });
+
+/** Chip 根 class：紧凑布局 + 三态/禁用（class 直接上 Chip 根，无需 :deep） */
+const chipRootClass = computed(() => {
+  const base = [
+    'cv-workflow-action-chip',
+    'cursor-pointer select-none transition-[background,border-color,color] duration-150 ease-in-out',
+    'text-(length:--cv-font-size-2xs) leading-[1.2] min-h-auto px-[0.5em] py-[0.15em]',
+  ];
+  if (!props.online) {
+    base.push('is-disabled opacity-50 cursor-not-allowed hover:bg-inherit hover:border-inherit hover:text-inherit');
+  }
+  const binding = props.control.promptBinding ?? 'none';
+  if (binding === 'positive') {
+    base.push(
+      'is-positive',
+      'bg-[color-mix(in_srgb,var(--p-primary-color)_12%,transparent)] border-(--p-primary-color) text-(--p-primary-color)',
+      'hover:bg-[color-mix(in_srgb,var(--p-primary-color)_20%,transparent)]',
+    );
+  } else if (binding === 'negative') {
+    base.push(
+      'is-negative',
+      'bg-[color-mix(in_srgb,var(--p-orange-500,#f59e0b)_12%,transparent)] border-(--p-orange-500,#f59e0b) text-(--p-orange-500,#f59e0b)',
+      'hover:bg-[color-mix(in_srgb,var(--p-orange-500,#f59e0b)_20%,transparent)]',
+    );
+  } else {
+    base.push(
+      'is-none',
+      'bg-(--cv-surface-container-low) border-(--cv-outline) text-(--cv-on-surface-variant)',
+      'hover:bg-(--cv-surface-container-high)',
+    );
+  }
+  return base.join(' ');
+});
+
+/**
+ * 绑定选项文字色
+ * @param value 绑定值
+ */
+function bindingOptionColorClass(value: PromptBinding | null): string {
+  if (value === 'positive') return 'is-positive text-(--p-primary-color)';
+  if (value === 'negative') return 'is-negative text-(--p-orange-500,#f59e0b)';
+  return 'is-none text-(--cv-on-surface-variant)';
+}
 
 const showSeedMode = computed(
   () => props.control.kind === 'number' && Boolean(props.control.controlAfterGenerate || props.control.seedMode),
@@ -334,105 +381,10 @@ const ckptOptions = computed(() => {
 });
 </script>
 
-<style scoped>
-@reference '../../../global.css';
-
-.cv-workflow-input {
-  @apply flex flex-col;
-  gap: var(--cv-space-sm);
-  padding: var(--cv-space-lg) 0;
-  border-bottom: var(--cv-border-width) solid var(--cv-surface-variant);
-}
-
-.cv-workflow-input:last-child {
-  border-bottom: none;
-}
-
-.cv-workflow-input__header {
-  @apply flex items-center justify-between;
-  gap: var(--cv-space-lg);
-}
-
-.cv-workflow-input__label {
-  font-size: var(--cv-font-size-sm);
-  color: var(--cv-on-surface);
-  font-weight: 600;
-}
-
-.cv-workflow-input__actions {
-  @apply flex items-center;
-  gap: var(--cv-space-sm);
-}
-
-.cv-nai-mini-toggle {
-  @apply min-w-0;
-}
-
-/* Prompt 绑定 Chip：业务三态变体；覆盖全局 chip 默认 primary 与 min-height */
-:deep(.cv-workflow-action-chip) {
-  cursor: pointer;
-  user-select: none;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
-  font-size: var(--cv-font-size-2xs);
-  padding: 0.15em 0.5em;
-  line-height: 1.2;
-  min-height: auto;
-}
-
-:deep(.cv-workflow-action-chip.is-disabled) {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-:deep(.cv-workflow-action-chip.is-disabled:hover) {
-  background: inherit;
-  border-color: inherit;
-  color: inherit;
-}
-
-:deep(.cv-workflow-action-chip.is-none) {
-  background: var(--cv-surface-container-low);
-  border-color: var(--cv-outline);
-  color: var(--cv-on-surface-variant);
-}
-
-:deep(.cv-workflow-action-chip.is-none:hover) {
-  background: var(--cv-surface-container-high);
-}
-
-:deep(.cv-workflow-action-chip.is-positive) {
-  background: color-mix(in srgb, var(--p-primary-color) 12%, transparent);
-  border-color: var(--p-primary-color);
-  color: var(--p-primary-color);
-}
-
-:deep(.cv-workflow-action-chip.is-positive:hover) {
-  background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
-}
-
-/* 负向绑定：琥珀强调（业务语义，非全局 chip 默认） */
-:deep(.cv-workflow-action-chip.is-negative) {
-  background: color-mix(in srgb, var(--p-orange-500, #f59e0b) 12%, transparent);
-  border-color: var(--p-orange-500, #f59e0b);
-  color: var(--p-orange-500, #f59e0b);
-}
-
-:deep(.cv-workflow-action-chip.is-negative:hover) {
-  background: color-mix(in srgb, var(--p-orange-500, #f59e0b) 20%, transparent);
-}
-
-.cv-workflow-input__link {
-  font-size: var(--cv-font-size-sm);
-  color: var(--cv-on-surface-variant);
-  font-family: Consolas, Monaco, monospace;
-}
-
-</style>
-
-<!-- Popover 挂到 body，scoped 无法命中 -->
+<!--
+  Popover 挂到 body，scoped 无法命中。
+  迁移条件：Popover 改 Teleport 到组件内或全局 PT 注入宽度时，可删 unscoped。
+-->
 <style>
 .cv-workflow-input__binding-popover {
   width: max-content;
@@ -445,37 +397,5 @@ const ckptOptions = computed(() => {
   align-items: stretch;
   gap: var(--cv-space-xs);
   width: max-content;
-}
-
-.cv-workflow-input__binding-option {
-  display: flex;
-  align-items: center;
-  gap: var(--cv-space-sm);
-  padding: var(--cv-space-xs) var(--cv-space-lg);
-  border: var(--cv-border-width) solid transparent;
-  border-radius: var(--cv-radius-sm);
-  background: transparent;
-  color: var(--cv-on-surface);
-  font-size: var(--cv-font-size-2xs);
-  line-height: 1.2;
-  cursor: pointer;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.cv-workflow-input__binding-option:hover {
-  background: var(--cv-surface-container-highest);
-}
-
-.cv-workflow-input__binding-option.is-positive {
-  color: var(--p-primary-color);
-}
-
-.cv-workflow-input__binding-option.is-negative {
-  color: #f59e0b;
-}
-
-.cv-workflow-input__binding-option.is-none {
-  color: var(--cv-on-surface-variant);
 }
 </style>

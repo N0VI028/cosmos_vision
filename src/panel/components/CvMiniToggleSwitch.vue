@@ -3,7 +3,7 @@
     v-bind="$attrs" 透传 ToggleSwitch 原生 prop/事件（modelValue、disabled、aria-label 等）
     尺寸由本组件固定为紧凑迷你规格，与 CvMiniButton small 并排对齐
   -->
-  <ToggleSwitch v-bind="$attrs" :dt="miniTokens" class="cv-mini-toggleswitch shrink-0" />
+  <ToggleSwitch v-bind="$attrs" :dt="miniTokens" class="cv-mini-toggleswitch relative inline-flex flex-none self-center" />
 </template>
 
 <script setup lang="ts">
@@ -34,15 +34,11 @@ const miniTokens = {
 <style scoped>
 @reference '../../global.css';
 
-.cv-mini-toggleswitch {
-  @apply relative inline-flex flex-none self-center;
-}
-
 /*
- * 垂直居中：不用 top:50% + translateY(-50%)。
- * 官方用 margin-block-start:-half；迷你尺寸下亚像素取整会让球看起来偏下。
- * top/bottom:0 + margin-block:auto 按含边框盒几何居中，不依赖 transform 百分比。
- * （-55%「更居中」多半是光学错觉 + 亚像素：白球在深色胶囊里会显得偏低）
+ * 残留：手柄垂直居中几何修正。
+ * 原因：Aura ToggleSwitch 手柄用 margin-block-start:-half；迷你尺寸下亚像素取整会偏。
+ * top/bottom:0 + margin-block:auto 按含边框盒几何居中，无法用 token/PT 表达。
+ * 迁移条件：Aura 补 handle 垂直对齐 token，或官方改居中算法。
  */
 .cv-mini-toggleswitch :deep(.cv-prime-toggleswitch-slider) {
   @apply relative box-border;

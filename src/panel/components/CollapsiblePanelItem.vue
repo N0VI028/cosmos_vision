@@ -1,7 +1,7 @@
 <template>
   <Accordion
     :value="collapsed ? undefined : '0'"
-    :class="['cv-collapsible-panel', { 'cv-collapsible-panel--disabled': disabled }]"
+    :class="rootClass"
     @update:value="handleAccordionChange"
   >
     <AccordionPanel value="0" :pt="panelPt">
@@ -65,22 +65,37 @@ const emit = defineEmits<{
   toggle: [];
 }>();
 
+const rootClass = computed(
+  () =>
+    'cv-collapsible-panel min-w-0 w-full max-w-full overflow-hidden rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low)',
+);
+
 /** Panel：宽度约束用语义 class，避免 :deep(.p-accordionpanel) */
 const panelPt = {
   root: { class: 'cv-collapsible-panel__panel min-w-0 w-full max-w-full' },
 } as const;
 
-/** Header：只隐藏默认 toggle；布局 class 放 slot 内层 */
-const headerPt = {
-  root: { class: 'cv-collapsible-panel__header' },
+/** Header：只隐藏默认 toggle；禁用态 opacity 写在 PT，避免 :deep */
+const headerPt = computed(() => ({
+  root: {
+    class: [
+      'cv-collapsible-panel__header',
+      props.disabled ? 'opacity-[0.62]' : '',
+    ],
+  },
   toggleicon: { class: 'hidden' },
-} as const;
+}));
 
-/** Content：宽度约束用语义 class */
-const contentPt = {
+/** Content：宽度约束 + 禁用 opacity */
+const contentPt = computed(() => ({
   contentWrapper: { class: 'cv-collapsible-panel__content-wrapper min-w-0 w-full max-w-full' },
-  content: { class: 'cv-collapsible-panel__content min-w-0 w-full max-w-full' },
-} as const;
+  content: {
+    class: [
+      'cv-collapsible-panel__content min-w-0 w-full max-w-full',
+      props.disabled ? 'opacity-[0.62]' : '',
+    ],
+  },
+}));
 
 /**
  * 处理 Accordion 展开/折叠状态变化
@@ -89,19 +104,3 @@ function handleAccordionChange(): void {
   emit('toggle');
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-collapsible-panel {
-  @apply min-w-0 w-full max-w-full overflow-hidden;
-  border: var(--cv-border-width) solid var(--cv-surface-variant);
-  border-radius: var(--cv-radius-sm);
-  background: var(--cv-surface-container-low);
-}
-
-.cv-collapsible-panel--disabled :deep(.cv-collapsible-panel__header),
-.cv-collapsible-panel--disabled :deep(.cv-collapsible-panel__content) {
-  opacity: 0.62;
-}
-</style>

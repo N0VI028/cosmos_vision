@@ -26,6 +26,13 @@ const galleryClass = computed(() =>
   buildInlineActionHostClass('cv-inline-img-wrap cv-inline-favorite-wrap', settingsStore.darkMode),
 );
 
+const stageClass = computed(() => [
+  'cv-preview-stage w-full min-h-64 overflow-hidden rounded-(--cv-radius)',
+  items.value.length > 0
+    ? 'border-(length:--cv-border-width) border-solid border-(--cv-surface-variant)'
+    : 'border-(length:--cv-border-width) border-dashed border-[color-mix(in_srgb,var(--p-content-border-color)_78%,transparent)] bg-[color-mix(in_srgb,var(--p-content-background)_92%,var(--cv-surface-container-low))]',
+]);
+
 watch(
   () => [props.imageBlobs, props.snapshot] as const,
   ([imageBlobs, snapshot]) => syncGallery(imageBlobs, snapshot),
@@ -96,7 +103,7 @@ onBeforeUnmount(clearGallery);
 </script>
 
 <template>
-  <div class="cv-preview-stage" :class="{ 'has-image': items.length > 0 }">
+  <div :class="stageClass">
     <div v-if="items.length" :class="galleryClass">
       <InlineGalleryGroupView
         :items="items"
@@ -113,40 +120,12 @@ onBeforeUnmount(clearGallery);
         :generate-with-editable-prompt="noop"
       />
     </div>
-    <div v-else class="cv-preview-placeholder">
+    <div
+      v-else
+      class="flex min-h-64 flex-col items-center justify-center gap-(--cv-space-lg) p-(--cv-space-8xl) text-center text-(--cv-on-surface-variant) [&_i]:text-[1.5rem] [&_i]:text-[color-mix(in_srgb,var(--p-primary-color)_60%,var(--cv-on-surface-variant))]"
+    >
       <i class="fa-regular fa-image" />
       <span>{{ placeholder }}</span>
     </div>
   </div>
 </template>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-preview-stage {
-  @apply w-full overflow-hidden;
-  width: 100%;
-  min-height: 16rem;
-  border: var(--cv-border-width) dashed color-mix(in srgb, var(--p-content-border-color) 78%, transparent);
-  border-radius: var(--cv-radius);
-  background: color-mix(in srgb, var(--p-content-background) 92%, var(--cv-surface-container-low));
-}
-
-.cv-preview-stage.has-image {
-  border-style: solid;
-  border-color: var(--cv-surface-variant);
-}
-
-.cv-preview-placeholder {
-  @apply flex flex-col items-center justify-center text-center;
-  gap: var(--cv-space-lg);
-  min-height: 16rem;
-  padding: var(--cv-space-8xl);
-  color: var(--cv-on-surface-variant);
-}
-
-.cv-preview-placeholder > i {
-  font-size: 1.5rem;
-  color: color-mix(in srgb, var(--p-primary-color) 60%, var(--cv-on-surface-variant));
-}
-</style>

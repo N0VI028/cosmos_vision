@@ -6,9 +6,15 @@
     :get-role="entry => getEntryKind(entry as PromptPersonTemplateEntry)"
   >
     <template #main="{ entry }">
-      <span class="cv-source-indicator cv-indicator" />
-      <span class="cv-source-kind">{{ getEntrySourceLabel(entry as PromptPersonTemplateEntry) }}</span>
-      <span class="cv-source-title">{{ getEntryTitle(entry as PromptPersonTemplateEntry) }}</span>
+      <span
+        class="cv-indicator size-1.5 shrink-0 rounded-full bg-(--p-primary-color) shadow-[0_0_6px_var(--p-primary-color)]"
+      />
+      <span
+        class="whitespace-nowrap text-(length:--cv-font-size-2xs) font-semibold uppercase tracking-normal text-(--cv-on-surface-variant)"
+      >{{ getEntrySourceLabel(entry as PromptPersonTemplateEntry) }}</span>
+      <span
+        class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-medium text-(--cv-on-surface)"
+      >{{ getEntryTitle(entry as PromptPersonTemplateEntry) }}</span>
     </template>
 
     <template #actions="{ entry }">
@@ -31,12 +37,16 @@
       />
     </template>
   </PromptEntryList>
-  <button type="button" class="cv-add-entry-btn-flat-wide" @click="addEntry">
+  <button
+    type="button"
+    class="flex w-full cursor-pointer items-center justify-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)] py-(--cv-space-md) text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant) transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] hover:border-(--cv-outline) hover:bg-(--cv-surface-container-low) hover:text-(--p-primary-color) hover:shadow-[0_var(--cv-space-sm)_var(--cv-space-3xl)_color-mix(in_srgb,var(--cv-on-surface)_10%,transparent)]"
+    @click="addEntry"
+  >
     <i class="fa-solid fa-plus" /> 添加条目
   </button>
   <Dialog
     v-model:visible="isEditorVisible"
-    class="cv-message-editor-dialog"
+    class="flex flex-col"
     modal
     dismissable-mask
     :header="editorTitle"
@@ -44,7 +54,7 @@
     :pt="PROMPT_EDITOR_DIALOG_PT"
     @hide="closeEntryEditor"
   >
-    <div v-if="editorDraft" class="cv-message-editor">
+    <div v-if="editorDraft" class="flex flex-col gap-(--cv-space-3xl)">
       <label class="cv-field">
         <span>来源</span>
         <Select
@@ -85,8 +95,8 @@
         />
       </label>
       <div v-if="editorDraft.kind === 'character_worldbook_entry'" class="cv-field-control">
-        <div class="cv-source-pair-row">
-          <label class="cv-field cv-source-pair-field">
+        <div class="grid grid-cols-1 gap-(--cv-space-md) min-[520px]:grid-cols-2">
+          <label class="cv-field min-w-0">
             <span>世界书</span>
             <Select
               :model-value="editorDraft.selectedWorldbookName"
@@ -100,7 +110,7 @@
               @update:model-value="updateSelectedWorldbookName"
             />
           </label>
-          <label class="cv-field cv-source-pair-field">
+          <label class="cv-field min-w-0">
             <span>条目</span>
             <Select
               :model-value="editorDraft.selectedWorldbookEntryUid"
@@ -133,7 +143,7 @@
       <div class="cv-field">
         <div class="cv-field-header">
           <span>{{ editorDraft.kind === 'custom' ? '内容' : '资料预览' }}</span>
-          <div v-if="editorDraft.kind === 'custom'" class="cv-source-tokens">
+          <div v-if="editorDraft.kind === 'custom'" class="flex items-center gap-(--cv-space-xs) text-(length:--cv-font-size-2xs)">
             <CvMiniButton
               label="插入宏"
               size="small"
@@ -181,7 +191,7 @@
       </div>
     </div>
     <template #footer>
-      <div class="cv-message-editor-actions">
+      <div class="flex justify-end gap-(--cv-space-sm)">
         <Button label="取消" text @click="closeEntryEditor" />
         <Button label="保存" icon="fa-solid fa-check" :disabled="!canSaveEditor" @click="saveEntryEditor" />
       </div>
@@ -704,73 +714,3 @@ function updateDraftSelection<TKey extends keyof PromptSourceEditorDraft>(
   syncDraftEntryFields(draft);
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-.cv-add-entry-btn-flat-wide {
-  @apply flex w-full cursor-pointer items-center justify-center;
-  gap: var(--cv-space-sm);
-  padding: var(--cv-space-md) 0;
-  background: color-mix(in srgb, var(--cv-surface-container-low) 42%, transparent);
-  border: var(--cv-border-width) dashed var(--cv-surface-variant);
-  border-radius: var(--cv-radius-sm);
-  color: var(--cv-on-surface-variant);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: var(--cv-font-size-sm);
-}
-.cv-add-entry-btn-flat-wide:hover {
-  background: var(--cv-surface-container-low);
-  color: var(--p-primary-color);
-  border-color: var(--cv-outline);
-  box-shadow: 0 var(--cv-space-sm) var(--cv-space-3xl) color-mix(in srgb, var(--cv-on-surface) 10%, transparent);
-}
-.cv-source-tokens {
-  @apply flex items-center;
-  gap: var(--cv-space-xs);
-  font-size: var(--cv-font-size-2xs);
-}
-.cv-source-title {
-  @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
-  color: var(--cv-on-surface);
-  font-weight: 500;
-}
-.cv-source-kind {
-  @apply whitespace-nowrap;
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-2xs);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0;
-}
-.cv-source-indicator {
-  @apply shrink-0 rounded-full;
-  width: 6px;
-  height: 6px;
-  background: var(--p-primary-color);
-  box-shadow: 0 0 6px var(--p-primary-color);
-}
-.cv-message-editor {
-  @apply flex flex-col;
-  gap: var(--cv-space-3xl);
-}
-.cv-message-editor-dialog {
-  @apply flex flex-col;
-}
-.cv-source-pair-row {
-  @apply grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--cv-space-md);
-}
-.cv-source-pair-field {
-  @apply min-w-0;
-}
-@media (max-width: 520px) {
-  .cv-source-pair-row {
-    grid-template-columns: 1fr;
-  }
-}
-.cv-message-editor-actions {
-  @apply flex justify-end;
-  gap: var(--cv-space-sm);
-}
-</style>

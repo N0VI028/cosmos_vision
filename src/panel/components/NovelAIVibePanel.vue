@@ -1,6 +1,6 @@
 <template>
   <div class="cv-field">
-    <div class="cv-vibe-toolbar">
+    <div class="flex flex-col items-start justify-start gap-(--cv-space-xl) font-semibold">
       <Button label="添加" icon="fa-solid fa-plus" size="small" :disabled="isAppendingFiles" @click="triggerFileInput" />
       <input
         ref="fileInput"
@@ -19,8 +19,13 @@
       />
     </div>
 
-    <div v-if="!vibes.length" class="cv-vibe-empty">暂无 vibe</div>
-    <div v-else class="cv-vibe-list">
+    <div
+      v-if="!vibes.length"
+      class="rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) p-(--cv-space-2xl) text-center text-(--cv-on-surface-variant)"
+    >
+      暂无 vibe
+    </div>
+    <div v-else class="flex flex-col gap-(--cv-space-xl)">
       <CollapsiblePanelItem
         v-for="vibe in vibes"
         :key="vibe.id"
@@ -35,15 +40,15 @@
             value="失效"
             severity="danger"
             rounded
-            class="cv-vibe-missing-tag"
+            class="shrink-0 leading-none"
           />
         </template>
 
         <template #actions>
           <div
             v-if="showParseButton(vibe)"
-            class="cv-vibe-parse"
-            :class="{ 'cv-vibe-parse-busy': isParsing(vibe.id) }"
+            class="inline-flex cursor-pointer select-none items-center gap-(--cv-space-sm) px-(--cv-space-sm) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) hover:text-(--cv-on-surface)"
+            :class="{ 'pointer-events-none opacity-60': isParsing(vibe.id) }"
             role="button"
             tabindex="0"
             aria-label="解析 vibe"
@@ -66,22 +71,34 @@
           />
         </template>
 
-        <section class="cv-vibe-editor">
+        <section
+          class="grid grid-cols-[minmax(7.5rem,10rem)_minmax(0,1fr)] gap-(--cv-space-2xl) border-t border-(length:--cv-border-width) border-(--cv-surface-variant) p-(--cv-space-2xl) max-[38rem]:grid-cols-[minmax(6rem,8rem)_minmax(0,1fr)]"
+        >
           <button
             type="button"
-            class="cv-vibe-thumbnail"
+            class="relative aspect-square w-full cursor-pointer overflow-hidden rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-high) p-0 text-(--cv-on-surface-variant)"
             :aria-label="`${getDisplayFileName(vibe)} 缩略图`"
             @click="triggerThumbnailInput(vibe)"
           >
-            <img v-if="getThumbnailData(vibe)" :src="getThumbnailData(vibe)" alt="" />
-            <span v-else class="cv-vibe-thumbnail-placeholder">
+            <img v-if="getThumbnailData(vibe)" :src="getThumbnailData(vibe)" alt="" class="block size-full object-cover" />
+            <span
+              v-else
+              class="flex size-full items-center justify-center text-(length:--cv-font-size-3xl)"
+            >
               <i class="fa-solid fa-image" />
             </span>
-            <span class="cv-vibe-thumbnail-action">上传缩略图</span>
+            <span
+              class="absolute right-0 bottom-0 left-0 bg-[color-mix(in_srgb,var(--cv-surface-container-high)_86%,transparent)] p-(--cv-space-sm) text-center text-(length:--cv-font-size-xs) text-(--cv-on-surface)"
+              >上传缩略图</span
+            >
           </button>
 
-          <div class="cv-vibe-controls">
-            <label v-for="field in VIBE_NUMBER_FIELDS" :key="field.key" class="cv-vibe-control">
+          <div class="flex min-w-0 flex-col justify-center gap-(--cv-space-xl)">
+            <label
+              v-for="field in VIBE_NUMBER_FIELDS"
+              :key="field.key"
+              class="flex min-w-0 flex-col gap-(--cv-space-md) text-(length:--cv-font-size-md) text-(--cv-on-surface)"
+            >
               <span>{{ field.label }}</span>
               <InputNumber
                 :model-value="vibe[field.key]"
@@ -487,106 +504,3 @@ function handleVibeError(error: unknown, fallback: string): void {
   console.error('[NovelAIVibePanel]', error);
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-vibe-toolbar {
-  @apply flex flex-col items-start justify-start;
-  gap: var(--cv-space-xl);
-  font-weight: 600;
-}
-
-.cv-vibe-empty {
-  @apply text-center;
-  padding: var(--cv-space-2xl);
-  border: var(--cv-border-width) dashed var(--cv-surface-variant);
-  border-radius: var(--cv-radius-sm);
-  color: var(--cv-on-surface-variant);
-}
-
-.cv-vibe-list {
-  @apply flex flex-col;
-  gap: var(--cv-space-xl);
-}
-
-.cv-vibe-parse {
-  @apply inline-flex cursor-pointer select-none items-center;
-  gap: var(--cv-space-sm);
-  padding: 0 var(--cv-space-sm);
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-xs);
-}
-
-.cv-vibe-parse:hover {
-  color: var(--cv-on-surface);
-}
-
-.cv-vibe-parse-busy {
-  @apply pointer-events-none;
-  opacity: 0.6;
-}
-
-/* 失效 Tag：尺寸跟全局 tag token；仅保留 flex 布局 */
-.cv-vibe-missing-tag {
-  flex: 0 0 auto;
-  line-height: 1;
-}
-
-.cv-vibe-editor {
-  @apply grid;
-  grid-template-columns: minmax(7.5rem, 10rem) minmax(0, 1fr);
-  gap: var(--cv-space-2xl);
-  padding: var(--cv-space-2xl);
-  border-top: var(--cv-border-width) solid var(--cv-surface-variant);
-}
-
-.cv-vibe-thumbnail {
-  @apply relative w-full cursor-pointer overflow-hidden p-0;
-  aspect-ratio: 1 / 1;
-  border: var(--cv-border-width) solid var(--cv-surface-variant);
-  border-radius: var(--cv-radius-sm);
-  background: var(--cv-surface-container-high);
-  color: var(--cv-on-surface-variant);
-}
-
-.cv-vibe-thumbnail > img,
-.cv-vibe-thumbnail-placeholder {
-  @apply size-full;
-}
-
-.cv-vibe-thumbnail > img {
-  @apply block object-cover;
-}
-
-.cv-vibe-thumbnail-placeholder {
-  @apply flex items-center justify-center;
-  font-size: var(--cv-font-size-3xl);
-}
-
-.cv-vibe-thumbnail-action {
-  @apply absolute right-0 bottom-0 left-0 text-center;
-  padding: var(--cv-space-sm);
-  background: color-mix(in srgb, var(--cv-surface-container-high) 86%, transparent);
-  color: var(--cv-on-surface);
-  font-size: var(--cv-font-size-xs);
-}
-
-.cv-vibe-controls {
-  @apply flex min-w-0 flex-col justify-center;
-  gap: var(--cv-space-xl);
-}
-
-.cv-vibe-control {
-  @apply flex min-w-0 flex-col;
-  gap: var(--cv-space-md);
-  color: var(--cv-on-surface);
-  font-size: var(--cv-font-size-md);
-}
-
-@media (max-width: 38rem) {
-  .cv-vibe-editor {
-    grid-template-columns: minmax(6rem, 8rem) minmax(0, 1fr);
-  }
-}
-</style>

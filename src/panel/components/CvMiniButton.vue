@@ -9,7 +9,8 @@
     :dt="buttonTokens"
     :fluid="false"
     variant="text"
-    class="cv-mini-button"
+    class="cv-mini-button inline-flex w-max! min-w-0 flex-none cursor-pointer items-center justify-center overflow-visible! rounded-none! border-0 bg-transparent leading-none shadow-none focus-visible:border-transparent! focus-visible:bg-transparent! focus-visible:shadow-none! focus-visible:outline-0 data-[p-disabled=true]:cursor-not-allowed [&_.cv-prime-button-label]:leading-none [&_.cv-prime-icon]:leading-none"
+    :style="buttonStyle"
   >
     <slot />
   </Button>
@@ -20,7 +21,6 @@ import type { ButtonDesignTokens } from '@primeuix/themes/types/button';
 import type { ButtonProps } from 'primevue/button';
 import { computed } from 'vue';
 import { getMiniButtonRootTokens } from '@/services/primevue/primevue-theme';
-
 
 defineOptions({ inheritAttrs: false });
 
@@ -86,9 +86,10 @@ const TONE_COLOR_MAP: Record<CvMiniButtonTone, string> = {
 
 const severity = computed(() => TONE_SEVERITY_MAP[props.tone]);
 const buttonTokens = computed(() => buildButtonTokens(TONE_COLOR_MAP[props.tone], props.size));
-
-const minHeight = computed(() => (props.size === 'small' ? '1.6em' : '2em'));
-const fontSize = computed(() => (props.size === 'small' ? 'var(--cv-font-size-2xs)' : 'var(--cv-font-size-xs)'));
+const buttonStyle = computed(() => ({
+  minHeight: props.size === 'small' ? '1.6em' : '2em',
+  fontSize: props.size === 'small' ? 'var(--cv-font-size-2xs)' : 'var(--cv-font-size-xs)',
+}));
 
 /**
  * 构建按钮的局部 Design Tokens
@@ -118,26 +119,3 @@ function buildButtonTokens(color: string, size: CvMiniButtonSize): ButtonDesignT
   };
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-mini-button {
-  @apply inline-flex w-max! min-w-0 flex-none cursor-pointer items-center justify-center border-0 bg-transparent leading-none shadow-none rounded-none! overflow-visible!;
-  min-height: v-bind(minHeight);
-  font-size: v-bind(fontSize);
-}
-
-.cv-mini-button[data-p-disabled='true'] {
-  @apply cursor-not-allowed;
-}
-
-.cv-mini-button:focus-visible {
-  @apply border-transparent! bg-transparent! shadow-none! outline-0;
-}
-
-.cv-mini-button:deep(.cv-prime-button-label),
-.cv-mini-button:deep(.cv-prime-icon) {
-  @apply leading-none;
-}
-</style>

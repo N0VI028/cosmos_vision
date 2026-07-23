@@ -1,23 +1,29 @@
 <template>
     <h2 class="cv-section-title">导出数据</h2>
-    <div class="cv-section-body cv-portability-flow">
-      <div class="cv-portability-cluster">
-        <div class="cv-portability-badges">
+    <div class="cv-section-body flex flex-col gap-(--cv-space-2xl)">
+      <div class="flex flex-col gap-(--cv-space-md)">
+        <div class="flex flex-wrap items-center gap-(--cv-space-md)">
           <button
             v-for="section in sections"
             :key="section.id"
             type="button"
-            class="cv-portability-badge"
-            :class="{ 'cv-portability-badge--active': isExportSelected(section.id) }"
+            class="cursor-pointer rounded-(--cv-radius-full) border border-solid px-[0.55rem] py-[0.25rem] text-(length:--cv-font-size-xs) leading-[1.2] transition-[opacity,color,border-color,background] duration-150 ease-in-out"
+            :class="
+              isExportSelected(section.id)
+                ? 'border-(--p-primary-color) bg-[color-mix(in_srgb,var(--p-primary-color)_12%,transparent)] text-(--p-primary-color) opacity-100'
+                : 'border-(--cv-surface-variant) bg-transparent text-(--cv-on-surface-variant) opacity-55 hover:border-(--p-primary-color) hover:text-(--p-primary-color) hover:opacity-85'
+            "
             :aria-pressed="isExportSelected(section.id)"
             @click="toggleExportSection(section.id)"
           >
             {{ section.label }}
           </button>
         </div>
-        <p v-if="exportDescription" class="cv-portability-badge-desc">{{ exportDescription }}</p>
+        <p v-if="exportDescription" class="m-0 text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
+          {{ exportDescription }}
+        </p>
       </div>
-      <div class="cv-portability-action-row">
+      <div class="flex flex-wrap items-center justify-between gap-(--cv-space-lg)">
         <Button
           label="导出 JSON"
           icon="fa-solid fa-file-import"
@@ -30,38 +36,48 @@
     </div>
 
     <h2 class="cv-section-title">导入数据</h2>
-    <div class="cv-section-body cv-portability-flow">
-      <div class="cv-portability-action-row">
-        <input ref="fileInput" type="file" accept="application/json,.json" class="cv-file-input" @change="handleFileChange" />
+    <div class="cv-section-body flex flex-col gap-(--cv-space-2xl)">
+      <div class="flex flex-wrap items-center justify-between gap-(--cv-space-lg)">
+        <input ref="fileInput" type="file" accept="application/json,.json" class="hidden" @change="handleFileChange" />
         <Button label="选择 JSON" icon="fa-solid fa-file-import" size="small" severity="secondary" @click="openFilePicker" />
-        <span class="cv-portability-hint">导入前只预览识别到的数据，不会自动覆盖当前设置。</span>
+        <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
+          >导入前只预览识别到的数据，不会自动覆盖当前设置。</span
+        >
       </div>
 
-      <div v-if="preview" class="cv-import-preview">
-        <div class="cv-import-source">
+      <div v-if="preview" class="flex flex-col gap-(--cv-space-2xl)">
+        <div
+          class="flex flex-wrap items-center justify-between gap-(--cv-space-lg) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
+        >
           <span>识别到的数据</span>
           <span>{{ importSummaryText }}</span>
         </div>
-        <div class="cv-portability-cluster">
-          <div class="cv-portability-badges">
+        <div class="flex flex-col gap-(--cv-space-md)">
+          <div class="flex flex-wrap items-center gap-(--cv-space-md)">
             <button
               v-for="section in preview.sections"
               :key="section.id"
               type="button"
-              class="cv-portability-badge"
-              :class="{ 'cv-portability-badge--active': isImportSelected(section.id) }"
+              class="cursor-pointer rounded-(--cv-radius-full) border border-solid px-[0.55rem] py-[0.25rem] text-(length:--cv-font-size-xs) leading-[1.2] transition-[opacity,color,border-color,background] duration-150 ease-in-out"
+              :class="
+                isImportSelected(section.id)
+                  ? 'border-(--p-primary-color) bg-[color-mix(in_srgb,var(--p-primary-color)_12%,transparent)] text-(--p-primary-color) opacity-100'
+                  : 'border-(--cv-surface-variant) bg-transparent text-(--cv-on-surface-variant) opacity-55 hover:border-(--p-primary-color) hover:text-(--p-primary-color) hover:opacity-85'
+              "
               :aria-pressed="isImportSelected(section.id)"
               @click="toggleImportSection(section.id)"
             >
               {{ section.label }}
             </button>
           </div>
-          <p v-if="importDescription" class="cv-portability-badge-desc">{{ importDescription }}</p>
+          <p v-if="importDescription" class="m-0 text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
+            {{ importDescription }}
+          </p>
         </div>
         <Message v-if="previewWarnings.length" severity="warn" size="small" class="w-full">
           {{ previewWarnings.join('；') }}
         </Message>
-        <div class="cv-portability-action-row cv-portability-action-row--end">
+        <div class="flex flex-wrap items-center justify-end gap-(--cv-space-lg)">
           <Button
             label="导入选中"
             icon="fa-solid fa-upload"
@@ -337,75 +353,3 @@ async function confirmReset(): Promise<boolean> {
   return confirm('确定要重置所有设置为默认值吗？此操作不可撤销。');
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-portability-flow,
-.cv-import-preview {
-  @apply flex flex-col;
-  gap: var(--cv-space-2xl);
-}
-
-.cv-portability-cluster {
-  @apply flex flex-col;
-  gap: var(--cv-space-md);
-}
-
-.cv-portability-badges {
-  @apply flex flex-wrap items-center;
-  gap: var(--cv-space-md);
-}
-
-.cv-portability-badge {
-  @apply cursor-pointer;
-  border: 1px solid var(--cv-surface-variant);
-  background: transparent;
-  color: var(--cv-on-surface-variant);
-  opacity: 0.55;
-  padding: 0.25rem 0.55rem;
-  font-size: var(--cv-font-size-xs);
-  line-height: 1.2;
-  border-radius: var(--cv-radius-full);
-  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-}
-
-.cv-portability-badge:hover {
-  opacity: 0.85;
-  border-color: var(--p-primary-color);
-  color: var(--p-primary-color);
-}
-
-.cv-portability-badge--active {
-  border-color: var(--p-primary-color);
-  background: color-mix(in srgb, var(--p-primary-color) 12%, transparent);
-  color: var(--p-primary-color);
-  opacity: 1;
-}
-
-.cv-portability-badge-desc {
-  margin: 0;
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-xs);
-}
-
-.cv-portability-action-row,
-.cv-import-source {
-  @apply flex flex-wrap items-center justify-between;
-  gap: var(--cv-space-lg);
-}
-
-.cv-portability-action-row--end {
-  @apply justify-end;
-}
-
-.cv-portability-hint,
-.cv-import-source {
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-xs);
-}
-
-.cv-file-input {
-  @apply hidden;
-}
-</style>

@@ -1,11 +1,17 @@
 <template>
-  <div class="cv-subtab-nav">
+  <div
+    class="cv-subtab-nav flex w-fit justify-start gap-0 rounded-(--cv-radius-full) bg-(--cv-surface-container-low) p-(--cv-space-sm) max-[87.5em]:w-full max-[87.5em]:overflow-x-auto"
+  >
     <button
       v-for="tab in tabs"
       :key="tab.value"
       type="button"
-      class="cv-subtab-item"
-      :class="{ 'cv-subtab-item--active': modelValue === tab.value }"
+      class="cv-subtab-item cursor-pointer border-0 bg-transparent font-(family-name:--cv-font-body) text-(length:--cv-font-size-sm) normal-case transition-all duration-150 ease-in-out max-[87.5em]:min-w-0 max-[87.5em]:flex-auto max-[87.5em]:px-(--cv-space-xl)"
+      :class="
+        modelValue === tab.value
+          ? 'min-w-[6em] rounded-(--cv-radius-full) bg-(--cv-surface-container-lowest,var(--cv-surface))! px-(--cv-space-5xl) py-(--cv-space-md) font-medium text-(--cv-on-surface)!'
+          : 'min-w-[6em] rounded-(--cv-radius-full) px-(--cv-space-5xl) py-(--cv-space-md) font-normal text-(--cv-on-surface-variant) hover:text-(--cv-on-surface)'
+      "
       @click="$emit('update:modelValue', tab.value)"
     >
       {{ tab.label }}
@@ -28,50 +34,3 @@ defineEmits<{
   'update:modelValue': [value: T];
 }>();
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-/* 子标签导航 - 分段控制器样式 */
-.cv-subtab-nav {
-  @apply flex w-fit justify-start gap-0;
-  padding: var(--cv-space-sm);
-  background: var(--cv-surface-container-low);
-  border-radius: var(--cv-radius-full);
-}
-
-.cv-subtab-item {
-  @apply cursor-pointer border-0 bg-transparent;
-  min-width: 6em;
-  padding: var(--cv-space-md) var(--cv-space-5xl);
-  border-radius: var(--cv-radius-full);
-  font-family: var(--cv-font-body);
-  font-size: var(--cv-font-size-sm);
-  font-weight: 400;
-  color: var(--cv-on-surface-variant);
-  transition: all 0.15s ease;
-  text-transform: none;
-}
-
-.cv-subtab-item:hover:not(.cv-subtab-item--active) {
-  color: var(--cv-on-surface);
-}
-
-.cv-subtab-item--active {
-  background: var(--cv-surface-container-lowest, var(--cv-surface)) !important;
-  color: var(--cv-on-surface) !important;
-  font-weight: 500;
-}
-
-@media (max-width: 87.5em) {
-  .cv-subtab-nav {
-    @apply w-full overflow-x-auto;
-  }
-  .cv-subtab-item {
-    @apply flex-auto;
-    flex: 1 1 auto;
-    min-width: unset;
-    padding: var(--cv-space-md) var(--cv-space-xl);
-  }
-}
-</style>

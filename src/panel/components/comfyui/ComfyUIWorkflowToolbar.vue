@@ -30,8 +30,8 @@ const emit = defineEmits<{
 }>();
 
 const statusClass = computed(() => {
-  if (props.statusTone === 'error') return 'text-[var(--p-red-500,var(--cv-on-surface))]';
-  if (props.statusTone === 'warn') return 'text-[var(--p-orange-500,var(--cv-on-surface))]';
+  if (props.statusTone === 'error') return 'text-(--p-red-500,var(--cv-on-surface))';
+  if (props.statusTone === 'warn') return 'text-(--p-orange-500,var(--cv-on-surface))';
   return 'text-(--cv-on-surface-variant)';
 });
 </script>

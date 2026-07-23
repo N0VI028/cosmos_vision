@@ -1,5 +1,5 @@
 <template>
-  <div class="cv-tab-content">
+  <div class="flex flex-col gap-0">
     <h2 class="cv-section-title">历史上下文</h2>
     <div class="cv-section-body">
       <div>
@@ -27,12 +27,12 @@
       </div>
     </div>
 
-    <div class="cv-message-section-head">
-      <h2 class="cv-section-title cv-prompt-builder-title">
+    <div class="mb-(--cv-space-5xl) flex items-center gap-(--cv-space-sm)">
+      <h2 class="cv-section-title inline-flex items-center gap-(--cv-space-sm)">
         <span>提示词生成预设</span>
         <div
           v-if="isDefaultPresetActive"
-          class="cv-reset-default-preset-btn"
+          class="inline-flex size-[1.65em] shrink-0 cursor-pointer items-center justify-center rounded-(--cv-radius-sm) text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out outline-none hover:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] hover:text-(--p-red-500) focus-visible:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] focus-visible:text-(--p-red-500)"
           role="button"
           tabindex="0"
           title="重置内置预设"
@@ -47,7 +47,7 @@
     </div>
 
     <PresetSelector
-      class="cv-prompt-builder-preset-selector"
+      class="mb-(--cv-space-5xl)"
       :presets="presetOptions"
       :active-preset-id="settings.promptLlmMessagePresets.activePresetId"
       :default-preset-id="DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID"
@@ -63,11 +63,11 @@
 
     <PromptLlmMessageList v-model="messages" />
 
-    <div class="cv-message-section-head" style="margin-bottom: var(--cv-space-3xl)">
-      <h2 class="cv-section-title cv-prompt-builder-title" style="margin-bottom: 0; margin-top: var(--cv-space-10xl)">
+    <div class="mb-(--cv-space-3xl) flex items-center gap-(--cv-space-sm)">
+      <h2 class="cv-section-title mt-(--cv-space-10xl) mb-0 inline-flex items-center gap-(--cv-space-sm)">
         <span>Tag提取规则</span>
         <div
-          class="cv-reset-default-preset-btn"
+          class="inline-flex size-[1.65em] shrink-0 cursor-pointer items-center justify-center rounded-(--cv-radius-sm) text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out outline-none hover:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] hover:text-(--p-red-500) focus-visible:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] focus-visible:text-(--p-red-500)"
           role="button"
           tabindex="0"
           title="重置为默认值"
@@ -104,7 +104,7 @@
       />
       <template v-if="extractMode === 'json'">
         <div>
-          <span class="cv-subsection-title">全局提示词</span>
+          <span class="mt-(--cv-space-lg) block text-(length:--cv-font-size-2xs) font-semibold text-(--cv-on-surface-variant)">全局提示词</span>
           <Divider />
           <div class="cv-field-grid">
             <label class="cv-field"><span>正面 JSON 字段名</span><InputText v-model="settings.promptLlm.positivePromptJsonField" /></label>
@@ -112,7 +112,7 @@
           </div>
         </div>
         <div>
-          <span class="cv-subsection-title">NovelAI 角色提示词</span>
+          <span class="mt-(--cv-space-lg) block text-(length:--cv-font-size-2xs) font-semibold text-(--cv-on-surface-variant)">NovelAI 角色提示词</span>
           <Divider />
           <div class="cv-field-grid">
             <label class="cv-field"><span>角色数组字段名</span><InputText v-model="settings.promptLlm.characterPromptsJsonField" /></label>
@@ -126,7 +126,7 @@
       </template>
       <template v-else>
         <div>
-          <span class="cv-subsection-title">全局提示词</span>
+          <span class="mt-(--cv-space-lg) block text-(length:--cv-font-size-2xs) font-semibold text-(--cv-on-surface-variant)">全局提示词</span>
           <Divider />
           <div class="cv-field-grid">
             <label v-for="field in promptExtractRuleFields" :key="field.label" class="cv-field">
@@ -136,7 +136,7 @@
           </div>
         </div>
         <div>
-          <span class="cv-subsection-title">NovelAI 角色提示词</span>
+          <span class="mt-(--cv-space-lg) block text-(length:--cv-font-size-2xs) font-semibold text-(--cv-on-surface-variant)">NovelAI 角色提示词</span>
           <Divider />
           <div class="cv-field-grid items-end">
             <label v-for="field in characterExtractRuleFields" :key="field.label" class="cv-field">
@@ -510,52 +510,3 @@ function copyPresetMessage(message: PromptLlmMessage): PromptLlmMessage {
   return clonePromptLlmMessage(message);
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-tab-content {
-  @apply flex flex-col gap-0;
-}
-
-.cv-prompt-builder-preset-selector {
-  margin-bottom: var(--cv-space-5xl);
-}
-
-.cv-message-section-head {
-  @apply flex items-center;
-  gap: var(--cv-space-sm);
-  margin-bottom: var(--cv-space-5xl);
-}
-
-.cv-prompt-builder-title {
-  @apply inline-flex items-center;
-  gap: var(--cv-space-sm);
-}
-
-.cv-reset-default-preset-btn {
-  @apply inline-flex cursor-pointer items-center justify-center;
-  flex: 0 0 auto;
-  width: 1.65em;
-  height: 1.65em;
-  border-radius: var(--cv-radius-sm);
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-2xs);
-  transition: all 0.15s ease;
-}
-
-.cv-reset-default-preset-btn:focus-visible,
-.cv-reset-default-preset-btn:hover {
-  color: var(--p-red-500);
-  background: color-mix(in srgb, var(--p-red-500) 10%, transparent);
-  outline: none;
-}
-
-.cv-subsection-title {
-  display: block;
-  font-size: var(--cv-font-size-2xs);
-  font-weight: 600;
-  color: var(--cv-on-surface-variant);
-  margin-top: var(--cv-space-lg);
-}
-</style>

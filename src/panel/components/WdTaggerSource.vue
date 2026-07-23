@@ -1,6 +1,6 @@
 <template>
-  <section class="cv-wd-tagger-source">
-    <div class="cv-wd-tagger-source__avatar-options">
+  <section class="flex flex-col gap-(--cv-space-xl)">
+    <div class="grid grid-cols-2 gap-(--cv-space-md)">
       <Button
         v-for="option in sourceOptions"
         :key="option.value"
@@ -8,7 +8,7 @@
         :icon="option.icon"
         outlined
         :disabled="option.disabled"
-        class="cv-wd-tagger-source__avatar-option"
+        class="w-full"
         @click="selectSource(option.value)"
       />
     </div>
@@ -22,26 +22,38 @@
       :show-cancel-button="false"
       custom-upload
       :pt="fileUploadPt"
-      class="cv-wd-tagger-source__upload"
       @select="selectUpload"
     >
       <template #header="{ chooseCallback, clearCallback }">
         <button
           type="button"
-          class="cv-wd-tagger-source__upload-panel"
+          class="flex min-h-28 w-full cursor-pointer items-center gap-(--cv-space-lg) rounded-(--cv-radius-md) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-(--cv-surface-container-low) p-(--cv-space-xl) text-left text-(--cv-on-surface) hover:border-(--p-primary-color) hover:bg-[color-mix(in_srgb,var(--p-primary-color)_8%,var(--cv-surface-container-low))]"
           @click="chooseUpload(clearCallback, chooseCallback)"
         >
-          <img v-if="previewUrl" :src="previewUrl" alt="待分析图片预览" />
-          <i v-else class="fa-solid fa-image" aria-hidden="true" />
-          <span class="cv-wd-tagger-source__upload-copy">
-            <strong>{{ selectedFile?.name ?? '选择本地图片' }}</strong>
-            <small>{{ previewUrl ? '点击更换图片，也可拖拽新图片到此处' : '上传或拖拽图片到此处' }}</small>
+          <img
+            v-if="previewUrl"
+            :src="previewUrl"
+            alt="待分析图片预览"
+            class="size-20 rounded-(--cv-radius-md) object-cover"
+          />
+          <i
+            v-else
+            class="fa-solid fa-image grid size-20 place-items-center rounded-(--cv-radius-md) bg-(--cv-surface-container-high) text-(length:--cv-font-size-xl) text-(--cv-on-surface-variant)"
+            aria-hidden="true"
+          />
+          <span class="flex min-w-0 flex-col gap-(--cv-space-xs)">
+            <strong class="overflow-hidden text-ellipsis whitespace-nowrap">{{
+              selectedFile?.name ?? '选择本地图片'
+            }}</strong>
+            <small class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">{{
+              previewUrl ? '点击更换图片，也可拖拽新图片到此处' : '上传或拖拽图片到此处'
+            }}</small>
           </span>
         </button>
         <button
           v-if="source === 'upload' && selectedFile"
           type="button"
-          class="cv-wd-tagger-source__upload-remove"
+          class="absolute top-(--cv-space-sm) right-(--cv-space-sm) grid size-6 cursor-pointer place-items-center rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-high) text-(--cv-on-surface-variant) hover:border-(--p-primary-color) hover:text-(--cv-on-surface)"
           aria-label="移除已上传图片"
           title="移除图片"
           @click="clearUpload(clearCallback)"
@@ -51,7 +63,7 @@
       </template>
     </FileUpload>
 
-    <div class="cv-wd-tagger-source__thresholds">
+    <div class="grid grid-cols-2 gap-(--cv-space-xl)">
       <div class="cv-field">
         <span>通用标签阈值 {{ generalThreshold.toFixed(2) }}</span>
         <Slider v-model="generalThreshold" :min="0.1" :max="0.9" :step="0.05" />
@@ -66,7 +78,7 @@
       图片会上传至第三方公共 WD Tagger 测试服务；该服务可能排队、限流或临时不可用。
     </p>
 
-    <div class="cv-wd-tagger-source__actions">
+    <div class="flex flex-wrap justify-end gap-(--cv-space-md)">
       <Button
         :label="isAnalyzing ? '停止' : hasAnalyzed ? '重新分析' : '分析图片'"
         :icon="isAnalyzing ? 'fa-solid fa-stop' : 'fa-solid fa-wand-magic-sparkles'"
@@ -260,97 +272,3 @@ function isAbortError(error: unknown): boolean {
 
 defineExpose({ cancel });
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-wd-tagger-source {
-  @apply flex flex-col;
-  gap: var(--cv-space-xl);
-}
-
-.cv-wd-tagger-source__avatar-options {
-  @apply grid grid-cols-2;
-  gap: var(--cv-space-md);
-}
-
-.cv-wd-tagger-source__avatar-option {
-  @apply w-full;
-}
-
-
-.cv-wd-tagger-source__upload-panel {
-  @apply flex w-full cursor-pointer items-center text-left;
-  gap: var(--cv-space-lg);
-  min-height: 7rem;
-  padding: var(--cv-space-xl);
-  border: var(--cv-border-width) dashed var(--cv-surface-variant);
-  border-radius: var(--cv-radius-md);
-  background: var(--cv-surface-container-low);
-  color: var(--cv-on-surface);
-}
-
-.cv-wd-tagger-source__upload-panel:hover {
-  border-color: var(--p-primary-color);
-  background: color-mix(in srgb, var(--p-primary-color) 8%, var(--cv-surface-container-low));
-}
-
-.cv-wd-tagger-source__upload-remove {
-  @apply grid cursor-pointer place-items-center;
-  position: absolute;
-  top: var(--cv-space-sm);
-  right: var(--cv-space-sm);
-  width: 1.5rem;
-  height: 1.5rem;
-  border: var(--cv-border-width) solid var(--cv-surface-variant);
-  border-radius: var(--cv-radius-sm);
-  background: var(--cv-surface-container-high);
-  color: var(--cv-on-surface-variant);
-}
-
-.cv-wd-tagger-source__upload-remove:hover {
-  border-color: var(--p-primary-color);
-  color: var(--cv-on-surface);
-}
-
-.cv-wd-tagger-source__upload-panel > img {
-  width: 5rem;
-  height: 5rem;
-  border-radius: var(--cv-radius-md);
-  object-fit: cover;
-}
-
-.cv-wd-tagger-source__upload-panel > i {
-  @apply grid place-items-center;
-  width: 5rem;
-  height: 5rem;
-  border-radius: var(--cv-radius-md);
-  background: var(--cv-surface-container-high);
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-xl);
-}
-
-.cv-wd-tagger-source__upload-copy {
-  @apply flex min-w-0 flex-col;
-  gap: var(--cv-space-xs);
-}
-
-.cv-wd-tagger-source__upload-copy > strong {
-  @apply overflow-hidden text-ellipsis whitespace-nowrap;
-}
-
-.cv-wd-tagger-source__upload-copy > small {
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-xs);
-}
-
-.cv-wd-tagger-source__thresholds {
-  @apply grid grid-cols-2;
-  gap: var(--cv-space-xl);
-}
-
-.cv-wd-tagger-source__actions {
-  @apply flex flex-wrap justify-end;
-  gap: var(--cv-space-md);
-}
-</style>

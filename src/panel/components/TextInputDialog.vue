@@ -11,10 +11,15 @@
     :content-style="contentStyle"
     @show="focusInput"
   >
-    <div class="cv-text-input-dialog__body">
+    <div
+      class="flex w-full max-h-[min(68vh,34rem)] flex-col gap-(--cv-space-3xl) overflow-x-hidden overflow-y-auto overscroll-contain *:shrink-0"
+    >
       <div class="cv-confirm-message mb-2">{{ message }}</div>
-      <div class="cv-text-input-dialog__field">
-        <label v-if="primaryLabel" class="cv-text-input-dialog__label">{{ primaryLabel }}</label>
+      <div class="flex min-h-0 flex-col gap-(--cv-space-sm)">
+        <label
+          v-if="primaryLabel"
+          class="text-(length:--cv-font-size-sm) font-semibold leading-[1.4] text-(--cv-on-surface)"
+        >{{ primaryLabel }}</label>
         <Textarea
           ref="inputRef"
           v-model="value"
@@ -22,17 +27,21 @@
           :rows="rows"
         />
       </div>
-      <div v-if="hasSecondaryField" class="cv-text-input-dialog__field cv-text-input-dialog__field--secondary">
-        <label class="cv-text-input-dialog__label">{{ secondaryLabel }}</label>
+      <div v-if="hasSecondaryField" class="flex min-h-0 flex-col gap-(--cv-space-sm)">
+        <label class="text-(length:--cv-font-size-sm) font-semibold leading-[1.4] text-(--cv-on-surface)">{{
+          secondaryLabel
+        }}</label>
         <Textarea
           v-model="secondaryValue"
           class="custom-scrollbar max-h-[min(24vh,12rem)] min-h-[5.5rem] w-full resize-none overflow-y-auto overscroll-contain"
           :rows="secondaryRows"
         />
       </div>
-      <div v-if="enableCharacters" class="cv-text-input-dialog__characters">
-        <div class="cv-text-input-dialog__label">角色提示词（{{ characters.length }}）</div>
-        <div class="cv-text-input-dialog__character-list">
+      <div v-if="enableCharacters" class="flex flex-col gap-(--cv-space-xl)">
+        <div class="text-(length:--cv-font-size-sm) font-semibold leading-[1.4] text-(--cv-on-surface)">
+          角色提示词（{{ characters.length }}）
+        </div>
+        <div class="flex flex-col gap-(--cv-space-lg)">
           <CollapsiblePanelItem
             v-for="(character, index) in characters"
             :key="character.id"
@@ -50,26 +59,32 @@
                 @click="removeCharacter(character.id)"
               />
             </template>
-            <div class="cv-text-input-dialog__character-body">
-              <div class="cv-text-input-dialog__field">
-                <label class="cv-text-input-dialog__label">角色正面</label>
+            <div class="flex flex-col gap-(--cv-space-xl) p-(--cv-space-xl)">
+              <div class="flex min-h-0 flex-col gap-(--cv-space-sm)">
+                <label class="text-(length:--cv-font-size-sm) font-semibold leading-[1.4] text-(--cv-on-surface)"
+                  >角色正面</label
+                >
                 <Textarea
                   v-model="character.positivePrompt"
                   class="custom-scrollbar max-h-[min(18vh,9rem)] min-h-[4.5rem] w-full resize-none overflow-y-auto overscroll-contain"
                   :rows="3"
                 />
               </div>
-              <div class="cv-text-input-dialog__field">
-                <label class="cv-text-input-dialog__label">角色负面</label>
+              <div class="flex min-h-0 flex-col gap-(--cv-space-sm)">
+                <label class="text-(length:--cv-font-size-sm) font-semibold leading-[1.4] text-(--cv-on-surface)"
+                  >角色负面</label
+                >
                 <Textarea
                   v-model="character.negativePrompt"
                   class="custom-scrollbar max-h-[min(18vh,9rem)] min-h-[4.5rem] w-full resize-none overflow-y-auto overscroll-contain"
                   :rows="2"
                 />
               </div>
-              <div class="cv-text-input-dialog__coords">
-                <label class="cv-text-input-dialog__field">
-                  <span class="cv-text-input-dialog__label">X 坐标</span>
+              <div class="grid grid-cols-2 gap-(--cv-space-xl)">
+                <label class="flex min-h-0 flex-col gap-(--cv-space-sm)">
+                  <span class="text-(length:--cv-font-size-sm) font-semibold leading-[1.4] text-(--cv-on-surface)"
+                    >X 坐标</span
+                  >
                   <InputNumber
                     v-model="character.x"
                     fluid
@@ -81,8 +96,10 @@
                     :allow-empty="false"
                   />
                 </label>
-                <label class="cv-text-input-dialog__field">
-                  <span class="cv-text-input-dialog__label">Y 坐标</span>
+                <label class="flex min-h-0 flex-col gap-(--cv-space-sm)">
+                  <span class="text-(length:--cv-font-size-sm) font-semibold leading-[1.4] text-(--cv-on-surface)"
+                    >Y 坐标</span
+                  >
                   <InputNumber
                     v-model="character.y"
                     fluid
@@ -98,7 +115,7 @@
             </div>
           </CollapsiblePanelItem>
         </div>
-        <div class="cv-text-input-dialog__character-actions">
+        <div class="flow-root">
           <CvAddEntryButton label="添加角色" @click="addCharacter" />
         </div>
       </div>
@@ -302,59 +319,3 @@ function syncCharacterIdSeed(): void {
   expandedIds.value = new Set(characters.value.slice(0, 1).map(item => item.id));
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-text-input-dialog__body {
-  @apply flex w-full flex-col overflow-y-auto;
-  gap: var(--cv-space-3xl);
-  max-height: min(68vh, 34rem);
-  overscroll-behavior: contain;
-  overflow-x: hidden;
-}
-
-.cv-text-input-dialog__body > * {
-  flex-shrink: 0;
-}
-
-.cv-text-input-dialog__field {
-  @apply flex min-h-0 flex-col;
-  gap: var(--cv-space-sm);
-}
-
-.cv-text-input-dialog__label {
-  color: var(--cv-on-surface);
-  font-size: var(--cv-font-size-sm);
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.cv-text-input-dialog__characters {
-  @apply flex flex-col;
-  gap: var(--cv-space-xl);
-}
-
-.cv-text-input-dialog__character-list {
-  @apply flex flex-col;
-  gap: var(--cv-space-lg);
-}
-
-.cv-text-input-dialog__character-body {
-  @apply flex flex-col;
-  gap: var(--cv-space-xl);
-  padding: var(--cv-space-xl);
-}
-
-.cv-text-input-dialog__coords {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--cv-space-xl);
-}
-
-.cv-text-input-dialog__character-actions {
-  display: flow-root;
-}
-
-/* content overflow 已由 :content-style；勿依赖 .p-dialog-content */
-</style>

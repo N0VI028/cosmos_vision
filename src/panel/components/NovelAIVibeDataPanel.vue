@@ -1,5 +1,5 @@
 <template>
-  <StaticPanel title="Vibe 数据" class="cv-vibe-panel">
+  <StaticPanel title="Vibe 数据" class="[--cv-vibe-grid-max-h:36rem]">
     <template #actions>
       <CvMiniButton
         :label="isSelecting ? '取消选择' : '选择'"
@@ -10,14 +10,17 @@
       />
     </template>
 
-    <div v-if="loading" class="cv-vibe-grid">
+    <div
+      v-if="loading"
+      class="grid max-h-(--cv-vibe-grid-max-h,36rem) grid-cols-3 gap-(--cv-space-4xl) overflow-y-auto max-[56rem]:grid-cols-2 max-[38rem]:grid-cols-1"
+    >
       <CvDataCard v-for="index in 4" :key="index">
-        <div class="cv-vibe-card">
-          <Skeleton height="100%" class="cv-vibe-skeleton-thumb" />
-          <div class="cv-vibe-card-body">
+        <div class="relative flex min-w-0 flex-col">
+          <Skeleton height="100%" class="block aspect-square" />
+          <div class="flex min-w-0 flex-col gap-(--cv-space-sm) p-(--cv-space-4xl)">
             <Skeleton height="1rem" width="70%" />
             <Skeleton height="0.9rem" width="52%" />
-            <div class="cv-vibe-tag-row">
+            <div class="flex flex-wrap items-center gap-(--cv-space-sm)">
               <Skeleton height="1.2rem" width="4rem" border-radius="999px" />
               <Skeleton height="1.2rem" width="4.5rem" border-radius="999px" />
             </div>
@@ -26,17 +29,26 @@
       </CvDataCard>
     </div>
 
-    <div v-else-if="!items.length" class="cv-vibe-empty">暂无 vibe 数据</div>
+    <div
+      v-else-if="!items.length"
+      class="flex min-h-36 items-center justify-center rounded-(--cv-radius) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)] p-(--cv-space-2xl) text-center text-(--cv-on-surface-variant)"
+    >
+      暂无 vibe 数据
+    </div>
 
     <template v-else>
-      <div class="cv-vibe-summary">
+      <div
+        class="mb-(--cv-space-4xl) flex flex-wrap items-center justify-between gap-(--cv-space-md) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
+      >
         <span>{{ isSelecting ? `已选 ${selectedCount} 个 / 共 ${items.length} 个` : `共 ${items.length} 个` }}</span>
-        <span class="cv-vibe-summary-hint">
+        <span class="text-right max-[38rem]:text-left">
           {{ isSelecting ? '点击卡片切换选中状态' : '缩略图缺失时会显示文件卡' }}
         </span>
       </div>
 
-      <div class="cv-vibe-grid">
+      <div
+        class="grid max-h-(--cv-vibe-grid-max-h,36rem) grid-cols-3 gap-(--cv-space-4xl) overflow-y-auto max-[56rem]:grid-cols-2 max-[38rem]:grid-cols-1"
+      >
         <CvDataCard
           v-for="item in items"
           :key="item.sourceHash"
@@ -45,7 +57,7 @@
           :disabled="busy"
           @toggle="toggleItem(item.sourceHash)"
         >
-          <div class="cv-vibe-card">
+          <div class="relative flex min-w-0 flex-col">
             <div
               v-if="isSelecting"
               class="absolute top-(--cv-space-lg) left-(--cv-space-lg) z-1"
@@ -59,29 +71,51 @@
               />
             </div>
 
-            <div class="cv-vibe-thumb-wrap" :class="{ 'cv-vibe-thumb-wrap--file': !item.thumbnailData }">
-              <img v-if="item.thumbnailData" :src="item.thumbnailData" alt="" class="cv-vibe-thumb" />
+            <div
+              class="flex aspect-square items-center justify-center overflow-hidden border-b border-(length:--cv-border-width) border-solid border-[color-mix(in_srgb,var(--cv-surface-variant)_72%,transparent)] bg-(--cv-surface-container-high) text-(--cv-on-surface-variant)"
+              :class="!item.thumbnailData && 'flex-col gap-(--cv-space-sm)'"
+            >
+              <img
+                v-if="item.thumbnailData"
+                :src="item.thumbnailData"
+                alt=""
+                class="block size-full object-cover"
+              />
               <template v-else>
-                <span class="cv-vibe-file-mark">V</span>
-                <span class="cv-vibe-file-ext">{{ item.hasImage ? 'HAS IMG' : 'NO IMG' }}</span>
+                <span class="text-(length:--cv-font-size-3xl) font-bold leading-none text-(--cv-primary-container)">V</span>
+                <span class="text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)">
+                  {{ item.hasImage ? 'HAS IMG' : 'NO IMG' }}
+                </span>
               </template>
             </div>
 
-            <div class="cv-vibe-card-body">
-              <div class="cv-vibe-name">{{ getNovelAIVibeDisplayFileName(item) }}</div>
-              <div class="cv-vibe-meta">{{ formatCreatedAt(item.createdAt) }} · {{ item.sourceHash.slice(0, 8) }}</div>
-              <div class="cv-vibe-tag-row">
+            <div class="flex min-w-0 flex-col gap-(--cv-space-sm) p-(--cv-space-4xl)">
+              <div
+                class="line-clamp-2 wrap-break-word text-(length:--cv-font-size-xs) leading-[1.4] font-semibold break-all text-(--cv-on-surface)"
+              >
+                {{ getNovelAIVibeDisplayFileName(item) }}
+              </div>
+              <div
+                class="overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)"
+              >
+                {{ formatCreatedAt(item.createdAt) }} · {{ item.sourceHash.slice(0, 8) }}
+              </div>
+              <div class="flex flex-wrap items-center gap-(--cv-space-sm)">
                 <Tag
                   v-for="tagItem in buildTagItems(item)"
                   :key="tagItem.label"
                   :value="tagItem.label"
                   :severity="tagItem.severity"
-                  class="cv-vibe-tag"
+                  class="leading-none"
                 />
               </div>
             </div>
 
-            <div v-if="!isSelecting" class="cv-vibe-actions" @click.stop>
+            <div
+              v-if="!isSelecting"
+              class="flex items-center justify-end gap-(--cv-space-2xl) px-(--cv-space-4xl) pb-(--cv-space-4xl)"
+              @click.stop
+            >
               <CvMiniButton
                 icon="fa-solid fa-download"
                 aria-label="下载"
@@ -100,9 +134,12 @@
         </CvDataCard>
       </div>
 
-      <div v-if="isSelecting" class="cv-vibe-batch-bar">
-        <span class="cv-vibe-batch-count">已选 {{ selectedCount }} 个</span>
-        <div class="cv-vibe-batch-actions">
+      <div
+        v-if="isSelecting"
+        class="sticky bottom-0 mt-(--cv-space-4xl) flex flex-wrap items-center justify-between gap-(--cv-space-md) border-t border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) pt-(--cv-space-4xl)"
+      >
+        <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">已选 {{ selectedCount }} 个</span>
+        <div class="flex flex-wrap items-center justify-end gap-(--cv-space-3xl)">
           <CvMiniButton
             :label="isAllSelected ? '取消全选' : '全选'"
             :disabled="busy"
@@ -240,157 +277,3 @@ function formatCreatedAt(createdAt: number): string {
   return `${date.getMonth() + 1}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-vibe-panel {
-  --cv-vibe-grid-max-h: 36rem;
-}
-
-.cv-vibe-summary {
-  @apply flex flex-wrap items-center justify-between;
-  gap: var(--cv-space-md);
-  margin-bottom: var(--cv-space-4xl);
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-xs);
-}
-
-.cv-vibe-summary-hint {
-  @apply text-right;
-}
-
-.cv-vibe-grid {
-  @apply grid overflow-y-auto;
-  max-height: var(--cv-vibe-grid-max-h, 36rem);
-  gap: var(--cv-space-4xl);
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.cv-vibe-card {
-  @apply relative flex min-w-0 flex-col;
-}
-
-
-.cv-vibe-thumb-wrap {
-  @apply flex items-center justify-center overflow-hidden;
-  aspect-ratio: 1;
-  border-bottom: var(--cv-border-width) solid color-mix(in srgb, var(--cv-surface-variant) 72%, transparent);
-  background: var(--cv-surface-container-high);
-  color: var(--cv-on-surface-variant);
-}
-
-.cv-vibe-thumb {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.cv-vibe-thumb-wrap--file {
-  @apply flex-col;
-  gap: var(--cv-space-sm);
-}
-
-.cv-vibe-skeleton-thumb {
-  display: block;
-  aspect-ratio: 1;
-}
-
-.cv-vibe-file-mark {
-  color: var(--cv-primary-container);
-  font-size: var(--cv-font-size-3xl);
-  font-weight: 700;
-  line-height: 1;
-}
-
-.cv-vibe-file-ext {
-  font-size: var(--cv-font-size-2xs);
-  color: var(--cv-on-surface-variant);
-}
-
-.cv-vibe-card-body {
-  @apply flex min-w-0 flex-col;
-  gap: var(--cv-space-sm);
-  padding: var(--cv-space-4xl);
-}
-
-.cv-vibe-name {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  color: var(--cv-on-surface);
-  font-size: var(--cv-font-size-xs);
-  font-weight: 600;
-  line-height: 1.4;
-  word-break: break-all;
-}
-
-.cv-vibe-tag-row {
-  @apply flex flex-wrap items-center;
-  gap: var(--cv-space-sm);
-}
-
-/* 全局 tag font-size 已是 2xs；业务行仅保留布局 class */
-.cv-vibe-tag {
-  @apply leading-none;
-}
-
-.cv-vibe-meta {
-  @apply overflow-hidden text-ellipsis whitespace-nowrap;
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-2xs);
-}
-
-.cv-vibe-actions {
-  @apply flex items-center justify-end;
-  gap: var(--cv-space-2xl);
-  padding: 0 var(--cv-space-4xl) var(--cv-space-4xl);
-}
-
-.cv-vibe-batch-bar {
-  @apply sticky flex flex-wrap items-center justify-between;
-  bottom: 0;
-  gap: var(--cv-space-md);
-  margin-top: var(--cv-space-4xl);
-  padding: var(--cv-space-4xl) 0 0;
-  border-top: var(--cv-border-width) solid var(--cv-surface-variant);
-}
-
-.cv-vibe-batch-count {
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-xs);
-}
-
-.cv-vibe-batch-actions {
-  @apply flex flex-wrap items-center justify-end;
-  gap: var(--cv-space-3xl);
-}
-
-.cv-vibe-empty {
-  @apply flex items-center justify-center text-center;
-  min-height: 9rem;
-  padding: var(--cv-space-2xl);
-  border: var(--cv-border-width) dashed var(--cv-surface-variant);
-  border-radius: var(--cv-radius);
-  background: color-mix(in srgb, var(--cv-surface-container-low) 42%, transparent);
-  color: var(--cv-on-surface-variant);
-}
-
-@media (max-width: 56rem) {
-  .cv-vibe-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 38rem) {
-  .cv-vibe-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .cv-vibe-summary-hint {
-    @apply text-left;
-  }
-}
-</style>

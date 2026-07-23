@@ -3,6 +3,24 @@
 /**
  * 段落生图临时 UI 样式
  * PrimeVue 操作按钮 + 临时图片卡片
+ *
+ * Batch B3 残留：聊天宿主挂载层（非设置面板 scoped）
+ *
+ * 为何不迁 Tailwind 行内：
+ * 1. DOM 多由 composable 程序化创建（`inlineSelectionShell` / `inlineGenerationSession` /
+ *    `inlineImageGalleryView` / `inlineImageDom`），无 Vue 模板可挂工具类。
+ * 2. 大量 `!important`：反压 ST 全局 `button` / `.mes_text i` / 聊天气泡样式，
+ *    行内 class 特异性不够。
+ * 3. 宿主选择器：`[mesid]:has(.cv-inline-selected)` / `.mes_text:has(...)` /
+ *    `.dark-mode` / `body.dark` / `.cosmos-vision-app-dark`。
+ * 4. 交互态：`@media (hover: hover)` 防移动端 hover 粘滞；focus-within 浮现操作条。
+ * 5. ST 主题绑定：`--SmartThemeQuoteColor`（running Message / 模式指示条 / 收藏高亮），
+ *    Message token 无法表达宿主变量。
+ * 6. Galleria 业务布局：`.cv-prime-galleria*` 宽度/item flex + 缩略图条导航，
+ *    属舞台布局而非组件视觉 token（Phase 3 Galleria 已记录）。
+ * 7. Vue transition class：`cv-speed-dial-menu-*` / `cv-fade-*`。
+ *
+ * 迁移条件：内联挂载改为纯 Vue SFC + 脱离 ST 全局污染后，可分批行内化布局子集。
  */
 
 /* Speed Dial 容器 */

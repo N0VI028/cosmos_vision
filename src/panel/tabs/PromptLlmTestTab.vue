@@ -1,5 +1,5 @@
 <template>
-  <div class="cv-tab-content cv-test-tab">
+  <div class="cv-tab-content flex flex-col gap-0">
     <h2 class="cv-section-title">连接测试控制</h2>
     <div class="cv-section-body">
       <FocusedParagraphField
@@ -8,7 +8,7 @@
       />
     </div>
 
-    <div class="cv-action-row">
+    <div class="mt-(--cv-space-5xl)">
       <Button
         :label="actionLabel"
         :icon="actionIcon"
@@ -22,22 +22,46 @@
     <!-- 1. 响应内容日志 -->
     <h2 class="cv-section-title">1. 响应内容日志</h2>
     <div class="cv-section-body">
-      <div class="cv-log-container">
-        <div v-if="testStatus === 'idle'" class="cv-test-state idle">
+      <div
+        class="overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl)"
+      >
+        <div
+          v-if="testStatus === 'idle'"
+          class="flex items-center justify-center py-(--cv-space-3xl) text-(length:--cv-font-size-lg) text-(--cv-on-surface-variant)"
+        >
           <i class="fa-solid fa-hourglass-start mr-2"></i>等待测试运行...
         </div>
-        <div v-else-if="testStatus === 'running'" class="cv-test-state loading">
+        <div
+          v-else-if="testStatus === 'running'"
+          class="flex items-center justify-center py-(--cv-space-3xl) text-(length:--cv-font-size-lg) text-(--cv-on-surface-variant)"
+        >
           <i class="fa-solid fa-spinner fa-spin mr-2"></i>正在向模型请求接口，请稍候...
         </div>
-        <div v-else-if="testStatus === 'success'" class="cv-test-state-success">
-          <div class="success-banner"><i class="fa-solid fa-circle-check mr-2"></i>测试成功！接口响应正常</div>
-          <div class="preview-header">原始响应文本</div>
-          <pre class="preview-content response-raw">{{ testResponseRaw }}</pre>
+        <div v-else-if="testStatus === 'success'" class="flex flex-col gap-(--cv-space-xl)">
+          <div
+            class="rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--p-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--p-green-500)_12%,transparent)] p-(--cv-space-xl) text-(length:--cv-font-size-lg) font-semibold text-(--p-green-500)"
+          >
+            <i class="fa-solid fa-circle-check mr-2"></i>测试成功！接口响应正常
+          </div>
+          <div class="mb-(--cv-space-md) text-(length:--cv-font-size-md) font-semibold text-(--cv-on-surface-variant)">
+            原始响应文本
+          </div>
+          <pre
+            class="m-0 max-h-[12.5rem] overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm) text-(--cv-on-surface) break-all"
+          >{{ testResponseRaw }}</pre>
         </div>
-        <div v-else-if="testStatus === 'error'" class="cv-test-state-error">
-          <div class="error-banner"><i class="fa-solid fa-circle-exclamation mr-2"></i>测试失败</div>
-          <div class="preview-header">错误详情</div>
-          <pre class="preview-content error-text">{{ testError }}</pre>
+        <div v-else-if="testStatus === 'error'" class="flex flex-col gap-(--cv-space-xl)">
+          <div
+            class="rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--p-red-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--p-red-500)_12%,transparent)] p-(--cv-space-xl) text-(length:--cv-font-size-lg) font-semibold text-(--p-red-500)"
+          >
+            <i class="fa-solid fa-circle-exclamation mr-2"></i>测试失败
+          </div>
+          <div class="mb-(--cv-space-md) text-(length:--cv-font-size-md) font-semibold text-(--cv-on-surface-variant)">
+            错误详情
+          </div>
+          <pre
+            class="m-0 max-h-[18.75rem] overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm) text-(--p-red-500) break-all"
+          >{{ testError }}</pre>
         </div>
       </div>
     </div>
@@ -45,11 +69,20 @@
     <!-- 2. 参数配置日志 -->
     <h2 class="cv-section-title">2. 参数配置日志</h2>
     <div class="cv-section-body">
-      <div class="cv-log-container">
-        <div class="cv-log-param-grid">
-          <div v-for="row in logParamRows" :key="row.label" class="cv-log-param-row">
-            <span class="param-label">{{ row.label }}</span>
-            <span class="param-value" :class="{ 'code-font': row.code }">{{ row.value }}</span>
+      <div
+        class="overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl)"
+      >
+        <div class="flex flex-col gap-(--cv-space-xl)">
+          <div
+            v-for="row in logParamRows"
+            :key="row.label"
+            class="flex items-center justify-between border-b border-solid border-(--cv-surface-variant) pb-(--cv-space-md) last:border-b-0 last:pb-0"
+          >
+            <span class="text-(length:--cv-font-size-md) text-(--cv-on-surface-variant)">{{ row.label }}</span>
+            <span
+              class="break-all text-right text-(--cv-on-surface)"
+              :class="row.code && 'font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm)'"
+            >{{ row.value }}</span>
           </div>
         </div>
       </div>
@@ -58,10 +91,12 @@
     <!-- 3. 发送请求日志 -->
     <h2 class="cv-section-title">3. 发送请求日志 (发送前快照)</h2>
     <div class="cv-section-body">
-      <div class="cv-log-container">
-        <div class="cv-prompt-preview">
-          <pre class="preview-content">{{ sentPromptText || '尚未发送测试请求' }}</pre>
-        </div>
+      <div
+        class="overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl)"
+      >
+        <pre
+          class="m-0 max-h-[18.75rem] overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm) text-(--cv-on-surface) break-all"
+        >{{ sentPromptText || '尚未发送测试请求' }}</pre>
       </div>
     </div>
   </div>
@@ -228,119 +263,3 @@ function applyTestResponse(rawResult: string): void {
   testResponseRaw.value = rawResult;
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-test-tab {
-  @apply flex flex-col gap-0;
-}
-
-.cv-action-row {
-  margin-top: var(--cv-space-5xl);
-  margin-bottom: 0;
-}
-
-.cv-log-container {
-  @apply overflow-hidden;
-  background: var(--cv-surface-container);
-  border: var(--cv-border-width) solid var(--cv-surface-variant);
-  border-radius: var(--cv-radius);
-  padding: var(--cv-space-2xl);
-}
-
-.cv-log-param-grid {
-  @apply flex flex-col;
-  gap: var(--cv-space-xl);
-}
-
-.cv-log-param-row {
-  @apply flex items-center justify-between;
-  border-bottom: 1px solid var(--cv-surface-variant);
-  padding-bottom: var(--cv-space-md);
-}
-
-.cv-log-param-row:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.param-label {
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-md);
-}
-
-.param-value {
-  @apply break-all text-right;
-  color: var(--cv-on-surface);
-}
-
-.code-font {
-  font-family: Consolas, Monaco, monospace;
-  font-size: var(--cv-font-size-sm);
-}
-
-.preview-header {
-  font-size: var(--cv-font-size-md);
-  color: var(--cv-on-surface-variant);
-  margin-bottom: var(--cv-space-md);
-  font-weight: 600;
-}
-
-.preview-content {
-  @apply m-0 overflow-y-auto whitespace-pre-wrap break-all;
-  background: var(--cv-surface-variant);
-  border: var(--cv-border-width) solid var(--cv-surface-variant);
-  color: var(--cv-on-surface);
-  font-family: Consolas, Monaco, monospace;
-  font-size: var(--cv-font-size-sm);
-  padding: var(--cv-space-2xl);
-  border-radius: var(--cv-radius-sm);
-  max-height: 300px;
-}
-
-.cv-test-state {
-  @apply flex items-center justify-center;
-  padding: var(--cv-space-3xl) 0;
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-lg);
-}
-
-.cv-test-state-success {
-  @apply flex flex-col;
-  gap: var(--cv-space-xl);
-}
-
-.success-banner {
-  background: rgba(40, 167, 69, 0.15);
-  border: 1px solid rgba(40, 167, 69, 0.3);
-  color: #28a745;
-  padding: var(--cv-space-xl);
-  border-radius: var(--cv-radius-sm);
-  font-weight: 600;
-  font-size: var(--cv-font-size-lg);
-}
-
-.response-raw {
-  max-height: 200px;
-}
-
-.cv-test-state-error {
-  @apply flex flex-col;
-  gap: var(--cv-space-xl);
-}
-
-.error-banner {
-  background: rgba(220, 53, 69, 0.15);
-  border: 1px solid rgba(220, 53, 69, 0.3);
-  color: #dc3545;
-  padding: var(--cv-space-xl);
-  border-radius: var(--cv-radius-sm);
-  font-weight: 600;
-  font-size: var(--cv-font-size-lg);
-}
-
-.error-text {
-  color: #dc3545;
-}
-</style>

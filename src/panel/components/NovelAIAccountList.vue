@@ -1,19 +1,19 @@
 <template>
-  <section class="cv-account-list">
-    <div class="cv-account-list__header">
-      <div class="cv-account-list__title">账号列表</div>
-      <div class="cv-account-list__actions">
+  <section class="flex w-full flex-col gap-(--cv-space-4xl)">
+    <div class="flex w-full flex-col gap-(--cv-space-md)">
+      <div class="shrink-0 whitespace-nowrap font-semibold text-(--cv-on-surface)">账号列表</div>
+      <div class="mt-(--cv-space-sm) flex justify-start">
         <Button label="新增账号" icon="fa-solid fa-plus" size="small" @click="addAccount" />
       </div>
     </div>
 
-    <div v-if="accounts.length" class="cv-account-list__items">
+    <div v-if="accounts.length" class="flex flex-col gap-(--cv-space-xl)">
       <CollapsiblePanelItem
         v-for="(account, index) in accounts"
         :key="account.id"
         :title="getAccountTitle(account, index)"
         :collapsed="isCollapsed(account.id)"
-        :class="{ 'cv-account-item--disabled': !account.enabled }"
+        :class="{ 'opacity-[0.62]': !account.enabled }"
         @toggle="toggleCollapse(account.id)"
       >
         <template #title>
@@ -35,7 +35,9 @@
             />
           </template>
           <template v-else>
-            <span class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)">
+            <span
+              class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)"
+            >
               {{ getAccountTitle(account, index) }}
             </span>
             <CvMiniButton
@@ -76,7 +78,9 @@
           />
         </template>
 
-        <div class="cv-account-item__body">
+        <div
+          class="grid grid-cols-1 gap-(--cv-space-4xl) border-t border-(length:--cv-border-width) border-(--cv-surface-variant) p-(--cv-space-2xl) md:grid-cols-2"
+        >
           <label class="cv-field">
             <span>NovelAI URL</span>
             <InputText v-model="account.url" :placeholder="NOVELAI_DEFAULT_URL" />
@@ -89,7 +93,10 @@
       </CollapsiblePanelItem>
     </div>
 
-    <div v-else class="cv-account-list__empty">
+    <div
+      v-else
+      class="flex min-h-36 flex-col items-center justify-center gap-(--cv-space-3xl) rounded-(--cv-radius) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) p-(--cv-space-5xl) text-center text-(--cv-on-surface-variant) [&_i]:text-[1.2rem]"
+    >
       <i class="fa-regular fa-address-card" />
       <span>当前没有账号，新增后即可参与路由与故障转移</span>
     </div>
@@ -201,65 +208,3 @@ function removeAccount(index: number): void {
   accounts.value.splice(index, 1);
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-account-list {
-  @apply flex w-full flex-col;
-  gap: var(--cv-space-4xl);
-}
-
-.cv-account-list__header {
-  @apply flex w-full flex-col;
-  gap: var(--cv-space-md);
-}
-
-.cv-account-list__title {
-  @apply shrink-0 whitespace-nowrap;
-  color: var(--cv-on-surface);
-  font-weight: 600;
-}
-
-.cv-account-list__actions {
-  @apply flex justify-start;
-  margin-top: var(--cv-space-sm);
-}
-
-.cv-account-list__items {
-  @apply flex flex-col;
-  gap: var(--cv-space-xl);
-}
-
-.cv-account-item__body {
-  @apply grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--cv-space-4xl);
-  padding: var(--cv-space-2xl);
-  border-top: var(--cv-border-width) solid var(--cv-surface-variant);
-}
-
-.cv-account-list__empty {
-  @apply flex flex-col items-center justify-center text-center;
-  gap: var(--cv-space-3xl);
-  min-height: 9rem;
-  padding: var(--cv-space-5xl);
-  border: var(--cv-border-width) dashed var(--cv-surface-variant);
-  border-radius: var(--cv-radius);
-  color: var(--cv-on-surface-variant);
-}
-
-.cv-account-list__empty > i {
-  font-size: 1.2rem;
-}
-
-.cv-account-item--disabled {
-  opacity: 0.62;
-}
-
-@media (max-width: 48rem) {
-  .cv-account-item__body {
-    grid-template-columns: 1fr;
-  }
-}
-</style>

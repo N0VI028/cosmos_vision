@@ -1,33 +1,45 @@
 <template>
-  <div v-if="entries.length > 0" class="cv-message-list-container">
+  <div v-if="entries.length > 0" class="cv-message-list-container mb-(--cv-space-5xl)">
     <div
       ref="listEl"
-      class="cv-message-list custom-scrollbar"
+      class="cv-message-list group/list custom-scrollbar w-full overflow-y-auto"
       :class="{ 'is-dragging': isDragging }"
       :style="{ maxHeight: scrollHeight }"
     >
       <VueDraggable
         v-model="entries"
         v-bind="dragOptions"
-        class="cv-message-list-body"
+        class="cv-message-list-body flex w-full flex-col gap-(--cv-space-sm)"
         @start="isDragging = true"
         @end="isDragging = false"
       >
         <section
           v-for="entry in entries"
           :key="entry.id"
-          class="cv-message-row"
-          :class="{ 'is-disabled': entry.enabled === false }"
+          class="cv-message-row group/row grid grid-cols-[auto_minmax(0,1fr)] items-stretch overflow-hidden rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) transition-[border-color,box-shadow] duration-150 ease-in-out [content-visibility:auto] [contain-intrinsic-block-size:47px] hover:border-(--cv-outline) hover:shadow-[0_var(--cv-space-sm)_var(--cv-space-3xl)_color-mix(in_srgb,var(--cv-on-surface)_12%,transparent)] group-[.is-dragging]/list:transition-none"
+          :class="{
+            'is-disabled opacity-55 bg-[color-mix(in_srgb,var(--cv-surface-container-low)_60%,transparent)] [&_.cv-indicator]:bg-[color-mix(in_srgb,var(--cv-on-surface)_20%,transparent)] [&_.cv-indicator]:shadow-none':
+              entry.enabled === false,
+          }"
           :data-role="getRole?.(entry)"
         >
-          <button type="button" class="cv-message-handle" title="拖拽排序" aria-label="拖拽排序">
+          <button
+            type="button"
+            class="cv-message-handle flex w-8 cursor-grab touch-none select-none items-center justify-center border-0 border-r-(length:--cv-border-width) border-r-solid border-r-(--cv-surface-variant) bg-transparent p-0 text-[0.8rem] text-[color-mix(in_srgb,var(--cv-on-surface)_25%,transparent)] transition-[color,background] duration-150 ease-in-out group-hover/row:bg-[color-mix(in_srgb,var(--cv-on-surface)_3%,transparent)] group-hover/row:text-[color-mix(in_srgb,var(--cv-on-surface)_50%,transparent)] hover:text-(--p-primary-color)! active:cursor-grabbing"
+            title="拖拽排序"
+            aria-label="拖拽排序"
+          >
             <i class="fa-solid fa-grip-vertical" />
           </button>
-          <div class="cv-message-item">
-            <div class="cv-message-main">
+          <div
+            class="cv-message-item flex min-w-0 items-center justify-between gap-(--cv-space-xl) px-(--cv-space-xl) py-(--cv-space-md)"
+          >
+            <div class="cv-message-main flex min-w-0 flex-1 items-center gap-(--cv-space-xl)">
               <slot name="main" :entry="entry" />
             </div>
-            <div class="cv-message-actions">
+            <div
+              class="cv-message-actions flex items-center gap-(--cv-space-lg) opacity-35 transition-opacity duration-200 ease-in-out group-hover/row:opacity-100 group-[.is-dragging]/list:pointer-events-none group-[.is-dragging]/list:opacity-35"
+            >
               <slot name="actions" :entry="entry" />
             </div>
           </div>
@@ -35,7 +47,12 @@
       </VueDraggable>
     </div>
   </div>
-  <div v-else class="cv-empty-hint">{{ emptyText }}</div>
+  <div
+    v-else
+    class="cv-empty-hint mb-(--cv-space-5xl) flex flex-col items-center justify-center gap-(--cv-space-3xl) p-(--cv-space-8xl) text-center text-(--p-text-muted-color)"
+  >
+    {{ emptyText }}
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -89,124 +106,10 @@ function scrollToEnd(): void {
 defineExpose({ scrollToEnd });
 </script>
 
-<style scoped>
-@reference '../../global.css';
-
-.cv-message-list-container {
-  @apply mb-(--cv-space-5xl);
-}
-
-.cv-message-list {
-  @apply w-full overflow-y-auto;
-}
-
-.cv-message-list-body {
-  @apply flex w-full flex-col;
-  gap: var(--cv-space-sm);
-}
-
-.cv-message-row {
-  @apply grid overflow-hidden;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: stretch;
-  content-visibility: auto;
-  contain-intrinsic-block-size: 47px;
-  border: var(--cv-border-width) solid var(--cv-surface-variant);
-  border-radius: var(--cv-radius-sm);
-  background: var(--cv-surface-container-low);
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.cv-message-list.is-dragging .cv-message-row {
-  transition: none;
-}
-
-.cv-message-row.is-disabled {
-  opacity: 0.55;
-  background: color-mix(in srgb, var(--cv-surface-container-low) 60%, transparent);
-}
-
-.cv-message-row.is-disabled :deep(.cv-indicator) {
-  background: color-mix(in srgb, var(--cv-on-surface) 20%, transparent);
-  box-shadow: none;
-}
-
-.cv-message-row:hover {
-  border-color: var(--cv-outline);
-  box-shadow: 0 var(--cv-space-sm) var(--cv-space-3xl) color-mix(in srgb, var(--cv-on-surface) 12%, transparent);
-}
-
-.cv-message-row-chosen {
-  border-color: var(--p-primary-color);
-  opacity: 0.85;
-}
-
-.cv-message-handle {
-  @apply flex cursor-grab select-none items-center justify-center;
-  width: 2rem;
-  padding: 0;
-  border: none;
-  border-right: var(--cv-border-width) solid var(--cv-surface-variant);
-  background: transparent;
-  color: color-mix(in srgb, var(--cv-on-surface) 25%, transparent);
-  font-size: 0.8rem;
-  touch-action: none;
-  transition:
-    color 0.15s ease,
-    background 0.15s ease;
-}
-
-.cv-message-row:hover .cv-message-handle {
-  background: color-mix(in srgb, var(--cv-on-surface) 3%, transparent);
-  color: color-mix(in srgb, var(--cv-on-surface) 50%, transparent);
-}
-
-.cv-message-handle:hover {
-  color: var(--p-primary-color) !important;
-}
-
-.cv-message-handle:active {
-  cursor: grabbing;
-}
-
-.cv-message-item {
-  @apply flex min-w-0 items-center justify-between;
-  gap: var(--cv-space-xl);
-  padding: var(--cv-space-md) var(--cv-space-xl);
-}
-
-.cv-message-main {
-  @apply flex min-w-0 flex-1 items-center;
-  gap: var(--cv-space-xl);
-}
-
-.cv-message-actions {
-  @apply flex items-center;
-  gap: var(--cv-space-lg);
-  opacity: 0.35;
-  transition: opacity 0.2s ease;
-}
-
-.cv-message-row:hover .cv-message-actions {
-  opacity: 1;
-}
-
-.cv-message-list.is-dragging .cv-message-actions {
-  opacity: 0.35;
-  pointer-events: none;
-}
-
-.cv-empty-hint {
-  @apply mb-(--cv-space-5xl) flex flex-col items-center justify-center text-center;
-  gap: var(--cv-space-3xl);
-  padding: var(--cv-space-8xl);
-  color: var(--p-text-muted-color);
-}
-</style>
-
-<!-- ghost/fallback 可能挂到 body，需非 scoped -->
+<!--
+  ghost/fallback/chosen 可能挂到 body 或由 Sortable 动态切换 class，scoped 无法命中。
+  迁移条件：拖拽库改为不依赖 body 浮层且 class 可挂在组件根内时，可改为行内工具类。
+-->
 <style>
 .cv-message-row-ghost {
   opacity: 1 !important;
@@ -218,6 +121,11 @@ defineExpose({ scrollToEnd });
 
 .cv-message-row-ghost > * {
   opacity: 0;
+}
+
+.cv-message-row-chosen {
+  border-color: var(--p-primary-color);
+  opacity: 0.85;
 }
 
 .cv-message-row-fallback {

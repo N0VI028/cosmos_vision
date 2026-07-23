@@ -39,12 +39,16 @@ const cardPt = {
   body: { class: 'cv-data-card-body' },
   content: { class: 'cv-data-card-content' },
 } satisfies CardPassThroughOptions;
-const cardClass = computed(() => ({
-  'cv-data-card': true,
-  'cv-data-card--selecting': props.selecting,
-  'cv-data-card--selected': props.selected,
-  'cv-data-card--disabled': props.disabled,
-}));
+
+const cardClass = computed(() => [
+  // 语义锚点 + 布局；选中/禁用/焦点用工具类表达
+  'cv-data-card relative min-w-0 overflow-hidden border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) transition-[border-color,background] duration-150 ease-in-out',
+  'focus-visible:outline focus-visible:outline-(length:--p-focus-ring-width,0.1333em) focus-visible:outline-(--p-focus-ring-style,solid) focus-visible:outline-[color:var(--p-focus-ring-color,color-mix(in_srgb,var(--cv-primary-container)_28%,transparent))] focus-visible:outline-offset-(--p-focus-ring-offset,0.1333em)',
+  props.selecting && 'cursor-pointer',
+  props.selected &&
+    'border-(--cv-primary-container) bg-[color-mix(in_srgb,var(--cv-primary-container)_10%,var(--cv-surface-container-low))]',
+  props.disabled && 'cursor-not-allowed opacity-[0.68]',
+]);
 
 /**
  * 处理选择模式下的卡片点击
@@ -62,35 +66,3 @@ function handleKeyboardToggle(): void {
   emit('toggle');
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-data-card {
-  @apply relative min-w-0 overflow-hidden;
-  border: var(--cv-border-width) solid var(--cv-surface-variant);
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
-}
-
-.cv-data-card--selecting {
-  @apply cursor-pointer;
-}
-
-.cv-data-card--selected {
-  border-color: var(--cv-primary-container);
-  background: color-mix(in srgb, var(--cv-primary-container) 10%, var(--cv-surface-container-low));
-}
-
-.cv-data-card--disabled {
-  @apply cursor-not-allowed;
-  opacity: 0.68;
-}
-
-.cv-data-card:focus-visible {
-  outline: var(--p-focus-ring-width, 0.1333em) var(--p-focus-ring-style, solid)
-    var(--p-focus-ring-color, color-mix(in srgb, var(--cv-primary-container) 28%, transparent));
-  outline-offset: var(--p-focus-ring-offset, 0.1333em);
-}
-</style>

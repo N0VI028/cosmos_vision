@@ -1,9 +1,9 @@
 <template>
-  <div class="cv-lora-title-row">
+  <div class="mb-(--cv-space-3xl) flex items-end gap-(--cv-space-md) [&_.cv-section-title]:mb-0">
     <h2 class="cv-section-title">LoRA 库</h2>
     <i
-      class="fa-solid fa-rotate cv-lora-refresh-icon"
-      :class="{ 'is-loading': props.isLoadingLoras }"
+      class="fa-solid fa-rotate cursor-pointer text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-colors duration-200 ease-in-out hover:text-(--p-primary-color)"
+      :class="{ 'animate-spin': props.isLoadingLoras }"
       role="button"
       tabindex="0"
       aria-label="刷新 LoRA 库"
@@ -24,8 +24,12 @@
         @delete-preset="deletePreset"
       />
 
-      <Fluid v-if="activePreset?.loras.length" class="cv-lora-list">
-        <div v-for="lora in activePreset.loras" :key="lora.id" class="cv-lora-row">
+      <Fluid v-if="activePreset?.loras.length" class="flex flex-col gap-(--cv-space-xl)">
+        <div
+          v-for="lora in activePreset.loras"
+          :key="lora.id"
+          class="grid items-center gap-(--cv-space-md) border-b border-(--cv-surface-variant) pb-(--cv-space-lg) last:border-b-0 last:pb-0 max-[32rem]:grid-cols-[auto_minmax(0,1fr)_auto] max-[32rem]:[&_.cv-lora-strength]:col-start-2 grid-cols-[auto_minmax(0,1fr)_5.75rem_auto]"
+        >
           <ToggleSwitch
             :model-value="lora.enabled"
             class="self-center"
@@ -65,15 +69,24 @@
             severity="danger"
             variant="outlined"
             rounded
-            class="cv-lora-delete"
+            class="self-center"
             aria-label="删除 LoRA"
             @click="removeLora(lora.id)"
           />
         </div>
       </Fluid>
-      <div v-else class="cv-empty-lora-state">当前分组暂无 LoRA</div>
+      <div
+        v-else
+        class="rounded-(--cv-radius) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) p-(--cv-space-xl) text-center text-(--cv-on-surface-variant)"
+      >
+        当前分组暂无 LoRA
+      </div>
 
-      <button type="button" class="cv-lora-add-button" @click="addLora">
+      <button
+        type="button"
+        class="mb-(--cv-space-lg) flex w-full cursor-pointer items-center justify-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)] py-(--cv-space-md) text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant) transition-all duration-200 ease-in-out hover:border-(--cv-outline) hover:bg-(--cv-surface-container-low) hover:text-(--p-primary-color)"
+        @click="addLora"
+      >
         <i class="fa-solid fa-plus" />
         添加 LoRA
       </button>
@@ -241,62 +254,61 @@ function updatePreset(id: string, updater: (preset: ComfyUILoraPreset) => ComfyU
  * @param activePresetId 新激活预设组 ID
  */
 function emitPresetSettings(presets: ComfyUILoraPreset[], activePresetId: string): void {
-  emit('update:preset-settings', { activePresetId, presets });
+  emit('update:preset-settings', { presets, activePresetId });
 }
 
 /**
  * 创建空白 LoRA 条目
- * @returns 可编辑的 LoRA 条目
+ * @returns 空白 LoRA 设置
  */
 function createBlankLora(): ComfyUILoraSetting {
   return createComfyUILoraSetting(uuidv4());
 }
 
 /**
- * 克隆单个 LoRA 条目
- * @param lora 原始 LoRA 条目
- * @returns 克隆后的 LoRA 条目
+ * 克隆 LoRA 条目
+ * @param lora 源条目
+ * @returns 新条目
  */
 function cloneLoraSetting(lora: ComfyUILoraSetting): ComfyUILoraSetting {
   return { ...lora, id: uuidv4() };
 }
 
 /**
- * 规范化 LoRA 强度输入
- * @param value 输入框原始值
- * @returns 可持久化的强度数值
+ * 规范化强度值
+ * @param value 输入值
+ * @returns 合法强度
  */
 function normalizeStrength(value: number | null | undefined): number {
-  return Number.isFinite(value) ? Number(value) : 1;
+  if (typeof value !== 'number' || Number.isNaN(value)) return 1;
+  return Math.min(5, Math.max(-5, value));
 }
 
 /**
- * 请求用户输入预设组名称
- * @param message 提示语
- * @param defaultValue 默认名称
- * @returns 输入后的名称
+ * 读取预设组显示名
+ * @param preset 预设组
+ * @returns 名称
+ */
+function getPresetName(preset: ComfyUILoraPreset): string {
+  return preset.name?.trim() || '未命名';
+}
+
+/**
+ * 询问预设组名称
+ * @param message 提示文案
+ * @param defaultValue 默认值
+ * @returns 名称或 null
  */
 async function askPresetName(message: string, defaultValue: string): Promise<string | null> {
-  if (!showPrompt) return null;
-  const name = await showPrompt({ message, defaultValue });
-  if (name === null) return null;
-  const trimmed = name.trim();
-  if (!trimmed) toastr.error('预设组名称不能为空');
+  if (!showPrompt) return defaultValue;
+  const name = await showPrompt({ title: 'LoRA 预设组', message, defaultValue });
+  const trimmed = name?.trim() ?? '';
   return trimmed || null;
 }
 
 /**
- * 读取预设组显示名称
- * @param preset 预设组
- * @returns 显示名称
- */
-function getPresetName(preset: ComfyUILoraPreset): string {
-  return preset.name?.trim() || '未命名预设组';
-}
-
-/**
- * 读取删除后的可用激活预设组 ID
- * @param presets 当前预设组列表
+ * 删除后回退到可用预设组
+ * @param presets 剩余预设组
  * @param preferredId 期望保留的预设组 ID
  * @returns 可用预设组 ID
  */
@@ -309,95 +321,3 @@ function getFallbackPresetId(presets: ComfyUILoraPreset[], preferredId: string):
   );
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-lora-title-row {
-  @apply mb-[var(--cv-space-3xl)] flex items-end;
-  gap: var(--cv-space-md);
-}
-
-.cv-lora-title-row > .cv-section-title {
-  @apply mb-0;
-}
-
-.cv-lora-refresh-icon {
-  font-size: var(--cv-font-size-xs);
-  color: var(--cv-on-surface-variant);
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.cv-lora-refresh-icon:hover {
-  color: var(--p-primary-color);
-}
-
-.cv-lora-refresh-icon.is-loading {
-  animation: cv-lora-spin 0.8s linear infinite;
-}
-
-@keyframes cv-lora-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.cv-lora-add-button {
-  @apply mb-[var(--cv-space-lg)] flex w-full cursor-pointer items-center justify-center;
-  gap: var(--cv-space-sm);
-  padding: var(--cv-space-md) 0;
-  background: color-mix(in srgb, var(--cv-surface-container-low) 42%, transparent);
-  border: var(--cv-border-width) dashed var(--cv-surface-variant);
-  border-radius: var(--cv-radius-sm);
-  color: var(--cv-on-surface-variant);
-  transition: all 0.2s ease;
-  font-size: var(--cv-font-size-sm);
-}
-
-.cv-lora-add-button:hover {
-  background: var(--cv-surface-container-low);
-  color: var(--p-primary-color);
-  border-color: var(--cv-outline);
-}
-
-.cv-lora-list {
-  @apply flex flex-col;
-  gap: var(--cv-space-xl);
-}
-
-.cv-lora-row {
-  @apply grid items-center;
-  grid-template-columns: auto minmax(0, 1fr) 5.75rem auto;
-  gap: var(--cv-space-md);
-  padding-bottom: var(--cv-space-lg);
-  border-bottom: 1px solid var(--cv-surface-variant);
-}
-
-.cv-lora-row:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.cv-lora-delete {
-  @apply self-center;
-}
-
-.cv-empty-lora-state {
-  @apply text-center;
-  color: var(--cv-on-surface-variant);
-  padding: var(--cv-space-xl);
-  border: var(--cv-border-width) dashed var(--cv-surface-variant);
-  border-radius: var(--cv-radius);
-}
-
-@media (max-width: 32rem) {
-  .cv-lora-row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-  }
-
-  .cv-lora-strength {
-    grid-column: 2;
-  }
-}
-</style>

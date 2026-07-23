@@ -1,7 +1,7 @@
 <template>
   <div
     ref="rootEl"
-    class="cv-workflow-canvas"
+    class="relative h-full w-full cursor-grab overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-outline) bg-(--cv-surface-container-low) active:cursor-grabbing"
     :style="canvasStyle"
     @wheel.prevent="onWheel"
     @pointerdown="onPointerDown"
@@ -9,33 +9,43 @@
     @pointerup="onPointerUp"
     @pointercancel="onPointerUp"
   >
-    <div class="cv-workflow-canvas__viewport" :style="viewportStyle">
-      <svg class="cv-workflow-canvas__edges" :width="layout.width" :height="layout.height">
+    <div class="relative origin-top-left" :style="viewportStyle">
+      <svg class="pointer-events-none absolute inset-0 overflow-visible" :width="layout.width" :height="layout.height">
         <path
           v-for="edge in layout.edges"
           :key="edge.id"
-          class="cv-workflow-canvas__edge"
           :d="edgePath(edge)"
           fill="none"
+          stroke="color-mix(in srgb, var(--cv-primary-container) 55%, var(--cv-outline))"
+          stroke-width="1.5"
         />
       </svg>
       <button
         v-for="node in layout.nodes"
         :key="node.id"
         type="button"
-        class="cv-workflow-canvas__node"
+        class="absolute flex cursor-pointer flex-col items-start justify-center gap-(--cv-space-xs) border border-solid px-(--cv-space-lg) py-(--cv-space-md) text-left text-(--cv-on-surface)"
         :class="nodeStates[node.id]?.classes"
         :style="nodeStyle(node)"
         @click.stop="emit('select', node.id)"
       >
-        <span class="cv-workflow-canvas__node-title">
-          <i v-if="nodeStates[node.id]?.icon" :class="['cv-workflow-canvas__node-icon', nodeStates[node.id].icon]" aria-hidden="true"></i>
+        <span class="flex w-full items-center truncate text-(length:--cv-font-size-sm) font-semibold">
+          <i
+            v-if="nodeStates[node.id]?.icon"
+            :class="['mr-1.5 shrink-0', nodeStates[node.id].iconColor, nodeStates[node.id].icon]"
+            aria-hidden="true"
+          ></i>
           {{ node.title }}
         </span>
-        <span class="cv-workflow-canvas__node-id">#{{ node.id }}</span>
+        <span class="text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)">#{{ node.id }}</span>
       </button>
     </div>
-    <div v-if="!layout.nodes.length" class="cv-workflow-canvas__empty">无可显示节点</div>
+    <div
+      v-if="!layout.nodes.length"
+      class="absolute inset-0 flex items-center justify-center text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant)"
+    >
+      无可显示节点
+    </div>
   </div>
 </template>
 
@@ -50,11 +60,50 @@ const props = defineProps<{
   workflow?: ComfyUIWorkflow | null;
 }>();
 
-/** 节点绑定状态、样式类及对应图标名 */
+/** 节点绑定状态、样式类及对应图标 */
 interface NodeBindingState {
-  classes: Record<string, boolean>;
+  classes: string;
   icon: string;
+  iconColor: string;
 }
+
+/** 默认节点表面（与主题态互斥，避免 Tailwind 同属性冲突） */
+const NODE_DEFAULT =
+  'rounded-(--cv-radius-sm) border-(--cv-outline) bg-(--cv-surface-container-lowest)';
+
+const NODE_SELECTED =
+  'rounded-(--cv-radius-sm) border-(--cv-primary-container) bg-[color-mix(in_srgb,var(--cv-primary-container)_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_var(--cv-primary-container)]';
+
+const NODE_THEMES = {
+  lora: {
+    idle:
+      'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,#9333ea_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,#9333ea_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,#9333ea_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,#9333ea_70%,var(--cv-outline))]',
+    selected:
+      'rounded-(--cv-radius-sm) border-[#9333ea] bg-[color-mix(in_srgb,#9333ea_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_#9333ea]',
+    icon: 'text-[#a855f7]',
+  },
+  positive: {
+    idle:
+      'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,#10b981_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,#10b981_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,#10b981_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,#10b981_70%,var(--cv-outline))]',
+    selected:
+      'rounded-(--cv-radius-sm) border-[#10b981] bg-[color-mix(in_srgb,#10b981_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_#10b981]',
+    icon: 'text-[#10b981]',
+  },
+  negative: {
+    idle:
+      'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,#ef4444_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,#ef4444_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,#ef4444_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,#ef4444_70%,var(--cv-outline))]',
+    selected:
+      'rounded-(--cv-radius-sm) border-[#ef4444] bg-[color-mix(in_srgb,#ef4444_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_#ef4444]',
+    icon: 'text-[#ef4444]',
+  },
+  image: {
+    idle:
+      'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,#3b82f6_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,#3b82f6_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,#3b82f6_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,#3b82f6_70%,var(--cv-outline))]',
+    selected:
+      'rounded-(--cv-radius-sm) border-[#3b82f6] bg-[color-mix(in_srgb,#3b82f6_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_#3b82f6]',
+    icon: 'text-[#3b82f6]',
+  },
+} as const;
 
 /**
  * 汇总并缓存所有节点的绑定状态、样式类及对应图标名
@@ -65,49 +114,72 @@ const nodeStates = computed(() => {
 
   for (const node of props.layout.nodes) {
     const isSelected = node.id === props.selectedNodeId;
-    const defaultState: NodeBindingState = {
-      classes: { 'is-selected': isSelected },
-      icon: '',
-    };
-
-    if (!workflowObj) {
-      states[node.id] = defaultState;
+    if (!workflowObj?.[node.id]) {
+      states[node.id] = {
+        classes: isSelected ? NODE_SELECTED : NODE_DEFAULT,
+        icon: '',
+        iconColor: '',
+      };
       continue;
     }
 
     const rawNode = workflowObj[node.id];
-    if (!rawNode) {
-      states[node.id] = defaultState;
-      continue;
-    }
-
     const meta = readNodeMeta(rawNode);
     const promptBindings = Object.values(meta.promptBindings ?? {});
-    const isLora = isSupportedLoraNode(rawNode);
-    const isPositive = promptBindings.includes('positive');
-    const isNegative = promptBindings.includes('negative');
-    const isImageOutput = !!meta.imageOutput;
-
-    let icon = '';
-    if (isLora) icon = 'fa-solid fa-puzzle-piece';
-    else if (isPositive) icon = 'fa-solid fa-circle-plus';
-    else if (isNegative) icon = 'fa-solid fa-circle-minus';
-    else if (isImageOutput) icon = 'fa-solid fa-image';
-
-    states[node.id] = {
-      classes: {
-        'is-selected': isSelected,
-        'is-lora': isLora,
-        'is-positive-prompt': isPositive,
-        'is-negative-prompt': isNegative,
-        'is-image-output': isImageOutput,
-      },
-      icon,
-    };
+    const themeKey = resolveNodeThemeKey({
+      isLora: isSupportedLoraNode(rawNode),
+      isPositive: promptBindings.includes('positive'),
+      isNegative: promptBindings.includes('negative'),
+      isImageOutput: !!meta.imageOutput,
+    });
+    states[node.id] = buildNodeState(themeKey, isSelected);
   }
 
   return states;
 });
+
+/**
+ * 解析节点主题键
+ */
+function resolveNodeThemeKey(flags: {
+  isLora: boolean;
+  isPositive: boolean;
+  isNegative: boolean;
+  isImageOutput: boolean;
+}): keyof typeof NODE_THEMES | null {
+  if (flags.isLora) return 'lora';
+  if (flags.isPositive) return 'positive';
+  if (flags.isNegative) return 'negative';
+  if (flags.isImageOutput) return 'image';
+  return null;
+}
+
+/**
+ * 构建节点样式状态
+ * @param themeKey 主题键
+ * @param isSelected 是否选中
+ */
+function buildNodeState(themeKey: keyof typeof NODE_THEMES | null, isSelected: boolean): NodeBindingState {
+  if (!themeKey) {
+    return {
+      classes: isSelected ? NODE_SELECTED : NODE_DEFAULT,
+      icon: '',
+      iconColor: '',
+    };
+  }
+  const theme = NODE_THEMES[themeKey];
+  const icons = {
+    lora: 'fa-solid fa-puzzle-piece',
+    positive: 'fa-solid fa-circle-plus',
+    negative: 'fa-solid fa-circle-minus',
+    image: 'fa-solid fa-image',
+  } as const;
+  return {
+    classes: isSelected ? theme.selected : theme.idle,
+    icon: icons[themeKey],
+    iconColor: theme.icon,
+  };
+}
 
 const emit = defineEmits<{
   select: [nodeId: string];
@@ -132,6 +204,8 @@ const viewportStyle = computed(() => ({
   transform: `translate(${offsetX.value}px, ${offsetY.value}px) scale(${scale.value})`,
   width: `${props.layout.width}px`,
   height: `${props.layout.height}px`,
+  transformOrigin: '0 0',
+  touchAction: 'none',
 }));
 
 /**
@@ -142,12 +216,19 @@ const canvasStyle = computed(() => {
     scale.value > 0.15 ? 'color-mix(in srgb, var(--cv-outline) 14%, transparent)' : 'transparent';
   const minorColor =
     scale.value > 0.35 ? 'color-mix(in srgb, var(--cv-outline) 6%, transparent)' : 'transparent';
+  const majorSize = `calc(100px * ${scale.value})`;
+  const minorSize = `calc(20px * ${scale.value})`;
+  const pos = `${offsetX.value}px ${offsetY.value}px`;
   return {
-    '--cv-offset-x': `${offsetX.value}px`,
-    '--cv-offset-y': `${offsetY.value}px`,
-    '--cv-scale': scale.value,
-    '--cv-grid-major-color': majorColor,
-    '--cv-grid-minor-color': minorColor,
+    touchAction: 'none',
+    backgroundImage: [
+      `linear-gradient(${majorColor} 1px, transparent 1px)`,
+      `linear-gradient(90deg, ${majorColor} 1px, transparent 1px)`,
+      `linear-gradient(${minorColor} 1px, transparent 1px)`,
+      `linear-gradient(90deg, ${minorColor} 1px, transparent 1px)`,
+    ].join(', '),
+    backgroundSize: [majorSize, majorSize, minorSize, minorSize].map(size => `${size} ${size}`).join(', '),
+    backgroundPosition: [pos, pos, pos, pos].join(', '),
   };
 });
 
@@ -198,6 +279,7 @@ function nodeStyle(node: ComfyUILayoutNode): Record<string, string> {
     top: `${node.y}px`,
     width: `${node.width}px`,
     height: `${node.height}px`,
+    touchAction: 'none',
   };
 }
 
@@ -316,7 +398,7 @@ function onPointerDown(event: PointerEvent): void {
     return;
   }
 
-  if ((event.target as HTMLElement).closest('.cv-workflow-canvas__node')) return;
+  if ((event.target as HTMLElement).closest('button')) return;
 
   dragging = true;
   lastX = event.clientX;
@@ -394,161 +476,3 @@ watch(
   { immediate: true },
 );
 </script>
-
-<style scoped>
-@reference '../../../global.css';
-
-.cv-workflow-canvas {
-  @apply relative overflow-hidden w-full h-full;
-  border: var(--cv-border-width) solid var(--cv-outline);
-  border-radius: var(--cv-radius);
-  background: var(--cv-surface-container-low);
-  background-image:
-    linear-gradient(var(--cv-grid-major-color, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, var(--cv-grid-major-color, transparent) 1px, transparent 1px),
-    linear-gradient(var(--cv-grid-minor-color, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, var(--cv-grid-minor-color, transparent) 1px, transparent 1px);
-  background-size:
-    calc(100px * var(--cv-scale, 1)) calc(100px * var(--cv-scale, 1)),
-    calc(100px * var(--cv-scale, 1)) calc(100px * var(--cv-scale, 1)),
-    calc(20px * var(--cv-scale, 1)) calc(20px * var(--cv-scale, 1)),
-    calc(20px * var(--cv-scale, 1)) calc(20px * var(--cv-scale, 1));
-  background-position:
-    var(--cv-offset-x, 0px) var(--cv-offset-y, 0px),
-    var(--cv-offset-x, 0px) var(--cv-offset-y, 0px),
-    var(--cv-offset-x, 0px) var(--cv-offset-y, 0px),
-    var(--cv-offset-x, 0px) var(--cv-offset-y, 0px);
-  cursor: grab;
-  touch-action: none;
-}
-
-.cv-workflow-canvas:active {
-  cursor: grabbing;
-}
-
-.cv-workflow-canvas__viewport {
-  @apply relative origin-top-left;
-  transform-origin: 0 0;
-  touch-action: none;
-}
-
-.cv-workflow-canvas__edges {
-  @apply absolute inset-0 pointer-events-none;
-  overflow: visible;
-}
-
-.cv-workflow-canvas__edge {
-  stroke: color-mix(in srgb, var(--cv-primary-container) 55%, var(--cv-outline));
-  stroke-width: 1.5;
-}
-
-.cv-workflow-canvas__node {
-  @apply absolute flex flex-col items-start justify-center text-left;
-  gap: var(--cv-space-xs);
-  padding: var(--cv-space-md) var(--cv-space-lg);
-  border: var(--cv-border-width) solid var(--cv-outline);
-  border-radius: var(--cv-radius-sm);
-  background: var(--cv-surface-container-lowest);
-  color: var(--cv-on-surface);
-  cursor: pointer;
-  touch-action: none;
-}
-
-.cv-workflow-canvas__node.is-selected {
-  border-color: var(--cv-primary-container);
-  box-shadow: 0 0 0 1px var(--cv-primary-container);
-  background: color-mix(in srgb, var(--cv-primary-container) 16%, var(--cv-surface-container-lowest));
-}
-
-.cv-workflow-canvas__node-title {
-  @apply truncate w-full flex items-center;
-  font-size: var(--cv-font-size-sm);
-  font-weight: 600;
-}
-
-.cv-workflow-canvas__node-icon {
-  margin-right: 0.375rem;
-  flex-shrink: 0;
-}
-
-.cv-workflow-canvas__node-id {
-  font-size: var(--cv-font-size-2xs);
-  color: var(--cv-on-surface-variant);
-}
-
-.cv-workflow-canvas__empty {
-  @apply absolute inset-0 flex items-center justify-center;
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-sm);
-}
-
-/* 特殊绑定节点高亮样式 */
-
-/* Lora 节点 */
-.cv-workflow-canvas__node.is-lora {
-  border-color: color-mix(in srgb, #9333ea 45%, var(--cv-outline));
-  background: linear-gradient(135deg, color-mix(in srgb, #9333ea 8%, var(--cv-surface-container-lowest)), color-mix(in srgb, #9333ea 2%, var(--cv-surface-container-lowest)));
-}
-.cv-workflow-canvas__node.is-lora .cv-workflow-canvas__node-icon {
-  color: #a855f7;
-}
-.cv-workflow-canvas__node.is-lora.is-selected {
-  border-color: #9333ea;
-  box-shadow: 0 0 0 1px #9333ea;
-  background: color-mix(in srgb, #9333ea 16%, var(--cv-surface-container-lowest));
-}
-.cv-workflow-canvas__node.is-lora:hover:not(.is-selected) {
-  border-color: color-mix(in srgb, #9333ea 70%, var(--cv-outline));
-}
-
-/* 正提示词节点 */
-.cv-workflow-canvas__node.is-positive-prompt {
-  border-color: color-mix(in srgb, #10b981 45%, var(--cv-outline));
-  background: linear-gradient(135deg, color-mix(in srgb, #10b981 8%, var(--cv-surface-container-lowest)), color-mix(in srgb, #10b981 2%, var(--cv-surface-container-lowest)));
-}
-.cv-workflow-canvas__node.is-positive-prompt .cv-workflow-canvas__node-icon {
-  color: #10b981;
-}
-.cv-workflow-canvas__node.is-positive-prompt.is-selected {
-  border-color: #10b981;
-  box-shadow: 0 0 0 1px #10b981;
-  background: color-mix(in srgb, #10b981 16%, var(--cv-surface-container-lowest));
-}
-.cv-workflow-canvas__node.is-positive-prompt:hover:not(.is-selected) {
-  border-color: color-mix(in srgb, #10b981 70%, var(--cv-outline));
-}
-
-/* 负提示词节点 */
-.cv-workflow-canvas__node.is-negative-prompt {
-  border-color: color-mix(in srgb, #ef4444 45%, var(--cv-outline));
-  background: linear-gradient(135deg, color-mix(in srgb, #ef4444 8%, var(--cv-surface-container-lowest)), color-mix(in srgb, #ef4444 2%, var(--cv-surface-container-lowest)));
-}
-.cv-workflow-canvas__node.is-negative-prompt .cv-workflow-canvas__node-icon {
-  color: #ef4444;
-}
-.cv-workflow-canvas__node.is-negative-prompt.is-selected {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 1px #ef4444;
-  background: color-mix(in srgb, #ef4444 16%, var(--cv-surface-container-lowest));
-}
-.cv-workflow-canvas__node.is-negative-prompt:hover:not(.is-selected) {
-  border-color: color-mix(in srgb, #ef4444 70%, var(--cv-outline));
-}
-
-/* 输出图片节点 */
-.cv-workflow-canvas__node.is-image-output {
-  border-color: color-mix(in srgb, #3b82f6 45%, var(--cv-outline));
-  background: linear-gradient(135deg, color-mix(in srgb, #3b82f6 8%, var(--cv-surface-container-lowest)), color-mix(in srgb, #3b82f6 2%, var(--cv-surface-container-lowest)));
-}
-.cv-workflow-canvas__node.is-image-output .cv-workflow-canvas__node-icon {
-  color: #3b82f6;
-}
-.cv-workflow-canvas__node.is-image-output.is-selected {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 1px #3b82f6;
-  background: color-mix(in srgb, #3b82f6 16%, var(--cv-surface-container-lowest));
-}
-.cv-workflow-canvas__node.is-image-output:hover:not(.is-selected) {
-  border-color: color-mix(in srgb, #3b82f6 70%, var(--cv-outline));
-}
-</style>

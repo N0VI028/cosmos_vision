@@ -1,5 +1,5 @@
 <template>
-  <label class="cv-field cv-trigger-mode-field">
+  <label class="cv-field min-w-0">
     <span>触发模式</span>
     <Select
       :model-value="topMode"
@@ -12,7 +12,8 @@
     />
   </label>
 
-  <label v-if="showConditionEditor" class="cv-field cv-trigger-match-field">
+  <!-- cv-trigger-match-field / cv-trigger-conditions-field：PromptLlmMessageList 任意后代布局锚点 -->
+  <label v-if="showConditionEditor" class="cv-field cv-trigger-match-field min-w-0">
     <span>匹配方式</span>
     <Select
       :model-value="conditionMatchMode"
@@ -25,7 +26,10 @@
     />
   </label>
 
-  <div v-if="showConditionEditor" class="cv-field cv-trigger-conditions-field">
+  <div
+    v-if="showConditionEditor"
+    class="cv-field cv-trigger-conditions-field flex w-full min-w-0 flex-col gap-(--cv-space-md)"
+  >
     <span>触发条件</span>
 
     <div class="cv-field-hint">{{ triggerMatchModeHint }}</div>
@@ -37,7 +41,9 @@
           <div
             class="flex min-w-0 flex-1 items-center gap-(--cv-space-lg) bg-(--cv-surface-container-low) p-(--cv-space-md) text-(--cv-on-surface) select-none transition-colors duration-200 hover:bg-(--cv-surface-container)"
           >
-            <span class="cv-trigger-accordion-summary min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+            <span
+              class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-sm) font-medium text-(--cv-on-surface)"
+            >
               {{ getConditionSummary(row) }}
             </span>
             <Button
@@ -46,14 +52,14 @@
               text
               size="small"
               aria-label="删除条件"
-              class="cv-trigger-delete-btn shrink-0"
+              class="shrink-0"
               @click.stop="removeConditionRow(index)"
             />
           </div>
         </AccordionHeader>
         <AccordionContent :pt="ACCORDION_CONTENT_PT">
-          <div class="cv-trigger-accordion-body">
-            <div class="cv-field cv-trigger-type-field">
+          <div class="flex flex-col gap-(--cv-space-lg) p-(--cv-space-lg)">
+            <div class="cv-field">
               <span>条件类型</span>
               <Select
                 :model-value="row.type"
@@ -66,7 +72,7 @@
               />
             </div>
 
-            <div class="cv-field cv-trigger-value-field">
+            <div class="cv-field">
               <span>配置内容</span>
 
               <!-- 关键词输入 -->
@@ -82,7 +88,7 @@
               />
 
               <!-- 模型选择 -->
-              <div v-else-if="row.type === 'model'" class="cv-trigger-model-control">
+              <div v-else-if="row.type === 'model'" class="flex min-w-0 items-center gap-(--cv-space-md)">
                 <Select
                   :model-value="row.value || null"
                   :options="buildModelOptions(row.value)"
@@ -124,7 +130,11 @@
       </AccordionPanel>
     </Accordion>
 
-    <button type="button" class="cv-add-condition-btn-flat-wide" @click="addConditionRow">
+    <button
+      type="button"
+      class="flex w-full cursor-pointer items-center justify-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)] py-(--cv-space-md) text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant) transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] hover:border-(--cv-outline) hover:bg-(--cv-surface-container-low) hover:text-(--p-primary-color) hover:shadow-[0_var(--cv-space-sm)_var(--cv-space-3xl)_color-mix(in_srgb,var(--cv-on-surface)_10%,transparent)]"
+      @click="addConditionRow"
+    >
       <i class="fa-solid fa-plus" /> 新增条件
     </button>
   </div>
@@ -499,53 +509,3 @@ function nextRowId(): string {
   return `trigger-row-${rowIdSeed}`;
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-trigger-mode-field,
-.cv-trigger-match-field {
-  @apply min-w-0;
-}
-
-.cv-trigger-conditions-field {
-  @apply flex w-full min-w-0 flex-col gap-(--cv-space-md);
-}
-
-/* header 布局已迁 slot 内层 Tailwind；summary 仅字重/字号 */
-.cv-trigger-accordion-summary {
-  font-weight: 500;
-  font-size: var(--cv-font-size-sm);
-  color: var(--cv-on-surface);
-}
-
-.cv-trigger-accordion-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--cv-space-lg);
-  padding: var(--cv-space-lg);
-}
-
-.cv-trigger-model-control {
-  @apply flex min-w-0 items-center gap-(--cv-space-md);
-}
-
-.cv-add-condition-btn-flat-wide {
-  @apply flex w-full cursor-pointer items-center justify-center;
-  gap: var(--cv-space-sm);
-  padding: var(--cv-space-md) 0;
-  border: var(--cv-border-width) dashed var(--cv-surface-variant);
-  border-radius: var(--cv-radius-sm);
-  background: color-mix(in srgb, var(--cv-surface-container-low) 42%, transparent);
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-sm);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.cv-add-condition-btn-flat-wide:hover {
-  border-color: var(--cv-outline);
-  background: var(--cv-surface-container-low);
-  color: var(--p-primary-color);
-  box-shadow: 0 var(--cv-space-sm) var(--cv-space-3xl) color-mix(in srgb, var(--cv-on-surface) 10%, transparent);
-}
-</style>

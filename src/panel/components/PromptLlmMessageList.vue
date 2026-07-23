@@ -6,29 +6,39 @@
     :get-role="entry => (entry as PromptLlmMessage).role"
   >
     <template #main="{ entry }">
-      <span class="cv-message-indicator cv-indicator" :class="getMessageTriggerToneClass(entry as PromptLlmMessage)" />
+      <!-- cv-indicator：PromptEntryList 禁用态 [&_.cv-indicator] 锚点 -->
+      <span
+        class="cv-message-indicator cv-indicator size-1.5 shrink-0 rounded-full"
+        :class="getMessageTriggerToneClass(entry as PromptLlmMessage)"
+      />
       <i
-        class="cv-message-role-icon"
+        class="shrink-0 text-(length:--cv-font-size-sm) text-[color-mix(in_srgb,var(--cv-on-surface)_55%,transparent)]"
         :class="ROLE_ICONS[(entry as PromptLlmMessage).role]"
         :title="ROLE_LABELS[(entry as PromptLlmMessage).role]"
       />
       <span class="sr-only">{{ ROLE_LABELS[(entry as PromptLlmMessage).role] }}</span>
-      <span v-if="isSourceMessage(entry as PromptLlmMessage)" class="cv-message-source-kind">
+      <span
+        v-if="isSourceMessage(entry as PromptLlmMessage)"
+        class="shrink-0 whitespace-nowrap text-(length:--cv-font-size-2xs) font-semibold uppercase tracking-normal text-(--cv-on-surface-variant)"
+      >
         {{ getMessageSourceLabel(entry as PromptLlmMessage) }}
       </span>
-      <span class="cv-message-title">{{ getMessageTitle(entry as PromptLlmMessage) }}</span>
+      <span
+        class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-md) font-medium text-(--cv-on-surface)"
+      >{{ getMessageTitle(entry as PromptLlmMessage) }}</span>
       <Tag
         v-if="shouldShowSourceStatus(entry as PromptLlmMessage)"
-        class="cv-status-tag-mini"
+        class="cv-status-tag-mini h-auto leading-none"
         :value="getSourceStatusText(entry as PromptLlmMessage)"
         :severity="getSourceStatusSeverity(entry as PromptLlmMessage)"
       />
     </template>
     <template #actions="{ entry }">
+      <!-- cv-message-toggle：伪元素滑块手柄，见残留 CSS -->
       <button
         type="button"
-        class="cv-message-toggle"
-        :class="{ 'is-enabled': entry.enabled !== false }"
+        class="cv-message-toggle relative h-4 w-[1.8rem] shrink-0 rounded-(--cv-radius-full) border-0 bg-(--cv-surface-variant) p-0 transition-[background] duration-150 ease-in-out"
+        :class="{ 'is-enabled bg-(--p-primary-color)': entry.enabled !== false }"
         role="switch"
         :aria-checked="entry.enabled !== false"
         aria-label="切换条目启用状态"
@@ -36,7 +46,7 @@
       />
       <button
         type="button"
-        class="cv-message-action-btn cv-message-edit-btn"
+        class="flex size-[1.8rem] cursor-pointer items-center justify-center rounded-(--cv-radius-sm) border-0 bg-transparent p-0 text-(length:--cv-font-size-sm) text-[color-mix(in_srgb,var(--cv-on-surface)_60%,transparent)] hover:bg-(--cv-surface-container-high) hover:text-(--cv-on-surface)"
         title="编辑条目"
         aria-label="编辑条目"
         @click="openMessageEditor(entry as PromptLlmMessage)"
@@ -45,7 +55,7 @@
       </button>
       <button
         type="button"
-        class="cv-message-action-btn cv-message-delete-btn"
+        class="flex size-[1.8rem] cursor-pointer items-center justify-center rounded-(--cv-radius-sm) border-0 bg-transparent p-0 text-(length:--cv-font-size-sm) text-(--p-red-500) hover:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)]"
         title="删除条目"
         aria-label="删除条目"
         @click="deleteMessage(entry.id)"
@@ -59,7 +69,7 @@
 
   <Dialog
     v-model:visible="isEditorVisible"
-    class="cv-message-editor-dialog"
+    class="flex flex-col"
     modal
     dismissable-mask
     :header="editorTitle"
@@ -67,7 +77,7 @@
     :pt="PROMPT_EDITOR_DIALOG_PT"
     @hide="closeMessageEditor"
   >
-    <div v-if="editorDraft" class="cv-message-editor">
+    <div v-if="editorDraft" class="flex flex-col gap-(--cv-space-3xl)">
       <label class="cv-field">
         <span>来源</span>
         <Select
@@ -84,8 +94,8 @@
       </label>
 
       <div v-if="editorDraft.kind === 'worldbook_entry'" class="cv-field-control">
-        <div class="cv-source-pair-row">
-          <label class="cv-field cv-source-pair-field">
+        <div class="grid grid-cols-1 gap-(--cv-space-md) min-[520px]:grid-cols-2">
+          <label class="cv-field min-w-0">
             <span>世界书</span>
             <Select
               :model-value="editorDraft.selectedWorldbookName"
@@ -99,7 +109,7 @@
               @update:model-value="updateSelectedWorldbookName"
             />
           </label>
-          <label class="cv-field cv-source-pair-field">
+          <label class="cv-field min-w-0">
             <span>条目</span>
             <Select
               :model-value="editorDraft.selectedWorldbookEntryUid"
@@ -130,8 +140,14 @@
         <InputText v-else :model-value="editorReadonlyTitle" disabled />
       </label>
 
-      <Fluid class="cv-role-trigger-row">
-        <label class="cv-field cv-role-field">
+      <!--
+        角色 + 触发编辑器并排；匹配/条件区由子组件锚点 cv-trigger-match-field /
+        cv-trigger-conditions-field 跨两列（任意后代选择器，非 :deep）
+      -->
+      <Fluid
+        class="grid w-full grid-cols-1 gap-x-(--cv-space-md) gap-y-(--cv-space-3xl) min-[520px]:grid-cols-2 [&_.cv-trigger-match-field]:col-span-full [&_.cv-trigger-match-field]:min-w-0 [&_.cv-trigger-conditions-field]:col-span-full [&_.cv-trigger-conditions-field]:min-w-0"
+      >
+        <label class="cv-field min-w-0">
           <span>角色</span>
           <Select
             v-model="editorDraft.role"
@@ -147,7 +163,7 @@
       <div class="cv-field">
         <div class="cv-field-header">
           <span>{{ getEditorContentLabel(editorDraft) }}</span>
-          <div v-if="editorDraft.kind === 'custom'" class="cv-source-tokens">
+          <div v-if="editorDraft.kind === 'custom'" class="flex w-max items-center">
             <CvMiniButton
               label="插入宏"
               size="small"
@@ -195,7 +211,7 @@
       </div>
     </div>
     <template #footer>
-      <div class="cv-message-editor-actions">
+      <div class="flex justify-end gap-(--cv-space-sm)">
         <Button label="取消" text @click="closeMessageEditor" />
         <Button label="保存" icon="fa-solid fa-check" :disabled="!canSaveEditor" @click="saveMessageEditor" />
       </div>
@@ -595,8 +611,8 @@ function isSourceMessage(message: PromptLlmMessage): boolean {
  */
 function getMessageTriggerToneClass(message: PromptLlmMessage): string {
   return message.triggerMatchMode === 'always' || !message.triggerMatchMode
-    ? 'cv-message-indicator--always'
-    : 'cv-message-indicator--keyword';
+    ? 'bg-(--p-blue-500) shadow-[0_0_6px_var(--p-blue-500)]'
+    : 'bg-(--p-green-500) shadow-[0_0_6px_var(--p-green-500)]';
 }
 
 /**
@@ -724,59 +740,11 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
 </script>
 
 <style scoped>
-@reference '../../global.css';
-
-.cv-message-indicator {
-  @apply shrink-0 rounded-full;
-  width: 6px;
-  height: 6px;
-}
-
-.cv-message-indicator--always {
-  background: var(--p-blue-500);
-  box-shadow: 0 0 6px var(--p-blue-500);
-}
-
-.cv-message-indicator--keyword {
-  background: var(--p-green-500);
-  box-shadow: 0 0 6px var(--p-green-500);
-}
-
-.cv-message-source-kind {
-  flex: 0 0 auto;
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-2xs);
-  font-weight: 600;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-/** 角色图标：替代原本的角色文本 */
-.cv-message-role-icon {
-  flex: 0 0 auto;
-  color: color-mix(in srgb, var(--cv-on-surface) 55%, transparent);
-  font-size: var(--cv-font-size-sm);
-}
-
-.cv-message-title {
-  @apply min-w-0 overflow-hidden text-ellipsis whitespace-nowrap;
-  color: var(--cv-on-surface);
-  font-size: var(--cv-font-size-md);
-  font-weight: 500;
-}
-
-.cv-message-toggle {
-  position: relative;
-  flex: 0 0 auto;
-  width: 1.8rem;
-  height: 1rem;
-  padding: 0;
-  border: 0;
-  border-radius: var(--cv-radius-full);
-  background: var(--cv-surface-variant);
-  transition: background 0.15s ease;
-}
-
+/*
+  残留 1：自定义开关 ::after 滑块。
+  Tailwind 对伪元素位置/变换表达冗长且易与 ST button 污染冲突；
+  迁移条件：改用 CvMiniToggleSwitch 或原生 ToggleSwitch 后可删。
+*/
 .cv-message-toggle::after {
   position: absolute;
   top: 0.15rem;
@@ -789,101 +757,18 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
   transition: transform 0.15s ease;
 }
 
-.cv-message-toggle.is-enabled {
-  background: var(--p-primary-color);
-}
-
 .cv-message-toggle.is-enabled::after {
   background: var(--p-primary-contrast-color);
   transform: translateX(0.8rem);
 }
 
-.cv-message-action-btn {
-  @apply flex cursor-pointer items-center justify-center;
-  width: 1.8rem;
-  height: 1.8rem;
-  padding: 0;
-  border: 0;
-  border-radius: var(--cv-radius-sm);
-  background: transparent;
-  font-size: var(--cv-font-size-sm);
-}
-
-.cv-message-edit-btn {
-  color: color-mix(in srgb, var(--cv-on-surface) 60%, transparent);
-}
-
-.cv-message-edit-btn:hover {
-  background: var(--cv-surface-container-high);
-  color: var(--cv-on-surface);
-}
-
-.cv-message-delete-btn {
-  color: var(--p-red-500);
-}
-
-.cv-message-delete-btn:hover {
-  background: color-mix(in srgb, var(--p-red-500) 10%, transparent);
-}
-
-/* 列表行紧凑 Tag：覆盖全局 padding/字号的业务变体 */
+/*
+  残留 2：列表行紧凑 Tag。
+  Tag token 无 per-instance font-size/padding 细粒度；业务比全局 2xs 更紧。
+  迁移条件：Aura 补 tag size variant 或包装 CvMiniTag 后迁入。
+*/
 .cv-status-tag-mini {
   --p-tag-font-size: 0.65rem;
   --p-tag-padding: 0.05rem 0.2rem;
-  height: auto;
-  line-height: 1;
-}
-
-.cv-message-editor {
-  @apply flex flex-col;
-  gap: var(--cv-space-3xl);
-}
-
-.cv-message-editor-dialog {
-  @apply flex flex-col;
-}
-
-.cv-role-trigger-row {
-  @apply grid w-full;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--cv-space-3xl) var(--cv-space-md);
-}
-
-/* 匹配方式与条件区跨两列占满整行 */
-.cv-role-trigger-row :deep(.cv-trigger-match-field),
-.cv-role-trigger-row :deep(.cv-trigger-conditions-field) {
-  @apply min-w-0;
-  grid-column: 1 / -1;
-}
-
-.cv-role-field {
-  @apply min-w-0;
-}
-
-.cv-source-pair-row {
-  @apply grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--cv-space-md);
-}
-
-.cv-source-pair-field {
-  @apply min-w-0;
-}
-
-.cv-source-tokens {
-  @apply flex items-center;
-  width: max-content;
-}
-
-.cv-message-editor-actions {
-  @apply flex justify-end;
-  gap: var(--cv-space-sm);
-}
-
-@media (max-width: 520px) {
-  .cv-role-trigger-row,
-  .cv-source-pair-row {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

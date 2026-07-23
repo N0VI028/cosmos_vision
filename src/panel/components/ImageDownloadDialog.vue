@@ -12,28 +12,39 @@
     :style="dialogStyle"
     :content-style="contentStyle"
   >
-    <div class="cv-image-download-dialog">
+    <div class="flex flex-col gap-(--cv-space-3xl)">
       <div class="cv-confirm-message">下载前先确认导出格式和处理方式。</div>
-      <SubTabNav v-model="options.format" class="cv-image-download-dialog__tabs" :tabs="formatTabs" />
+      <!-- SubTabNav 锚点 class 仍在子组件 DOM 上；用任意后代选择器拉满宽度 -->
+      <SubTabNav
+        v-model="options.format"
+        class="w-full [&_.cv-subtab-nav]:w-full [&_.cv-subtab-item]:flex-1"
+        :tabs="formatTabs"
+      />
 
-      <div v-if="options.format === 'png'" class="cv-image-download-dialog__panel">
-        <div class="cv-image-download-dialog__field cv-image-download-dialog__field--row">
-          <div class="cv-image-download-dialog__field-header">
+      <div v-if="options.format === 'png'" class="flex flex-col gap-(--cv-space-2xl)">
+        <div class="flex flex-row items-start justify-between gap-(--cv-space-lg)">
+          <div class="flex flex-col gap-(--cv-space-xs)">
             <span>清理 PNG 元数据</span>
-            <span class="cv-image-download-dialog__hint">移除 NovelAI / ComfyUI 图片中的提示词、工作流等数据</span>
+            <span class="text-(length:--cv-font-size-xs) leading-[1.5] text-(--cv-on-surface-variant)"
+              >移除 NovelAI / ComfyUI 图片中的提示词、工作流等数据</span
+            >
           </div>
           <ToggleSwitch v-model="options.cleanMetadata" />
         </div>
       </div>
 
-      <div v-else class="cv-image-download-dialog__panel">
-        <div class="cv-image-download-dialog__field">
-          <div class="cv-image-download-dialog__field-header">
+      <div v-else class="flex flex-col gap-(--cv-space-2xl)">
+        <div class="flex flex-col gap-(--cv-space-lg)">
+          <div class="flex flex-col gap-(--cv-space-xs)">
             <span>JPG 压缩质量</span>
-            <span class="cv-image-download-dialog__value">{{ jpgQualityPercent }}%</span>
+            <span class="text-(length:--cv-font-size-sm) font-semibold text-(--cv-on-surface)"
+              >{{ jpgQualityPercent }}%</span
+            >
           </div>
           <Slider v-model="jpgQualityPercent" :min="10" :max="100" />
-          <div class="cv-image-download-dialog__hint">JPG 导出会默认清理元数据。</div>
+          <div class="text-(length:--cv-font-size-xs) leading-[1.5] text-(--cv-on-surface-variant)">
+            JPG 导出会默认清理元数据。
+          </div>
         </div>
       </div>
     </div>
@@ -109,57 +120,3 @@ function submit(accept: boolean): void {
   emit('submit', accept ? cloneInlineImageDownloadOptions(options.value) : null);
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-image-download-dialog {
-  @apply flex flex-col;
-  gap: var(--cv-space-3xl);
-}
-
-.cv-image-download-dialog__tabs {
-  @apply w-full;
-}
-
-.cv-image-download-dialog__tabs :deep(.cv-subtab-nav) {
-  @apply w-full;
-}
-
-.cv-image-download-dialog__tabs :deep(.cv-subtab-item) {
-  @apply flex-1;
-}
-
-.cv-image-download-dialog__panel {
-  @apply flex flex-col;
-  gap: var(--cv-space-2xl);
-}
-
-.cv-image-download-dialog__field {
-  @apply flex flex-col;
-  gap: var(--cv-space-lg);
-}
-
-.cv-image-download-dialog__field--row {
-  @apply flex-row items-start justify-between;
-}
-
-.cv-image-download-dialog__field-header {
-  @apply flex flex-col;
-  gap: var(--cv-space-xs);
-}
-
-.cv-image-download-dialog__value {
-  color: var(--cv-on-surface);
-  font-size: var(--cv-font-size-sm);
-  font-weight: 600;
-}
-
-.cv-image-download-dialog__hint {
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-xs);
-  line-height: 1.5;
-}
-
-/* content overflow 已由 :content-style；勿依赖 .p-dialog-content */
-</style>

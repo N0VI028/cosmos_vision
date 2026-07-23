@@ -1,5 +1,5 @@
 <template>
-  <div class="cv-tab-content">
+  <div class="flex flex-col gap-0">
     <!-- 语言模型设置页 -->
     <template v-if="subTab === 'settings'">
       <h2 class="cv-section-title">连接信息</h2>
@@ -46,13 +46,13 @@
 
         <div class="cv-field">
           <span>模型名</span>
-          <div class="cv-model-row">
+          <div class="flex items-center gap-(--cv-space-3xl)">
             <Select
               v-model="settings.promptLlm.model"
               :options="modelOptions"
               placeholder="选择模型"
               :loading="isLoadingModels"
-              class="cv-model-input min-w-0 flex-1"
+              class="min-w-0 flex-1"
               fluid
             />
             <Button
@@ -220,16 +220,3 @@ async function fetchModels(): Promise<void> {
   }
 }
 </script>
-
-<style scoped>
-@reference '../../global.css';
-
-.cv-tab-content {
-  @apply flex flex-col gap-0;
-}
-
-/* 模型选择行 */
-.cv-model-row {
-  @apply flex items-center gap-(--cv-space-3xl);
-}
-</style>
