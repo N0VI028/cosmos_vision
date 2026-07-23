@@ -21,7 +21,7 @@ const fieldOverlay = { class: 'cosmos-vision-root cv-prime-field-overlay' } as c
 /** Popover 根：Teleport 到 body 时注入 cosmos-vision-root + 语义锚点 */
 const popoverRoot = { class: 'cosmos-vision-root cv-prime-popover' } as const;
 const popoverContent = { class: 'cv-prime-popover-content' } as const;
-/** Checkbox / MultiSelect 内嵌勾选：语义锚点供 host-resets 反压 ST input[type=checkbox] */
+/** Checkbox 勾选：语义锚点供 host-resets 反压 ST input[type=checkbox] */
 const checkInputClass = 'cv-prime-check-input' as const;
 const checkbox = {
   root: { class: 'cv-prime-checkbox' },
@@ -97,9 +97,6 @@ const divider = {
   root: { class: 'cv-prime-divider' },
   content: { class: 'cv-prime-divider-content' },
 } as const;
-const imagePreviewMask = {
-  class: 'cv-prime-image-preview-mask',
-} as const;
 /** ProgressSpinner：对齐官方 PT 节点（root/circle/circleTrack/circleRange/value）；无 spin */
 const progressSpinner = {
   root: { class: 'cv-prime-progress-spinner' },
@@ -111,12 +108,6 @@ const progressSpinner = {
 /** Skeleton：仅 root 节点 */
 const skeleton = {
   root: { class: 'cv-prime-skeleton' },
-} as const;
-const panelHeader = {
-  class: 'cv-prime-panel-header',
-} as const;
-const panelContent = {
-  class: 'cv-prime-panel-content',
 } as const;
 const galleriaNavButton = {
   class: 'cv-prime-galleria-nav-button',
@@ -155,7 +146,7 @@ const galleria = {
   // fullscreen mask 若启用须带 cosmos-vision-root
   mask: { class: 'cosmos-vision-root cv-prime-galleria-mask' },
 } as const;
-/** Chip 语义锚点：独立 Chip / MultiSelect pcChip 共用；InputTags 内嵌走 cosmosInputTagsPt.pcChip */
+/** Chip 语义锚点：独立 Chip；InputTags 内嵌走 cosmosInputTagsPt.pcChip */
 const chip = {
   root: { class: 'cv-prime-chip' },
   icon: { class: 'cv-prime-chip-icon' },
@@ -207,7 +198,8 @@ export const cosmosPrimePt = {
     content: dialogContent,
     footer: dialogFooter,
   },
-  image: { previewMask: imagePreviewMask },
+  // Image / MultiSelect / Panel / ConfirmPopup / DatePicker / AutoComplete / TreeTable / DataTable
+  // 业务未使用：PT 不预留；若以后引入再补最小 overlay 根 + token
   inputtext: { root: fieldRoot },
   galleria,
   card,
@@ -229,25 +221,13 @@ export const cosmosPrimePt = {
     overlay: fieldOverlay,
     option,
   },
-  multiselect: {
-    root: fieldRoot,
-    label: { class: 'cv-prime-field-text' },
-    overlay: fieldOverlay,
-    option,
-    pcChip: chip,
-    pcHeaderCheckbox: checkbox,
-    pcOptionCheckbox: checkbox,
-  },
   chip,
   inputtags: cosmosInputTagsPt,
-  autocomplete: { overlay: fieldOverlay },
   checkbox,
-  datepicker: { panel: overlay },
   // Fluid：无 design token；仅语义锚点。子控件通过 inject $fluid 自动 fluid，不靠 CSS 宽度
   fluid: { root: { class: 'cv-prime-fluid' } },
   // Popover：root 必须 cosmos-vision-root；content 语义锚点
   popover: { root: popoverRoot, content: popoverContent },
-  confirmpopup: { root: overlay },
   tag,
   password: {
     root: { class: 'cv-prime-password' },
@@ -268,7 +248,6 @@ export const cosmosPrimePt = {
     clearIcon: icon,
   },
   button: { root: buttonRoot, icon, loadingIcon: icon, label: { class: 'cv-prime-button-label' } },
-  panel: { root: { class: 'cv-prime-panel' }, header: panelHeader, content: panelContent },
   // Message：语义锚点；close 用 message 专用 class（不再挂 icon-button 扁平方块视觉）
   message: {
     root: { class: 'cv-prime-message' },
@@ -302,8 +281,5 @@ export const cosmosPrimePt = {
     input: { class: `${checkInputClass} cv-prime-toggleswitch-input` },
     slider: { class: 'cv-prime-toggleswitch-slider' },
     handle: { class: 'cv-prime-toggleswitch-handle' },
-  },
-  treetable: {
-    root: { class: 'cv-prime-treetable' },
   },
 } satisfies CosmosPrimePt;

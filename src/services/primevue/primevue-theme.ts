@@ -736,12 +736,7 @@ export const cosmosPrimePreset = definePreset(Aura, {
         },
       },
     },
-    multiselect: {
-      root: {
-        paddingX: 'var(--p-form-field-padding-x)',
-        paddingY: 'var(--p-form-field-padding-y)',
-      },
-    },
+    // MultiSelect / Panel / TreeTable / DataTable：业务未使用，theme 不预留（Phase 4）
     // Checkbox：非颜色尺寸走 root；颜色走 colorScheme（覆盖 Aura primary solid / form.field 引用）
     // PT 锚点 + st-host-resets 反压 ST 对 input[type=checkbox] 的尺寸/伪元素污染
     // width/height/icon.size 沿用 Aura 默认，不在此硬改
@@ -880,52 +875,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
       colorScheme: {
         light: sliderColor,
         dark: sliderColor,
-      },
-    },
-    panel: {
-      root: {
-        background: 'transparent',
-        borderColor: 'transparent',
-        color: 'var(--cv-on-surface)',
-        borderRadius: 'var(--cv-radius)',
-      },
-      header: {
-        background: 'transparent',
-        color: 'var(--cv-on-surface)',
-        padding: 'var(--cv-space-xl) var(--cv-space-2xl)',
-        borderColor: 'transparent',
-        borderWidth: '0',
-        borderRadius: '0',
-      },
-      content: {
-        padding: '0',
-      },
-      footer: {
-        padding: '0',
-      },
-    },
-    treetable: {
-      colorScheme: {
-        light: {
-          root: { borderColor: 'var(--cv-surface-variant)' },
-          bodyCell: { selectedBorderColor: 'var(--cv-primary-container)' },
-        },
-        dark: {
-          root: { borderColor: 'var(--cv-surface-variant)' },
-          bodyCell: { selectedBorderColor: 'var(--cv-primary-container)' },
-        },
-      },
-    },
-    datatable: {
-      colorScheme: {
-        light: {
-          root: { borderColor: 'var(--cv-surface-variant)' },
-          bodyCell: { selectedBorderColor: 'var(--cv-primary-container)' },
-        },
-        dark: {
-          root: { borderColor: 'var(--cv-surface-variant)' },
-          bodyCell: { selectedBorderColor: 'var(--cv-primary-container)' },
-        },
       },
     },
     // ToggleSwitch：非颜色尺寸走 root/handle；颜色走 colorScheme（覆盖 Aura surface/primary solid）

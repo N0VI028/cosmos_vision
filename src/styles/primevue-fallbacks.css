@@ -46,32 +46,4 @@
   border-radius: var(--cv-radius-full) !important;
 }
 
-/* MultiSelect：当前还有一组内部节点需要全局补偿，后续再继续削减 `.p-*` 依赖。 */
-.cosmos-vision-root .p-multiselect,
-#cosmos_vision .p-multiselect {
-  background: var(--p-multiselect-background) !important;
-  border-color: var(--p-multiselect-border-color) !important;
-  color: var(--p-multiselect-color) !important;
-}
-
-.cosmos-vision-root .p-multiselect-label,
-#cosmos_vision .p-multiselect-label {
-  color: inherit !important;
-}
-
-.cosmos-vision-root .p-multiselect-dropdown,
-#cosmos_vision .p-multiselect-dropdown,
-.cosmos-vision-root .p-multiselect-clear-icon,
-#cosmos_vision .p-multiselect-clear-icon {
-  color: var(--cv-on-surface-variant) !important;
-}
-
-.cosmos-vision-root .p-multiselect-overlay {
-  background: var(--p-multiselect-overlay-background) !important;
-  border-color: var(--p-multiselect-overlay-border-color) !important;
-  color: var(--p-multiselect-overlay-color) !important;
-}
-
-.cosmos-vision-root .p-multiselect-header {
-  background: inherit !important;
-}
+/* MultiSelect / Image / Panel / TreeTable / DataTable：业务未使用，死配置已删（Phase 4） */
