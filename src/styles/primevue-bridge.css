@@ -526,15 +526,6 @@
 .cosmos-vision-root .cv-prime-selectbutton,
 #cosmos_vision .cv-prime-selectbutton {
   @apply flex w-full;
-  gap: var(--cv-space-lg);
-  box-shadow: none;
-  border-radius: var(--p-selectbutton-border-radius);
-}
-
-.cosmos-vision-root .cv-prime-selectbutton .cv-prime-togglebutton,
-#cosmos_vision .cv-prime-selectbutton .cv-prime-togglebutton {
-  border-radius: var(--p-togglebutton-border-radius);
-  border-width: 1px;
 }
 
 .cosmos-vision-root .cv-prime-togglebutton,

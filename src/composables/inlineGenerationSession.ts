@@ -408,7 +408,6 @@ function buildStatusSlots(
             {
               label: '重试',
               tone: buttonTone,
-              size: 'small',
               onClick: () => {
                 remove();
                 retry();
@@ -425,7 +424,6 @@ function buildStatusSlots(
           {
             label: closeLabel,
             tone: buttonTone,
-            size: 'small',
             onClick: onClose,
           }
         )

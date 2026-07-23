@@ -249,22 +249,26 @@
 /**
  * SettingsDialog 原生 button 反压
  *
- * 设置页内有少量原生 button 承载导航、折叠和关闭操作，需要先清掉宿主标签样式，
- * 再交回各自 scoped CSS 定义。
+ * 目标：抵消 UA / ST 对 button 标签的默认样式（buttontext / buttonface / 2px outset 边框等），
+ * 把字体与颜色恢复为继承，边框归零，再交给组件 class / utilities 二次设置。
+ *
+ * 前提：global.css 已把 utilities 设为 unlayered。
+ * 这里用 :where() 把特异性压到 0，因此任意 class 工具类（特异性 0,1,0）
+ * 都能覆盖本规则。不写死 padding / margin / background-color：
+ * 间距与底色交给组件的 px-* / py-* / bg-*。
  */
 :where(.cosmos-vision-root .cv-shell button) {
-  background: transparent;
-  background-image: none;
-  border: 0;
-  outline: 0 none;
-  box-shadow: none;
-  padding: 0;
-  margin: 0;
   font: inherit;
   color: inherit;
-  text-transform: none;
   letter-spacing: inherit;
+  line-height: inherit;
+  text-align: inherit;
+  text-transform: none;
+  border-width: 0;
+  border-style: solid;
+  background-image: none;
+  box-shadow: none;
+  cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  cursor: pointer;
 }

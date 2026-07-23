@@ -1,6 +1,6 @@
 <template>
     <h2 class="cv-section-title">导出数据</h2>
-    <div class="cv-section-body flex flex-col gap-(--cv-space-2xl)">
+    <div class="cv-section-body flex flex-col">
       <div class="flex flex-col gap-(--cv-space-md)">
         <div class="flex flex-wrap items-center gap-(--cv-space-md)">
           <button
@@ -36,7 +36,7 @@
     </div>
 
     <h2 class="cv-section-title">导入数据</h2>
-    <div class="cv-section-body flex flex-col gap-(--cv-space-2xl)">
+    <div class="cv-section-body flex flex-col">
       <div class="flex flex-wrap items-center justify-between gap-(--cv-space-lg)">
         <input ref="fileInput" type="file" accept="application/json,.json" class="hidden" @change="handleFileChange" />
         <Button label="选择 JSON" icon="fa-solid fa-file-import" size="small" severity="secondary" @click="openFilePicker" />

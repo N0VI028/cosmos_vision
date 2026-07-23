@@ -24,26 +24,18 @@
       />
       <CvMiniButton
         icon="fa-solid fa-pen"
-        size="small"
         aria-label="编辑条目"
         @click="openEntryEditor(entry as PromptPersonTemplateEntry)"
       />
       <CvMiniButton
         icon="fa-solid fa-trash"
         tone="danger"
-        size="small"
         aria-label="删除条目"
         @click="removeEntry(entry.id)"
       />
     </template>
   </PromptEntryList>
-  <button
-    type="button"
-    class="flex w-full cursor-pointer items-center justify-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)] py-(--cv-space-md) text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant) transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] hover:border-(--cv-outline) hover:bg-(--cv-surface-container-low) hover:text-(--p-primary-color) hover:shadow-[0_var(--cv-space-sm)_var(--cv-space-3xl)_color-mix(in_srgb,var(--cv-on-surface)_10%,transparent)]"
-    @click="addEntry"
-  >
-    <i class="fa-solid fa-plus" /> 添加条目
-  </button>
+  <CvAddEntryButton label="添加条目" class="mb-0" @click="addEntry" />
   <Dialog
     v-model:visible="isEditorVisible"
     class="flex flex-col"
@@ -146,7 +138,6 @@
           <div v-if="editorDraft.kind === 'custom'" class="flex items-center gap-(--cv-space-xs) text-(length:--cv-font-size-2xs)">
             <CvMiniButton
               label="插入宏"
-              size="small"
               class="cv-macro-button-root cv-macro-trigger-button"
               @pointerdown.prevent="rememberEntrySelection"
               @click.stop="toggleMacroPopover"
@@ -160,7 +151,6 @@
                 v-for="option in PROMPT_PERSON_TOKEN_OPTIONS"
                 :key="option.token"
                 :label="option.label"
-                size="small"
                 class="cv-macro-button-root cv-macro-option-button"
                 @pointerdown.prevent="rememberEntrySelection"
                 @click.stop="selectEntryToken(option.token)"
@@ -208,6 +198,7 @@ import {
 import PromptEntryList from '@/panel/components/PromptEntryList.vue';
 import { createCustomPromptPersonTemplateEntry } from '@/services/prompt-profiles/runtime';
 import { PROMPT_EDITOR_DIALOG_PT, PROMPT_EDITOR_DIALOG_STYLE } from '@/panel/components/prompt-editor-dialog';
+import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import CvMiniToggleSwitch from '@/panel/components/CvMiniToggleSwitch.vue';
 import {

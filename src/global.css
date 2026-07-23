@@ -1,7 +1,15 @@
-@layer theme, base, components, utilities;
+/**
+ * layer 策略（嵌入 ST 宿主）
+ *
+ * - theme 保持 layered：只提供 token，不参与宿主标签样式竞争
+ * - utilities 必须 unlayered：ST / UA 的 button、input 等标签规则是 unlayered，
+ *   若 utilities 仍在 @layer utilities 内，再高特异性也压不过
+ * - host resets / bridge / fallbacks 同样 unlayered，靠作用域选择器收敛影响面
+ */
+@layer theme, base, components;
 
 @import 'tailwindcss/theme.css' layer(theme);
-@import 'tailwindcss/utilities.css' layer(utilities);
+@import 'tailwindcss/utilities.css';
 @import 'tailwindcss-primeui';
 
 /* CosmosVision 主题 token:设置面板与 Teleport overlay 共享 */

@@ -1,7 +1,7 @@
 <template>
   <!--
     v-bind="$attrs" 透传 ToggleSwitch 原生 prop/事件（modelValue、disabled、aria-label 等）
-    尺寸由本组件固定为紧凑迷你规格，与 CvMiniButton small 并排对齐
+    尺寸由本组件固定为紧凑迷你规格，与 CvMiniButton（2em）并排对齐
   -->
   <ToggleSwitch v-bind="$attrs" :dt="miniTokens" class="cv-mini-toggleswitch relative inline-flex flex-none self-center" />
 </template>

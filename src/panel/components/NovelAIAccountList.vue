@@ -29,7 +29,6 @@
             />
             <CvMiniButton
               icon="fa-solid fa-check"
-              size="small"
               title="完成"
               @click.stop="finishEditing(account)"
             />
@@ -42,7 +41,6 @@
             </span>
             <CvMiniButton
               icon="fa-solid fa-pen"
-              size="small"
               title="重命名"
               @click.stop="toggleEditing(account)"
             />
@@ -57,21 +55,18 @@
           />
           <CvMiniButton
             icon="fa-solid fa-arrow-up"
-            size="small"
             :disabled="index === 0"
             title="上移账号"
             @click="moveAccount(index, index - 1)"
           />
           <CvMiniButton
             icon="fa-solid fa-arrow-down"
-            size="small"
             :disabled="index === accounts.length - 1"
             title="下移账号"
             @click="moveAccount(index, index + 1)"
           />
           <CvMiniButton
             icon="fa-solid fa-trash"
-            size="small"
             tone="danger"
             title="删除账号"
             @click="removeAccount(index)"

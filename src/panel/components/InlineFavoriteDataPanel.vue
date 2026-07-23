@@ -5,7 +5,6 @@
         :label="isSelecting ? '取消选择' : '选择'"
         icon="fa-solid fa-check-double"
         :disabled="isSelectionToggleDisabled"
-        size="small"
         @click="toggleSelectMode"
       />
     </template>
@@ -171,18 +170,16 @@
           <CvMiniButton
             :label="isAllSelected ? '取消全选' : '全选'"
             :disabled="busy || !visibleItems.length"
-            size="small"
             @click="toggleSelectAll"
           />
-          <CvMiniButton label="下载" :disabled="!selectedCount || busy" size="small" @click="downloadSelected" />
+          <CvMiniButton label="下载" :disabled="!selectedCount || busy" @click="downloadSelected" />
           <CvMiniButton
             label="删除"
             tone="error"
             :disabled="!selectedCount || busy"
-            size="small"
             @click="deleteSelected"
           />
-          <CvMiniButton label="取消" :disabled="busy" size="small" @click="clearSelection" />
+          <CvMiniButton label="取消" :disabled="busy" @click="clearSelection" />
         </div>
       </div>
     </template>

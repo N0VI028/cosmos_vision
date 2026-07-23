@@ -34,34 +34,22 @@
       />
     </template>
     <template #actions="{ entry }">
-      <!-- cv-message-toggle：伪元素滑块手柄，见残留 CSS -->
-      <button
-        type="button"
-        class="cv-message-toggle relative h-4 w-[1.8rem] shrink-0 rounded-(--cv-radius-full) border-0 bg-(--cv-surface-variant) p-0 transition-[background] duration-150 ease-in-out"
-        :class="{ 'is-enabled bg-(--p-primary-color)': entry.enabled !== false }"
-        role="switch"
-        :aria-checked="entry.enabled !== false"
-        aria-label="切换条目启用状态"
-        @click="toggleMessageEnabled(entry as PromptLlmMessage)"
+      <CvMiniToggleSwitch
+        :model-value="(entry as PromptLlmMessage).enabled !== false"
+        :aria-label="(entry as PromptLlmMessage).enabled !== false ? '禁用条目' : '启用条目'"
+        @update:model-value="toggleMessageEnabled(entry as PromptLlmMessage)"
       />
-      <button
-        type="button"
-        class="flex size-[1.8rem] cursor-pointer items-center justify-center rounded-(--cv-radius-sm) border-0 bg-transparent p-0 text-(length:--cv-font-size-sm) text-[color-mix(in_srgb,var(--cv-on-surface)_60%,transparent)] hover:bg-(--cv-surface-container-high) hover:text-(--cv-on-surface)"
-        title="编辑条目"
+      <CvMiniButton
+        icon="fa-solid fa-pen"
         aria-label="编辑条目"
         @click="openMessageEditor(entry as PromptLlmMessage)"
-      >
-        <i class="fa-solid fa-pen" />
-      </button>
-      <button
-        type="button"
-        class="flex size-[1.8rem] cursor-pointer items-center justify-center rounded-(--cv-radius-sm) border-0 bg-transparent p-0 text-(length:--cv-font-size-sm) text-(--p-red-500) hover:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)]"
-        title="删除条目"
+      />
+      <CvMiniButton
+        icon="fa-solid fa-trash"
+        tone="danger"
         aria-label="删除条目"
         @click="deleteMessage(entry.id)"
-      >
-        <i class="fa-solid fa-trash" />
-      </button>
+      />
     </template>
   </PromptEntryList>
 
@@ -166,7 +154,6 @@
           <div v-if="editorDraft.kind === 'custom'" class="flex w-max items-center">
             <CvMiniButton
               label="插入宏"
-              size="small"
               class="cv-macro-button-root cv-macro-trigger-button"
               @pointerdown.prevent="rememberMessageSelection"
               @click.stop="toggleMacroPopover"
@@ -180,7 +167,6 @@
                 v-for="option in PROMPT_LLM_TOKEN_OPTIONS"
                 :key="option.token"
                 :label="option.label"
-                size="small"
                 class="cv-macro-button-root cv-macro-option-button"
                 @pointerdown.prevent="rememberMessageSelection"
                 @click.stop="selectMessageToken(option.token)"
@@ -232,6 +218,7 @@ import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
 import { PROMPT_EDITOR_DIALOG_PT, PROMPT_EDITOR_DIALOG_STYLE } from '@/panel/components/prompt-editor-dialog';
 import PromptLlmTriggerEditor from '@/panel/components/PromptLlmTriggerEditor.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
+import CvMiniToggleSwitch from '@/panel/components/CvMiniToggleSwitch.vue';
 import {
   MACRO_POPOVER_BASE_Z_INDEX,
   MACRO_POPOVER_PT,
@@ -741,29 +728,7 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
 
 <style scoped>
 /*
-  残留 1：自定义开关 ::after 滑块。
-  Tailwind 对伪元素位置/变换表达冗长且易与 ST button 污染冲突；
-  迁移条件：改用 CvMiniToggleSwitch 或原生 ToggleSwitch 后可删。
-*/
-.cv-message-toggle::after {
-  position: absolute;
-  top: 0.15rem;
-  left: 0.15rem;
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 50%;
-  background: var(--cv-on-surface-variant);
-  content: '';
-  transition: transform 0.15s ease;
-}
-
-.cv-message-toggle.is-enabled::after {
-  background: var(--p-primary-contrast-color);
-  transform: translateX(0.8rem);
-}
-
-/*
-  残留 2：列表行紧凑 Tag。
+  残留：列表行紧凑 Tag。
   Tag token 无 per-instance font-size/padding 细粒度；业务比全局 2xs 更紧。
   迁移条件：Aura 补 tag size variant 或包装 CvMiniTag 后迁入。
 */

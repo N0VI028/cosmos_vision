@@ -1,7 +1,7 @@
 <template>
   <!--
     v-bind="$attrs" 透传所有 Button 原生 prop/事件（label、icon、disabled、title 等）
-    只有 tone 和 size 需要在这里拦截转换
+    仅 tone 在此拦截；尺寸/字号/hover 几何对齐预设工具条 icon
   -->
   <Button
     v-bind="$attrs"
@@ -9,7 +9,7 @@
     :dt="buttonTokens"
     :fluid="false"
     variant="text"
-    class="cv-mini-button inline-flex w-max! min-w-0 flex-none cursor-pointer items-center justify-center overflow-visible! rounded-none! border-0 bg-transparent leading-none shadow-none focus-visible:border-transparent! focus-visible:bg-transparent! focus-visible:shadow-none! focus-visible:outline-0 data-[p-disabled=true]:cursor-not-allowed [&_.cv-prime-button-label]:leading-none [&_.cv-prime-icon]:leading-none"
+    class="cv-mini-button inline-flex h-[2em]! w-max! min-h-[2em]! min-w-0 flex-none cursor-pointer items-center justify-center overflow-visible! border-(length:--cv-border-width)! border-solid! border-transparent! bg-transparent leading-none shadow-none transition-all duration-150 focus-visible:border-transparent! focus-visible:bg-transparent! focus-visible:shadow-none! focus-visible:outline-0 data-[p-disabled=true]:cursor-not-allowed [&_.cv-prime-button-label]:leading-none [&_.cv-prime-icon]:leading-none"
     :style="buttonStyle"
   >
     <slot />
@@ -26,7 +26,7 @@ defineOptions({ inheritAttrs: false });
 
 /**
  * 迷你按钮的色调类型
- * - neutral: 中性色，默认样式
+ * - neutral: 中性色，默认样式；hover 升为主题色（对齐预设工具条）
  * - primary: 主题色
  * - warn/warning: 警告色（橙色）
  * - danger/error: 危险色（红色）
@@ -37,25 +37,16 @@ defineOptions({ inheritAttrs: false });
 type CvMiniButtonTone = 'neutral' | 'primary' | 'warn' | 'warning' | 'danger' | 'error' | 'success' | 'info' | 'help';
 
 /**
- * 迷你按钮的尺寸类型
- * - small: 小尺寸（1.6em 高度）
- * - regular: 常规尺寸（2em 高度）
- */
-type CvMiniButtonSize = 'small' | 'regular';
-
-/**
  * 迷你按钮组件
- * 基于 PrimeVue Button 的轻量化封装，用于工具栏、卡片操作等紧凑场景。
- * 只声明需要转换处理的自定义 prop（tone/size），其余 Button 原生属性通过 $attrs 透传。
+ * 基于 PrimeVue Button 的轻量化封装，几何对齐预设工具条 icon（2em / 2xs / 圆角描边 hover）。
+ * 只声明 tone；其余 Button 原生属性通过 $attrs 透传。
  */
 const props = withDefaults(
   defineProps<{
-    /** 按钮色调，映射为 severity + Design Token 颜色 */
+    /** 按钮色调，映射为 severity + 文字/hover 颜色 */
     tone?: CvMiniButtonTone;
-    /** 按钮尺寸，控制高度和间距 */
-    size?: CvMiniButtonSize;
   }>(),
-  { tone: 'neutral', size: 'regular' },
+  { tone: 'neutral' },
 );
 
 // 色调 → PrimeVue severity 映射
@@ -71,7 +62,7 @@ const TONE_SEVERITY_MAP: Record<CvMiniButtonTone, ButtonProps['severity']> = {
   help: 'help',
 } as const;
 
-// 色调 → CSS 颜色变量映射
+// 色调 → 默认文字色
 const TONE_COLOR_MAP: Record<CvMiniButtonTone, string> = {
   neutral: 'var(--cv-on-surface-variant)',
   primary: 'var(--p-primary-color)',
@@ -84,30 +75,37 @@ const TONE_COLOR_MAP: Record<CvMiniButtonTone, string> = {
   help: 'var(--p-purple-500)',
 } as const;
 
+// neutral hover 对齐预设工具条（升为主色）；其余 tone 用自身色
+const TONE_HOVER_COLOR_MAP: Record<CvMiniButtonTone, string> = {
+  ...TONE_COLOR_MAP,
+  neutral: 'var(--p-primary-color)',
+};
+
 const severity = computed(() => TONE_SEVERITY_MAP[props.tone]);
-const buttonTokens = computed(() => buildButtonTokens(TONE_COLOR_MAP[props.tone], props.size));
+const toneColor = computed(() => TONE_COLOR_MAP[props.tone]);
+const hoverColor = computed(() => TONE_HOVER_COLOR_MAP[props.tone]);
+const buttonTokens = computed(() => buildButtonTokens(toneColor.value));
 const buttonStyle = computed(() => ({
-  minHeight: props.size === 'small' ? '1.6em' : '2em',
-  fontSize: props.size === 'small' ? 'var(--cv-font-size-2xs)' : 'var(--cv-font-size-xs)',
+  fontSize: 'var(--cv-font-size-2xs)',
+  color: toneColor.value,
+  // 供 hover 混色使用（对齐 .cv-preset-btn）
+  '--cv-mini-btn-hover': hoverColor.value,
 }));
 
 /**
  * 构建按钮的局部 Design Tokens
- * 根据色调颜色和尺寸生成 PrimeVue Button 的 scoped token 配置
+ * 固定 2em 图标宽与紧凑 gap；hover 底色由 scoped 规则按工具条混色
  *
  * @param color - 按钮文字与图标的颜色 CSS 变量
- * @param size - 按钮尺寸
  * @returns PrimeVue Button scoped design tokens
  */
-function buildButtonTokens(color: string, size: CvMiniButtonSize): ButtonDesignTokens {
+function buildButtonTokens(color: string): ButtonDesignTokens {
   const textTone = { color, hoverBackground: 'transparent', activeBackground: 'transparent' };
-  const sizeConfig =
-    size === 'small'
-      ? { iconOnlyWidth: '1.6em', gap: 'var(--cv-space-sm)' }
-      : { iconOnlyWidth: '2em', gap: 'var(--cv-space-md)' };
-
   return {
-    root: getMiniButtonRootTokens(sizeConfig) as any,
+    root: getMiniButtonRootTokens({
+      iconOnlyWidth: '2em',
+      gap: 'var(--cv-space-sm)',
+    }) as any,
     text: {
       primary: textTone,
       warn: textTone,
@@ -119,3 +117,21 @@ function buildButtonTokens(color: string, size: CvMiniButtonSize): ButtonDesignT
   };
 }
 </script>
+
+<style scoped>
+@reference '../../global.css';
+
+/*
+ * 对齐 PresetSelector .cv-preset-btn：小圆角 + hover 浅底/描边。
+ * color-mix hover 无法用 Button text token 表达，故最小 scoped。
+ */
+.cv-mini-button {
+  border-radius: var(--cv-radius-sm) !important;
+}
+
+.cv-mini-button:hover:not(:disabled):not([data-p-disabled='true']) {
+  color: var(--cv-mini-btn-hover) !important;
+  background: color-mix(in srgb, var(--cv-mini-btn-hover) 10%, transparent) !important;
+  border-color: color-mix(in srgb, var(--cv-mini-btn-hover) 40%, transparent) !important;
+}
+</style>

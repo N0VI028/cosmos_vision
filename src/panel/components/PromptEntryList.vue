@@ -32,13 +32,13 @@
             <i class="fa-solid fa-grip-vertical" />
           </button>
           <div
-            class="cv-message-item flex min-w-0 items-center justify-between gap-(--cv-space-xl) px-(--cv-space-xl) py-(--cv-space-md)"
+            class="cv-message-item flex min-w-0 items-center justify-between gap-(--cv-space-xl) p-(--cv-space-xl)"
           >
             <div class="cv-message-main flex min-w-0 flex-1 items-center gap-(--cv-space-xl)">
               <slot name="main" :entry="entry" />
             </div>
             <div
-              class="cv-message-actions flex items-center gap-(--cv-space-lg) opacity-35 transition-opacity duration-200 ease-in-out group-hover/row:opacity-100 group-[.is-dragging]/list:pointer-events-none group-[.is-dragging]/list:opacity-35"
+              class="cv-message-actions flex items-center gap-(--cv-space-xl) opacity-35 transition-opacity duration-200 ease-in-out group-hover/row:opacity-100 group-[.is-dragging]/list:pointer-events-none group-[.is-dragging]/list:opacity-35"
             >
               <slot name="actions" :entry="entry" />
             </div>
@@ -49,7 +49,7 @@
   </div>
   <div
     v-else
-    class="cv-empty-hint mb-(--cv-space-5xl) flex flex-col items-center justify-center gap-(--cv-space-3xl) p-(--cv-space-8xl) text-center text-(--p-text-muted-color)"
+    class="cv-empty-hint mb-(--cv-space-5xl) flex flex-col items-center justify-center gap-(--cv-space-3xl) p-(--cv-space-8xl) text-center text-muted-color"
   >
     {{ emptyText }}
   </div>

@@ -1109,10 +1109,11 @@ export const cosmosPrimePreset = definePreset(Aura, {
 });
 
 /**
- * 迷你按钮的 root Design Tokens 定义（支持传入动态的尺寸配置）
+ * 迷你按钮 root Design Tokens（几何对齐预设工具条 icon：2em 方钮 + 小圆角）
+ * @param sizeConfig gap / iconOnlyWidth，默认由 CvMiniButton 固定为 2em 规格
  */
 export const getMiniButtonRootTokens = (sizeConfig: { gap: string; iconOnlyWidth: string }) => ({
-  borderRadius: '0',
+  borderRadius: 'var(--cv-radius-sm)',
   gap: sizeConfig.gap,
   paddingX: '0',
   paddingY: '0',

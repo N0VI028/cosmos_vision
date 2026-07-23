@@ -32,7 +32,6 @@
               />
               <CvMiniButton
                 icon="fa-solid fa-check"
-                size="small"
                 aria-label="完成"
                 @click.stop="finishEditing(person)"
               />
@@ -45,7 +44,6 @@
               </span>
               <CvMiniButton
                 icon="fa-solid fa-pen"
-                size="small"
                 aria-label="重命名"
                 @click.stop="toggleEditing(person)"
               />
@@ -59,7 +57,6 @@
             />
             <CvMiniButton
               icon="fa-solid fa-trash"
-              size="small"
               tone="danger"
               aria-label="删除人物"
               @click="deletePerson(person)"
@@ -102,12 +99,9 @@
 
             <div class="mt-(--cv-space-5xl) mb-(--cv-space-xl) flex items-center justify-between">
               <h3 class="m-0 shrink-0 text-(length:--cv-font-size-lg) font-bold text-(--cv-on-surface)">固定 tag</h3>
-              <Button
+              <CvMiniButton
                 label="从资料解析"
                 icon="fa-solid fa-dice-d20"
-                class="w-auto shrink-0 text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)! opacity-[0.78] hover:bg-(--cv-surface-container-high)! hover:text-(--cv-on-surface)! hover:opacity-100"
-                text
-                size="small"
                 :loading="isParsingTags && person.id === parsingPersonId"
                 @click="openParseTagsDialog(person)"
               />
