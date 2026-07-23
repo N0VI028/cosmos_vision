@@ -126,7 +126,7 @@
 
             <div
               v-if="!isSelecting"
-              class="flex items-center justify-end gap-(--cv-space-2xl) px-(--cv-space-4xl) pb-(--cv-space-4xl)"
+              class="flex items-center justify-end gap-(--cv-space-md) px-(--cv-space-4xl) pb-(--cv-space-4xl)"
               @click.stop
             >
               <CvMiniButton
@@ -163,7 +163,7 @@
 
       <div
         v-if="isSelecting"
-        class="sticky bottom-0 mt-(--cv-space-4xl) flex flex-wrap items-center justify-between gap-(--cv-space-md) border-t border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) pt-(--cv-space-4xl)"
+        class="sticky bottom-0 mt-(--cv-space-4xl) flex flex-wrap items-center justify-between gap-(--cv-space-md) border-t border-(--cv-surface-variant) pt-(--cv-space-4xl)"
       >
         <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">已选 {{ selectedCount }} 张</span>
         <div class="flex flex-wrap items-center justify-end gap-(--cv-space-3xl)">

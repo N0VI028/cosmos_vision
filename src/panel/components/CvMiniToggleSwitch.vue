@@ -1,9 +1,12 @@
 <template>
   <!--
-    v-bind="$attrs" 透传 ToggleSwitch 原生 prop/事件（modelValue、disabled、aria-label 等）
-    尺寸由本组件固定为紧凑迷你规格，与 CvMiniButton（2em）并排对齐
+    外层 span 提供与 CvMiniButton 对齐的 2em 行高 + 水平留白；
+    ToggleSwitch 根节点保持轨道本体尺寸，避免 h/px 压到轨道上导致变形。
+    v-bind="$attrs" 透传 modelValue、disabled、aria-label 等。
   -->
-  <ToggleSwitch v-bind="$attrs" :dt="miniTokens" class="cv-mini-toggleswitch relative inline-flex flex-none self-center" />
+  <span class="cv-mini-toggleswitch-shell inline-flex h-[2em] flex-none items-center self-center px-(--cv-space-sm)">
+    <ToggleSwitch v-bind="$attrs" :dt="miniTokens" class="cv-mini-toggleswitch relative inline-flex flex-none" />
+  </span>
 </template>
 
 <script setup lang="ts">
@@ -13,7 +16,7 @@ defineOptions({ inheritAttrs: false });
 
 /**
  * 迷你 ToggleSwitch 局部 Design Tokens
- * 尺寸对齐列表行操作区（账号 / 人物 / 源条目旁的 CvMiniButton）
+ * 轨道本体紧凑；行高与水平留白由外层 shell 承担，对齐 CvMiniButton
  */
 const miniTokens = {
   root: {

@@ -18,62 +18,52 @@
         class="cv-preset-file-input"
         @change="handleFileChange"
       />
-      <button type="button" class="cv-preset-btn" title="新建预设" aria-label="新建预设" @click="$emit('create')">
-        <i class="fa-solid fa-plus" />
-      </button>
-      <button
-        type="button"
-        class="cv-preset-btn"
+      <CvMiniButton
+        icon="fa-solid fa-plus"
+        title="新建预设"
+        aria-label="新建预设"
+        @click="$emit('create')"
+      />
+      <CvMiniButton
+        icon="fa-solid fa-copy"
         title="克隆当前预设"
         aria-label="克隆当前预设"
         @click="$emit('clone')"
-      >
-        <i class="fa-solid fa-copy" />
-      </button>
-      <button
-        type="button"
-        class="cv-preset-btn"
+      />
+      <CvMiniButton
+        icon="fa-solid fa-pen"
         title="重命名当前预设"
         aria-label="重命名当前预设"
         @click="$emit('rename')"
-      >
-        <i class="fa-solid fa-pen" />
-      </button>
-      <button
+      />
+      <CvMiniButton
         v-if="showPortability"
-        type="button"
-        class="cv-preset-btn"
+        icon="fa-solid fa-file-export"
         title="导出当前预设"
         aria-label="导出当前预设"
         @click="$emit('export-preset')"
-      >
-        <i class="fa-solid fa-file-export" />
-      </button>
-      <button
+      />
+      <CvMiniButton
         v-if="showPortability"
-        type="button"
-        class="cv-preset-btn"
+        icon="fa-solid fa-file-import"
         title="导入预设"
         aria-label="导入预设"
         @click="openFilePicker"
-      >
-        <i class="fa-solid fa-file-import" />
-      </button>
-      <button
-        type="button"
-        class="cv-preset-btn cv-preset-btn-danger"
+      />
+      <CvMiniButton
+        icon="fa-solid fa-trash"
+        tone="danger"
         title="删除当前预设"
         aria-label="删除当前预设"
         @click="handleDeleteActiveClick"
-      >
-        <i class="fa-solid fa-trash" />
-      </button>
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { inject, ref } from 'vue';
+import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 
 interface PresetOption {
   id: string;
@@ -213,32 +203,7 @@ async function handleDeleteActiveClick(): Promise<void> {
 
 .cv-preset-actions {
   @apply ml-auto flex items-center;
-  gap: var(--cv-space-sm);
-}
-
-.cv-preset-btn {
-  @apply inline-flex cursor-pointer items-center justify-center;
-  width: 2em;
-  height: 2em;
-  padding: 0;
-  background: transparent;
-  border: var(--cv-border-width) solid transparent;
-  border-radius: var(--cv-radius-sm);
-  color: var(--cv-on-surface-variant);
-  font-size: var(--cv-font-size-2xs);
-  transition: all 0.15s ease;
-}
-
-.cv-preset-btn:hover {
-  color: var(--p-primary-color);
-  background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
-  border-color: color-mix(in srgb, var(--p-primary-color) 40%, transparent);
-}
-
-.cv-preset-btn-danger:hover {
-  color: var(--p-red-500);
-  background: color-mix(in srgb, var(--p-red-500) 10%, transparent);
-  border-color: color-mix(in srgb, var(--p-red-500) 40%, transparent);
+  gap: var(--cv-space-xs);
 }
 
 .cv-preset-file-input {

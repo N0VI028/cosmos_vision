@@ -13,7 +13,7 @@
     class="cv-workflow-inspector flex flex-col"
     :class="[
       fullscreen
-        ? 'cv-lightbox-info max-h-[80%] rounded-t-(--cv-radius) border-t-(length:--cv-border-width) border-r-(length:--cv-border-width) border-l-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) shadow-[0_-4px_16px_rgba(0,0,0,0.25)] [backdrop-filter:none] [-webkit-backdrop-filter:none]'
+        ? 'cv-lightbox-info max-h-[80%] rounded-t-(--cv-radius) border-t-(length:--cv-border-width) border-r-(length:--cv-border-width) border-l-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low)'
         : 'cv-workflow-inspector__container overflow-hidden rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low)',
       { 'cv-info-collapsed max-h-14': isCollapsed && fullscreen },
     ]"

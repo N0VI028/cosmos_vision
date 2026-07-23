@@ -128,29 +128,22 @@ const toggleButtonColorDark = {
 
 
 /**
- * ToggleSwitch 颜色 token 基线 —— light/dark 共用视觉（禁用底除外）
+ * ToggleSwitch 颜色 token 基线 —— light/dark 共用结构（禁用底与关闭态对比度分端）
  * 显式挂 colorScheme 两端，避免 Aura light-dark/surface 灰阶覆盖 cv 自适应变量
  * 选中轨道用 primary-container，手柄用 on-primary-container，对齐 Checkbox 容器色语义
  */
 const toggleSwitchColorBase = {
   root: {
-    background: 'var(--cv-surface-container-high)',
-    hoverBackground: 'var(--cv-surface-container)',
     checkedBackground: 'var(--cv-primary-container)',
     checkedHoverBackground: 'var(--cv-primary-container)',
-    borderColor: 'transparent',
-    hoverBorderColor: 'transparent',
     checkedBorderColor: 'transparent',
     checkedHoverBorderColor: 'transparent',
     invalidBorderColor: 'var(--p-red-500)',
     shadow: 'none',
   },
   handle: {
-    background: 'var(--cv-surface-container-lowest)',
-    hoverBackground: 'var(--cv-surface-container-lowest)',
     checkedBackground: 'var(--cv-on-primary-container)',
     checkedHoverBackground: 'var(--cv-on-primary-container)',
-    disabledBackground: 'var(--cv-surface-container-lowest)',
     color: 'var(--cv-on-surface-variant)',
     hoverColor: 'var(--cv-on-surface)',
     checkedColor: 'var(--cv-primary-container)',
@@ -158,22 +151,45 @@ const toggleSwitchColorBase = {
   },
 } as const;
 
-/** 浅色 ToggleSwitch：禁用轨道与 formField 浅色禁用一致 */
+/**
+ * 浅色 ToggleSwitch：关闭态 high 底 + lowest 手柄足够分离；禁用底与 formField 一致
+ */
 const toggleSwitchColorLight = {
   root: {
     ...toggleSwitchColorBase.root,
+    background: 'var(--cv-surface-container-high)',
+    hoverBackground: 'var(--cv-surface-container)',
+    borderColor: 'transparent',
+    hoverBorderColor: 'transparent',
     disabledBackground: 'color-mix(in srgb, var(--cv-on-surface) 8%, var(--cv-surface))',
   },
-  handle: toggleSwitchColorBase.handle,
+  handle: {
+    ...toggleSwitchColorBase.handle,
+    background: 'var(--cv-surface-container-lowest)',
+    hoverBackground: 'var(--cv-surface-container-lowest)',
+    disabledBackground: 'var(--cv-surface-container-lowest)',
+  },
 } as const;
 
-/** 深色 ToggleSwitch：半透明叠底 */
+/**
+ * 深色 ToggleSwitch：关闭态抬亮轨道/手柄并加描边，避免与 surface-container-low 行底融成一团
+ * 轨道 surface-variant；手柄偏亮 on-surface 混色；边框 outline 弱描
+ */
 const toggleSwitchColorDark = {
   root: {
     ...toggleSwitchColorBase.root,
+    background: 'var(--cv-surface-variant)',
+    hoverBackground: 'color-mix(in srgb, var(--cv-on-surface) 18%, var(--cv-surface-variant))',
+    borderColor: 'var(--cv-outline)',
+    hoverBorderColor: 'var(--cv-outline)',
     disabledBackground: 'color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent)',
   },
-  handle: toggleSwitchColorBase.handle,
+  handle: {
+    ...toggleSwitchColorBase.handle,
+    background: 'color-mix(in srgb, var(--cv-on-surface) 78%, var(--cv-surface))',
+    hoverBackground: 'color-mix(in srgb, var(--cv-on-surface) 88%, var(--cv-surface))',
+    disabledBackground: 'color-mix(in srgb, var(--cv-on-surface) 40%, var(--cv-surface))',
+  },
 } as const;
 
 /**
@@ -1110,12 +1126,13 @@ export const cosmosPrimePreset = definePreset(Aura, {
 
 /**
  * 迷你按钮 root Design Tokens（几何对齐预设工具条 icon：2em 方钮 + 小圆角）
+ * paddingX 给「图标+文字」左右留白，hover 底/描边不贴内容；icon-only 由官方改用 iconOnlyWidth 正方，不受 paddingX 影响
  * @param sizeConfig gap / iconOnlyWidth，默认由 CvMiniButton 固定为 2em 规格
  */
 export const getMiniButtonRootTokens = (sizeConfig: { gap: string; iconOnlyWidth: string }) => ({
   borderRadius: 'var(--cv-radius-sm)',
   gap: sizeConfig.gap,
-  paddingX: '0',
+  paddingX: 'var(--cv-space-sm)',
   paddingY: '0',
   iconOnlyWidth: sizeConfig.iconOnlyWidth,
   focusRing: { width: '0', style: 'none', offset: '0' },

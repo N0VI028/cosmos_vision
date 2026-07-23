@@ -1,6 +1,6 @@
 <template>
   <div
-    class="cv-subtab-nav flex w-fit justify-start gap-0 rounded-(--cv-radius-full) bg-(--cv-surface-container-low) p-(--cv-space-md) max-[87.5em]:w-full max-[87.5em]:overflow-x-auto"
+    class="cv-subtab-nav flex w-fit justify-start gap-0 rounded-(--cv-radius-full) bg-(--cv-surface-container-low) p-(--cv-space-sm) max-[87.5em]:w-full max-[87.5em]:overflow-x-auto"
   >
     <button
       v-for="tab in tabs"

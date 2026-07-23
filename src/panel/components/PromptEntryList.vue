@@ -38,7 +38,7 @@
               <slot name="main" :entry="entry" />
             </div>
             <div
-              class="cv-message-actions flex items-center gap-(--cv-space-xl) opacity-35 transition-opacity duration-200 ease-in-out group-hover/row:opacity-100 group-[.is-dragging]/list:pointer-events-none group-[.is-dragging]/list:opacity-35"
+              class="cv-message-actions flex items-center gap-(--cv-space-sm) opacity-35 transition-opacity duration-200 ease-in-out group-hover/row:opacity-100 group-[.is-dragging]/list:pointer-events-none group-[.is-dragging]/list:opacity-35"
             >
               <slot name="actions" :entry="entry" />
             </div>

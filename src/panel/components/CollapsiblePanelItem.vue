@@ -10,7 +10,7 @@
           gap 放在内层容器：官方 .p-accordionheader { all: unset } 会清掉 header 根上的 utility，
           内层 div 不受影响，可稳定保留 gap-(--cv-space-lg)
         -->
-        <div class="flex min-w-0 flex-1 items-center gap-(--cv-space-lg) overflow-hidden">
+        <div class="flex min-w-0 flex-1 items-center gap-(--cv-space-5xl) overflow-hidden">
           <i
             :class="[
               'fa-solid',
@@ -19,7 +19,7 @@
               'text-(--cv-on-surface-variant)',
             ]"
           />
-          <div class="flex min-w-0 flex-auto items-center gap-(--cv-space-lg) overflow-hidden">
+          <div class="flex min-w-0 flex-auto items-center overflow-hidden">
             <slot name="title">
               <span
                 class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)"
@@ -31,7 +31,7 @@
           </div>
           <div
             v-if="$slots.actions"
-            class="ml-auto flex shrink-0 items-center justify-end gap-(--cv-space-5xl)"
+            class="ml-auto flex shrink-0 items-center justify-end gap-(--cv-space-sm)"
             @click.stop
             @keydown.stop
           >

@@ -4,7 +4,7 @@
     <div class="cv-section-body">
       <div class="cv-field">
         <div class="cv-field-control">
-          <div class="cv-field-inline mb-0 justify-start gap-(--cv-space-xl)">
+          <div class="cv-field-inline mb-0! justify-start gap-(--cv-space-xl)">
             <span>{{ modeTitle }}</span>
             <ToggleSwitch v-model="useLlmMode" />
           </div>

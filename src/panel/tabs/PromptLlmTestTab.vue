@@ -76,7 +76,7 @@
           <div
             v-for="row in logParamRows"
             :key="row.label"
-            class="flex items-center justify-between border-b border-solid border-(--cv-surface-variant) pb-(--cv-space-md) last:border-b-0 last:pb-0"
+            class="flex items-center justify-between border-b border-(--cv-surface-variant) pb-(--cv-space-xl) last:border-b-0 last:pb-0"
           >
             <span class="text-(length:--cv-font-size-md) text-(--cv-on-surface-variant)">{{ row.label }}</span>
             <span

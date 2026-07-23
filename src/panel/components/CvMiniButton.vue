@@ -9,7 +9,7 @@
     :dt="buttonTokens"
     :fluid="false"
     variant="text"
-    class="cv-mini-button inline-flex h-[2em]! w-max! min-h-[2em]! min-w-0 flex-none cursor-pointer items-center justify-center overflow-visible! border-(length:--cv-border-width)! border-solid! border-transparent! bg-transparent leading-none shadow-none transition-all duration-150 focus-visible:border-transparent! focus-visible:bg-transparent! focus-visible:shadow-none! focus-visible:outline-0 data-[p-disabled=true]:cursor-not-allowed [&_.cv-prime-button-label]:leading-none [&_.cv-prime-icon]:leading-none"
+    class="cv-mini-button inline-flex h-[2em]! w-max! min-h-[2em]! min-w-0 flex-none cursor-pointer items-center justify-center overflow-visible! border-(length:--cv-border-width)! border-solid! border-transparent! bg-transparent leading-none shadow-none transition-all duration-150 focus-visible:border-transparent! focus-visible:bg-transparent! focus-visible:shadow-none! focus-visible:outline-0 data-[p-disabled=true]:cursor-not-allowed [&_.cv-prime-button-label]:leading-none [&_.cv-prime-icon]:inline-flex [&_.cv-prime-icon]:size-[1em] [&_.cv-prime-icon]:shrink-0 [&_.cv-prime-icon]:items-center [&_.cv-prime-icon]:justify-center [&_.cv-prime-icon]:leading-none"
     :style="buttonStyle"
   >
     <slot />
@@ -122,11 +122,20 @@ function buildButtonTokens(color: string): ButtonDesignTokens {
 @reference '../../global.css';
 
 /*
- * 对齐 PresetSelector .cv-preset-btn：小圆角 + hover 浅底/描边。
+ * 对齐预设工具条：小圆角 + hover 浅底/描边。
  * color-mix hover 无法用 Button text token 表达，故最小 scoped。
+ * icon-only 强制 2em 正方，避免 w-max 随字形非方、hover 露馅。
  */
 .cv-mini-button {
   border-radius: var(--cv-radius-sm) !important;
+}
+
+.cv-mini-button:is([data-p-icon-only='true'], .p-button-icon-only) {
+  width: 2em !important;
+  min-width: 2em !important;
+  max-width: 2em !important;
+  height: 2em !important;
+  min-height: 2em !important;
 }
 
 .cv-mini-button:hover:not(:disabled):not([data-p-disabled='true']) {

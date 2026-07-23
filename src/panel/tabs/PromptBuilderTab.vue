@@ -95,7 +95,6 @@
       <SelectButton
         v-model="extractMode"
         fluid
-        size="small"
         :options="extractModeOptions"
         option-label="label"
         option-value="value"

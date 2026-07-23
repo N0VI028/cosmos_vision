@@ -100,7 +100,7 @@
 .cv-lightbox-info {
   @apply flex w-full flex-col overflow-hidden;
   position: absolute;
-  bottom: 0;
+  bottom: 1px !important;
   left: 0;
   z-index: 10;
   box-sizing: border-box;
@@ -111,9 +111,6 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px 16px 0 0;
   background: rgba(20, 20, 25, 0.9);
-  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
