@@ -41,16 +41,13 @@
           :title="isFavorite ? '取消收藏该节点' : '收藏该节点以便快速定位'"
           @click="emit('toggle-favorite')"
         />
-        <button
+        <CvMiniButton
           v-if="fullscreen"
-          type="button"
-          class="inline-flex cursor-pointer items-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-0 bg-transparent px-(--cv-space-md) py-(--cv-space-xs) text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant) transition-colors hover:bg-(--cv-surface-container-highest) hover:text-(--cv-on-surface)"
-          :title="isCollapsed ? '展开参数' : '隐藏参数'"
+          :icon="isCollapsed ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash'"
+          :label="isCollapsed ? '显示' : '隐藏'"
+          :title="isCollapsed ? '展开' : '隐藏'"
           @click="isCollapsed = !isCollapsed"
-        >
-          <i class="fa-solid" :class="isCollapsed ? 'fa-eye' : 'fa-eye-slash'" aria-hidden="true" />
-          <span>{{ isCollapsed ? '显示参数' : '隐藏参数' }}</span>
-        </button>
+        />
       </div>
     </div>
 

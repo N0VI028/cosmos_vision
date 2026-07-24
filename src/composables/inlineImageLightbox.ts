@@ -444,7 +444,7 @@ function bindLightboxToggle(overlay: HTMLElement): void {
 function togglePromptInfo(info: HTMLElement | null, toggleBtn: HTMLElement): void {
   const isCollapsed = Boolean(info?.classList.toggle('cv-info-collapsed'));
   const icon = isCollapsed ? 'fa-eye' : 'fa-eye-slash';
-  const text = isCollapsed ? '显示提示词' : '隐藏提示词';
+  const text = isCollapsed ? '显示' : '隐藏';
   toggleBtn.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${text}</span>`;
 }
 
