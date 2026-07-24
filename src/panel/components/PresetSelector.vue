@@ -19,39 +19,39 @@
         @change="handleFileChange"
       />
       <CvMiniButton
-        icon="fa-solid fa-plus"
+        icon="fa-regular fa-plus"
         title="新建预设"
         aria-label="新建预设"
         @click="$emit('create')"
       />
       <CvMiniButton
-        icon="fa-solid fa-copy"
+        icon="fa-regular fa-copy"
         title="克隆当前预设"
         aria-label="克隆当前预设"
         @click="$emit('clone')"
       />
       <CvMiniButton
-        icon="fa-solid fa-pen"
+        icon="fa-regular fa-pen"
         title="重命名当前预设"
         aria-label="重命名当前预设"
         @click="$emit('rename')"
       />
       <CvMiniButton
         v-if="showPortability"
-        icon="fa-solid fa-file-export"
+        icon="fa-regular fa-file-export"
         title="导出当前预设"
         aria-label="导出当前预设"
         @click="$emit('export-preset')"
       />
       <CvMiniButton
         v-if="showPortability"
-        icon="fa-solid fa-file-import"
+        icon="fa-regular fa-file-import"
         title="导入预设"
         aria-label="导入预设"
         @click="openFilePicker"
       />
       <CvMiniButton
-        icon="fa-solid fa-trash"
+        icon="fa-regular fa-trash"
         tone="danger"
         title="删除当前预设"
         aria-label="删除当前预设"

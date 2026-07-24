@@ -40,7 +40,7 @@
       </div>
       <div class="flex shrink-0 items-center gap-(--cv-space-md)" @click.stop>
         <CvMiniButton
-          :icon="isFavorite ? 'fa-solid fa-star' : 'fa-regular fa-star'"
+          :icon="isFavorite ? 'fa-regular fa-star-half-alt' : 'fa-regular fa-star'"
           :label="isFavorite ? '取消收藏' : '收藏'"
           :tone="isFavorite ? 'warn' : 'neutral'"
           :title="isFavorite ? '取消收藏该节点' : '收藏该节点以便快速定位'"

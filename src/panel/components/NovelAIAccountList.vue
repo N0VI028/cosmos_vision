@@ -29,7 +29,7 @@
               @keydown.esc="finishEditing(account)"
             />
             <CvMiniButton
-              icon="fa-solid fa-check"
+              icon="fa-regular fa-check"
               title="完成"
               @click.stop="finishEditing(account)"
             />
@@ -41,7 +41,7 @@
               {{ getAccountTitle(account, index) }}
             </span>
             <CvMiniButton
-              icon="fa-solid fa-pen"
+              icon="fa-regular fa-pen"
               title="重命名"
               @click.stop="toggleEditing(account)"
             />
@@ -55,28 +55,26 @@
             :aria-label="account.enabled ? '禁用账号' : '启用账号'"
           />
           <CvMiniButton
-            icon="fa-solid fa-arrow-up"
+            icon="fa-regular fa-arrow-up"
             :disabled="index === 0"
             title="上移账号"
             @click="moveAccount(index, index - 1)"
           />
           <CvMiniButton
-            icon="fa-solid fa-arrow-down"
+            icon="fa-regular fa-arrow-down"
             :disabled="index === accounts.length - 1"
             title="下移账号"
             @click="moveAccount(index, index + 1)"
           />
           <CvMiniButton
-            icon="fa-solid fa-trash"
+            icon="fa-regular fa-trash"
             tone="danger"
             title="删除账号"
             @click="removeAccount(index)"
           />
         </template>
 
-        <div
-          class="grid grid-cols-1 gap-(--cv-space-4xl) border-t border-(length:--cv-border-width) border-(--cv-surface-variant) p-(--cv-space-2xl) md:grid-cols-2"
-        >
+        <div class="grid grid-cols-1 gap-(--cv-space-4xl) p-(--cv-space-2xl) md:grid-cols-2">
           <label class="cv-field">
             <span>NovelAI URL</span>
             <InputText v-model="account.url" :placeholder="NOVELAI_DEFAULT_URL" />

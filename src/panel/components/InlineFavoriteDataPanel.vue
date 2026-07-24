@@ -3,7 +3,7 @@
     <template #actions>
       <CvMiniButton
         :label="isSelecting ? '取消选择' : '选择'"
-        icon="fa-solid fa-check-double"
+        icon="fa-regular fa-check-double"
         :disabled="isSelectionToggleDisabled"
         @click="toggleSelectMode"
       />
@@ -131,20 +131,20 @@
             >
               <CvMiniButton
                 class="relative text-(--cv-on-surface-variant)"
-                :icon="item.kind === 'favorite' ? 'fa-solid fa-star-half-alt' : 'fa-solid fa-star'"
+                :icon="item.kind === 'favorite' ? 'fa-regular fa-star-half-alt' : 'fa-regular fa-star'"
                 :aria-label="kindToggleLabel(item.kind)"
                 :title="kindToggleLabel(item.kind)"
                 :disabled="busy"
                 @click="$emit('toggle-kind', item.key)"
               />
               <CvMiniButton
-                icon="fa-solid fa-download"
+                icon="fa-regular fa-download"
                 aria-label="下载"
                 :disabled="busy"
                 @click="$emit('download-items', [item.key])"
               />
               <CvMiniButton
-                icon="fa-solid fa-trash"
+                icon="fa-regular fa-trash"
                 tone="error"
                 aria-label="删除"
                 :disabled="busy"

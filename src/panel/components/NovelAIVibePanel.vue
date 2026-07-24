@@ -64,7 +64,7 @@
             @update:model-value="updateVibe(vibe.id, { enabled: Boolean($event) })"
           />
           <CvMiniButton
-            icon="fa-solid fa-trash"
+            icon="fa-regular fa-trash"
             tone="error"
             aria-label="删除 vibe"
             @click="removeVibe(vibe.id)"
@@ -72,7 +72,7 @@
         </template>
 
         <section
-          class="grid grid-cols-[minmax(7.5rem,10rem)_minmax(0,1fr)] gap-(--cv-space-2xl) border-t border-(length:--cv-border-width) border-(--cv-surface-variant) p-(--cv-space-2xl) max-[38rem]:grid-cols-[minmax(6rem,8rem)_minmax(0,1fr)]"
+          class="grid grid-cols-[minmax(7.5rem,10rem)_minmax(0,1fr)] gap-(--cv-space-2xl) p-(--cv-space-2xl) max-[38rem]:grid-cols-[minmax(6rem,8rem)_minmax(0,1fr)]"
         >
           <button
             type="button"

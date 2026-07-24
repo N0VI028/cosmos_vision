@@ -4,9 +4,8 @@
  * 段落生图临时 UI 样式
  * PrimeVue 操作按钮 + 临时图片卡片
  *
- * Batch B3 残留：聊天宿主挂载层（非设置面板 scoped）
  *
- * 为何不迁 Tailwind 行内：
+ * 不迁 Tailwind 行内：
  * 1. DOM 多由 composable 程序化创建（`inlineSelectionShell` / `inlineGenerationSession` /
  *    `inlineImageGalleryView` / `inlineImageDom`），无 Vue 模板可挂工具类。
  * 2. 大量 `!important`：反压 ST 全局 `button` / `.mes_text i` / 聊天气泡样式，
@@ -20,7 +19,6 @@
  *    属舞台布局而非组件视觉 token（Phase 3 Galleria 已记录）。
  * 7. Vue transition class：`cv-speed-dial-menu-*` / `cv-fade-*`。
  *
- * 迁移条件：内联挂载改为纯 Vue SFC + 脱离 ST 全局污染后，可分批行内化布局子集。
  */
 
 /* Speed Dial 容器 */
@@ -853,11 +851,11 @@ body.dark .cv-inline-toolbar {
   align-items: center;
   gap: 0.5rem;
   padding: 0.35rem 1rem;
-  border: 1px solid color-mix(in srgb, var(--SmartThemeQuoteColor, #3b82f6) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--p-primary-color, var(--SmartThemeQuoteColor, #3b82f6)) 40%, transparent);
   border-radius: var(--cv-radius-full, 9999px);
-  background: color-mix(in srgb, var(--cv-surface-container-high) 80%, transparent);
+  background: color-mix(in srgb, var(--p-primary-color, var(--SmartThemeQuoteColor, #3b82f6)) 16%, transparent);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  color: var(--SmartThemeQuoteColor, #3b82f6);
+  color: var(--p-primary-color, var(--SmartThemeQuoteColor, #3b82f6));
   font-size: 0.85rem;
   font-weight: 500;
   -webkit-backdrop-filter: blur(8px);

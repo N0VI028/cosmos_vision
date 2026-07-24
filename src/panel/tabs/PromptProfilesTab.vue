@@ -32,7 +32,7 @@
                 @keydown.esc="finishEditing(person)"
               />
               <CvMiniButton
-                icon="fa-solid fa-check"
+                icon="fa-regular fa-check"
                 aria-label="完成"
                 @click.stop="finishEditing(person)"
               />
@@ -44,7 +44,7 @@
                 {{ person.name || '未命名人物' }}
               </span>
               <CvMiniButton
-                icon="fa-solid fa-pen"
+                icon="fa-regular fa-pen"
                 aria-label="重命名"
                 @click.stop="toggleEditing(person)"
               />
@@ -57,16 +57,14 @@
               :aria-label="getPersonEnabledLabel(person)"
             />
             <CvMiniButton
-              icon="fa-solid fa-trash"
+              icon="fa-regular fa-trash"
               tone="danger"
               aria-label="删除人物"
               @click="deletePerson(person)"
             />
           </template>
 
-          <section
-            class="flex flex-col gap-0 border-t border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) p-(--cv-space-2xl)"
-          >
+          <section class="flex flex-col gap-0 p-(--cv-space-2xl)">
             <label class="cv-field">
               <span>触发模式</span>
               <Select
@@ -102,7 +100,7 @@
               <h3 class="m-0 shrink-0 text-(length:--cv-font-size-lg) font-bold text-(--cv-on-surface)">固定 tag</h3>
               <CvMiniButton
                 label="从资料解析"
-                icon="fa-solid fa-dice-d20"
+                icon="fa-regular fa-dice-d20"
                 :loading="isParsingTags && person.id === parsingPersonId"
                 @click="openParseTagsDialog(person)"
               />
@@ -199,7 +197,7 @@
             >
           </span>
         </button>
-        <label v-if="tagParseMode === 'custom'" class="cv-field mt-(--cv-space-md)">
+        <label v-if="tagParseMode === 'custom'" class="cv-field mt-(--cv-space-5xl)">
           <span>输入内容</span>
           <Textarea
             v-model="tagParseInput"

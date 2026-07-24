@@ -47,7 +47,7 @@
           >
             <template #actions>
               <CvMiniButton
-                icon="fa-solid fa-trash"
+                icon="fa-regular fa-trash"
                 tone="danger"
                 aria-label="删除角色"
                 @click="removeDirectCharacter(character.id)"

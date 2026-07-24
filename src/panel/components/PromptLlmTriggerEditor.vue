@@ -238,10 +238,17 @@ const ACCORDION_HEADER_PT = {
   },
 };
 
+/**
+ * 顶部分隔线用 inline style：官方 .p-accordioncontent-content 写死 border-width token(0)，
+ * 会盖掉 Tailwind border-t utility；inline 特异性更高
+ */
 const ACCORDION_CONTENT_PT = {
   content: {
     class:
-      'border-t border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_20%,transparent)] p-(--cv-space-2xl) md:p-(--cv-space-3xl)',
+      'bg-[color-mix(in_srgb,var(--cv-surface-container-low)_20%,transparent)] p-(--cv-space-2xl) md:p-(--cv-space-3xl)',
+    style: {
+      borderTop: 'var(--cv-border-width) solid var(--cv-surface-variant)',
+    },
   },
 };
 

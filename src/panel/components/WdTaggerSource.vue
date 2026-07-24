@@ -27,7 +27,7 @@
       <template #header="{ chooseCallback, clearCallback }">
         <button
           type="button"
-          class="flex min-h-28 w-full cursor-pointer items-center gap-(--cv-space-lg) rounded-(--cv-radius-md) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-(--cv-surface-container-low) p-(--cv-space-xl) text-left text-(--cv-on-surface) hover:border-(--p-primary-color) hover:bg-[color-mix(in_srgb,var(--p-primary-color)_8%,var(--cv-surface-container-low))]"
+          class="flex min-h-28 w-full cursor-pointer items-center border-0 gap-(--cv-space-lg) rounded-(--cv-radius-md) bg-(--cv-surface-container-low) p-(--cv-space-xl) text-left text-(--cv-on-surface)"
           @click="chooseUpload(clearCallback, chooseCallback)"
         >
           <img

@@ -23,12 +23,12 @@
         :aria-label="entry.enabled ? '禁用条目' : '启用条目'"
       />
       <CvMiniButton
-        icon="fa-solid fa-pen"
+        icon="fa-regular fa-pen"
         aria-label="编辑条目"
         @click="openEntryEditor(entry as PromptPersonTemplateEntry)"
       />
       <CvMiniButton
-        icon="fa-solid fa-trash"
+        icon="fa-regular fa-trash"
         tone="danger"
         aria-label="删除条目"
         @click="removeEntry(entry.id)"

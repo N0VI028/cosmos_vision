@@ -3,7 +3,7 @@
     <template #actions>
       <CvMiniButton
         :label="isSelecting ? '取消选择' : '选择'"
-        icon="fa-solid fa-check-double"
+        icon="fa-regular fa-check-double"
         :disabled="isSelectionToggleDisabled"
         @click="toggleSelectMode"
       />
@@ -113,13 +113,13 @@
               @click.stop
             >
               <CvMiniButton
-                icon="fa-solid fa-download"
+                icon="fa-regular fa-download"
                 aria-label="下载"
                 :disabled="busy"
                 @click="$emit('download-item', item)"
               />
               <CvMiniButton
-                icon="fa-solid fa-trash"
+                icon="fa-regular fa-trash"
                 tone="error"
                 aria-label="删除"
                 :disabled="busy"

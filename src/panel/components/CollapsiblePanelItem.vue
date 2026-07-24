@@ -91,7 +91,11 @@ const headerPt = computed(() => ({
   toggleicon: { class: 'hidden' },
 }));
 
-/** Content：宽度约束 + 禁用 opacity */
+/**
+ * Content：宽度约束 + 禁用 opacity
+ * 顶部分隔线用 inline style：官方 .p-accordioncontent-content 写死 border-width token(0)，
+ * 会盖掉 Tailwind border-t utility；inline 特异性更高（对齐 TriggerEditor header padding:0）
+ */
 const contentPt = computed(() => ({
   contentWrapper: { class: 'cv-collapsible-panel__content-wrapper min-w-0 w-full max-w-full' },
   content: {
@@ -99,6 +103,9 @@ const contentPt = computed(() => ({
       'cv-collapsible-panel__content min-w-0 w-full max-w-full',
       props.disabled ? 'opacity-[0.62]' : '',
     ],
+    style: {
+      borderTop: 'var(--cv-border-width) solid var(--cv-surface-variant)',
+    },
   },
 }));
 

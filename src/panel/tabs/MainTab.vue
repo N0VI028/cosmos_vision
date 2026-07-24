@@ -45,14 +45,14 @@
           <span>相关链接</span>
           <div class="inline-flex items-center justify-end gap-(--cv-space-md) -mr-(--cv-space-xs)">
             <i
-              class="fa-brands fa-github cursor-pointer transition-colors duration-150 text-[1.25rem] text-(--p-button-secondary-color) p-(--cv-space-xs) hover:text-(--p-primary-color)"
-              title="GitHub"
-              @click="openUrl('https://github.com/N0VI028/cosmos_vision')"
-            />
-            <i
-              class="fa-brands fa-discord cursor-pointer transition-colors duration-150 text-[1.25rem] text-(--p-button-secondary-color) p-(--cv-space-xs) hover:text-(--p-primary-color)"
-              title="Discord"
-              @click="openUrl('https://discord.gg/sillytavern')"
+              v-for="link in relatedLinks"
+              :key="link.title"
+              :class="[
+                link.iconClass,
+                'cursor-pointer transition-colors duration-150 text-[1.2rem] text-(--p-button-secondary-color) p-(--cv-space-xs) hover:text-(--p-primary-color)',
+              ]"
+              :title="link.title"
+              @click="openUrl(link.url)"
             />
           </div>
         </div>
@@ -145,6 +145,27 @@ const props = defineProps<{ subTab: 'general' | 'data' | 'portability' }>();
 
 const { settings } = useSettingsStore();
 const imageSourceOptions = [...IMAGE_SOURCES];
+
+/** 相关链接列表项 */
+interface RelatedLink {
+  title: string;
+  iconClass: string;
+  url: string;
+}
+
+/** 关于插件中的相关链接配置 */
+const relatedLinks: RelatedLink[] = [
+  {
+    title: 'GitHub',
+    iconClass: 'fa-brands fa-github',
+    url: 'https://github.com/N0VI028/cosmos_vision',
+  },
+  {
+    title: 'Discord',
+    iconClass: 'fa-brands fa-discord',
+    url: 'https://discord.gg/sillytavern',
+  },
+];
 const vibeRows = ref<NovelAIVibeCacheListItem[]>([]);
 const isVibeRowsLoading = ref(false);
 const isVibeActionBusy = ref(false);
