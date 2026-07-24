@@ -529,7 +529,7 @@
     gap: var(--cv-space-lg);
   }
 
-  -label {
+  .cosmos-vision-root .cv-nav-label {
     display: none;
   }
 
