@@ -152,7 +152,7 @@ const toggleSwitchColorBase = {
 } as const;
 
 /**
- * 浅色 ToggleSwitch：关闭态 high 底 + lowest 手柄足够分离；禁用底与 formField 一致
+ * 浅色 ToggleSwitch
  */
 const toggleSwitchColorLight = {
   root: {
@@ -172,16 +172,15 @@ const toggleSwitchColorLight = {
 } as const;
 
 /**
- * 深色 ToggleSwitch：关闭态抬亮轨道/手柄并加描边，避免与 surface-container-low 行底融成一团
- * 轨道 surface-variant；手柄偏亮 on-surface 混色；边框 outline 弱描
+ * 深色 ToggleSwitch
  */
 const toggleSwitchColorDark = {
   root: {
     ...toggleSwitchColorBase.root,
     background: 'var(--cv-surface-variant)',
     hoverBackground: 'color-mix(in srgb, var(--cv-on-surface) 18%, var(--cv-surface-variant))',
-    borderColor: 'var(--cv-outline)',
-    hoverBorderColor: 'var(--cv-outline)',
+    borderColor: 'transparent',
+    hoverBorderColor: 'transparent',
     disabledBackground: 'color-mix(in srgb, var(--cv-surface-container-high) 70%, transparent)',
   },
   handle: {
@@ -620,6 +619,90 @@ const checkboxColorDark = {
 } as const;
 
 /**
+ * semantic text —— 覆盖 Aura light-dark(surface) 字色
+ * light/dark 共用 cv 自适应变量
+ */
+const semanticTextColor = {
+  color: 'var(--cv-on-surface)',
+  hoverColor: 'var(--cv-on-surface)',
+  mutedColor: 'var(--cv-on-surface-variant)',
+  hoverMutedColor: 'var(--cv-on-surface)',
+} as const;
+
+/**
+ * semantic content —— 通用内容面
+ */
+const semanticContentColor = {
+  background: 'var(--cv-surface-container)',
+  hoverBackground: 'var(--cv-surface-container-high)',
+  borderColor: 'var(--cv-surface-variant)',
+  color: 'var(--cv-on-surface)',
+  hoverColor: 'var(--cv-on-surface)',
+} as const;
+
+/**
+ * semantic list.option —— Select 等下拉选项
+ * 选中态用 primary-container 半透明，覆盖 Aura highlight/surface
+ */
+const semanticListOptionColor = {
+  focusBackground: 'var(--cv-surface-variant)',
+  selectedBackground: 'color-mix(in srgb, var(--cv-primary-container) 18%, transparent)',
+  selectedFocusBackground: 'color-mix(in srgb, var(--cv-primary-container) 26%, transparent)',
+  color: 'var(--cv-on-surface)',
+  focusColor: 'var(--cv-on-surface)',
+  selectedColor: 'var(--cv-on-surface)',
+  selectedFocusColor: 'var(--cv-on-surface)',
+} as const;
+
+const semanticListOptionGroupColor = {
+  background: 'var(--cv-surface-container-high)',
+  color: 'var(--cv-on-surface-variant)',
+} as const;
+
+/**
+ * semantic overlay.select / popover / modal 颜色
+ * Select.overlay 映射 {overlay.select.*}；Dialog/Popover 亦读 modal/popover
+ */
+const semanticOverlaySelectColor = {
+  background: 'var(--cv-surface-container-high)',
+  borderColor: 'var(--cv-surface-variant)',
+  color: 'var(--cv-on-surface)',
+  shadow: 'var(--cv-popover-shadow)',
+} as const;
+
+const semanticOverlayPopoverColor = {
+  background: 'var(--cv-surface-container-high)',
+  borderColor: 'var(--cv-outline)',
+  color: 'var(--cv-on-surface)',
+  shadow: 'var(--cv-popover-shadow)',
+} as const;
+
+const semanticOverlayModalColor = {
+  background: 'var(--cv-surface-container-lowest)',
+  borderColor: 'transparent',
+  color: 'var(--cv-on-surface)',
+  shadow: 'var(--cv-floating-shadow)',
+} as const;
+
+/**
+ * semantic.colorScheme 共用块（formField 除外：浅/深禁用底不同）
+ * 官方：颜色类 token 挂 colorScheme.light/dark，配合 darkModeSelector
+ */
+const semanticSharedColorScheme = {
+  text: semanticTextColor,
+  content: semanticContentColor,
+  list: {
+    option: semanticListOptionColor,
+    optionGroup: semanticListOptionGroupColor,
+  },
+  overlay: {
+    select: semanticOverlaySelectColor,
+    popover: semanticOverlayPopoverColor,
+    modal: semanticOverlayModalColor,
+  },
+} as const;
+
+/**
  * PrimeVue 主题 preset
  */
 export const cosmosPrimePreset = definePreset(Aura, {
@@ -644,9 +727,29 @@ export const cosmosPrimePreset = definePreset(Aura, {
       },
       borderRadius: 'var(--cv-radius-full)',
     },
+    // 非颜色：overlay 结构尺寸（颜色见 colorScheme）
+    overlay: {
+      select: {
+        borderRadius: 'var(--cv-radius-lg)',
+      },
+      popover: {
+        borderRadius: 'var(--cv-radius)',
+        padding: 'var(--cv-space-sm)',
+      },
+      modal: {
+        borderRadius: 'var(--cv-radius-lg)',
+        padding: 'var(--cv-space-5xl)',
+      },
+    },
     colorScheme: {
-      light: { formField: formFieldColorLight },
-      dark: { formField: formFieldColorDark },
+      light: {
+        formField: formFieldColorLight,
+        ...semanticSharedColorScheme,
+      },
+      dark: {
+        formField: formFieldColorDark,
+        ...semanticSharedColorScheme,
+      },
     },
   },
   components: {

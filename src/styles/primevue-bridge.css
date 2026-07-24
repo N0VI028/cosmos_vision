@@ -1,551 +1,53 @@
 /**
- * 字号 / 间距桥接到 CosmosVision 全局 token
+ * 作用域桥接 + 少量结构补丁
  *
- * - font-size:让作用域内 em 单位与 ST 字号一致
- * - --spacing:Tailwind 4 spacing 系统的基准变量
- *   覆写为 --cv-spacing-unit 后,`p-N / m-N / gap-N` 全部基于
- *   CosmosVision 字号重算,不再依赖根字号
- *
- * 仅作用于扩展容器与 PrimeVue Teleport 根类,不污染 ST 全局
+ * - 根字号 / --spacing：面板与 Teleport 根继承 base，em 与 Tailwind spacing 对齐
+ * - 主题色 / 组件尺寸：definePreset（primevue-theme.ts）
+ * - 此处只留 token/PT 表达不了的结构（SelectButton pill、Chip 描边、Message 换行等）
  */
 #cosmos_vision,
 .cosmos-vision-root,
 .cv-inline-selected,
 .cv-inline-img-wrap {
   font-size: var(--cv-font-size-base);
+  font-family: var(--cv-font-body);
   --spacing: var(--cv-spacing-unit);
 }
 
-/**
- * PrimeVue 间距 / 尺寸 / 圆角 token 桥接到作用域内 token
- */
-#cosmos_vision,
-.cosmos-vision-root {
-  /* semantic: list */
-  --p-list-padding: 0.25em 0.25em;
-  --p-list-header-padding: 0.5em 1em 0.25em 1em;
-  --p-list-option-padding: 0.5em 0.75em;
-  --p-list-option-group-padding: 0.5em 0.75em;
-
-  /* semantic: navigation */
-  --p-navigation-list-padding: 0.25em 0.25em;
-  --p-navigation-item-padding: 0.5em 0.75em;
-  --p-navigation-item-gap: 0.5em;
-  --p-navigation-submenu-label-padding: 0.5em 0.75em;
-  --p-navigation-submenu-icon-size: 0.875em;
-
-  /* semantic: overlay —— Dialog/Popover Aura 默认映射这些；作用域回写对齐 cv */
-  --p-overlay-popover-background: var(--cv-surface-container-high);
-  --p-overlay-popover-border-color: var(--cv-outline);
-  --p-overlay-popover-color: var(--cv-on-surface);
-  --p-overlay-popover-border-radius: var(--cv-radius);
-  --p-overlay-popover-padding: var(--cv-space-sm);
-  --p-overlay-popover-shadow: var(--cv-popover-shadow);
-  --p-overlay-modal-background: var(--cv-surface-container-lowest);
-  --p-overlay-modal-border-color: transparent;
-  --p-overlay-modal-color: var(--cv-on-surface);
-  --p-overlay-modal-border-radius: var(--cv-radius-lg);
-  --p-overlay-modal-padding: var(--cv-space-5xl);
-  --p-overlay-modal-shadow: var(--cv-floating-shadow);
-
-  /* Dialog：尺寸/颜色在作用域内回写（theme components.dialog） */
-  --p-dialog-background: var(--cv-surface-container-lowest);
-  --p-dialog-border-color: transparent;
-  --p-dialog-color: var(--cv-on-surface);
-  --p-dialog-border-radius: var(--cv-radius-lg);
-  --p-dialog-shadow: var(--cv-floating-shadow);
-  --p-dialog-header-gap: var(--cv-space-md);
-  --p-dialog-header-padding: var(--cv-space-7xl) var(--cv-space-7xl) 0;
-  --p-dialog-title-font-size: var(--cv-font-size-2xl);
-  --p-dialog-title-font-weight: 600;
-  --p-dialog-content-padding: var(--cv-space-5xl) var(--cv-space-7xl);
-  --p-dialog-footer-gap: var(--cv-space-md);
-  --p-dialog-footer-padding: 0 var(--cv-space-7xl) var(--cv-space-7xl);
-
-  /* Popover：尺寸/颜色在作用域内回写（theme components.popover） */
-  --p-popover-background: var(--cv-surface-container-high);
-  --p-popover-border-color: var(--cv-outline);
-  --p-popover-color: var(--cv-on-surface);
-  --p-popover-border-radius: var(--cv-radius);
-  --p-popover-shadow: var(--cv-popover-shadow);
-  --p-popover-gutter: var(--cv-space-xs);
-  --p-popover-arrow-offset: 1.125rem;
-  --p-popover-content-padding: var(--cv-space-sm);
-
-  /* semantic: icon */
-  --p-icon-size: 1em;
-
-  /* component: tabs */
-  --p-tabs-tab-padding: 1em 1.125em;
-  --p-tabs-tab-gap: 0.5em;
-  --p-tabs-tabpanel-padding: 0.875em 1.125em 1.125em 1.125em;
-  --p-tabs-nav-button-width: 2.5em;
-
-  /* component: button —— 尺寸/圆角（theme components.button；:root 字面值需作用域回写） */
-  --p-button-gap: 0.5em;
-  --p-button-icon-only-width: 2.5em;
-  --p-button-sm-icon-only-width: 2em;
-  --p-button-lg-icon-only-width: 3em;
-  --p-button-badge-size: 1em;
-  --p-button-border-radius: var(--cv-radius);
-  --p-button-rounded-border-radius: var(--cv-radius-full);
-
-  /* component: select —— 尺寸/gutter（theme components.select；:root 字面值需作用域回写） */
-  --p-select-dropdown-width: 2.5em;
-  --p-select-checkmark-gutter-start: -0.375em;
-  --p-select-checkmark-gutter-end: 0.375em;
-
-  /* ToggleSwitch：尺寸/颜色在作用域内回写，避免 :root 字面值与 Aura surface 灰阶
-   * 关闭态默认按浅色 high/lowest；深色在下方 .cosmos-vision-app-dark 抬亮 */
-  --p-toggleswitch-width: 2.5em;
-  --p-toggleswitch-height: 1.5em;
-  --p-toggleswitch-border-radius: var(--cv-radius-full);
-  --p-toggleswitch-gap: 0.25em;
-  --p-toggleswitch-shadow: none;
-  --p-toggleswitch-border-width: 1px;
-  --p-toggleswitch-border-color: transparent;
-  --p-toggleswitch-hover-border-color: transparent;
-  --p-toggleswitch-checked-border-color: transparent;
-  --p-toggleswitch-checked-hover-border-color: transparent;
-  --p-toggleswitch-invalid-border-color: var(--p-red-500);
-  --p-toggleswitch-background: var(--cv-surface-container-high);
-  --p-toggleswitch-hover-background: var(--cv-surface-container);
-  --p-toggleswitch-checked-background: var(--cv-primary-container);
-  --p-toggleswitch-checked-hover-background: var(--cv-primary-container);
-  --p-toggleswitch-disabled-background: var(--p-form-field-disabled-background);
-  --p-toggleswitch-handle-size: 1em;
-  --p-toggleswitch-handle-border-radius: 50%;
-  --p-toggleswitch-handle-background: var(--cv-surface-container-lowest);
-  --p-toggleswitch-handle-hover-background: var(--cv-surface-container-lowest);
-  --p-toggleswitch-handle-checked-background: var(--cv-on-primary-container);
-  --p-toggleswitch-handle-checked-hover-background: var(--cv-on-primary-container);
-  --p-toggleswitch-handle-disabled-background: var(--cv-surface-container-lowest);
-  --p-toggleswitch-handle-color: var(--cv-on-surface-variant);
-  --p-toggleswitch-handle-hover-color: var(--cv-on-surface);
-  --p-toggleswitch-handle-checked-color: var(--cv-primary-container);
-  --p-toggleswitch-handle-checked-hover-color: var(--cv-primary-container);
-
-  /* PrimeVue 圆角 token */
-  --p-border-radius-xs: 0.0667em;
-  --p-border-radius-sm: 0.1333em;
-  --p-border-radius-md: 0.1333em;
-  --p-border-radius-lg: 0.2em;
-  --p-border-radius-xl: 0.2667em;
-
-  /* PrimeVue 在 :root 已字面值化的组件圆角，需在作用域内逐项回写 */
-  --p-inputtext-border-radius: var(--cv-radius-full);
-  /* Textarea 多行：md 圆角（theme components.textarea.root.borderRadius） */
-  --p-textarea-border-radius: var(--cv-radius-md);
-  /* InputNumber 步进按钮圆角（theme components.inputnumber.button.borderRadius） */
-  --p-inputnumber-button-border-radius: var(--cv-radius-full);
-  /* Password：强度条 / 强度 overlay 圆角（theme components.password） */
-  --p-password-meter-border-radius: var(--cv-radius-full);
-  --p-password-overlay-border-radius: var(--cv-radius-lg);
-  --p-select-border-radius: var(--cv-radius-full);
-  --p-select-overlay-border-radius: var(--cv-radius-lg);
-  --p-select-option-border-radius: var(--cv-radius-md);
-  /* MultiSelect 死配置已删（业务未使用）；引入时再补 --p-multiselect-* */
-  /* Chip：尺寸/圆角在作用域内回写（theme components.chip） */
-  --p-chip-border-radius: var(--cv-radius-full);
-  --p-chip-padding-x: 0.6em;
-  --p-chip-padding-y: 0.25em;
-  --p-chip-gap: var(--cv-space-xs);
-  --p-chip-label-font-size: var(--cv-font-size-xs);
-  /* InputTags：尺寸/圆角在作用域内回写（theme components.inputtags） */
-  --p-inputtags-border-radius: var(--cv-radius-md);
-  --p-inputtags-item-border-radius: var(--cv-radius-full);
-  --p-inputtags-padding-x: var(--cv-space-md);
-  --p-inputtags-padding-y: calc(var(--cv-space-md) * 2);
-  --p-inputtags-gap: var(--cv-space-xs);
-  --p-togglebutton-border-radius: var(--cv-radius-full);
-  --p-togglebutton-content-border-radius: var(--cv-radius-full);
-  /* SelectButton 容器圆角（theme components.selectbutton.root.borderRadius） */
-  --p-selectbutton-border-radius: var(--cv-radius-full);
-  /* Message：尺寸/圆角在作用域内回写（theme components.message） */
-  --p-message-border-radius: var(--cv-radius-lg);
-  --p-message-border-width: 1px;
-  --p-message-content-padding: 0.5em 0.75em;
-  --p-message-content-gap: var(--cv-space-sm);
-  --p-message-content-sm-padding: 0.35em 0.55em;
-  --p-message-content-lg-padding: 0.65em 0.9em;
-  --p-message-text-font-size: var(--cv-font-size-sm);
-  --p-message-text-sm-font-size: var(--cv-font-size-xs);
-  --p-message-text-lg-font-size: var(--cv-font-size-md);
-  --p-message-icon-size: 1em;
-  --p-message-close-button-width: 1.5em;
-  --p-message-close-button-height: 1.5em;
-  --p-message-close-button-border-radius: 50%;
-  --p-message-close-icon-size: 0.875em;
-  /* Skeleton：圆角回写（theme components.skeleton） */
-  --p-skeleton-border-radius: var(--cv-radius-sm);
-  /* Tag：尺寸/圆角（theme components.tag） */
-  --p-tag-font-size: var(--cv-font-size-2xs);
-  --p-tag-font-weight: 600;
-  --p-tag-padding: 0.08rem 0.32rem;
-  --p-tag-gap: var(--cv-space-xs);
-  --p-tag-border-radius: var(--cv-radius-sm);
-  --p-tag-rounded-border-radius: var(--cv-radius-full);
-  --p-tag-icon-size: 0.7em;
-  /* Card：默认数据卡圆角（theme components.card） */
-  --p-card-border-radius: var(--cv-radius-sm);
-  --p-card-body-padding: 0;
-  --p-card-body-gap: 0;
-  /* Galleria：无边框壳（theme components.galleria） */
-  --p-galleria-border-width: 0;
-  --p-galleria-border-radius: 0;
-  --p-galleria-nav-button-size: 2.25rem;
-  --p-galleria-nav-button-gutter: 0.5rem;
-  --p-galleria-nav-button-prev-border-radius: 50%;
-  --p-galleria-nav-button-next-border-radius: 50%;
-  --p-galleria-thumbnail-nav-button-size: 1.75rem;
-  --p-galleria-thumbnail-nav-button-border-radius: var(--cv-radius-sm);
-  --p-galleria-thumbnail-nav-button-gutter: 0.5rem;
-  /* FileUpload：WD Tagger 默认壳（theme components.fileupload） */
-  --p-fileupload-border-radius: var(--cv-radius-md);
-  --p-fileupload-header-padding: 0;
-  --p-fileupload-header-border-width: 0;
-  --p-fileupload-header-border-radius: var(--cv-radius-md);
-  --p-fileupload-header-gap: 0;
-  --p-fileupload-content-padding: 0;
-  --p-fileupload-content-gap: 0;
-  /* Accordion：header padding（颜色见 colorScheme 回写段） */
-  --p-accordion-header-padding: var(--cv-space-2xl);
-  --p-accordion-content-padding: 0;
-  /* Divider 线色见下方 color 段；水平 margin 走 Aura 默认，紧凑场景局部 :dt */
-
-  /* Slider：尺寸/圆角在作用域内回写（theme components.slider） */
-  --p-slider-track-border-radius: var(--cv-radius-full);
-  --p-slider-track-size: 0.2667em;
-  --p-slider-handle-width: 1.0667em;
-  --p-slider-handle-height: 1.0667em;
-  --p-slider-handle-border-radius: 50%;
-  --p-slider-handle-content-width: 0.4em;
-  --p-slider-handle-content-height: 0.4em;
-  --p-slider-handle-content-border-radius: 50%;
-  --p-slider-handle-content-shadow: none;
-}
-
-.cosmos-vision-root {
-  --p-content-background: var(--cv-surface-container);
-  --p-content-hover-background: var(--cv-surface-container-high);
-  --p-content-border-color: var(--cv-surface-variant);
-  --p-content-color: var(--cv-on-surface);
-  --p-overlay-select-background: var(--cv-surface-container-high);
-  --p-overlay-select-border-color: var(--cv-surface-variant);
-  --p-overlay-select-color: var(--cv-on-surface);
-  --p-overlay-select-shadow: var(--cv-popover-shadow);
-  --p-list-option-focus-background: var(--cv-surface-variant);
-  --p-list-option-selected-background: color-mix(in srgb, var(--cv-primary-container) 18%, transparent);
-  --p-list-option-selected-focus-background: color-mix(in srgb, var(--cv-primary-container) 26%, transparent);
-  --p-list-option-color: var(--cv-on-surface);
-  --p-list-option-focus-color: var(--cv-on-surface);
-  --p-list-option-selected-color: var(--cv-on-surface);
-  --p-list-option-selected-focus-color: var(--cv-on-surface);
-  --p-list-option-group-background: var(--cv-surface-container-high);
-  --p-list-option-group-color: var(--cv-on-surface-variant);
-  --p-text-color: var(--cv-on-surface);
-  --p-text-muted-color: var(--cv-on-surface-variant);
-  --p-text-hover-color: var(--cv-on-surface);
-  --p-text-hover-muted-color: var(--cv-on-surface);
-
-  /* Button secondary 颜色：覆盖 Aura surface 灰阶（theme components.button colorScheme） */
-  --p-button-secondary-background: var(--cv-surface-container-high);
-  --p-button-secondary-hover-background: var(--cv-surface-variant);
-  --p-button-secondary-active-background: var(--cv-surface-container);
-  --p-button-secondary-border-color: var(--cv-surface-variant);
-  --p-button-secondary-hover-border-color: var(--cv-outline);
-  --p-button-secondary-active-border-color: var(--cv-outline);
-  --p-button-secondary-color: var(--cv-on-surface);
-  --p-button-secondary-hover-color: var(--cv-on-surface);
-  --p-button-secondary-active-color: var(--cv-on-surface);
-  --p-button-outlined-secondary-border-color: var(--cv-surface-variant);
-  --p-button-outlined-secondary-color: var(--cv-on-surface-variant);
-  --p-button-outlined-secondary-hover-background: color-mix(in srgb, var(--cv-surface-variant) 50%, transparent);
-  --p-button-outlined-secondary-active-background: color-mix(in srgb, var(--cv-surface-variant) 70%, transparent);
-  --p-button-text-secondary-color: var(--cv-on-surface-variant);
-  --p-button-text-secondary-hover-background: color-mix(in srgb, var(--cv-surface-variant) 50%, transparent);
-  --p-button-text-secondary-active-background: color-mix(in srgb, var(--cv-surface-variant) 70%, transparent);
-
-  /* Select 颜色：对齐 formField；overlay/option 指回 semantic list / overlay.select */
-  --p-select-background: var(--cv-surface-container-high);
-  --p-select-disabled-background: var(--p-form-field-disabled-background);
-  --p-select-filled-background: var(--cv-surface-container-high);
-  --p-select-filled-hover-background: var(--cv-surface-container);
-  --p-select-filled-focus-background: var(--cv-surface-container-high);
-  --p-select-border-color: var(--cv-surface-variant);
-  --p-select-hover-border-color: var(--cv-outline);
-  --p-select-focus-border-color: var(--cv-primary-container);
-  --p-select-invalid-border-color: var(--p-red-500);
-  --p-select-color: var(--cv-on-surface);
-  --p-select-disabled-color: var(--p-form-field-disabled-color);
-  --p-select-placeholder-color: var(--cv-on-surface-variant);
-  --p-select-invalid-placeholder-color: var(--p-form-field-invalid-placeholder-color);
-  --p-select-shadow: none;
-  --p-select-dropdown-color: var(--cv-on-surface-variant);
-  --p-select-clear-icon-color: var(--cv-on-surface-variant);
-  --p-select-overlay-background: var(--p-overlay-select-background);
-  --p-select-overlay-border-color: var(--p-overlay-select-border-color);
-  --p-select-overlay-color: var(--p-overlay-select-color);
-  --p-select-overlay-shadow: var(--p-overlay-select-shadow);
-  --p-select-option-focus-background: var(--p-list-option-focus-background);
-  --p-select-option-selected-background: var(--p-list-option-selected-background);
-  --p-select-option-selected-focus-background: var(--p-list-option-selected-focus-background);
-  --p-select-option-color: var(--p-list-option-color);
-  --p-select-option-focus-color: var(--p-list-option-focus-color);
-  --p-select-option-selected-color: var(--p-list-option-selected-color);
-  --p-select-option-selected-focus-color: var(--p-list-option-selected-focus-color);
-  --p-select-option-group-background: var(--p-list-option-group-background);
-  --p-select-option-group-color: var(--p-list-option-group-color);
-  /* InputTags：颜色跟 formField light/dark（Aura 映射 form.field；桥接保证作用域可读） */
-  --p-inputtags-background: var(--p-form-field-background);
-  --p-inputtags-disabled-background: var(--p-form-field-disabled-background);
-  --p-inputtags-filled-background: var(--p-form-field-filled-background);
-  --p-inputtags-filled-hover-background: var(--p-form-field-filled-hover-background);
-  --p-inputtags-filled-focus-background: var(--p-form-field-filled-focus-background);
-  --p-inputtags-border-color: var(--p-form-field-border-color);
-  --p-inputtags-hover-border-color: var(--p-form-field-hover-border-color);
-  --p-inputtags-focus-border-color: var(--p-form-field-focus-border-color);
-  --p-inputtags-invalid-border-color: var(--p-form-field-invalid-border-color);
-  --p-inputtags-color: var(--p-form-field-color);
-  --p-inputtags-disabled-color: var(--p-form-field-disabled-color);
-  --p-inputtags-shadow: none;
-  /* Chip：颜色在作用域内回写，覆盖 Aura surface 灰阶；无 border token */
-  --p-chip-background: color-mix(in srgb, var(--p-primary-color) 12%, transparent);
-  --p-chip-focus-background: color-mix(in srgb, var(--p-primary-color) 18%, transparent);
-  --p-chip-color: var(--p-primary-color);
-  --p-chip-icon-color: var(--p-primary-color);
-  --p-chip-remove-icon-color: var(--p-primary-color);
-  --p-chip-remove-icon-focus-ring-width: 0;
-  --p-chip-remove-icon-focus-ring-style: none;
-  --p-chip-remove-icon-focus-ring-color: transparent;
-  --p-chip-remove-icon-focus-ring-offset: 0;
-  --p-chip-remove-icon-focus-ring-shadow: none;
-  /* Checkbox：颜色/圆角在作用域内回写，保证 host-resets 与 Teleport 读到 cv token */
-  --p-checkbox-border-radius: var(--cv-radius-sm);
-  --p-checkbox-background: var(--cv-surface-container-high);
-  --p-checkbox-filled-background: var(--cv-surface-container-high);
-  /* 跟 formField light/dark 禁用底，避免 bridge 写死深色半透明覆盖浅色 token */
-  --p-checkbox-disabled-background: var(--p-form-field-disabled-background);
-  --p-checkbox-border-color: var(--cv-surface-variant);
-  --p-checkbox-hover-border-color: var(--cv-outline);
-  --p-checkbox-focus-border-color: var(--cv-surface-variant);
-  --p-checkbox-checked-background: var(--cv-primary-container);
-  --p-checkbox-checked-hover-background: var(--cv-primary-container);
-  --p-checkbox-checked-border-color: var(--cv-primary-container);
-  --p-checkbox-checked-hover-border-color: var(--cv-primary-container);
-  --p-checkbox-checked-focus-border-color: var(--cv-primary-container);
-  --p-checkbox-checked-disabled-border-color: var(--cv-surface-variant);
-  --p-checkbox-invalid-border-color: var(--p-red-500);
-  --p-checkbox-icon-color: var(--cv-on-surface);
-  --p-checkbox-icon-checked-color: var(--cv-on-primary-container);
-  --p-checkbox-icon-checked-hover-color: var(--cv-on-primary-container);
-  --p-checkbox-icon-disabled-color: var(--cv-on-surface-variant);
-  --p-checkbox-shadow: none;
-  /* Slider：颜色在作用域内回写，避免 :root 字面值与 Aura surface/primary 灰阶 */
-  --p-slider-track-background: var(--cv-surface-variant);
-  --p-slider-range-background: var(--cv-outline);
-  --p-slider-handle-background: var(--cv-surface-container);
-  --p-slider-handle-hover-background: var(--cv-surface-container-high);
-  --p-slider-handle-content-background: var(--cv-on-surface);
-  --p-slider-handle-content-hover-background: var(--cv-on-surface);
-  /* Message severity：颜色在作用域内回写，覆盖 Aura blue/green/surface 灰阶 */
-  --p-message-info-background: color-mix(in srgb, var(--p-blue-500) 14%, var(--cv-surface-container-high));
-  --p-message-info-border-color: color-mix(in srgb, var(--p-blue-500) 32%, transparent);
-  --p-message-info-color: var(--p-blue-600);
-  --p-message-info-shadow: none;
-  --p-message-info-close-button-hover-background: color-mix(in srgb, var(--p-blue-500) 18%, transparent);
-  --p-message-info-close-button-focus-ring-color: transparent;
-  --p-message-info-close-button-focus-ring-shadow: none;
-  --p-message-success-background: color-mix(in srgb, var(--p-green-500) 14%, var(--cv-surface-container-high));
-  --p-message-success-border-color: color-mix(in srgb, var(--p-green-500) 32%, transparent);
-  --p-message-success-color: var(--p-green-600);
-  --p-message-success-shadow: none;
-  --p-message-success-close-button-hover-background: color-mix(in srgb, var(--p-green-500) 18%, transparent);
-  --p-message-success-close-button-focus-ring-color: transparent;
-  --p-message-success-close-button-focus-ring-shadow: none;
-  --p-message-warn-background: color-mix(in srgb, var(--p-yellow-500) 14%, var(--cv-surface-container-high));
-  --p-message-warn-border-color: color-mix(in srgb, var(--p-yellow-500) 32%, transparent);
-  --p-message-warn-color: var(--p-yellow-600);
-  --p-message-warn-shadow: none;
-  --p-message-warn-close-button-hover-background: color-mix(in srgb, var(--p-yellow-500) 18%, transparent);
-  --p-message-warn-close-button-focus-ring-color: transparent;
-  --p-message-warn-close-button-focus-ring-shadow: none;
-  --p-message-error-background: color-mix(in srgb, var(--p-red-500) 14%, var(--cv-surface-container-high));
-  --p-message-error-border-color: color-mix(in srgb, var(--p-red-500) 32%, transparent);
-  --p-message-error-color: var(--p-red-600);
-  --p-message-error-shadow: none;
-  --p-message-error-close-button-hover-background: color-mix(in srgb, var(--p-red-500) 18%, transparent);
-  --p-message-error-close-button-focus-ring-color: transparent;
-  --p-message-error-close-button-focus-ring-shadow: none;
-  --p-message-secondary-background: var(--cv-surface-container-high);
-  --p-message-secondary-border-color: var(--cv-surface-variant);
-  --p-message-secondary-color: var(--cv-on-surface-variant);
-  --p-message-secondary-shadow: none;
-  --p-message-secondary-close-button-hover-background: var(--cv-surface-variant);
-  --p-message-secondary-close-button-focus-ring-color: transparent;
-  --p-message-secondary-close-button-focus-ring-shadow: none;
-  --p-message-contrast-background: var(--cv-on-surface);
-  --p-message-contrast-border-color: var(--cv-on-surface);
-  --p-message-contrast-color: var(--cv-surface);
-  --p-message-contrast-shadow: none;
-  --p-message-contrast-close-button-hover-background: color-mix(in srgb, var(--cv-surface) 14%, transparent);
-  --p-message-contrast-close-button-focus-ring-color: transparent;
-  --p-message-contrast-close-button-focus-ring-shadow: none;
-  /* ProgressSpinner：四段色统一主色语义（覆盖 Aura 彩虹） */
-  --p-progressspinner-color-one: var(--cv-primary-container);
-  --p-progressspinner-color-two: var(--p-primary-color);
-  --p-progressspinner-color-three: var(--cv-primary-container);
-  --p-progressspinner-color-four: var(--p-primary-color);
-  /* Skeleton：底与扫光（覆盖 Aura surface.200） */
-  --p-skeleton-background: var(--cv-surface-container-high);
-  --p-skeleton-animation-background: color-mix(
-    in srgb,
-    var(--cv-surface-container-high) 68%,
-    var(--cv-surface-container)
-  );
-  /* Tag severity：覆盖 Aura primary/surface 灰阶 */
-  --p-tag-primary-background: var(--p-primary-color);
-  --p-tag-primary-color: var(--cv-background);
-  --p-tag-secondary-background: var(--cv-surface-container-high);
-  --p-tag-secondary-color: var(--cv-on-surface-variant);
-  --p-tag-success-background: color-mix(in srgb, var(--p-green-500) 16%, var(--cv-surface-container-high));
-  --p-tag-success-color: var(--p-green-600);
-  --p-tag-info-background: color-mix(in srgb, var(--p-blue-500) 16%, var(--cv-surface-container-high));
-  --p-tag-info-color: var(--p-blue-600);
-  --p-tag-warn-background: color-mix(in srgb, var(--p-yellow-500) 16%, var(--cv-surface-container-high));
-  --p-tag-warn-color: var(--p-yellow-600);
-  --p-tag-danger-background: color-mix(in srgb, var(--p-red-500) 16%, var(--cv-surface-container-high));
-  --p-tag-danger-color: var(--p-red-600);
-  --p-tag-contrast-background: var(--cv-on-surface);
-  --p-tag-contrast-color: var(--cv-surface);
-  /* Card：默认数据卡表面 */
-  --p-card-background: var(--cv-surface-container-low);
-  --p-card-color: var(--cv-on-surface);
-  --p-card-shadow: none;
-  --p-card-subtitle-color: var(--cv-on-surface-variant);
-  /* Galleria：导航/缩略图/遮罩色 */
-  --p-galleria-border-color: transparent;
-  --p-galleria-nav-button-background: color-mix(in srgb, var(--cv-surface-container-high) 72%, transparent);
-  --p-galleria-nav-button-hover-background: var(--cv-surface-container-high);
-  --p-galleria-nav-button-color: var(--cv-on-surface);
-  --p-galleria-nav-button-hover-color: var(--cv-on-surface);
-  --p-galleria-nav-button-focus-ring-width: 0;
-  --p-galleria-nav-button-focus-ring-style: none;
-  --p-galleria-nav-button-focus-ring-color: transparent;
-  --p-galleria-nav-button-focus-ring-offset: 0;
-  --p-galleria-nav-button-focus-ring-shadow: none;
-  --p-galleria-thumbnails-content-background: var(--cv-surface-container-low);
-  --p-galleria-thumbnail-nav-button-hover-background: var(--cv-surface-variant);
-  --p-galleria-thumbnail-nav-button-color: var(--cv-on-surface-variant);
-  --p-galleria-thumbnail-nav-button-hover-color: var(--cv-on-surface);
-  --p-galleria-thumbnail-nav-button-focus-ring-width: 0;
-  --p-galleria-thumbnail-nav-button-focus-ring-style: none;
-  --p-galleria-thumbnail-nav-button-focus-ring-color: transparent;
-  --p-galleria-thumbnail-nav-button-focus-ring-offset: 0;
-  --p-galleria-thumbnail-nav-button-focus-ring-shadow: none;
-  --p-galleria-caption-background: color-mix(in srgb, var(--cv-surface) 55%, transparent);
-  --p-galleria-caption-color: var(--cv-on-surface);
-  --p-galleria-indicator-button-background: var(--cv-surface-variant);
-  --p-galleria-indicator-button-hover-background: var(--cv-outline);
-  --p-galleria-indicator-button-active-background: var(--p-primary-color);
-  --p-galleria-close-button-background: color-mix(in srgb, var(--cv-surface-container-high) 72%, transparent);
-  --p-galleria-close-button-hover-background: var(--cv-surface-container-high);
-  --p-galleria-close-button-color: var(--cv-on-surface);
-  --p-galleria-close-button-hover-color: var(--cv-on-surface);
-  /* FileUpload：WD Tagger 默认色 */
-  --p-fileupload-background: var(--cv-surface-container-low);
-  --p-fileupload-border-color: var(--cv-surface-variant);
-  --p-fileupload-color: var(--cv-on-surface);
-  --p-fileupload-header-background: transparent;
-  --p-fileupload-header-color: var(--cv-on-surface);
-  --p-fileupload-header-border-color: transparent;
-  --p-fileupload-content-highlight-border-color: var(--p-primary-color);
-  --p-fileupload-file-border-color: var(--cv-surface-variant);
-  --p-fileupload-file-name-color: var(--cv-on-surface);
-  --p-fileupload-file-size-color: var(--cv-on-surface-variant);
-  /* Accordion：透明壳 + 字色 */
-  --p-accordion-panel-border-color: transparent;
-  --p-accordion-header-color: var(--cv-on-surface);
-  --p-accordion-header-hover-color: var(--cv-on-surface);
-  --p-accordion-header-active-color: var(--cv-on-surface);
-  --p-accordion-header-active-hover-color: var(--cv-on-surface);
-  --p-accordion-header-background: transparent;
-  --p-accordion-header-hover-background: transparent;
-  --p-accordion-header-active-background: transparent;
-  --p-accordion-header-active-hover-background: transparent;
-  --p-accordion-header-border-color: transparent;
-  --p-accordion-header-toggle-icon-color: var(--cv-on-surface-variant);
-  --p-accordion-header-toggle-icon-hover-color: var(--cv-on-surface);
-  --p-accordion-header-toggle-icon-active-color: var(--cv-on-surface-variant);
-  --p-accordion-header-toggle-icon-active-hover-color: var(--cv-on-surface);
-  --p-accordion-content-background: transparent;
-  --p-accordion-content-border-color: transparent;
-  --p-accordion-content-color: var(--cv-on-surface);
-  /* Divider：线色 + content 字色 */
-  --p-divider-border-color: var(--cv-surface-variant);
-  --p-divider-content-background: var(--cv-surface-container);
-  --p-divider-content-color: var(--cv-on-surface);
-  /* DataTable / TreeTable 死配置已删（业务未使用） */
-}
-
-/**
- * 字号继承桥接
- */
-.cosmos-vision-root :is(.cv-prime-field, .cv-prime-field-text, .cv-select-option, .cv-prime-button, .cv-prime-button-label, .cv-prime-message, .cv-prime-inputtags, .cv-prime-inputtags-input, .cv-prime-inputtags-input-field),
-#cosmos_vision :is(.cv-prime-field, .cv-prime-field-text, .cv-select-option, .cv-prime-button, .cv-prime-button-label, .cv-prime-message, .cv-prime-inputtags, .cv-prime-inputtags-input, .cv-prime-inputtags-input-field) {
-  font-size: inherit;
-}
-
-.cosmos-vision-root :is(.cv-prime-field, .cv-prime-field-text, .cv-prime-button, .cv-prime-button-label, .cv-prime-message, .cv-prime-message-text, .cv-prime-inputtags, .cv-prime-inputtags-input, .cv-prime-inputtags-input-field),
-#cosmos_vision :is(.cv-prime-field, .cv-prime-field-text, .cv-prime-button, .cv-prime-button-label, .cv-prime-message, .cv-prime-message-text, .cv-prime-inputtags, .cv-prime-inputtags-input, .cv-prime-inputtags-input-field) {
-  font-family: var(--cv-font-body) !important;
-}
-
-.cosmos-vision-root .cv-prime-button-label,
-#cosmos_vision .cv-prime-button-label {
+/* Button label：防折行 */
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-button-label {
   @apply whitespace-nowrap;
 }
 
-/* Message 正文必须可换行（勿继承 button 类 nowrap / ST 白空压缩） */
-.cosmos-vision-root .cv-prime-message-text,
-#cosmos_vision .cv-prime-message-text,
-.cosmos-vision-root .p-message-text,
-#cosmos_vision .p-message-text {
+/* Message 正文：可换行（勿吃 button nowrap / ST 白空压缩） */
+:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-message-text, .p-message-text) {
   @apply whitespace-normal;
   overflow-wrap: anywhere;
 }
 
 /**
- * 公共 PT 结构类
- *
- * 这些样式来自 `primevue-pt.ts` 注入的语义类，只承接跨组件复用的结构与尺寸，
- * 不承载主题色或宿主反压职责。
- *
- * SelectButton：Aura styles 硬编码连体 segmented（子项 radius:0 / 缺左边框），
- * token 无法表达独立 pill，故覆盖结构；颜色仍走 --p-togglebutton-*
+ * SelectButton / ToggleButton 结构
+ * Aura 硬编码连体 segmented；token 无法表达独立 pill
  */
-.cosmos-vision-root .cv-prime-selectbutton,
-#cosmos_vision .cv-prime-selectbutton {
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-selectbutton {
   @apply flex w-full;
 }
 
-.cosmos-vision-root .cv-prime-togglebutton,
-#cosmos_vision .cv-prime-togglebutton {
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-togglebutton {
   @apply min-w-0 flex-1 whitespace-nowrap;
   font-family: var(--cv-font-label);
   font-size: var(--cv-font-size-xs);
   box-shadow: none;
 }
 
-.cosmos-vision-root .cv-prime-togglebutton-content,
-#cosmos_vision .cv-prime-togglebutton-content {
+:is(#cosmos_vision, .cosmos-vision-root) .cv-prime-togglebutton-content {
   @apply flex w-full items-center justify-center whitespace-nowrap;
   gap: var(--cv-space-lg);
   box-shadow: none;
 }
 
-.cosmos-vision-root :is(.cv-prime-togglebutton-icon, .cv-prime-togglebutton .cv-prime-icon, .p-togglebutton-icon),
-#cosmos_vision :is(.cv-prime-togglebutton-icon, .cv-prime-togglebutton .cv-prime-icon, .p-togglebutton-icon) {
+:is(#cosmos_vision, .cosmos-vision-root)
+  :is(.cv-prime-togglebutton-icon, .cv-prime-togglebutton .cv-prime-icon, .p-togglebutton-icon) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -554,19 +56,12 @@
   text-align: center;
 }
 
-/* Panel header / Image previewMask：业务未使用，死配置已删（Phase 4） */
-
 /**
- * InputTags / Chip 结构补齐
- * 圆角/颜色走 definePreset + --p-inputtags-* / --p-chip-*；
- * Chip design token 无 border*，描边只能 CSS（独立 Chip 与 InputTags pcChip 共用）
+ * InputTags / Chip 结构
+ * Chip token 无 border*；描边与行高只能 CSS
  */
 :is(#cosmos_vision, .cosmos-vision-root) .cv-prime-inputtags {
   min-height: calc(var(--cv-font-size-base) + var(--cv-space-lg) * 2 + var(--cv-border-width) * 2);
-}
-
-:is(#cosmos_vision, .cosmos-vision-root) input.cv-prime-inputtags-input-field {
-  font-size: var(--cv-font-size-sm);
 }
 
 :is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip, .cv-prime-inputtags-chip) {
@@ -580,21 +75,6 @@
   color: inherit;
 }
 
-:is(#cosmos_vision, .cosmos-vision-root)
-  :is(.cv-prime-chip-remove-icon, .cv-prime-inputtags-chip-remove):hover {
+:is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip-remove-icon, .cv-prime-inputtags-chip-remove):hover {
   color: var(--cv-on-surface);
-}
-
-/**
- * ToggleSwitch 深色关闭态：抬亮轨道/手柄并加 outline 弱描边
- * 对齐 theme toggleswitch colorScheme.dark，避免与 surface-container-low 行底融成一团
- */
-.cosmos-vision-root.cosmos-vision-app-dark {
-  --p-toggleswitch-background: var(--cv-surface-variant);
-  --p-toggleswitch-hover-background: color-mix(in srgb, var(--cv-on-surface) 18%, var(--cv-surface-variant));
-  --p-toggleswitch-border-color: var(--cv-outline);
-  --p-toggleswitch-hover-border-color: var(--cv-outline);
-  --p-toggleswitch-handle-background: color-mix(in srgb, var(--cv-on-surface) 78%, var(--cv-surface));
-  --p-toggleswitch-handle-hover-background: color-mix(in srgb, var(--cv-on-surface) 88%, var(--cv-surface));
-  --p-toggleswitch-handle-disabled-background: color-mix(in srgb, var(--cv-on-surface) 40%, var(--cv-surface));
 }

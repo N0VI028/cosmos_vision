@@ -13,14 +13,15 @@
         :key="account.id"
         :title="getAccountTitle(account, index)"
         :collapsed="isCollapsed(account.id)"
+        :is-editing="editingAccountId === account.id"
         :class="{ 'opacity-[0.62]': !account.enabled }"
         @toggle="toggleCollapse(account.id)"
       >
         <template #title>
-          <template v-if="editingAccountId === account.id">
+          <div v-if="editingAccountId === account.id" class="flex min-w-0 flex-1 items-center gap-(--cv-space-md)">
             <InputText
               v-model="editingDraft"
-              class="mr-(--cv-space-lg) w-48 min-w-24 max-w-full"
+              class="min-w-0 flex-1"
               size="small"
               autofocus
               @click.stop
@@ -32,7 +33,7 @@
               title="完成"
               @click.stop="finishEditing(account)"
             />
-          </template>
+          </div>
           <template v-else>
             <span
               class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)"

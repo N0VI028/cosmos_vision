@@ -17,13 +17,14 @@
           :title="person.name || '未命名人物'"
           :collapsed="person.id !== activePersonId"
           :disabled="person.enabled === false"
+          :is-editing="editingPersonId === person.id"
           @toggle="togglePerson(person.id)"
         >
           <template #title>
-            <template v-if="editingPersonId === person.id">
+            <div v-if="editingPersonId === person.id" class="flex min-w-0 flex-1 items-center gap-(--cv-space-md)">
               <InputText
                 v-model="editingDraft"
-                class="mr-(--cv-space-lg) w-48 max-w-full min-w-24"
+                class="min-w-0 flex-1"
                 size="small"
                 autofocus
                 @click.stop
@@ -35,7 +36,7 @@
                 aria-label="完成"
                 @click.stop="finishEditing(person)"
               />
-            </template>
+            </div>
             <template v-else>
               <span
                 class="block min-w-0 flex-[0_1_auto] overflow-hidden font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)"

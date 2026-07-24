@@ -7,7 +7,7 @@
 
 /*
  * Message / ProgressSpinner / Skeleton / Tag / Card / FileUpload / Accordion / Divider
- * 颜色与尺寸已迁 definePreset + bridge --p-*。
+ * 颜色与尺寸仅 definePreset；Galleria/FileUpload/Accordion/Divider bridge 双写已删。
  * Galleria 导航色已迁 token；pointer-events 兜底因 ST/inline 宿主仍需保留。
  * Message close 不再挂 cv-prime-icon-button；InputNumber 步进仍共用该锚点扁平方块视觉。
  * Password toggle 右内边距由官方 :has(.p-password-toggle-mask-icon) 规则 + form.field.padding.x 计算。
@@ -25,12 +25,12 @@
   touch-action: manipulation;
 }
 
-/* Button：圆角/secondary 色已迁 definePreset + bridge --p-button-*；无 !important 兜底 */
+/* Button：圆角/secondary 色仅 definePreset；无 bridge 双写、无 !important 兜底 */
 
 /*
  * Slider：token 无 handle.border；官方 handle 仅 background。
  * 外圈描边用 PT 锚点兜底，保证内点/外圈对比可读。
- * 颜色/尺寸/content.shadow 已迁 definePreset + bridge --p-slider-*。
+ * 颜色/尺寸/content.shadow 仅 definePreset；无 bridge 双写。
  */
 .cosmos-vision-root .cv-prime-slider-handle,
 #cosmos_vision .cv-prime-slider-handle {
@@ -39,7 +39,7 @@
 
 /* ToggleButton / SelectButton 颜色与尺寸已迁 definePreset + bridge --p-togglebutton-*；无 !important 兜底 */
 
-/* ToggleSwitch 颜色/尺寸已迁 definePreset + bridge --p-toggleswitch-*；无 !important 兜底 */
+/* ToggleSwitch 颜色/尺寸仅 definePreset colorScheme；无 bridge 双写、无 !important 兜底 */
 
 /* Select 选中项胶囊圆角：token 只能设统一 option.borderRadius；选中态 full 需状态选择器 */
 .cosmos-vision-root .cv-select-option[data-p-selected='true'] {
