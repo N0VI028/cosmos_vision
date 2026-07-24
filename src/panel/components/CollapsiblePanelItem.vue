@@ -11,28 +11,31 @@
           内层 div 不受影响，可稳定保留 gap-(--cv-space-lg)
         -->
         <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-(--cv-space-5xl) gap-y-(--cv-space-xs)">
-          <i
-            :class="[
-              'fa-solid',
-              collapsed ? 'fa-chevron-right' : 'fa-chevron-down',
-              'shrink-0',
-              'text-(--cv-on-surface-variant)',
-            ]"
-          />
-          <div class="flex min-w-0 flex-1 items-center gap-(--cv-space-lg) overflow-hidden">
-            <slot name="title">
-              <span
-                class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)"
-              >
-                {{ title }}
-              </span>
-            </slot>
-            <slot name="title-extra" />
+          <!-- 第一行：Chevron + Title -->
+          <div class="flex h-8 min-w-0 flex-1 items-center gap-(--cv-space-3xl)">
+            <i
+              :class="[
+                'fa-solid',
+                collapsed ? 'fa-chevron-right' : 'fa-chevron-down',
+                'shrink-0',
+                'text-(--cv-on-surface-variant)',
+              ]"
+            />
+            <div class="flex h-8 min-w-0 flex-1 items-center gap-(--cv-space-lg) overflow-hidden">
+              <slot name="title">
+                <span
+                  class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)"
+                >
+                  {{ title }}
+                </span>
+              </slot>
+              <slot name="title-extra" />
+            </div>
           </div>
           <div
             v-if="$slots.actions"
             class="ml-auto flex items-center justify-end gap-(--cv-space-sm)"
-            :class="isEditing ? 'w-full basis-full mt-(--cv-space-xs)' : 'shrink-0'"
+            :class="isEditing ? 'w-full basis-full mt-(--cv-space-xs)' : 'h-8 shrink-0'"
             @click.stop
             @keydown.stop
           >

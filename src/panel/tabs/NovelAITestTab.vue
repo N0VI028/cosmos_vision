@@ -46,11 +46,9 @@
             @toggle="toggleDirectCharacter(character.id)"
           >
             <template #actions>
-              <Button
+              <CvMiniButton
                 icon="fa-solid fa-trash"
-                severity="danger"
-                text
-                size="small"
+                tone="danger"
                 aria-label="删除角色"
                 @click="removeDirectCharacter(character.id)"
               />
@@ -262,6 +260,7 @@ import { useTestRequestSession, type TestRequestSession } from '@/composables/us
 import type { CharacterPromptItem } from '@/constants/novelai';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
+import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue';
 import TestImageGallery from '@/panel/components/TestImageGallery.vue';
 

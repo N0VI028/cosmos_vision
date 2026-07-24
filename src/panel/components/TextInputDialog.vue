@@ -50,11 +50,9 @@
             @toggle="toggleCharacter(character.id)"
           >
             <template #actions>
-              <Button
+              <CvMiniButton
                 icon="fa-solid fa-trash"
-                severity="danger"
-                text
-                size="small"
+                tone="danger"
                 aria-label="删除角色"
                 @click="removeCharacter(character.id)"
               />
@@ -135,6 +133,7 @@ import { useMediaQuery } from '@vueuse/core';
 import { DARK_CLASS } from '@/constants/default-settings';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
+import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 
 /** 编辑弹窗中的角色提示词草稿 */
 export interface TextInputCharacterDraft {

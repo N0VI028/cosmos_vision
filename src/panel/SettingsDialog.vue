@@ -664,7 +664,7 @@ function scanSections(): void {
   const sectionElements = scrollContainer.value.querySelectorAll('.cv-section-title');
   sections.value = Array.from(sectionElements).map((el, index) => ({
     id: `section-${index}`,
-    title: el.textContent?.trim() || '',
+    title: el.querySelector('span')?.textContent?.trim() || el.textContent?.trim() || '',
     element: el as HTMLElement,
   }));
   currentSection.value = sections.value[0]?.title ?? '';

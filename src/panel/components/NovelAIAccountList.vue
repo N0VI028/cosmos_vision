@@ -18,10 +18,10 @@
         @toggle="toggleCollapse(account.id)"
       >
         <template #title>
-          <div v-if="editingAccountId === account.id" class="flex min-w-0 flex-1 items-center gap-(--cv-space-md)">
+          <div v-if="editingAccountId === account.id" class="flex h-8 min-w-0 flex-1 items-center gap-(--cv-space-md)">
             <InputText
               v-model="editingDraft"
-              class="min-w-0 flex-1"
+              class="h-8 min-w-0 flex-1"
               size="small"
               autofocus
               @click.stop
@@ -34,9 +34,9 @@
               @click.stop="finishEditing(account)"
             />
           </div>
-          <template v-else>
+          <div v-else class="flex h-8 min-w-0 items-center gap-(--cv-space-sm)">
             <span
-              class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)"
+              class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface) leading-8"
             >
               {{ getAccountTitle(account, index) }}
             </span>
@@ -45,7 +45,7 @@
               title="重命名"
               @click.stop="toggleEditing(account)"
             />
-          </template>
+          </div>
         </template>
 
         <template #actions>
