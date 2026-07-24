@@ -91,7 +91,12 @@ const comfyUILoraPresetSettingsSchema = createPresetSettingsSchema(
   'activePresetId 必须指向已有 ComfyUI LoRA 预设',
 );
 const comfyUIWorkflowPresetSettingsSchema = createPresetSettingsSchema(
-  z.object({ id: z.string().min(1), name: z.string().default(DEFAULT_PRESET_NAME), workflowJson: z.string() }),
+  z.object({
+    id: z.string().min(1),
+    name: z.string().default(DEFAULT_PRESET_NAME),
+    workflowJson: z.string(),
+    favoriteNodeIds: z.array(z.string()).default([]),
+  }),
   'activePresetId 必须指向已有 ComfyUI 工作流预设',
 );
 const imagePromptPresetIdSchema = z.string().min(1);

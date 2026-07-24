@@ -65,6 +65,7 @@ export interface ComfyUIWorkflowPreset {
   id: string;
   name: string;
   workflowJson: string;
+  favoriteNodeIds: string[];
 }
 
 /** ComfyUI 工作流预设集合 */
@@ -78,14 +79,21 @@ export interface ComfyUIWorkflowPresetSettings {
  * @param id 预设 ID
  * @param name 预设名称
  * @param workflowJson 工作流 JSON
+ * @param overrides 可覆写字段（如收藏节点列表）
  * @returns 工作流预设
  */
 export function createComfyUIWorkflowPreset(
   id: string,
   name: string,
   workflowJson = DEFAULT_COMFYUI_WORKFLOW_JSON,
+  overrides: Partial<Pick<ComfyUIWorkflowPreset, 'favoriteNodeIds'>> = {},
 ): ComfyUIWorkflowPreset {
-  return { id, name, workflowJson };
+  return {
+    id,
+    name,
+    workflowJson,
+    favoriteNodeIds: [...(overrides.favoriteNodeIds ?? [])],
+  };
 }
 
 /**

@@ -66,9 +66,11 @@
         <ComfyUIWorkflowEditor
           v-model="activeWorkflowJson"
           :comfyui-url="settings.comfyui.url"
+          :favorite-node-ids="activeFavoriteNodeIds"
           :lora-preset-settings="settings.comfyui.loraPresets"
           :lora-options="loraOptions"
           :is-loading-loras="isLoadingLoras"
+          @update:favorite-node-ids="updateFavoriteNodeIds"
           @update:lora-preset-settings="settings.comfyui.loraPresets = $event"
           @import="triggerWorkflowImport"
           @refresh-lora-options="fetchLoraOptions"
@@ -211,6 +213,8 @@ const activeWorkflowJson = computed({
     if (activeWorkflow.value) activeWorkflow.value.workflowJson = value;
   },
 });
+/** 当前工作流预设的收藏节点 ID（缺字段时回退空数组） */
+const activeFavoriteNodeIds = computed(() => activeWorkflow.value?.favoriteNodeIds ?? []);
 const workflowPresetOptions = computed<PresetOption[]>(() =>
   settings.comfyui.workflowPresets.presets.map(({ id, name }) => ({ id, name })),
 );
@@ -275,14 +279,25 @@ async function createWorkflowPreset(): Promise<void> {
   updateWorkflowPresetId(preset.id);
 }
 
-/** 克隆当前工作流预设 */
+/** 克隆当前工作流预设（含收藏节点快照） */
 async function cloneWorkflowPreset(): Promise<void> {
   if (!activeWorkflow.value) return;
   const name = await askWorkflowPresetName('克隆工作流', '请输入工作流名称：', `${activeWorkflow.value.name} - 副本`);
   if (!name) return;
-  const preset = createComfyUIWorkflowPreset(uuidv4(), name, activeWorkflow.value.workflowJson);
+  const preset = createComfyUIWorkflowPreset(uuidv4(), name, activeWorkflow.value.workflowJson, {
+    favoriteNodeIds: [...(activeWorkflow.value.favoriteNodeIds ?? [])],
+  });
   settings.comfyui.workflowPresets.presets.push(preset);
   updateWorkflowPresetId(preset.id);
+}
+
+/**
+ * 写回当前工作流预设的收藏节点列表
+ * @param ids 新的收藏节点 ID 列表
+ */
+function updateFavoriteNodeIds(ids: string[]): void {
+  if (!activeWorkflow.value) return;
+  activeWorkflow.value.favoriteNodeIds = [...ids];
 }
 
 /** 重命名当前工作流预设 */

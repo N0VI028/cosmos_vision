@@ -131,7 +131,7 @@
             >
               <div class="flex w-full flex-col items-stretch gap-(--cv-space-xs) p-(--cv-space-xs)">
                 <button
-                  v-for="option in locateOptions"
+                  v-for="option in bindingLocateOptions"
                   :key="option.key"
                   type="button"
                   class="flex w-full cursor-pointer items-center gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent px-(--cv-space-lg) py-(--cv-space-sm) text-left text-(length:--cv-font-size-sm) whitespace-nowrap text-(--cv-on-surface) hover:enabled:bg-(--cv-surface-container-highest) disabled:cursor-not-allowed disabled:opacity-45"
@@ -146,6 +146,28 @@
                     {{ option.nodeId ? `#${option.nodeId}` : '未绑定' }}
                   </span>
                 </button>
+                <template v-if="favoriteLocateOptions.length">
+                  <div
+                    class="my-(--cv-space-xs) border-t-(length:--cv-border-width) border-t-solid border-t-(--cv-surface-variant) pt-(--cv-space-sm) text-(length:--cv-font-size-2xs) font-semibold tracking-wide text-(--cv-on-surface-variant)"
+                  >
+                    收藏
+                  </div>
+                  <button
+                    v-for="option in favoriteLocateOptions"
+                    :key="option.key"
+                    type="button"
+                    class="flex w-full cursor-pointer items-center gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent px-(--cv-space-lg) py-(--cv-space-sm) text-left text-(length:--cv-font-size-sm) whitespace-nowrap text-(--cv-on-surface) hover:bg-(--cv-surface-container-highest)"
+                    @click="onLocateNode(option.nodeId)"
+                  >
+                    <span class="flex w-[1.125rem] items-center justify-center text-base text-(--p-orange-500)">
+                      <i :class="option.icon" aria-hidden="true" />
+                    </span>
+                    <span class="min-w-0 overflow-hidden text-ellipsis">{{ option.label }}</span>
+                    <span class="ml-auto pl-(--cv-space-lg) text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)">
+                      #{{ option.nodeId }}
+                    </span>
+                  </button>
+                </template>
               </div>
             </Popover>
 
@@ -188,11 +210,13 @@
             :outputs="selectedOutputs"
             :can-set-output="canSetSelectedOutput"
             :online="online"
+            :is-favorite="isSelectedNodeFavorite"
             :lora-preset-settings="loraPresetSettings"
             :lora-options="loraOptions"
             :is-loading-loras="isLoadingLoras"
             :comfyui-url="comfyuiUrl"
             @set-image-output="setImageOutput"
+            @toggle-favorite="toggleSelectedFavorite"
             @update:input="updateInput"
             @update:prompt-binding="updatePromptBinding"
             @update:seed-mode="updateSeedMode"
@@ -217,11 +241,13 @@
         :outputs="selectedOutputs"
         :can-set-output="canSetSelectedOutput"
         :online="online"
+        :is-favorite="isSelectedNodeFavorite"
         :lora-preset-settings="loraPresetSettings"
         :lora-options="loraOptions"
         :is-loading-loras="isLoadingLoras"
         :comfyui-url="comfyuiUrl"
         @set-image-output="setImageOutput"
+        @toggle-favorite="toggleSelectedFavorite"
         @update:input="updateInput"
         @update:prompt-binding="updatePromptBinding"
         @update:seed-mode="updateSeedMode"
@@ -247,6 +273,11 @@ import {
 } from '@/services/comfyui/object-info';
 import { parseComfyUIWorkflow, serializeComfyUIWorkflow } from '@/services/comfyui/parse';
 import type { ComfyUIObjectInfoMap, ComfyUIWorkflow, PromptBinding, SeedMode } from '@/services/comfyui/types';
+import {
+  buildFavoriteLocateOptions,
+  pruneFavoriteNodeIds,
+  toggleFavoriteNodeId,
+} from '@/services/comfyui/workflow-presets';
 import { createReusableTemplate } from '@vueuse/core';
 import ComfyUIWorkflowCanvas from '@/panel/components/comfyui/ComfyUIWorkflowCanvas.vue';
 import ComfyUIWorkflowInspector from '@/panel/components/comfyui/ComfyUIWorkflowInspector.vue';
@@ -261,6 +292,7 @@ const [DefineNodeSelect, ReuseNodeSelect] = createReusableTemplate();
 const props = defineProps<{
   modelValue: string;
   comfyuiUrl: string;
+  favoriteNodeIds: string[];
   loraPresetSettings: ComfyUILoraPresetSettings;
   loraOptions: { value: string; label: string }[];
   isLoadingLoras: boolean;
@@ -268,6 +300,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: string];
+  'update:favorite-node-ids': [ids: string[]];
   'update:lora-preset-settings': [settings: ComfyUILoraPresetSettings];
   import: [];
   'refresh-lora-options': [];
@@ -291,7 +324,8 @@ const fullscreen = ref(false);
 
 const locatePopover = ref<any>(null);
 
-const locateOptions = computed(() => {
+/** 绑定区四项：正/负提示词、LoRA、段落生图结果 */
+const bindingLocateOptions = computed(() => {
   const wf = workflow.value;
   if (!wf) return [];
 
@@ -307,6 +341,18 @@ const locateOptions = computed(() => {
     { key: 'lora', label: 'Lora组', icon: 'fa-solid fa-puzzle-piece', nodeId: loraId, color: '#a855f7' },
     { key: 'output', label: '段落生图结果', icon: 'fa-solid fa-image', nodeId: outputId, color: '#3b82f6' },
   ];
+});
+
+/** 收藏区定位项（仅有效节点） */
+const favoriteLocateOptions = computed(() => {
+  if (!workflow.value) return [];
+  return buildFavoriteLocateOptions(workflow.value, props.favoriteNodeIds);
+});
+
+/** 当前选中节点是否已收藏 */
+const isSelectedNodeFavorite = computed(() => {
+  if (!selectedNodeId.value) return false;
+  return props.favoriteNodeIds.includes(selectedNodeId.value);
 });
 
 /** 定位 Popover：全局已有 cosmos-vision-root；仅追加业务布局类 */
@@ -327,6 +373,33 @@ function onLocateNode(nodeId: string | null): void {
   });
   locatePopover.value?.hide();
 }
+
+/**
+ * 切换当前选中节点的收藏状态
+ */
+function toggleSelectedFavorite(): void {
+  if (!selectedNodeId.value) return;
+  const valid = Boolean(workflow.value?.[selectedNodeId.value]);
+  emit(
+    'update:favorite-node-ids',
+    toggleFavoriteNodeId(props.favoriteNodeIds, selectedNodeId.value, valid),
+  );
+}
+
+/**
+ * 清理工作流中已不存在的收藏节点；有清理时轻提示
+ * @param nextWorkflow 当前解析后的工作流
+ */
+function pruneFavoritesForWorkflow(nextWorkflow: ComfyUIWorkflow | null): void {
+  if (!nextWorkflow) return;
+  const validIds = new Set(Object.keys(nextWorkflow));
+  const next = pruneFavoriteNodeIds(props.favoriteNodeIds, validIds);
+  if (next.length === props.favoriteNodeIds.length) return;
+  const removed = props.favoriteNodeIds.length - next.length;
+  emit('update:favorite-node-ids', next);
+  if (removed >= 1) toastr.info(`已清理 ${removed} 个失效的收藏节点`);
+}
+
 const schemaLoading = ref(false);
 const objectInfo = ref<ComfyUIObjectInfoMap | null>(null);
 const schemaError = ref<string | null>(null);
@@ -603,13 +676,15 @@ watch(
   { immediate: true },
 );
 
+// 同时监听收藏列表：切换预设时 workflowJson 可能相同，仍需 prune 新预设的失效 ID
 watch(
-  workflow,
-  value => {
+  [workflow, () => props.favoriteNodeIds],
+  ([value]) => {
     if (!value) {
       selectedNodeId.value = null;
       return;
     }
+    pruneFavoritesForWorkflow(value);
     if (selectedNodeId.value && value[selectedNodeId.value]) return;
     selectedNodeId.value = readImageOutputNodeId(value) ?? Object.keys(value)[0] ?? null;
   },

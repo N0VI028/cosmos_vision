@@ -38,16 +38,25 @@
           class="shrink-0 font-mono text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant)"
         >#{{ nodeId }}</span>
       </div>
-      <div v-if="fullscreen" class="flex items-center gap-(--cv-space-md)" @click.stop>
-        <button
-          type="button"
-          class="cv-lightbox-toggle-btn"
-          :title="isCollapsed ? '展开参数' : '隐藏参数'"
-          @click="isCollapsed = !isCollapsed"
-        >
-          <i class="fa-solid" :class="isCollapsed ? 'fa-eye' : 'fa-eye-slash'" aria-hidden="true" />
-          <span>{{ isCollapsed ? '显示参数' : '隐藏参数' }}</span>
-        </button>
+      <div class="flex shrink-0 items-center gap-(--cv-space-md)" @click.stop>
+        <CvMiniButton
+          :icon="isFavorite ? 'fa-solid fa-star' : 'fa-regular fa-star'"
+          :label="isFavorite ? '取消收藏' : '收藏'"
+          :tone="isFavorite ? 'warn' : 'neutral'"
+          :title="isFavorite ? '取消收藏该节点' : '收藏该节点以便快速定位'"
+          @click="emit('toggle-favorite')"
+        />
+        <template v-if="fullscreen">
+          <button
+            type="button"
+            class="cv-lightbox-toggle-btn"
+            :title="isCollapsed ? '展开参数' : '隐藏参数'"
+            @click="isCollapsed = !isCollapsed"
+          >
+            <i class="fa-solid" :class="isCollapsed ? 'fa-eye' : 'fa-eye-slash'" aria-hidden="true" />
+            <span>{{ isCollapsed ? '显示参数' : '隐藏参数' }}</span>
+          </button>
+        </template>
       </div>
     </div>
 
@@ -199,6 +208,7 @@
 
 <script setup lang="ts">
 import type { ComfyUILoraPresetSettings } from '@/constants/comfyui';
+import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import ComfyUILoraPresetPanel from '@/panel/components/ComfyUILoraPresetPanel.vue';
 import ComfyUIResultBindingButton from '@/panel/components/comfyui/ComfyUIResultBindingButton.vue';
 import ComfyUIWorkflowInput from '@/panel/components/comfyui/ComfyUIWorkflowInput.vue';
@@ -227,6 +237,7 @@ const props = withDefaults(
     outputs: ComfyUIObjectInfoOutputSpec[];
     canSetOutput: boolean;
     online: boolean;
+    isFavorite?: boolean;
     loraPresetSettings?: ComfyUILoraPresetSettings;
     loraOptions: { value: string; label: string }[];
     isLoadingLoras: boolean;
@@ -235,6 +246,7 @@ const props = withDefaults(
   }>(),
   {
     fullscreen: false,
+    isFavorite: false,
     loraPresetSettings: undefined,
     comfyuiUrl: '',
   },
@@ -242,6 +254,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   'set-image-output': [nodeId: string];
+  'toggle-favorite': [];
   'update:input': [inputName: string, value: unknown];
   'update:prompt-binding': [inputName: string, binding: PromptBinding | null];
   'update:seed-mode': [inputName: string, mode: SeedMode | null];
