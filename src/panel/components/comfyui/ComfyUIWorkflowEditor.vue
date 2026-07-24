@@ -137,15 +137,16 @@
                   v-for="option in bindingLocateOptions"
                   :key="option.key"
                   type="button"
-                  class="flex w-full cursor-pointer items-center gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent px-(--cv-space-lg) py-(--cv-space-sm) text-left text-(length:--cv-font-size-sm) whitespace-nowrap text-(--cv-on-surface) hover:enabled:bg-(--cv-surface-container-highest) disabled:cursor-not-allowed disabled:opacity-45"
+                  class="flex w-full min-w-0 cursor-pointer items-center gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent px-(--cv-space-lg) py-(--cv-space-sm) text-left text-(length:--cv-font-size-sm) whitespace-nowrap text-(--cv-on-surface) hover:enabled:bg-(--cv-surface-container-highest) disabled:cursor-not-allowed disabled:opacity-45"
                   :disabled="!option.nodeId"
+                  :title="option.label"
                   @click="onLocateNode(option.nodeId)"
                 >
-                  <span class="flex w-[1.125rem] items-center justify-center text-base">
+                  <span class="flex w-[1.125rem] shrink-0 items-center justify-center text-base">
                     <i :class="option.icon" :style="{ color: option.nodeId ? option.color : undefined }" aria-hidden="true" />
                   </span>
-                  <span>{{ option.label }}</span>
-                  <span class="ml-auto pl-(--cv-space-lg) text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)">
+                  <span class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ option.label }}</span>
+                  <span class="ml-auto shrink-0 pl-(--cv-space-lg) text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)">
                     {{ option.nodeId ? `#${option.nodeId}` : '未绑定' }}
                   </span>
                 </button>
@@ -159,14 +160,15 @@
                     v-for="option in favoriteLocateOptions"
                     :key="option.key"
                     type="button"
-                    class="flex w-full cursor-pointer items-center gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent px-(--cv-space-lg) py-(--cv-space-sm) text-left text-(length:--cv-font-size-sm) whitespace-nowrap text-(--cv-on-surface) hover:bg-(--cv-surface-container-highest)"
+                    class="flex w-full min-w-0 cursor-pointer items-center gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent px-(--cv-space-lg) py-(--cv-space-sm) text-left text-(length:--cv-font-size-sm) whitespace-nowrap text-(--cv-on-surface) hover:bg-(--cv-surface-container-highest)"
+                    :title="option.label"
                     @click="onLocateNode(option.nodeId)"
                   >
-                    <span class="flex w-[1.125rem] items-center justify-center text-base text-(--p-orange-500)">
+                    <span class="flex w-[1.125rem] shrink-0 items-center justify-center text-base text-(--p-orange-500)">
                       <i :class="option.icon" aria-hidden="true" />
                     </span>
-                    <span class="min-w-0 overflow-hidden text-ellipsis">{{ option.label }}</span>
-                    <span class="ml-auto pl-(--cv-space-lg) text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)">
+                    <span class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ option.label }}</span>
+                    <span class="ml-auto shrink-0 pl-(--cv-space-lg) text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)">
                       #{{ option.nodeId }}
                     </span>
                   </button>
@@ -725,12 +727,18 @@ onBeforeUnmount(() => {
 </script>
 
 <!--
-  定位 Popover 挂到 body，scoped 无法命中宽度。
-  迁移条件：全局 PT 注入业务 width 或改 Teleport 目标后可删。
+  定位 Popover 挂到 body，scoped 无法命中宽度
 -->
 <style>
 .cv-workflow-locate-popover {
   width: max-content;
   min-width: 160px;
+  max-width: min(15rem, 80vw);
+}
+
+.cv-workflow-node-select .p-select-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
