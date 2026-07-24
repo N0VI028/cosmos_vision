@@ -2,9 +2,8 @@
   <div v-if="entries.length > 0" class="cv-message-list-container mb-(--cv-space-5xl)">
     <div
       ref="listEl"
-      class="cv-message-list group/list custom-scrollbar w-full overflow-y-auto"
+      class="cv-message-list group/list custom-scrollbar max-h-[21rem] w-full overflow-y-auto"
       :class="{ 'is-dragging': isDragging }"
-      :style="{ maxHeight: scrollHeight }"
     >
       <VueDraggable
         v-model="entries"
@@ -58,23 +57,25 @@
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus';
 
+/**
+ * 列表条目接口
+ */
 export interface PromptEntryListItem {
   id: string;
   enabled?: boolean;
 }
 
+/**
+ * 提示词条目列表组件属性
+ */
 defineProps<{
+  /** 列表为空时的占位提示文案 */
   emptyText: string;
+  /** 获取条目角色的回调函数 */
   getRole?: (entry: PromptEntryListItem) => string;
 }>();
 
 const entries = defineModel<PromptEntryListItem[]>({ required: true });
-
-/** 单行高度（含间距），用于限制可视区域 */
-const entryItemHeight = 48;
-const visibleItemLimit = 7;
-
-const scrollHeight = computed(() => `${Math.min(entries.value.length, visibleItemLimit) * entryItemHeight}px`);
 const listEl = ref<HTMLElement | null>(null);
 const isDragging = ref(false);
 

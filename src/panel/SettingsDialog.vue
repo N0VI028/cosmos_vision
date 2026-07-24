@@ -174,7 +174,7 @@
               </div>
             </template>
           </div>
-          <h1 class="cv-header-title">{{ currentTabLabel }}</h1>
+          <span class="cv-header-title">{{ currentTabLabel }}</span>
           <SubTabNav v-if="activeTab === 'main'" v-model="mainSubTab" :tabs="MAIN_SUB_TABS" />
           <SubTabNav v-if="activeTab === 'novelai'" v-model="novelaiSubTab" :tabs="NOVELAI_SUB_TABS" />
           <SubTabNav v-if="activeTab === 'comfyui'" v-model="comfyuiSubTab" :tabs="COMFYUI_SUB_TABS" />

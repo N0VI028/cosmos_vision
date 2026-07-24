@@ -4,7 +4,10 @@
       :class="[
         'cv-workflow-editor-container',
         fullscreen
-          ? 'absolute! inset-0! z-99999! h-full! w-full! overflow-hidden bg-(--cv-background) p-(--cv-space-lg) flex flex-col gap-(--cv-space-lg)'
+          ? [
+              'cosmos-vision-root absolute! inset-0! z-99999! flex h-full! w-full! flex-col gap-(--cv-space-lg) overflow-hidden bg-(--cv-background) p-(--cv-space-lg)',
+              { [DARK_CLASS]: darkMode },
+            ]
           : 'flex flex-col gap-(--cv-space-xl)',
       ]"
     >
@@ -199,7 +202,7 @@
         <!-- 全屏：节点选择 + Inspector 叠在画布底部；pointer-events 分层避免挡画布 -->
         <div
           v-if="fullscreen"
-          class="pointer-events-none absolute right-0 bottom-0 left-0 z-2 flex max-h-[85%] flex-col gap-(--cv-space-sm) px-(--cv-space-lg) *:pointer-events-auto [&_.cv-lightbox-info]:relative [&_.cv-lightbox-info]:inset-auto [&_.cv-lightbox-info]:bottom-auto [&_.cv-lightbox-info]:left-auto [&_.cv-lightbox-info]:right-auto [&_.cv-lightbox-info]:max-h-none [&_.cv-lightbox-info]:min-h-0 [&_.cv-lightbox-info]:flex-1 [&_.cv-lightbox-info]:overflow-hidden"
+          class="pointer-events-none absolute right-0 bottom-px left-0 z-2 flex max-h-[85%] flex-col gap-(--cv-space-sm) px-(--cv-space-lg) *:pointer-events-auto [&_.cv-workflow-inspector--fs]:relative [&_.cv-workflow-inspector--fs]:max-h-none [&_.cv-workflow-inspector--fs]:min-h-0 [&_.cv-workflow-inspector--fs]:flex-1"
         >
           <ReuseNodeSelect />
           <ComfyUIWorkflowInspector
@@ -261,6 +264,7 @@
 <script setup lang="ts">
 import { nextTick } from 'vue';
 import type { ComfyUILoraPresetSettings } from '@/constants/comfyui';
+import { DARK_CLASS } from '@/constants/default-settings';
 import { getActiveComfyUILoraPreset } from '@/services/comfyui/lora-presets';
 import { writeLoraPresetToNode, isSupportedLoraNode } from '@/services/comfyui/lora-adapter';
 import { layoutWorkflow, readNodeDisplayName } from '@/services/comfyui/layout';
@@ -279,15 +283,20 @@ import {
   toggleFavoriteNodeId,
 } from '@/services/comfyui/workflow-presets';
 import { createReusableTemplate } from '@vueuse/core';
+import { storeToRefs } from 'pinia';
 import ComfyUIWorkflowCanvas from '@/panel/components/comfyui/ComfyUIWorkflowCanvas.vue';
 import ComfyUIWorkflowInspector from '@/panel/components/comfyui/ComfyUIWorkflowInspector.vue';
 import ComfyUIWorkflowToolbar from '@/panel/components/comfyui/ComfyUIWorkflowToolbar.vue';
+import { useSettingsStore } from '@/store/settings';
 
 const [DefineIconButton, ReuseIconButton] = createReusableTemplate<{
   title: string;
   disabled?: boolean;
 }>();
 const [DefineNodeSelect, ReuseNodeSelect] = createReusableTemplate();
+
+/** 全屏 Teleport 到 body 时需自行挂 dark class，与 SettingsDialog 一致 */
+const { darkMode } = storeToRefs(useSettingsStore());
 
 const props = defineProps<{
   modelValue: string;

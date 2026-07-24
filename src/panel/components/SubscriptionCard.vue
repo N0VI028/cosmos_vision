@@ -69,7 +69,7 @@
       </header>
       <div
         v-if="data || loading"
-        class="grid grid-cols-1 gap-(--cv-space-8xl) px-(--cv-space-10xl) py-(--cv-space-8xl) max-[48rem]:gap-(--cv-space-7xl) max-[48rem]:px-(--cv-space-7xl) max-[48rem]:py-(--cv-space-5xl) min-[48rem]:grid-cols-2"
+        class="grid grid-cols-1 gap-(--cv-space-8xl) px-(--cv-space-10xl) py-(--cv-space-8xl) max-[48rem]:gap-(--cv-space-7xl) max-[48rem]:px-(--cv-space-7xl) max-[48rem]:py-(--cv-space-5xl) md:grid-cols-2"
         :class="{ 'opacity-60': loading }"
       >
         <!-- 剩余点数 (Anlas) -->

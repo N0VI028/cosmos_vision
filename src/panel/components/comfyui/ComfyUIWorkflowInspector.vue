@@ -7,23 +7,18 @@
     点击画布节点以编辑参数
   </div>
 
-  <!-- 有节点选中时渲染详情面板；cv-lightbox-info 供 Editor 全屏叠层任意后代选择器 -->
+  <!-- 有节点选中时渲染详情面板；全屏态用 cv-workflow-inspector--fs 供 Editor 叠层选择器 -->
   <div
     v-else-if="nodeId && node"
-    class="cv-workflow-inspector flex flex-col"
-    :class="[
+    class="cv-workflow-inspector flex flex-col overflow-hidden border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low)"
+    :class="
       fullscreen
-        ? 'cv-lightbox-info max-h-[80%] rounded-t-(--cv-radius) border-t-(length:--cv-border-width) border-r-(length:--cv-border-width) border-l-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low)'
-        : 'cv-workflow-inspector__container overflow-hidden rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low)',
-      { 'cv-info-collapsed max-h-14': isCollapsed && fullscreen },
-    ]"
+        ? 'cv-workflow-inspector--fs max-h-[80%] min-h-0 rounded-t-(--cv-radius) border-b-0'
+        : 'cv-workflow-inspector__container rounded-(--cv-radius-sm)'
+    "
   >
     <div
-      :class="
-        fullscreen
-          ? 'cv-lightbox-info-header cursor-pointer select-none'
-          : 'flex cursor-pointer items-center justify-between bg-(--cv-surface-container-low) px-(--cv-space-xl) py-(--cv-space-lg) select-none'
-      "
+      class="flex cursor-pointer items-center justify-between bg-(--cv-surface-container-low) px-(--cv-space-xl) py-(--cv-space-lg) select-none"
       @click="isCollapsed = !isCollapsed"
     >
       <div class="flex min-w-0 flex-auto items-center gap-(--cv-space-lg) overflow-hidden">
@@ -46,25 +41,20 @@
           :title="isFavorite ? '取消收藏该节点' : '收藏该节点以便快速定位'"
           @click="emit('toggle-favorite')"
         />
-        <template v-if="fullscreen">
-          <button
-            type="button"
-            class="cv-lightbox-toggle-btn"
-            :title="isCollapsed ? '展开参数' : '隐藏参数'"
-            @click="isCollapsed = !isCollapsed"
-          >
-            <i class="fa-solid" :class="isCollapsed ? 'fa-eye' : 'fa-eye-slash'" aria-hidden="true" />
-            <span>{{ isCollapsed ? '显示参数' : '隐藏参数' }}</span>
-          </button>
-        </template>
+        <button
+          v-if="fullscreen"
+          type="button"
+          class="inline-flex cursor-pointer items-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-0 bg-transparent px-(--cv-space-md) py-(--cv-space-xs) text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant) transition-colors hover:bg-(--cv-surface-container-highest) hover:text-(--cv-on-surface)"
+          :title="isCollapsed ? '展开参数' : '隐藏参数'"
+          @click="isCollapsed = !isCollapsed"
+        >
+          <i class="fa-solid" :class="isCollapsed ? 'fa-eye' : 'fa-eye-slash'" aria-hidden="true" />
+          <span>{{ isCollapsed ? '显示参数' : '隐藏参数' }}</span>
+        </button>
       </div>
     </div>
 
-    <!-- 非全屏用 v-show；全屏由 CSS opacity 过渡，v-show 恒显示 -->
-    <div
-      v-show="fullscreen || !isCollapsed"
-      :class="['flex flex-col overflow-y-auto', { 'cv-lightbox-info-body': fullscreen }]"
-    >
+    <div v-show="!isCollapsed" class="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <section class="flex flex-col border-t-(length:--cv-border-width) border-t-solid border-t-(--cv-surface-variant)">
         <div
           class="flex min-h-11 items-center justify-between gap-(--cv-space-lg) bg-(--cv-surface-container) px-(--cv-space-xl) py-(--cv-space-md)"

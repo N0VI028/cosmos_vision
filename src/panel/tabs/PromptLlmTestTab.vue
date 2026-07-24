@@ -76,11 +76,11 @@
           <div
             v-for="row in logParamRows"
             :key="row.label"
-            class="flex items-center justify-between border-b border-(--cv-surface-variant) pb-(--cv-space-xl) last:border-b-0 last:pb-0"
+            class="flex items-center justify-between gap-(--cv-space-xl) border-b border-(--cv-surface-variant) pb-(--cv-space-xl) last:border-b-0 last:pb-0"
           >
             <span class="text-(length:--cv-font-size-md) text-(--cv-on-surface-variant)">{{ row.label }}</span>
             <span
-              class="break-all text-right text-(--cv-on-surface)"
+              class="break-all whitespace-normal text-right text-(--cv-on-surface)"
               :class="row.code && 'font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm)'"
             >{{ row.value }}</span>
           </div>

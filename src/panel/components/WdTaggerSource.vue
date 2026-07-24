@@ -1,6 +1,6 @@
 <template>
   <section class="flex flex-col gap-(--cv-space-xl)">
-    <div class="grid grid-cols-2 gap-(--cv-space-md)">
+    <div class="flex flex-wrap gap-(--cv-space-md)">
       <Button
         v-for="option in sourceOptions"
         :key="option.value"
@@ -8,7 +8,7 @@
         :icon="option.icon"
         outlined
         :disabled="option.disabled"
-        class="w-full"
+        class="min-w-[12rem] flex-1"
         @click="selectSource(option.value)"
       />
     </div>
@@ -45,7 +45,7 @@
             <strong class="overflow-hidden text-ellipsis whitespace-nowrap">{{
               selectedFile?.name ?? '选择本地图片'
             }}</strong>
-            <small class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">{{
+            <small class="text-(length:--cv-font-size-xs) whitespace-normal text-(--cv-on-surface-variant)">{{
               previewUrl ? '点击更换图片，也可拖拽新图片到此处' : '上传或拖拽图片到此处'
             }}</small>
           </span>
@@ -60,6 +60,9 @@
         >
           <i class="fa-solid fa-xmark" aria-hidden="true" />
         </button>
+      </template>
+      <template #content>
+        <!-- 使用自定义 header 展示预览，无需渲染默认文件列表区域 -->
       </template>
     </FileUpload>
 
@@ -105,7 +108,8 @@ const MAX_IMAGE_FILE_SIZE = 10 * 1024 * 1024;
 const fileUploadPt = {
   root: { class: 'cv-wd-tagger-source__upload-root' },
   header: { class: 'cv-wd-tagger-source__upload-header relative' },
-  content: { class: 'cv-wd-tagger-source__upload-content hidden' },
+  content: { class: 'cv-wd-tagger-source__upload-content !hidden !p-0 !m-0 !border-0 !h-0 !min-h-0' },
+  empty: { class: '!hidden' },
 } as const;
 
 /**

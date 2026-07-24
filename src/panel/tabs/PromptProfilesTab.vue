@@ -159,45 +159,26 @@
       @append="appendToStaticTags"
     />
     <div v-else class="flex flex-col gap-(--cv-space-md)">
-      <button
-        type="button"
-        class="grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) p-(--cv-space-lg) text-left text-(--cv-on-surface) hover:border-(--p-primary-color) hover:bg-[color-mix(in_srgb,var(--p-primary-color)_10%,var(--cv-surface-container-low))]"
-        :class="
-          tagParseMode === 'template' &&
-          'border-(--p-primary-color) bg-[color-mix(in_srgb,var(--p-primary-color)_10%,var(--cv-surface-container-low))] [&_i]:text-(--p-primary-color)'
-        "
-        :aria-pressed="tagParseMode === 'template'"
-        @click="selectTagParseMode('template')"
-      >
-        <i class="fa-solid fa-layer-group mt-(--cv-space-xs) text-(--cv-on-surface-variant)" />
-        <span class="flex min-w-0 flex-col gap-(--cv-space-xs)">
-          <span class="text-(length:--cv-font-size-md) font-semibold">发送人物模板条目</span>
-          <span class="text-(length:--cv-font-size-xs) leading-[1.35] text-(--cv-on-surface-variant)"
-            >使用当前人物的模板条目生成固定 tag 草稿</span
-          >
-        </span>
-      </button>
-
-      <div class="flex flex-col">
+      <div v-for="option in TAG_PARSE_MODE_OPTIONS" :key="option.value" class="flex flex-col">
         <button
           type="button"
           class="grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) p-(--cv-space-lg) text-left text-(--cv-on-surface) hover:border-(--p-primary-color) hover:bg-[color-mix(in_srgb,var(--p-primary-color)_10%,var(--cv-surface-container-low))]"
           :class="
-            tagParseMode === 'custom' &&
+            tagParseMode === option.value &&
             'border-(--p-primary-color) bg-[color-mix(in_srgb,var(--p-primary-color)_10%,var(--cv-surface-container-low))] [&_i]:text-(--p-primary-color)'
           "
-          :aria-pressed="tagParseMode === 'custom'"
-          @click="selectTagParseMode('custom')"
+          :aria-pressed="tagParseMode === option.value"
+          @click="selectTagParseMode(option.value)"
         >
-          <i class="fa-solid fa-keyboard mt-(--cv-space-xs) text-(--cv-on-surface-variant)" />
+          <i :class="[option.icon, 'mt-(--cv-space-xs) text-(--cv-on-surface-variant)']" />
           <span class="flex min-w-0 flex-col gap-(--cv-space-xs)">
-            <span class="text-(length:--cv-font-size-md) font-semibold">手动输入内容</span>
-            <span class="text-(length:--cv-font-size-xs) leading-[1.35] text-(--cv-on-surface-variant)"
-              >输入资料或描述后生成固定 tag 草稿</span
-            >
+            <span class="text-(length:--cv-font-size-md) font-semibold">{{ option.label }}</span>
+            <span class="text-(length:--cv-font-size-xs) leading-[1.35] text-(--cv-on-surface-variant) whitespace-normal">{{
+              option.description
+            }}</span>
           </span>
         </button>
-        <label v-if="tagParseMode === 'custom'" class="cv-field mt-(--cv-space-5xl)">
+        <label v-if="option.value === 'custom' && tagParseMode === 'custom'" class="cv-field mt-(--cv-space-5xl)">
           <span>输入内容</span>
           <Textarea
             v-model="tagParseInput"
@@ -207,30 +188,9 @@
             placeholder="输入人物资料、设定或描述..."
           />
         </label>
-      </div>
-
-      <div class="flex flex-col">
-        <button
-          type="button"
-          class="grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) p-(--cv-space-lg) text-left text-(--cv-on-surface) hover:border-(--p-primary-color) hover:bg-[color-mix(in_srgb,var(--p-primary-color)_10%,var(--cv-surface-container-low))]"
-          :class="
-            tagParseMode === 'image' &&
-            'border-(--p-primary-color) bg-[color-mix(in_srgb,var(--p-primary-color)_10%,var(--cv-surface-container-low))] [&_i]:text-(--p-primary-color)'
-          "
-          :aria-pressed="tagParseMode === 'image'"
-          @click="selectTagParseMode('image')"
-        >
-          <i class="fa-solid fa-image mt-(--cv-space-xs) text-(--cv-on-surface-variant)" />
-          <span class="flex min-w-0 flex-col gap-(--cv-space-xs)">
-            <span class="text-(length:--cv-font-size-md) font-semibold">从图片提取</span>
-            <span class="text-(length:--cv-font-size-xs) leading-[1.35] text-(--cv-on-surface-variant)"
-              >使用 WD Tagger 提取 Danbooru 风格标签草稿</span
-            >
-          </span>
-        </button>
         <WdTaggerSource
-          v-if="tagParseMode === 'image' && tagParseDialogPerson"
-          ref="taggerSource"
+          v-if="option.value === 'image' && tagParseMode === 'image' && tagParseDialogPerson"
+          :ref="bindTaggerSource"
           v-model:general-threshold="taggerGeneralThreshold"
           v-model:character-threshold="taggerCharacterThreshold"
           :person-kind="tagParseDialogPerson.kind"
@@ -281,6 +241,33 @@ const INSERT_MODE_OPTIONS: Array<{ label: string; value: PromptPersonInsertMode 
   { label: '关键词触发', value: 'keyword' },
 ];
 
+/** 固定 tag 解析来源选项 */
+const TAG_PARSE_MODE_OPTIONS: Array<{
+  value: TagParseMode;
+  label: string;
+  description: string;
+  icon: string;
+}> = [
+  {
+    value: 'template',
+    label: '发送人物模板条目',
+    description: '使用当前人物的模板条目生成固定 tag 草稿',
+    icon: 'fa-solid fa-layer-group',
+  },
+  {
+    value: 'custom',
+    label: '手动输入内容',
+    description: '输入资料或描述后生成固定 tag 草稿',
+    icon: 'fa-solid fa-keyboard',
+  },
+  {
+    value: 'image',
+    label: '从图片提取',
+    description: '使用 WD Tagger 提取 Danbooru 风格标签草稿',
+    icon: 'fa-solid fa-image',
+  },
+];
+
 const { settings } = useSettingsStore();
 const activeKind = defineModel<PromptPersonKind>('kind', { default: 'character' });
 const activePersonId = ref('');
@@ -298,6 +285,14 @@ const taggerGeneralThreshold = ref(0.35);
 const taggerCharacterThreshold = ref(0.85);
 const taggerSource = ref<{ cancel: () => void } | null>(null);
 let tagParseRequestId = 0;
+
+/**
+ * 绑定 v-for 内的 WD Tagger 组件实例
+ * @param el 组件实例或卸载时的 null
+ */
+function bindTaggerSource(el: unknown): void {
+  taggerSource.value = el && typeof el === 'object' && 'cancel' in el ? (el as { cancel: () => void }) : null;
+}
 const showConfirm =
   inject<
     (options: {

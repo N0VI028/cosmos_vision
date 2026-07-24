@@ -278,6 +278,7 @@
 }
 
 .cosmos-vision-root .cv-header-title {
+  display: block;
   font-family: var(--cv-font-headline);
   font-size: var(--cv-font-size-4xl);
   font-weight: 600;
