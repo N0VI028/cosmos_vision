@@ -504,12 +504,19 @@
 
 @media (max-width: 87.5em) {
   .cosmos-vision-root {
-    --cv-sidebar-width: 3.5em;
+    --cv-sidebar-width: 2.6em;
   }
 
   .cosmos-vision-root .cv-brand {
+    height: 4.5em;
     padding: 0;
     justify-content: center;
+  }
+
+  .cosmos-vision-root .cv-brand-icon {
+    width: 1.75em;
+    height: 1.75em;
+    font-size: var(--cv-font-size-lg);
   }
 
   .cosmos-vision-root .cv-brand-text {
@@ -517,21 +524,25 @@
   }
 
   .cosmos-vision-root .cv-nav {
-    padding: var(--cv-space-5xl) 0;
+    padding: var(--cv-space-4xl) 0;
     align-items: center;
     gap: var(--cv-space-lg);
   }
 
-  .cosmos-vision-root .cv-nav-label {
+  -label {
     display: none;
   }
 
   .cosmos-vision-root .cv-nav-item {
-    width: 2.6em;
-    height: 2.6em;
+    width: 2em;
+    height: 2em;
     padding: 0;
     justify-content: center;
     border-radius: var(--cv-radius-full);
+  }
+
+  .cosmos-vision-root .cv-nav-icon {
+    font-size: var(--cv-font-size-lg);
   }
 
   .cosmos-vision-root .cv-nav-item--active {
@@ -539,14 +550,14 @@
   }
 
   .cosmos-vision-root .cv-sidebar-footer {
-    padding: var(--cv-space-5xl) 0;
+    padding: var(--cv-space-4xl) 0;
     align-items: center;
     flex-shrink: 0 !important;
   }
 
   .cosmos-vision-root .cv-mobile-theme-btn {
-    width: 2.6em;
-    height: 2.6em;
+    width: 2em;
+    height: 2em;
     border-radius: var(--cv-radius-full);
     background: var(--cv-surface-container-low);
     border: var(--cv-border-width) solid var(--cv-surface-variant);
@@ -565,7 +576,7 @@
   }
 
   .cosmos-vision-root .cv-mobile-theme-btn i {
-    font-size: var(--cv-font-size-2xl);
+    font-size: var(--cv-font-size-xl);
   }
 
   .cosmos-vision-root .cv-header {

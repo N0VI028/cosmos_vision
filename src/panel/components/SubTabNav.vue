@@ -6,7 +6,7 @@
       v-for="tab in tabs"
       :key="tab.value"
       type="button"
-      class="cv-subtab-item text-center bg-transparent min-w-[6em] rounded-(--cv-radius-full) px-(--cv-space-5xl) py-(--cv-space-md) transition-all duration-150 ease-in-out max-[87.5em]:min-w-0 max-[87.5em]:flex-auto max-[87.5em]:px-(--cv-space-xl)"
+      class="cv-subtab-item text-center text-(length:--cv-font-size-sm) bg-transparent min-w-[6em] rounded-(--cv-radius-full) px-(--cv-space-5xl) py-(--cv-space-md) transition-all duration-150 ease-in-out max-[87.5em]:min-w-0 max-[87.5em]:flex-auto max-[87.5em]:px-(--cv-space-xl)"
       :class="
         modelValue === tab.value
           ? 'bg-(--cv-surface-container-lowest,var(--cv-surface))! font-bold text-(--cv-on-surface)!'
