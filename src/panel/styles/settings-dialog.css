@@ -105,43 +105,6 @@
   letter-spacing: 0.05em;
 }
 
-.cosmos-vision-root .cv-sidebar-footer {
-  @apply flex flex-col;
-  gap: var(--cv-space-lg);
-  padding: var(--cv-space-8xl);
-}
-
-/**
- * 主题切换 SelectButton：中性 surface 选中（非 primary-container）
- * 通过作用域内覆写 --p-togglebutton-*，避免 !important 状态选择器
- */
-.cosmos-vision-root .cv-theme-toggle {
-  width: 100%;
-  align-items: stretch;
-  background: var(--cv-surface-container-low);
-  border: var(--cv-border-width) solid var(--cv-surface-variant);
-  border-radius: var(--cv-radius-full);
-  gap: var(--cv-space-sm);
-  padding: var(--cv-space-sm);
-  --p-togglebutton-background: transparent;
-  --p-togglebutton-hover-background: color-mix(in srgb, var(--cv-surface-variant) 70%, transparent);
-  --p-togglebutton-checked-background: var(--cv-surface-variant);
-  --p-togglebutton-border-color: transparent;
-  --p-togglebutton-checked-border-color: transparent;
-  --p-togglebutton-color: var(--cv-on-surface-variant);
-  --p-togglebutton-hover-color: var(--cv-on-surface);
-  --p-togglebutton-checked-color: var(--cv-on-surface);
-  --p-togglebutton-content-checked-background: transparent;
-  --p-togglebutton-content-checked-shadow: none;
-  --p-togglebutton-content-padding: var(--cv-space-lg) var(--cv-space-md);
-  --p-togglebutton-gap: var(--cv-space-sm);
-}
-
-.cosmos-vision-root .cv-theme-toggle .cv-prime-togglebutton i {
-  font-size: var(--cv-font-size-xl);
-  flex-shrink: 0;
-}
-
 .cosmos-vision-root .cv-main {
   @apply relative flex flex-1 flex-col overflow-hidden;
   flex: 1;
@@ -548,36 +511,6 @@
 
   .cosmos-vision-root .cv-nav-item--active {
     transform: none;
-  }
-
-  .cosmos-vision-root .cv-sidebar-footer {
-    padding: var(--cv-space-4xl) 0;
-    align-items: center;
-    flex-shrink: 0 !important;
-  }
-
-  .cosmos-vision-root .cv-mobile-theme-btn {
-    width: 2em;
-    height: 2em;
-    border-radius: var(--cv-radius-full);
-    background: var(--cv-surface-container-low);
-    border: var(--cv-border-width) solid var(--cv-surface-variant);
-    color: var(--cv-on-surface-variant);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    padding: 0;
-  }
-
-  .cosmos-vision-root .cv-mobile-theme-btn:hover {
-    background: var(--cv-surface-variant);
-    color: var(--cv-on-surface);
-  }
-
-  .cosmos-vision-root .cv-mobile-theme-btn i {
-    font-size: var(--cv-font-size-xl);
   }
 
   .cosmos-vision-root .cv-header {

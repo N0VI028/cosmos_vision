@@ -43,7 +43,7 @@ export function createPromptPerson(kind: PromptPersonKind, name: string, trigger
     name: name.trim() || '未命名人物',
     kind,
     enabled: true,
-    insertMode: 'always',
+    insertMode: 'keyword',
     triggerKeywords: normalizePromptPersonKeywords(triggerKeywords),
     staticTags: '',
     templateEntries: createDefaultPromptPersonTemplateEntries(),

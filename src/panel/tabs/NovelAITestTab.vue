@@ -105,7 +105,7 @@
       </template>
     </div>
 
-    <div class="mt-(--cv-space-5xl)">
+    <div class="mt-(--cv-space-5xl)" data-cv-tutorial="novelai-test-action">
       <Button
         :label="actionLabel"
         :icon="actionIcon"

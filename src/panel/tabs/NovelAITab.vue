@@ -3,7 +3,7 @@
     <!-- API Tab -->
     <template v-if="subTab === 'api'">
       <h2 class="cv-section-title">连接信息</h2>
-      <div class="cv-section-body">
+      <div class="cv-section-body" data-cv-tutorial="novelai-connection">
         <label class="cv-field">
           <span>路由模式</span>
           <div class="cv-field-control">
@@ -34,7 +34,7 @@
     <!-- 配置 Tab -->
     <template v-else-if="subTab === 'config'">
       <h2 class="cv-section-title">模型与尺寸</h2>
-      <div class="cv-section-body">
+      <div class="cv-section-body" data-cv-tutorial="novelai-image-config">
         <label class="cv-field">
           <span>模型</span>
           <Select

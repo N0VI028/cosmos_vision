@@ -1,6 +1,7 @@
 <template>
   <Teleport to="body" :disabled="!fullscreen">
     <div
+      data-cv-tutorial="comfyui-result-binding"
       :class="[
         'cv-workflow-editor-container',
         fullscreen

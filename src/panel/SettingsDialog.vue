@@ -101,34 +101,7 @@
         </div>
 
         <!-- 底部操作 -->
-        <div class="cv-sidebar-footer">
-          <SelectButton
-            v-if="!isMobile"
-            v-model="darkMode"
-            class="cv-theme-toggle"
-            fluid
-            :options="THEME_OPTIONS"
-            option-label="label"
-            option-value="value"
-            :allow-empty="false"
-            aria-label="主题模式"
-          >
-            <template #option="slotProps">
-              <i :class="slotProps.option.icon" />
-              <span>{{ slotProps.option.label }}</span>
-            </template>
-          </SelectButton>
-          <button
-            v-else
-            type="button"
-            class="cv-mobile-theme-btn"
-            :title="darkMode ? '切换为浅色模式' : '切换为深色模式'"
-            :aria-label="darkMode ? '切换为浅色模式' : '切换为深色模式'"
-            @click="darkMode = !darkMode"
-          >
-            <i :class="darkMode ? 'fa-solid fa-moon' : 'fa-solid fa-sun'" />
-          </button>
-        </div>
+        <SettingsSidebarControls v-model="darkMode" :mobile="isMobile" @start-tutorial="tutorial.start" />
       </nav>
 
       <!-- 主内容区 -->
@@ -203,7 +176,12 @@
         <div class="cv-action-bar">
           <div class="cv-action-bar-inner">
             <button type="button" class="cv-action-btn cv-action-btn--ghost" @click="requestDiscard">放弃更改</button>
-            <button type="button" class="cv-action-btn cv-action-btn--primary" @click="applySettings">
+            <button
+              type="button"
+              class="cv-action-btn cv-action-btn--primary"
+              data-cv-tutorial="apply-settings"
+              @click="applySettings"
+            >
               <i class="fa-solid fa-check" />
               应用更改
             </button>
@@ -212,6 +190,21 @@
       </main>
     </div>
   </Dialog>
+  <OnboardingTutorial
+    v-if="tutorial.isActive"
+    :step="tutorial.currentStep"
+    :selected-source="tutorial.selectedSource"
+    :step-number="tutorial.stepNumber"
+    :total-steps="tutorial.totalSteps"
+    :can-previous="tutorial.canPrevious"
+    :can-next="tutorial.canNext"
+    :is-last-step="tutorial.isLastStep"
+    :dark-mode="darkMode"
+    @select-source="tutorial.selectSource"
+    @previous="tutorial.previous"
+    @next="tutorial.next"
+    @exit="tutorial.exit"
+  />
   <Dialog
     v-model:visible="isConfirmVisible"
     modal
@@ -286,12 +279,15 @@ import { storeToRefs } from 'pinia';
 
 import { DARK_CLASS } from '@/constants/default-settings';
 import '@/panel/styles/settings-dialog.css';
+import OnboardingTutorial from '@/panel/components/onboarding/OnboardingTutorial.vue';
+import SettingsSidebarControls from '@/panel/components/SettingsSidebarControls.vue';
 import ComfyUITab from '@/panel/tabs/ComfyUITab.vue';
 import MainTab from '@/panel/tabs/MainTab.vue';
 import NovelAITab from '@/panel/tabs/NovelAITab.vue';
 import PromptLlmTab from '@/panel/tabs/PromptLlmTab.vue';
 import PromptProfilesTab from '@/panel/tabs/PromptProfilesTab.vue';
 import SubTabNav from '@/panel/components/SubTabNav.vue';
+import { useSettingsOnboardingTutorial } from '@/panel/composables/useSettingsOnboardingTutorial';
 import { useSettingsStore } from '@/store/settings';
 import {
   FOCUSED_PARAGRAPH_MESSAGE_ID_KEY,
@@ -300,7 +296,6 @@ import {
 } from '@/composables/useFocusedParagraphInput';
 
 type NavValue = 'main' | 'novelai' | 'comfyui' | 'prompt-llm' | 'prompt-profiles';
-type ThemeOption = { value: boolean; label: string; icon: string };
 type ConfirmAction = 'close' | 'discard';
 
 interface SectionInfo {
@@ -336,11 +331,6 @@ const NAV_ITEMS = [
   { value: 'prompt-llm', label: 'LLM', icon: 'fa-solid fa-wand-magic-sparkles' },
   { value: 'prompt-profiles', label: '人物', icon: 'fa-solid fa-user-gear' },
 ] as const satisfies ReadonlyArray<{ value: NavValue; label: string; icon: string }>;
-
-const THEME_OPTIONS: ThemeOption[] = [
-  { value: false, label: 'Light', icon: 'fa-solid fa-sun' },
-  { value: true, label: 'Dark', icon: 'fa-solid fa-moon' },
-];
 
 const props = withDefaults(defineProps<Props>(), {
   initialFocusMessageId: null,
@@ -419,6 +409,16 @@ const breadcrumbRef = ref<HTMLElement | null>(null);
 const isConfirmVisible = ref(false);
 const confirmAction = ref<ConfirmAction>('close');
 let isSectionRefreshPending = false;
+const tutorial = useSettingsOnboardingTutorial({
+  visible,
+  activeTab,
+  mainSubTab,
+  novelaiSubTab,
+  comfyuiSubTab,
+  promptLlmSubTab,
+  promptProfilesSubTab,
+  scrollContainer,
+});
 
 const customConfirmVisible = ref(false);
 const customConfirmState = ref<{
@@ -556,6 +556,7 @@ onClickOutside(breadcrumbRef, () => {
  * 打开设置弹窗时重置编辑状态
  */
 function handleShow(): void {
+  if (tutorial.handleDialogShow()) return;
   settingsStore.resetDraftSettings();
   closeConfirmDialog();
 }

@@ -8,7 +8,7 @@
           <span>启用图像扩展</span>
           <ToggleSwitch v-model="settings.enabled" />
         </div>
-        <label class="cv-field">
+        <label class="cv-field" data-cv-tutorial="image-source">
           <span>图像来源</span>
           <Select
             v-model="settings.imageSource"
@@ -39,7 +39,7 @@
       <div class="cv-section-body">
         <div class="cv-field-inline">
           <span>作者</span>
-          <span class="text-right text-(--p-button-secondary-color)">{{ manifest.author }}</span>
+          <span class="text-right text-(--cv-on-surface-variant)">{{ manifest.author }}</span>
         </div>
         <div class="cv-field-inline">
           <span>相关链接</span>
@@ -49,7 +49,7 @@
               :key="link.title"
               :class="[
                 link.iconClass,
-                'cursor-pointer transition-colors duration-150 text-[1.2rem] text-(--p-button-secondary-color) p-(--cv-space-xs) hover:text-(--p-primary-color)',
+                'cursor-pointer transition-colors duration-150 text-[1.2rem] text-(--cv-on-surface-variant) p-(--cv-space-xs) hover:text-(--p-primary-color)',
               ]"
               :title="link.title"
               @click="openUrl(link.url)"

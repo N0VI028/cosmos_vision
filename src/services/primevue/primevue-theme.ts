@@ -372,7 +372,7 @@ const skeletonColor = {
 const tagColor = {
   primary: {
     background: 'var(--p-primary-color)',
-    color: 'var(--cv-background)',
+    color: 'var(--p-primary-contrast-color)',
   },
   secondary: {
     background: 'var(--cv-surface-container-high)',

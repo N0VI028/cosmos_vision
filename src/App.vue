@@ -70,6 +70,7 @@
       v-if="savedSettings.enabled"
       ref="fabEl"
       class="cv-speed-dial-container cosmos-vision-root"
+      data-cv-tutorial="inline-generate-fab"
       :class="{ [DARK_CLASS]: darkMode }"
       :style="fabStyle"
     >

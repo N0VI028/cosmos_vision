@@ -8,7 +8,7 @@
       />
     </div>
 
-    <div class="mt-(--cv-space-5xl)">
+    <div class="mt-(--cv-space-5xl)" data-cv-tutorial="prompt-llm-test-action">
       <Button
         :label="actionLabel"
         :icon="actionIcon"

@@ -3,7 +3,7 @@
     <!-- 语言模型设置页 -->
     <template v-if="subTab === 'settings'">
       <h2 class="cv-section-title">连接信息</h2>
-      <div class="cv-section-body">
+      <div class="cv-section-body" data-cv-tutorial="prompt-llm-connection">
         <label class="cv-field-inline">
           <span>使用酒馆代理预设</span>
           <ToggleSwitch v-model="useTavernProxy" />

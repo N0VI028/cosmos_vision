@@ -395,11 +395,6 @@ body.dark .cv-inline-toolbar {
   outline: none !important;
 }
 
-/* 暗色模式：切换为深炭灰底色与边框 */
-.cosmos-vision-app-dark .cv-inline-favorite-content {
-  background: var(--cv-inline-gallery-surface-dark, #1C1C22);
-}
-
 .cv-inline-favorite-stage {
   position: relative;
   display: block;

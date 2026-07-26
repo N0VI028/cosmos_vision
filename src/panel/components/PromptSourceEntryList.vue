@@ -43,13 +43,14 @@
     dismissable-mask
     :header="editorTitle"
     :style="PROMPT_EDITOR_DIALOG_STYLE"
-    :pt="PROMPT_EDITOR_DIALOG_PT"
+    :pt="entryEditorDialogPt"
     @hide="closeEntryEditor"
   >
     <div v-if="editorDraft" class="flex flex-col gap-(--cv-space-3xl)">
       <label class="cv-field">
         <span>来源</span>
         <Select
+          ref="sourceSelect"
           :model-value="editorDraft.kind"
           :options="editorSourceOptions"
           option-label="label"
@@ -249,21 +250,26 @@ import {
   getPromptSourceEntryTitle,
   getPromptSourcePreviewText,
 } from '@/panel/components/prompt-source-entry-display';
+import { mockEntryEditorRequested } from '@/panel/components/onboarding/mock-person';
 
 const props = withDefaults(
   defineProps<{
     kind: PromptPersonKind;
     characterName?: string;
     userPersonaKey?: string;
+    /** 教程演示目标：为 true 时响应教程请求真实打开条目编辑弹窗 */
+    tutorialTarget?: boolean;
   }>(),
   {
     characterName: '',
     userPersonaKey: '',
+    tutorialTarget: false,
   },
 );
 
 const entries = defineModel<PromptPersonTemplateEntry[]>({ required: true });
 const entryList = ref<InstanceType<typeof PromptEntryList> | null>(null);
+const sourceSelect = ref<{ show?: (isFocus?: boolean) => void } | null>(null);
 const worldbookNames = ref<string[]>([]);
 const worldbookSourceOptions = ref<PromptWorldbookGroup[]>([]);
 const editorDraft = ref<PromptSourceEditorDraft | null>(null);
@@ -306,6 +312,35 @@ const editorTitle = computed(() => {
 const editorPreviewText = computed(() => getPromptSourcePreviewText(editorPreview.value));
 const editorPreviewPlaceholder = computed(() => getSourceEditorPreviewPlaceholder(editorDraft.value));
 const editorReadonlyTitle = computed(() => getEditorReadonlyTitle(editorDraft.value));
+/** 弹窗 PT：教程目标实例在根节点附加高亮标记，供教程遮罩定位 */
+const entryEditorDialogPt = computed(() => {
+  if (!props.tutorialTarget) return PROMPT_EDITOR_DIALOG_PT;
+  return {
+    ...PROMPT_EDITOR_DIALOG_PT,
+    root: { 'data-cv-tutorial': 'prompt-profiles-entry-editor' },
+  };
+});
+
+// 教程请求时真实打开首个条目的编辑弹窗，并展开来源下拉；请求结束后关闭
+watch(
+  () => props.tutorialTarget && mockEntryEditorRequested.value,
+  requested => {
+    if (requested) openTutorialEntryEditor();
+    else if (props.tutorialTarget && isEditorVisible.value) closeEntryEditor();
+  },
+  { immediate: true },
+);
+
+/**
+ * 教程演示：打开首个条目编辑弹窗并展开来源下拉
+ */
+function openTutorialEntryEditor(): void {
+  const entry = entries.value[0];
+  if (!entry || isEditorVisible.value) return;
+  openEntryEditor(entry);
+  // 等待弹窗渲染后展开来源下拉，展示可选项
+  nextTick(() => setTimeout(() => sourceSelect.value?.show?.(), 150));
+}
 
 watch(
   () => [isEditorVisible.value, editorDraft.value?.kind ?? ''] as const,

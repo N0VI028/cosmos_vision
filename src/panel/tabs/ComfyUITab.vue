@@ -3,7 +3,7 @@
     <!-- API Tab -->
     <template v-if="subTab === 'api'">
       <h2 class="cv-section-title">连接信息</h2>
-      <div class="cv-section-body">
+      <div class="cv-section-body" data-cv-tutorial="comfyui-connection">
         <label class="cv-field">
           <span>ComfyUI URL</span>
           <div class="cv-field-control">
@@ -45,7 +45,7 @@
           <i class="fa-solid fa-rotate-left" />
         </button>
       </h2>
-      <div class="cv-section-body">
+      <div class="cv-section-body" data-cv-tutorial="comfyui-workflow">
         <PresetSelector
           :presets="workflowPresetOptions"
           :active-preset-id="settings.comfyui.workflowPresets.activePresetId"

@@ -1,14 +1,16 @@
 <template>
   <div class="cv-tab-content flex flex-col gap-0">
     <div class="mt-(--cv-space-5xl) flex flex-col gap-(--cv-space-4xl)">
-      <Button
-        label="新建人物"
-        icon="fa-solid fa-user-plus"
-        outlined
-        size="small"
-        class="w-full"
-        @click="createBlankPerson"
-      />
+      <div data-cv-tutorial="prompt-profiles-overview">
+        <Button
+          label="新建人物"
+          icon="fa-solid fa-user-plus"
+          outlined
+          size="small"
+          class="w-full"
+          @click="createBlankPerson"
+        />
+      </div>
 
       <div v-if="filteredProfiles.length > 0" class="flex flex-col gap-(--cv-space-xl)">
         <CollapsiblePanelItem
@@ -105,7 +107,7 @@
                 @click="openParseTagsDialog(person)"
               />
             </div>
-            <div class="cv-field">
+            <div class="cv-field" data-cv-tutorial="prompt-profiles-static-tags">
               <div class="cv-field-control">
                 <Textarea
                   v-model="person.staticTags"
@@ -122,12 +124,15 @@
             >
               人物模板条目
             </h3>
-            <PromptSourceEntryList
-              v-model="person.templateEntries"
-              :kind="person.kind"
-              :character-name="getSelectedCharacterName(person)"
-              :user-persona-key="getSelectedUserPersonaKey(person)"
-            />
+            <div data-cv-tutorial="prompt-profiles-template-entries">
+              <PromptSourceEntryList
+                v-model="person.templateEntries"
+                :kind="person.kind"
+                :character-name="getSelectedCharacterName(person)"
+                :user-persona-key="getSelectedUserPersonaKey(person)"
+                :tutorial-target="isTutorialMockPersonId(person.id)"
+              />
+            </div>
           </section>
         </CollapsiblePanelItem>
       </div>
@@ -228,6 +233,7 @@ import type { PromptPerson, PromptPersonInsertMode, PromptPersonKind } from '@/c
 import { useSettingsStore } from '@/store/settings';
 import { appendStaticTags } from '@/services/prompt-profiles/static-tags-draft';
 import { createPromptPerson } from '@/services/prompt-profiles/runtime';
+import { isTutorialMockPersonId } from '@/panel/components/onboarding/mock-person';
 import { getCurrentCharacterKey, getCurrentUserPersonaKey } from '@/services/tavern-helper/prompt-profiles-context';
 import {
   parsePromptPersonStaticTags,
@@ -322,6 +328,12 @@ watch(activeKind, () => {
 watch(
   filteredProfiles,
   () => {
+    // 教程注入的模拟人物自动展开，便于高亮内部区域
+    const mockPerson = filteredProfiles.value.find(person => isTutorialMockPersonId(person.id));
+    if (mockPerson && activePersonId.value !== mockPerson.id) {
+      activePersonId.value = mockPerson.id;
+      return;
+    }
     if (!filteredProfiles.value.some(person => person.id === activePersonId.value)) {
       activePersonId.value = '';
     }
