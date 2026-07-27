@@ -6,7 +6,7 @@
       :class="[SIDEBAR_CONTROL_CLASS, SIDEBAR_ACTION_CLASS, mobile ? SIDEBAR_ICON_SIZE_CLASS : SIDEBAR_FULL_SIZE_CLASS]"
       :pt="BUTTON_PT"
       :label="mobile ? undefined : '使用教程'"
-      icon="fa-solid fa-graduation-cap"
+      icon="fa-regular fa-graduation-cap"
       severity="secondary"
       outlined
       :rounded="mobile"
@@ -34,16 +34,18 @@
       </template>
     </SelectButton>
 
-    <button
+    <Button
       v-else
-      type="button"
       :class="[SIDEBAR_CONTROL_CLASS, SIDEBAR_ACTION_CLASS, SIDEBAR_ICON_SIZE_CLASS]"
+      :pt="BUTTON_PT"
+      :icon="darkMode ? 'fa-regular fa-moon' : 'fa-regular fa-sun'"
+      severity="secondary"
+      outlined
+      rounded
       :title="darkMode ? '切换为浅色模式' : '切换为深色模式'"
       :aria-label="darkMode ? '切换为浅色模式' : '切换为深色模式'"
       @click="toggleTheme"
-    >
-      <i :class="darkMode ? 'fa-solid fa-moon' : 'fa-solid fa-sun'" />
-    </button>
+    />
   </div>
 </template>
 
@@ -57,8 +59,8 @@ const emit = defineEmits<{ 'start-tutorial': [] }>();
 const darkMode = defineModel<boolean>({ required: true });
 
 const THEME_OPTIONS = [
-  { value: false, label: 'Light', icon: 'fa-solid fa-sun' },
-  { value: true, label: 'Dark', icon: 'fa-solid fa-moon' },
+  { value: false, label: 'Light', icon: 'fa-regular fa-sun' },
+  { value: true, label: 'Dark', icon: 'fa-regular fa-moon' },
 ];
 
 const SIDEBAR_CONTROL_CLASS =

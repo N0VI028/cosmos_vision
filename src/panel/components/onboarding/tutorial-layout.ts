@@ -287,7 +287,7 @@ export function calculateTutorialCardPosition(
   card: TutorialSize,
 ): TutorialPoint {
   if (viewport.width <= NARROW_VIEWPORT) {
-    return calculateMobileCardPosition(viewport, card);
+    return calculateMobileTargetCardPosition(target, viewport, card);
   }
   const candidates = buildCandidates(target, card);
   const candidate = candidates.find(point => fitsViewport(point, viewport, card)) ?? candidates[0];
@@ -311,7 +311,7 @@ export function calculateCenteredCardPosition(viewport: TutorialSize, card: Tuto
   );
 }
 
-/** 窄屏将卡片固定在底部安全区，避免遮挡高亮目标 */
+/** 窄屏无目标时将卡片固定在底部安全区 */
 function calculateMobileCardPosition(viewport: TutorialSize, card: TutorialSize): TutorialPoint {
   return clampPoint(
     {
@@ -321,6 +321,25 @@ function calculateMobileCardPosition(viewport: TutorialSize, card: TutorialSize)
     viewport,
     card,
   );
+}
+
+/** 窄屏按目标位置选择遮挡更少的顶部或底部停靠点 */
+function calculateMobileTargetCardPosition(
+  target: TutorialRect,
+  viewport: TutorialSize,
+  card: TutorialSize,
+): TutorialPoint {
+  const bottom = calculateMobileCardPosition(viewport, card);
+  const top = { top: VIEWPORT_MARGIN, left: bottom.left };
+  const safeTarget = { top: target.top - TARGET_GAP, height: target.height + TARGET_GAP * 2 };
+  return verticalOverlap(bottom, card, safeTarget) <= verticalOverlap(top, card, safeTarget) ? bottom : top;
+}
+
+/** 计算卡片与目标安全区的垂直重叠高度 */
+function verticalOverlap(point: TutorialPoint, card: TutorialSize, target: Pick<TutorialRect, 'top' | 'height'>): number {
+  const overlapTop = Math.max(point.top, target.top);
+  const overlapBottom = Math.min(point.top + card.height, target.top + target.height);
+  return Math.max(0, overlapBottom - overlapTop);
 }
 
 /** 构建右、左、下、上的候选位置 */

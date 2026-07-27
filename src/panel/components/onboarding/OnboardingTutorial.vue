@@ -2,42 +2,78 @@
   <Teleport to="body">
     <div
       ref="overlayRef"
-      class="cv-onboarding cosmos-vision-root"
+      class="cv-onboarding cosmos-vision-root fixed inset-0 z-2147482000 h-screen w-screen overflow-hidden pointer-events-auto isolate font-(family-name:--cv-font-body)"
       :class="{ [DARK_CLASS]: darkMode }"
       role="dialog"
       aria-modal="true"
       aria-label="Cosmos Vision 使用教程"
     >
-      <svg v-if="highlightRect" class="cv-onboarding__mask" aria-hidden="true">
-        <path :d="maskPathD" fill-rule="evenodd" clip-rule="evenodd" />
+      <!--
+        宿主 html 常带 transform 会劫持 fixed 包含块；遮罩/背景用 absolute 贴 overlay，
+        overlay 再显式 h/w-screen 撑满视口。
+      -->
+      <svg
+        v-if="highlightRect"
+        class="cv-onboarding__mask absolute inset-0 size-full pointer-events-auto"
+        aria-hidden="true"
+      >
+        <path
+          :d="maskPathD"
+          fill="rgb(5 8 14 / 72%)"
+          fill-rule="evenodd"
+          clip-rule="evenodd"
+        />
       </svg>
-      <div v-else class="cv-onboarding__backdrop" aria-hidden="true" />
+      <div
+        v-else
+        class="cv-onboarding__backdrop absolute inset-0 size-full bg-[rgb(5_8_14/72%)] pointer-events-auto"
+        aria-hidden="true"
+      />
 
       <!-- fixed 描边框贴洞口绘制，不受目标滚动容器裁剪；被裁剪边隐藏对应边框 -->
-      <div v-if="highlightRect" class="cv-onboarding__ring" :style="ringStyle" aria-hidden="true" />
+      <div
+        v-if="highlightRect"
+        class="cv-onboarding__ring absolute z-1 box-border border-2 border-solid border-(--p-primary-color) shadow-[0_0_0_4px_color-mix(in_srgb,var(--p-primary-color)_28%,transparent)] pointer-events-none"
+        :style="ringStyle"
+        aria-hidden="true"
+      />
 
       <section
         ref="cardRef"
         v-focus-trap="{ autoFocus: true }"
-        class="cv-onboarding__card"
+        class="cv-onboarding__card fixed z-2 box-border flex w-[min(26rem,calc(100vw-2rem))] max-h-[calc(100vh-2rem)] flex-col gap-(--cv-space-4xl) overflow-y-auto border-(length:--cv-border-width) border-solid border-(--cv-outline) rounded-(--cv-radius-xl) bg-(--cv-surface-container-lowest) p-(--cv-space-7xl) text-(--cv-on-surface) shadow-[0_1.5rem_4rem_rgb(0_0_0/32%)] whitespace-normal wrap-break-word max-[40rem]:max-h-[min(42vh,calc(100vh-2rem))] max-[40rem]:p-(--cv-space-4xl)"
         :style="cardStyle"
         data-cv-tutorial-surface
       >
-        <header class="cv-onboarding__header">
-          <span class="cv-onboarding__eyebrow">新手生图教程</span>
-          <span class="cv-onboarding__progress">第 {{ stepNumber }} / {{ totalSteps }} 步</span>
+        <header class="flex items-center justify-between gap-(--cv-space-lg)">
+          <span
+            class="text-(length:--cv-font-size-xs) font-bold tracking-[0.08em] text-(--cv-on-surface-variant)"
+          >新手生图教程</span>
+          <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
+            第 {{ stepNumber }} / {{ totalSteps }} 步
+          </span>
         </header>
 
-        <div class="cv-onboarding__content" aria-live="polite">
-          <h2>{{ step.title }}</h2>
-          <p>{{ step.description }}</p>
-          <p v-if="fallbackText" class="cv-onboarding__fallback">
+        <div class="flex flex-col gap-(--cv-space-xl)" aria-live="polite">
+          <h2
+            class="m-0 font-(family-name:--cv-font-headline) text-(length:--cv-font-size-2xl) leading-[1.2]"
+          >{{ step.title }}</h2>
+          <p class="m-0 whitespace-normal wrap-break-word text-(length:--cv-font-size-md) leading-[1.65] text-(--cv-on-surface-variant)">
+            {{ step.description }}
+          </p>
+          <p
+            v-if="fallbackText"
+            class="m-0 flex items-start gap-(--cv-space-md) rounded-(--cv-radius-md) bg-(--cv-surface-container) p-(--cv-space-xl) whitespace-normal wrap-break-word text-(length:--cv-font-size-md) leading-[1.65] text-(--cv-on-surface-variant)"
+          >
             <i class="fa-solid fa-circle-info" aria-hidden="true" />
             <span>{{ fallbackText }}</span>
           </p>
         </div>
 
-        <div v-if="step.scene.kind === 'selection'" class="cv-onboarding__sources">
+        <div
+          v-if="step.scene.kind === 'selection'"
+          class="grid grid-cols-2 gap-(--cv-space-xl) max-[40rem]:grid-cols-1"
+        >
           <Button
             v-for="option in TUTORIAL_SOURCE_OPTIONS"
             :key="option.value"
@@ -52,7 +88,9 @@
           />
         </div>
 
-        <footer class="cv-onboarding__footer">
+        <footer
+          class="flex items-center justify-between gap-(--cv-space-lg) max-[40rem]:flex-col-reverse max-[40rem]:items-stretch"
+        >
           <Button
             label="退出"
             icon="fa-solid fa-xmark"
@@ -61,7 +99,7 @@
             data-cv-tutorial-control
             @click="emit('exit')"
           />
-          <div class="cv-onboarding__navigation">
+          <div class="flex items-center gap-(--cv-space-lg) max-[40rem]:w-full max-[40rem]:*:flex-1">
             <Button
               label="上一页"
               icon="fa-solid fa-arrow-left"
@@ -471,160 +509,7 @@ onBeforeUnmount(() => {
 });
 </script>
 
-<style scoped>
-/* 导入模拟画廊样式 */
-@import './mock-gallery.css';
-
-.cv-onboarding {
-  position: fixed;
-  inset: 0;
-
-  /* SillyTavern 宿主 html 常带 transform + 高度 0，会让 fixed 的 inset 高度算成 0，必须显式撑满视口 */
-  width: 100vw;
-  height: 100vh;
-  z-index: 2147482000;
-  overflow: hidden;
-  pointer-events: auto;
-  isolation: isolate;
-  font-family: var(--cv-font-body);
-}
-
-/* 相对 overlay 绝对定位：宿主 html 的 transform 会劫持 fixed 包含块导致高度塌 0 */
-.cv-onboarding__backdrop,
-.cv-onboarding__mask {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: auto;
-}
-
-.cv-onboarding__backdrop {
-  background: rgb(5 8 14 / 72%);
-}
-
-/* SVG evenodd 路径：外圈全屏遮罩、内圈按目标圆角挖洞 */
-.cv-onboarding__mask path {
-  fill: rgb(5 8 14 / 72%);
-}
-
-/* 描边框相对 overlay 绝对定位，坐标由 JS 从 fixed 包含块转换 */
-.cv-onboarding__ring {
-  position: absolute;
-  z-index: 1;
-  box-sizing: border-box;
-  border: 2px solid var(--p-primary-color, #7c9cff);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--p-primary-color, #7c9cff) 28%, transparent);
-  pointer-events: none;
-}
-
-.cv-onboarding__card {
-  position: fixed;
-  z-index: 2;
-  display: flex;
-  width: min(26rem, calc(100vw - 2rem));
-  max-height: calc(100vh - 2rem);
-  flex-direction: column;
-  gap: var(--cv-space-4xl);
-  overflow-y: auto;
-  box-sizing: border-box;
-  padding: var(--cv-space-7xl);
-  border: var(--cv-border-width) solid var(--cv-outline);
-  border-radius: var(--cv-radius-xl);
-  background: var(--cv-surface-container-lowest);
-  color: var(--cv-on-surface);
-  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 32%);
-}
-
-.cv-onboarding__header,
-.cv-onboarding__footer,
-.cv-onboarding__navigation {
-  display: flex;
-  align-items: center;
-  gap: var(--cv-space-lg);
-}
-
-.cv-onboarding__header,
-.cv-onboarding__footer {
-  justify-content: space-between;
-}
-
-.cv-onboarding__eyebrow,
-.cv-onboarding__progress {
-  font-size: var(--cv-font-size-xs);
-  color: var(--cv-on-surface-variant);
-}
-
-.cv-onboarding__eyebrow {
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.cv-onboarding__content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--cv-space-xl);
-}
-
-.cv-onboarding__content h2,
-.cv-onboarding__content p {
-  margin: 0;
-}
-
-.cv-onboarding__content h2 {
-  font-family: var(--cv-font-headline);
-  font-size: var(--cv-font-size-2xl);
-  line-height: 1.2;
-}
-
-.cv-onboarding__content p {
-  font-size: var(--cv-font-size-md);
-  line-height: 1.65;
-  color: var(--cv-on-surface-variant);
-}
-
-.cv-onboarding__fallback {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--cv-space-md);
-  padding: var(--cv-space-xl);
-  border-radius: var(--cv-radius-md);
-  background: var(--cv-surface-container);
-}
-
-.cv-onboarding__sources {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--cv-space-xl);
-}
-
-@media (max-width: 40rem) {
-  .cv-onboarding__card {
-    width: min(26rem, calc(100vw - 2rem));
-    max-height: min(42vh, calc(100vh - 2rem));
-    padding: var(--cv-space-4xl);
-  }
-
-  .cv-onboarding__sources {
-    grid-template-columns: 1fr;
-  }
-
-  .cv-onboarding__footer {
-    align-items: stretch;
-    flex-direction: column-reverse;
-  }
-
-  .cv-onboarding__navigation {
-    width: 100%;
-  }
-
-  .cv-onboarding__navigation > * {
-    flex: 1;
-  }
-}
-</style>
-
-<!-- 模拟画廊样式（非 scoped） -->
+<!-- 模拟画廊注入到宿主 DOM，必须 unscoped -->
 <style>
 @import './mock-gallery.css';
 </style>
