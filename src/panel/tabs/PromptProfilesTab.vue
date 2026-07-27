@@ -98,27 +98,26 @@
               </div>
             </template>
 
-            <div class="mt-(--cv-space-5xl) mb-(--cv-space-xl) flex items-center justify-between">
-              <h3 class="m-0 shrink-0 text-(length:--cv-font-size-lg) font-bold text-(--cv-on-surface)">固定 tag</h3>
-              <CvMiniButton
-                label="从资料解析"
-                icon="fa-regular fa-dice-d20"
-                :loading="isParsingTags && person.id === parsingPersonId"
-                @click="openParseTagsDialog(person)"
-              />
-            </div>
-            <div
-              class="cv-field"
-              :data-cv-tutorial="isTutorialMockPersonId(person.id) ? 'prompt-profiles-static-tags' : undefined"
-            >
-              <div class="cv-field-control">
-                <Textarea
-                  v-model="person.staticTags"
-                  rows="3"
-                  auto-resize
-                  class="w-full font-mono"
+            <div :data-cv-tutorial="isTutorialMockPersonId(person.id) ? 'prompt-profiles-static-tags' : undefined">
+              <div class="mt-(--cv-space-5xl) mb-(--cv-space-xl) flex items-center justify-between">
+                <h3 class="m-0 shrink-0 text-(length:--cv-font-size-lg) font-bold text-(--cv-on-surface)">固定 tag</h3>
+                <CvMiniButton
+                  label="从资料解析"
+                  icon="fa-regular fa-dice-d20"
+                  :loading="isParsingTags && person.id === parsingPersonId"
+                  @click="openParseTagsDialog(person)"
                 />
-                <div class="cv-field-hint">固定tag中的内容将在发送到LLM时，被强调原样保留在最终tag中</div>
+              </div>
+              <div class="cv-field">
+                <div class="cv-field-control">
+                  <Textarea
+                    v-model="person.staticTags"
+                    rows="3"
+                    auto-resize
+                    class="w-full font-mono"
+                  />
+                  <div class="cv-field-hint">固定tag中的内容将在发送到LLM时，被强调原样保留在最终tag中</div>
+                </div>
               </div>
             </div>
 

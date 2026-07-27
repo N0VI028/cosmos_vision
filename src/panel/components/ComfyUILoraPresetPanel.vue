@@ -1,5 +1,6 @@
 <template>
-  <div class="mb-(--cv-space-3xl) flex items-end gap-(--cv-space-md) [&_.cv-section-title]:mb-0">
+  <div data-cv-tutorial="comfyui-lora-binding">
+    <div class="mb-(--cv-space-3xl) flex items-end gap-(--cv-space-md) [&_.cv-section-title]:mb-0">
     <h2 class="cv-section-title">LoRA 库</h2>
     <i
       class="fa-solid fa-rotate cursor-pointer text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-colors duration-200 ease-in-out hover:text-(--p-primary-color)"
@@ -92,6 +93,7 @@
       </button>
     </div>
   </div>
+</div>
 </template>
 
 <script setup lang="ts">

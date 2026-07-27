@@ -28,6 +28,7 @@ export const DEFAULT_COMFYUI_TUTORIAL_NODE_IDS = {
   output: '14',
   positive: '64',
   negative: '66',
+  lora: '56',
 } as const;
 
 /** ComfyUI 默认工作流

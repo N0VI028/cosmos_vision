@@ -27,39 +27,41 @@
       </div>
     </div>
 
-    <div class="mb-(--cv-space-5xl) flex items-center gap-(--cv-space-sm)">
-      <h2 class="cv-section-title inline-flex items-center gap-(--cv-space-sm)">
-        <span>提示词生成预设</span>
-        <div
-          v-if="isDefaultPresetActive"
-          class="inline-flex size-[1.65em] shrink-0 cursor-pointer items-center justify-center rounded-(--cv-radius-sm) text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out outline-none hover:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] hover:text-(--p-red-500) focus-visible:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] focus-visible:text-(--p-red-500)"
-          role="button"
-          tabindex="0"
-          title="重置内置预设"
-          aria-label="重置内置预设"
-          @click="resetDefaultPreset"
-          @keydown.enter.prevent="resetDefaultPreset"
-          @keydown.space.prevent="resetDefaultPreset"
-        >
-          <i class="fa-solid fa-rotate-left" />
-        </div>
-      </h2>
-    </div>
+    <div data-cv-tutorial="prompt-llm-builder-preset">
+      <div class="mb-(--cv-space-5xl) flex items-center gap-(--cv-space-sm)">
+        <h2 class="cv-section-title inline-flex items-center gap-(--cv-space-sm)">
+          <span>提示词生成预设</span>
+          <div
+            v-if="isDefaultPresetActive"
+            class="inline-flex size-[1.65em] shrink-0 cursor-pointer items-center justify-center rounded-(--cv-radius-sm) text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out outline-none hover:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] hover:text-(--p-red-500) focus-visible:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] focus-visible:text-(--p-red-500)"
+            role="button"
+            tabindex="0"
+            title="重置内置预设"
+            aria-label="重置内置预设"
+            @click="resetDefaultPreset"
+            @keydown.enter.prevent="resetDefaultPreset"
+            @keydown.space.prevent="resetDefaultPreset"
+          >
+            <i class="fa-solid fa-rotate-left" />
+          </div>
+        </h2>
+      </div>
 
-    <PresetSelector
-      class="mb-(--cv-space-5xl)"
-      :presets="presetOptions"
-      :active-preset-id="settings.promptLlmMessagePresets.activePresetId"
-      :default-preset-id="DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID"
-      show-portability
-      @update:active-preset-id="updatePresetId"
-      @create="createPresetPrompt"
-      @clone="clonePreset"
-      @rename="renamePreset"
-      @export-preset="exportPresetPackage"
-      @import-presets="importPresetPackage"
-      @delete-preset="deletePreset"
-    />
+      <PresetSelector
+        class="mb-(--cv-space-5xl)"
+        :presets="presetOptions"
+        :active-preset-id="settings.promptLlmMessagePresets.activePresetId"
+        :default-preset-id="DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID"
+        show-portability
+        @update:active-preset-id="updatePresetId"
+        @create="createPresetPrompt"
+        @clone="clonePreset"
+        @rename="renamePreset"
+        @export-preset="exportPresetPackage"
+        @import-presets="importPresetPackage"
+        @delete-preset="deletePreset"
+      />
+    </div>
 
     <PromptLlmMessageList v-model="messages" />
 
