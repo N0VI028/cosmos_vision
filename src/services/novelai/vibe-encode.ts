@@ -122,7 +122,8 @@ function buildHeaders(apiKey: string): HeadersInit {
  */
 function formatEncodeAccountError(index: number, account: NovelAIAccount, error: unknown): string {
   const reason = error instanceof Error ? error.message : '未知错误';
-  return `账号 ${index + 1} (${buildEncodeEndpoint(account.url)}) 失败: ${reason}`;
+  const name = account.name.trim() || `账号 ${index + 1}`;
+  return `${name} (${buildEncodeEndpoint(account.url)}) 失败: ${reason}`;
 }
 
 /**

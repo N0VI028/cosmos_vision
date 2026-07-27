@@ -759,7 +759,8 @@ async function extractNovelAIZipImages(zipBlob: Blob): Promise<Blob[]> {
  */
 function formatAccountError(index: number, account: NovelAIAccount, error: unknown): string {
   const reason = error instanceof Error ? error.message : '未知错误';
-  return `账号 ${index + 1} (${buildEndpoint(account.url)}) 失败: ${reason}`;
+  const name = account.name.trim() || `账号 ${index + 1}`;
+  return `${name} (${buildEndpoint(account.url)}) 失败: ${reason}`;
 }
 
 /**

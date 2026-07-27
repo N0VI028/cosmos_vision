@@ -11,7 +11,7 @@
       <CollapsiblePanelItem
         v-for="(account, index) in accounts"
         :key="account.id"
-        :title="getAccountTitle(account, index)"
+        :title="getAccountTitle(account)"
         :collapsed="isCollapsed(account.id)"
         :is-editing="editingAccountId === account.id"
         :class="{ 'opacity-[0.62]': !account.enabled }"
@@ -38,7 +38,7 @@
             <span
               class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface) leading-8"
             >
-              {{ getAccountTitle(account, index) }}
+              {{ getAccountTitle(account) }}
             </span>
             <CvMiniButton
               icon="fa-regular fa-pen"
@@ -107,7 +107,8 @@ import CvMiniToggleSwitch from '@/panel/components/CvMiniToggleSwitch.vue';
 
 const accounts = defineModel<NovelAIAccount[]>({ required: true });
 
-const collapsedIds = ref<Set<string>>(new Set());
+/** 记录展开的账号 ID 集合，默认为空即全部折叠 */
+const expandedAccountIds = ref<Set<string>>(new Set());
 const editingAccountId = ref<string | null>(null);
 /** 编辑草稿：进入编辑时预填入旧账号名，确认时写回 account.name */
 const editingDraft = ref<string>('');
@@ -115,13 +116,10 @@ const editingDraft = ref<string>('');
 /**
  * 获取账号标题
  * @param account 账号对象
- * @param index 账号序号
  * @returns 账号标题
  */
-function getAccountTitle(account: NovelAIAccount, index: number): string {
-  const prefix = `账号 ${index + 1}`;
-  if (account.name) return `${prefix} - ${account.name}`;
-  return `${prefix} - 未命名`;
+function getAccountTitle(account: NovelAIAccount): string {
+  return account.name || '未命名账号';
 }
 
 /**
@@ -130,7 +128,7 @@ function getAccountTitle(account: NovelAIAccount, index: number): string {
  * @returns 是否收起
  */
 function isCollapsed(accountId: string): boolean {
-  return collapsedIds.value.has(accountId);
+  return !expandedAccountIds.value.has(accountId);
 }
 
 /**
@@ -138,15 +136,15 @@ function isCollapsed(accountId: string): boolean {
  * @param accountId 账号 id
  */
 function toggleCollapse(accountId: string): void {
-  if (collapsedIds.value.has(accountId)) {
-    collapsedIds.value.delete(accountId);
+  if (expandedAccountIds.value.has(accountId)) {
+    expandedAccountIds.value.delete(accountId);
   } else {
-    collapsedIds.value.add(accountId);
+    expandedAccountIds.value.add(accountId);
   }
 }
 
 /**
- * 进入重命名模式，将旧名字预填入草稿
+ * 进入重命名模式，将旧名字（或默认显示标题）预填入草稿
  * @param account 账号对象
  */
 function toggleEditing(account: NovelAIAccount): void {
@@ -155,7 +153,7 @@ function toggleEditing(account: NovelAIAccount): void {
     return;
   }
   editingAccountId.value = account.id;
-  editingDraft.value = account.name;
+  editingDraft.value = account.name || getAccountTitle(account);
 }
 
 /**
@@ -170,10 +168,12 @@ function finishEditing(account: NovelAIAccount): void {
 }
 
 /**
- * 新增一组 NovelAI 账号
+ * 新增一组 NovelAI 账号，并自动展开该账号
  */
 function addAccount(): void {
-  accounts.value.push(createNovelAIAccount(uuidv4()));
+  const newAccount = createNovelAIAccount(uuidv4());
+  accounts.value.push(newAccount);
+  expandedAccountIds.value.add(newAccount.id);
 }
 
 /**
@@ -194,7 +194,7 @@ function moveAccount(from: number, to: number): void {
 function removeAccount(index: number): void {
   const account = accounts.value[index];
   if (account) {
-    collapsedIds.value.delete(account.id);
+    expandedAccountIds.value.delete(account.id);
     if (editingAccountId.value === account.id) {
       editingAccountId.value = null;
     }

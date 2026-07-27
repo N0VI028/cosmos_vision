@@ -147,12 +147,11 @@ watch(
   },
 );
 
-/** 下拉选项：展示账号序号与实际账号名称 */
+/** 下拉选项：展示实际账号名称，无序号前缀 */
 const accountOptions = computed(() =>
   savedAccounts.value.map((account, i) => {
-    const prefix = `账号 ${i + 1}`;
     const name = account.name.trim();
-    const label = name ? `${prefix} - ${name}` : `${prefix} - 未命名`;
+    const label = name || '未命名账号';
     return { label, value: i };
   }),
 );
