@@ -107,7 +107,10 @@
                 @click="openParseTagsDialog(person)"
               />
             </div>
-            <div class="cv-field" data-cv-tutorial="prompt-profiles-static-tags">
+            <div
+              class="cv-field"
+              :data-cv-tutorial="isTutorialMockPersonId(person.id) ? 'prompt-profiles-static-tags' : undefined"
+            >
               <div class="cv-field-control">
                 <Textarea
                   v-model="person.staticTags"
@@ -124,7 +127,9 @@
             >
               人物模板条目
             </h3>
-            <div data-cv-tutorial="prompt-profiles-template-entries">
+            <div
+              :data-cv-tutorial="isTutorialMockPersonId(person.id) ? 'prompt-profiles-template-entries' : undefined"
+            >
               <PromptSourceEntryList
                 v-model="person.templateEntries"
                 :kind="person.kind"

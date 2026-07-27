@@ -115,7 +115,7 @@ function buildMockGalleryContainer(avatarUrl: string): HTMLElement {
 
   // 构建画廊包装器
   const wrapper = document.createElement('div');
-  wrapper.className = 'cv-inline-img-wrap cv-inline-favorite-wrap';
+  wrapper.className = 'cv-inline-img-wrap cv-inline-favorite-wrap cosmos-vision-root';
 
   // 构建画廊内容
   const content = document.createElement('div');
@@ -136,16 +136,6 @@ function buildMockGalleryContainer(avatarUrl: string): HTMLElement {
   img.alt = '示例图片（教程演示）';
   img.draggable = false;
   img.style.pointerEvents = 'none'; // 禁用点击
-
-  // 构建提示遮罩
-  const overlay = document.createElement('div');
-  overlay.className = 'cv-mock-overlay';
-  overlay.innerHTML = `
-    <div class="cv-mock-badge">
-      <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-      <span>教程演示图片</span>
-    </div>
-  `;
 
   // 构建右上角收藏按钮（仅演示）
   const favoriteBtn = document.createElement('button');
@@ -182,7 +172,7 @@ function buildMockGalleryContainer(avatarUrl: string): HTMLElement {
   `;
 
   // 组装结构
-  stage.append(img, overlay, favoriteBtn, removeBtn, actions);
+  stage.append(img, favoriteBtn, removeBtn, actions);
   galleria.appendChild(stage);
   content.appendChild(galleria);
   wrapper.appendChild(content);

@@ -27,6 +27,7 @@
         class="absolute flex cursor-pointer flex-col items-start justify-center gap-(--cv-space-xs) border border-solid px-(--cv-space-lg) py-(--cv-space-md) text-left text-(--cv-on-surface)"
         :class="nodeStates[node.id]?.classes"
         :style="nodeStyle(node)"
+        :data-cv-tutorial="nodeTutorialTarget(node.id)"
         @click.stop="emit('select', node.id)"
       >
         <span class="flex w-full items-center truncate text-(length:--cv-font-size-sm) font-semibold">
@@ -104,6 +105,21 @@ const NODE_THEMES = {
     icon: 'text-[#3b82f6]',
   },
 } as const;
+
+const PROMPT_NODE_TUTORIAL_TARGETS = {
+  positive: 'comfyui-positive-node',
+  negative: 'comfyui-negative-node',
+} as const;
+
+/** 返回当前选中绑定节点对应的教程锚点 */
+function nodeTutorialTarget(nodeId: string): string | undefined {
+  const node = props.workflow?.[nodeId];
+  if (nodeId !== props.selectedNodeId || !node) return undefined;
+  const meta = readNodeMeta(node);
+  if (meta.imageOutput) return 'comfyui-output-node';
+  const binding = Object.values(meta.promptBindings ?? {}).find(value => value in PROMPT_NODE_TUTORIAL_TARGETS);
+  return binding ? PROMPT_NODE_TUTORIAL_TARGETS[binding] : undefined;
+}
 
 /**
  * 汇总并缓存所有节点的绑定状态、样式类及对应图标名

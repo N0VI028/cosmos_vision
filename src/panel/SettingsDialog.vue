@@ -164,7 +164,11 @@
           <Fluid class="cv-content-inner">
             <MainTab v-if="activeTab === 'main'" :sub-tab="mainSubTab" />
             <NovelAITab v-else-if="activeTab === 'novelai'" :sub-tab="novelaiSubTab" />
-            <ComfyUITab v-else-if="activeTab === 'comfyui'" :sub-tab="comfyuiSubTab" />
+            <ComfyUITab
+              v-else-if="activeTab === 'comfyui'"
+              :sub-tab="comfyuiSubTab"
+              :tutorial-node-id="tutorial.isActive ? tutorial.currentStep.comfyuiDemoNodeId : null"
+            />
             <PromptProfilesTab v-else-if="activeTab === 'prompt-profiles'" v-model:kind="promptProfilesSubTab" />
             <KeepAlive>
               <PromptLlmTab v-if="activeTab === 'prompt-llm'" :sub-tab="promptLlmSubTab" />

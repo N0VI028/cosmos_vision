@@ -1,3 +1,5 @@
+import { DEFAULT_COMFYUI_TUTORIAL_NODE_IDS } from '@/constants/comfyui';
+
 export type TutorialSource = 'novelai' | 'comfyui';
 
 export type TutorialSettingsScene =
@@ -18,6 +20,7 @@ export interface TutorialStep {
   id: string;
   title: string;
   description: string;
+  tip?: string;
   scene: TutorialScene;
   target?: TutorialTarget;
   /** 是否需要注入模拟画廊（用角色头像占位） */
@@ -28,6 +31,8 @@ export interface TutorialStep {
   needsMockPerson?: boolean;
   /** 是否需要注入模拟条目编辑弹窗（展示来源下拉选项） */
   needsMockEntryEditor?: boolean;
+  /** ComfyUI 默认工作流演示时自动选中的节点 ID */
+  comfyuiDemoNodeId?: string;
 }
 
 export const TUTORIAL_SOURCE_OPTIONS = [
@@ -98,14 +103,49 @@ const COMFYUI_STEPS: readonly TutorialStep[] = [
     },
   },
   {
-    id: 'comfyui-result-binding',
-    title: '绑定提示词与结果',
-    description: '在工作流编辑器中绑定正负提示词，并指定唯一的”段落生图结果”节点。',
+    id: 'comfyui-output-binding',
+    title: '绑定图像输出节点',
+    description: '教程已载入默认工作流并选中“预览图像”节点。实际操作时先选中最终出图节点，再点击“段落生图结果”；蓝色状态表示绑定成功，且全工作流只能绑定一个。',
     scene: { kind: 'settings', tab: 'comfyui', subTab: 'config' },
     target: {
-      selectors: ['[data-cv-tutorial="comfyui-result-binding"]'],
-      missingText: '工作流绑定区域暂不可见，你仍可继续教程。',
+      selectors: [
+        '[data-cv-tutorial="comfyui-output-binding"]',
+        '[data-cv-tutorial="comfyui-output-node"]',
+        '[data-cv-tutorial="comfyui-result-binding"]',
+      ],
+      missingText: '绑定控件需要节点定义；当前已选中默认工作流的图像输出节点。',
     },
+    comfyuiDemoNodeId: DEFAULT_COMFYUI_TUTORIAL_NODE_IDS.output,
+  },
+  {
+    id: 'comfyui-positive-binding',
+    title: '绑定正向提示词',
+    description: '默认工作流已选中正向 Prompt 节点。实际操作时选中承载正向文本的节点，在 text 输入项右侧打开绑定菜单并选择“正向提示词”。绿色状态表示绑定成功。',
+    scene: { kind: 'settings', tab: 'comfyui', subTab: 'config' },
+    target: {
+      selectors: [
+        '[data-cv-tutorial="comfyui-positive-binding"]',
+        '[data-cv-tutorial="comfyui-positive-node"]',
+        '[data-cv-tutorial="comfyui-result-binding"]',
+      ],
+      missingText: '绑定控件需要节点定义；当前已选中默认工作流的正向提示词节点。',
+    },
+    comfyuiDemoNodeId: DEFAULT_COMFYUI_TUTORIAL_NODE_IDS.positive,
+  },
+  {
+    id: 'comfyui-negative-binding',
+    title: '绑定负向提示词',
+    description: '默认工作流已选中负向 Prompt 节点。实际操作时选中承载负向文本的节点，在 text 输入项右侧打开绑定菜单并选择“负向提示词”。红色状态表示绑定成功。',
+    scene: { kind: 'settings', tab: 'comfyui', subTab: 'config' },
+    target: {
+      selectors: [
+        '[data-cv-tutorial="comfyui-negative-binding"]',
+        '[data-cv-tutorial="comfyui-negative-node"]',
+        '[data-cv-tutorial="comfyui-result-binding"]',
+      ],
+      missingText: '绑定控件需要节点定义；当前已选中默认工作流的负向提示词节点。',
+    },
+    comfyuiDemoNodeId: DEFAULT_COMFYUI_TUTORIAL_NODE_IDS.negative,
   },
 ];
 
@@ -193,12 +233,13 @@ const SHARED_STEPS: readonly TutorialStep[] = [
       selectors: ['.cv-inline-toolbar', '.mes_text p', '#chat'],
       missingText: '操作条只在选中段落后出现；当前改为提示段落或聊天区域。',
     },
-    needsMockSelection: true, // 需要模拟选区
+    needsMockSelection: true, 
   },
   {
     id: 'inline-gallery',
     title: '管理生成结果',
-    description: '结果画廊会显示在段落下方，可查看、重试或编辑、下载，并把满意图片收藏。',
+    description: '结果画廊会显示在段落下方，你可以在这里查看、重新生成、编辑提示词或下载图片。',
+    tip: '重要提示：生成的临时结果会在更换浏览器时丢失。喜欢的图片请务必点击右下角的“★”图标进行收藏。',
     scene: { kind: 'chat' },
     target: {
       selectors: ['.cv-render', '.mes_text p', '#chat'],

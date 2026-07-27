@@ -64,12 +64,13 @@
           @change="handleWorkflowFileChange"
         />
         <ComfyUIWorkflowEditor
-          v-model="activeWorkflowJson"
+          v-model="workflowEditorJson"
           :comfyui-url="settings.comfyui.url"
           :favorite-node-ids="activeFavoriteNodeIds"
           :lora-preset-settings="settings.comfyui.loraPresets"
           :lora-options="loraOptions"
           :is-loading-loras="isLoadingLoras"
+          :tutorial-selected-node-id="tutorialNodeId"
           @update:favorite-node-ids="updateFavoriteNodeIds"
           @update:lora-preset-settings="settings.comfyui.loraPresets = $event"
           @import="triggerWorkflowImport"
@@ -122,7 +123,9 @@ type PresetOption = { id: string; name: string };
 const { settings } = useSettingsStore();
 const workflowFileInput = ref<HTMLInputElement | null>(null);
 
-const props = defineProps<{ subTab: ComfyUISubTab }>();
+const props = withDefaults(defineProps<{ subTab: ComfyUISubTab; tutorialNodeId?: string | null }>(), {
+  tutorialNodeId: null,
+});
 const subTab = computed(() => props.subTab);
 
 const refreshSections = inject<(() => void) | undefined>('refreshSections');
@@ -211,6 +214,12 @@ const activeWorkflowJson = computed({
   get: () => activeWorkflow.value?.workflowJson ?? '',
   set: value => {
     if (activeWorkflow.value) activeWorkflow.value.workflowJson = value;
+  },
+});
+const workflowEditorJson = computed({
+  get: () => (props.tutorialNodeId ? DEFAULT_COMFYUI_WORKFLOW_JSON : activeWorkflowJson.value),
+  set: value => {
+    if (!props.tutorialNodeId) activeWorkflowJson.value = value;
   },
 });
 /** 当前工作流预设的收藏节点 ID（缺字段时回退空数组） */

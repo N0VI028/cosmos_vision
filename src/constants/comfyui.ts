@@ -23,6 +23,13 @@ export const DEFAULT_COMFYUI_LORA_PRESET_NAME = '默认 LoRA 组';
 export const DEFAULT_COMFYUI_WORKFLOW_PRESET_ID = 'comfyui-workflow-default';
 export const DEFAULT_COMFYUI_WORKFLOW_PRESET_NAME = '默认工作流';
 
+/** 默认工作流中用于教程演示的绑定节点 */
+export const DEFAULT_COMFYUI_TUTORIAL_NODE_IDS = {
+  output: '14',
+  positive: '64',
+  negative: '66',
+} as const;
+
 /** ComfyUI 默认工作流
  * 来自 https://github.com/willmiao/ComfyUI-Lora-Manager 的示例模板
  */

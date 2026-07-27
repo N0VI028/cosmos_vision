@@ -333,7 +333,7 @@ body.dark .cv-inline-toolbar {
 .cv-inline-img-wrap {
   position: relative;
   display: block;
-  max-width: 40em;
+  max-width: 35em;
   margin: var(--cv-space-10xl) auto;
 }
 
@@ -397,8 +397,18 @@ body.dark .cv-inline-toolbar {
 
 .cv-inline-favorite-stage {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: auto;
+  overflow: hidden;
+}
+
+.cv-inline-favorite-img {
   display: block;
   width: 100%;
+  height: auto;
 }
 
 /* 角落悬浮按钮(收藏/移除): 固定白底，不随主题切换，全程 !important 反压 ST 聊天区样式 */

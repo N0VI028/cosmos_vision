@@ -3,37 +3,6 @@
  * 在真实画廊不存在时，用角色头像占位演示画廊功能
  */
 
-/* 模拟遮罩层 */
-.cv-mock-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgb(0 0 0 / 50%), rgb(0 0 0 / 30%));
-  pointer-events: none;
-}
-
-/* 演示标记徽章 */
-.cv-mock-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
-  border-radius: 8px;
-  background: rgb(25 135 84 / 90%);
-  color: #fff;
-  font-size: 0.875rem;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 30%);
-  backdrop-filter: blur(8px);
-}
-
-.cv-mock-badge i {
-  font-size: 1.125rem;
-}
-
 /* 禁用状态的按钮增加半透明 */
 [data-cv-tutorial-mock] .cv-inline-corner-button:disabled,
 [data-cv-tutorial-mock] .cv-inline-action-button:disabled {
@@ -41,9 +10,17 @@
   cursor: not-allowed;
 }
 
-/* 模拟画廊图片增加轻微虚化，强调演示性质 */
+
+[data-cv-tutorial-mock="true"] .cv-inline-favorite-stage {
+  height: auto;
+  max-height: none;
+}
+
 [data-cv-tutorial-mock="true"] .cv-inline-favorite-img {
-  filter: brightness(0.85);
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: none;
 }
 
 /* 模拟选区：确保段落选中效果可见 */

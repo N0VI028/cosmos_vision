@@ -10,6 +10,7 @@
           <Chip
             :class="chipRootClass"
             :pt="workflowActionChipPt"
+            :data-cv-tutorial="promptBindingTutorialTarget"
             @click="online && promptPopover?.toggle($event)"
           >
             <span class="flex items-center gap-1.5">
@@ -228,6 +229,13 @@ const currentBinding = computed(() => {
 const alternateBindings = computed(() => {
   const current = props.control.promptBinding ?? null;
   return BINDING_OPTIONS.filter(opt => opt.value !== current);
+});
+
+/** 返回当前提示词绑定对应的教程锚点 */
+const promptBindingTutorialTarget = computed(() => {
+  if (props.control.promptBinding === 'positive') return 'comfyui-positive-binding';
+  if (props.control.promptBinding === 'negative') return 'comfyui-negative-binding';
+  return undefined;
 });
 
 /** Chip 根 class：紧凑布局 + 三态/禁用（class 直接上 Chip 根，无需 :deep） */

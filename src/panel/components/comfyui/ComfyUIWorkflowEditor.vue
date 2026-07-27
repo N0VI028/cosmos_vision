@@ -308,6 +308,7 @@ const props = defineProps<{
   loraPresetSettings: ComfyUILoraPresetSettings;
   loraOptions: { value: string; label: string }[];
   isLoadingLoras: boolean;
+  tutorialSelectedNodeId?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -696,11 +697,22 @@ watch(
       selectedNodeId.value = null;
       return;
     }
-    pruneFavoritesForWorkflow(value);
+    if (!props.tutorialSelectedNodeId) pruneFavoritesForWorkflow(value);
     if (selectedNodeId.value && value[selectedNodeId.value]) return;
     selectedNodeId.value = readImageOutputNodeId(value) ?? Object.keys(value)[0] ?? null;
   },
   { immediate: true },
+);
+
+watch(
+  () => props.tutorialSelectedNodeId,
+  async nodeId => {
+    if (!nodeId || !workflow.value?.[nodeId]) return;
+    selectedNodeId.value = nodeId;
+    await nextTick();
+    canvasRef.value?.focusNode(nodeId);
+  },
+  { immediate: true, flush: 'post' },
 );
 
 watch(fullscreen, async (value) => {

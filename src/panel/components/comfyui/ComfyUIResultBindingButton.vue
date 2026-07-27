@@ -5,6 +5,7 @@
   -->
   <button
     type="button"
+    data-cv-tutorial="comfyui-output-binding"
     class="cv-workflow-action-btn flex shrink-0 cursor-pointer items-center gap-1.5 rounded border border-solid px-[0.4rem] py-[0.15rem] text-(length:--cv-font-size-2xs) leading-[1.2] select-none transition-all duration-200 w-fit min-h-auto"
     :class="rootStateClass"
     :disabled="disabled"
