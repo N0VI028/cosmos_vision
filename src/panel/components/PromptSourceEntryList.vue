@@ -50,7 +50,6 @@
       <label class="cv-field">
         <span>来源</span>
         <Select
-          ref="sourceSelect"
           :model-value="editorDraft.kind"
           :options="editorSourceOptions"
           option-label="label"
@@ -269,7 +268,6 @@ const props = withDefaults(
 
 const entries = defineModel<PromptPersonTemplateEntry[]>({ required: true });
 const entryList = ref<InstanceType<typeof PromptEntryList> | null>(null);
-const sourceSelect = ref<{ show?: (isFocus?: boolean) => void } | null>(null);
 const worldbookNames = ref<string[]>([]);
 const worldbookSourceOptions = ref<PromptWorldbookGroup[]>([]);
 const editorDraft = ref<PromptSourceEditorDraft | null>(null);
@@ -321,7 +319,7 @@ const entryEditorDialogPt = computed(() => {
   };
 });
 
-// 教程请求时真实打开首个条目的编辑弹窗，并展开来源下拉；请求结束后关闭
+// 教程请求时真实打开首个条目的编辑弹窗；请求结束后关闭
 watch(
   () => props.tutorialTarget && mockEntryEditorRequested.value,
   requested => {
@@ -332,14 +330,12 @@ watch(
 );
 
 /**
- * 教程演示：打开首个条目编辑弹窗并展开来源下拉
+ * 教程演示：打开首个条目编辑弹窗
  */
 function openTutorialEntryEditor(): void {
   const entry = entries.value[0];
   if (!entry || isEditorVisible.value) return;
   openEntryEditor(entry);
-  // 等待弹窗渲染后展开来源下拉，展示可选项
-  nextTick(() => setTimeout(() => sourceSelect.value?.show?.(), 150));
 }
 
 watch(

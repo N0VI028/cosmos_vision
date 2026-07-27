@@ -29,7 +29,7 @@ export interface TutorialStep {
   needsMockSelection?: boolean;
   /** 是否需要注入模拟人物（用于演示角色配置） */
   needsMockPerson?: boolean;
-  /** 是否需要注入模拟条目编辑弹窗（展示来源下拉选项） */
+  /** 是否需要注入模拟条目编辑弹窗（用于演示角色配置条目编辑） */
   needsMockEntryEditor?: boolean;
   /** ComfyUI 默认工作流演示时自动选中的节点 ID */
   comfyuiDemoNodeId?: string;
@@ -105,7 +105,9 @@ const COMFYUI_STEPS: readonly TutorialStep[] = [
   {
     id: 'comfyui-output-binding',
     title: '绑定图像输出节点',
-    description: '教程已载入默认工作流并选中“预览图像”节点。实际操作时先选中最终出图节点，再点击“段落生图结果”；蓝色状态表示绑定成功，且全工作流只能绑定一个。',
+    description:
+      '教程已载入默认工作流并选中“预览图像”节点。实际操作时先选中最终出图节点，再点击“段落生图结果”；蓝色状态表示绑定成功，且全工作流只能绑定一个。',
+    tip: '如果不连接 ComfyUI，将不会显示绑定按钮。请先在连接设置中测试并成功连接服务。',
     scene: { kind: 'settings', tab: 'comfyui', subTab: 'config' },
     target: {
       selectors: [
@@ -113,14 +115,16 @@ const COMFYUI_STEPS: readonly TutorialStep[] = [
         '[data-cv-tutorial="comfyui-output-node"]',
         '[data-cv-tutorial="comfyui-result-binding"]',
       ],
-      missingText: '绑定控件需要节点定义；当前已选中默认工作流的图像输出节点。',
+      missingText: '绑定控件需要节点定义；若未成功连接 ComfyUI，将不会显示绑定按钮。',
     },
     comfyuiDemoNodeId: DEFAULT_COMFYUI_TUTORIAL_NODE_IDS.output,
   },
   {
     id: 'comfyui-positive-binding',
     title: '绑定正向提示词',
-    description: '默认工作流已选中正向 Prompt 节点。实际操作时选中承载正向文本的节点，在 text 输入项右侧打开绑定菜单并选择“正向提示词”。绿色状态表示绑定成功。',
+    description:
+      '默认工作流已选中正向 Prompt 节点。实际操作时选中承载正向文本的节点，在 text 输入项右侧打开绑定菜单并选择“正向提示词”。绿色状态表示绑定成功。',
+    tip: '如果不连接 ComfyUI，将不会显示绑定按钮。请先在连接设置中测试并成功连接服务。',
     scene: { kind: 'settings', tab: 'comfyui', subTab: 'config' },
     target: {
       selectors: [
@@ -128,14 +132,16 @@ const COMFYUI_STEPS: readonly TutorialStep[] = [
         '[data-cv-tutorial="comfyui-positive-node"]',
         '[data-cv-tutorial="comfyui-result-binding"]',
       ],
-      missingText: '绑定控件需要节点定义；当前已选中默认工作流的正向提示词节点。',
+      missingText: '绑定控件需要节点定义；若未成功连接 ComfyUI，将不会显示绑定按钮。',
     },
     comfyuiDemoNodeId: DEFAULT_COMFYUI_TUTORIAL_NODE_IDS.positive,
   },
   {
     id: 'comfyui-negative-binding',
     title: '绑定负向提示词',
-    description: '默认工作流已选中负向 Prompt 节点。实际操作时选中承载负向文本的节点，在 text 输入项右侧打开绑定菜单并选择“负向提示词”。红色状态表示绑定成功。',
+    description:
+      '默认工作流已选中负向 Prompt 节点。实际操作时选中承载负向文本的节点，在 text 输入项右侧打开绑定菜单并选择“负向提示词”。红色状态表示绑定成功。',
+    tip: '如果不连接 ComfyUI，将不会显示绑定按钮。请先在连接设置中测试并成功连接服务。',
     scene: { kind: 'settings', tab: 'comfyui', subTab: 'config' },
     target: {
       selectors: [
@@ -143,7 +149,7 @@ const COMFYUI_STEPS: readonly TutorialStep[] = [
         '[data-cv-tutorial="comfyui-negative-node"]',
         '[data-cv-tutorial="comfyui-result-binding"]',
       ],
-      missingText: '绑定控件需要节点定义；当前已选中默认工作流的负向提示词节点。',
+      missingText: '绑定控件需要节点定义；若未成功连接 ComfyUI，将不会显示绑定按钮。',
     },
     comfyuiDemoNodeId: DEFAULT_COMFYUI_TUTORIAL_NODE_IDS.negative,
   },
@@ -163,7 +169,8 @@ const SHARED_STEPS: readonly TutorialStep[] = [
   {
     id: 'prompt-profiles-overview',
     title: '角色配置概述',
-    description: 'CosmosVision 拾取最近几条聊天记录生成提示词，无法捕捉角色的完整特质。教程已创建示例角色演示配置方法；实际使用时请为当前角色卡和用户各建一个人物。',
+    description:
+      'CosmosVision 拾取最近几条聊天记录生成提示词，无法捕捉角色的完整特质。教程已创建示例角色演示配置方法；实际使用时请为当前角色卡和用户各建一个人物。',
     scene: { kind: 'settings', tab: 'prompt-profiles', subTab: 'character' },
     target: {
       selectors: ['[data-cv-tutorial="prompt-profiles-overview"]'],
@@ -174,7 +181,8 @@ const SHARED_STEPS: readonly TutorialStep[] = [
   {
     id: 'prompt-profiles-static-tags',
     title: '固定 tag 配置',
-    description: '固定 tag 描述角色长期不变的特征，会被强调原样保留在最终提示词中。示例中已填入 girl、blue eyes 等标签；你也可以用”从资料解析”按钮自动生成。',
+    description:
+      '固定 tag 描述角色长期不变的特征，会被强调原样保留在最终提示词中。示例中已填入 girl、blue eyes 等标签；你也可以用”从资料解析”按钮自动生成。',
     scene: { kind: 'settings', tab: 'prompt-profiles', subTab: 'character' },
     target: {
       selectors: ['[data-cv-tutorial="prompt-profiles-static-tags"]'],
@@ -185,10 +193,14 @@ const SHARED_STEPS: readonly TutorialStep[] = [
   {
     id: 'prompt-profiles-template-entries',
     title: '人物模板条目',
-    description: '条目编辑器中可切换来源类型：自定义、角色描述、用户人设、世界书。建议选择”角色描述”直接插入该角色卡的完整描述，让 LLM 自动总结角色特性。',
+    description:
+      '条目编辑器中可切换来源类型：自定义、角色描述、用户人设、世界书。建议选择”角色描述”直接插入该角色卡的完整描述，让 LLM 自动总结角色特性。',
     scene: { kind: 'settings', tab: 'prompt-profiles', subTab: 'character' },
     target: {
-      selectors: ['[data-cv-tutorial="prompt-profiles-entry-editor"]', '[data-cv-tutorial="prompt-profiles-template-entries"]'],
+      selectors: [
+        '[data-cv-tutorial="prompt-profiles-entry-editor"]',
+        '[data-cv-tutorial="prompt-profiles-template-entries"]',
+      ],
       missingText: '条目编辑器暂不可见，改为提示模板条目区域。',
     },
     needsMockPerson: true,
@@ -233,13 +245,13 @@ const SHARED_STEPS: readonly TutorialStep[] = [
       selectors: ['.cv-inline-toolbar', '.mes_text p', '#chat'],
       missingText: '操作条只在选中段落后出现；当前改为提示段落或聊天区域。',
     },
-    needsMockSelection: true, 
+    needsMockSelection: true,
   },
   {
     id: 'inline-gallery',
     title: '管理生成结果',
     description: '结果画廊会显示在段落下方，你可以在这里查看、重新生成、编辑提示词或下载图片。',
-    tip: '重要提示：生成的临时结果会在更换浏览器时丢失。喜欢的图片请务必点击右下角的“★”图标进行收藏。',
+    tip: '生成的临时结果会在更换浏览器时丢失。喜欢的图片请务必点击右下角的“★”图标进行收藏。',
     scene: { kind: 'chat' },
     target: {
       selectors: ['.cv-render', '.mes_text p', '#chat'],

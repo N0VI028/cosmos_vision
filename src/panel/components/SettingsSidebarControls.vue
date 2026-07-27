@@ -6,7 +6,7 @@
       :class="[SIDEBAR_CONTROL_CLASS, SIDEBAR_ACTION_CLASS, mobile ? SIDEBAR_ICON_SIZE_CLASS : SIDEBAR_FULL_SIZE_CLASS]"
       :pt="BUTTON_PT"
       :label="mobile ? undefined : '使用教程'"
-      icon="fa-regular fa-graduation-cap"
+      icon="fa-regular fa-circle-question"
       severity="secondary"
       outlined
       :rounded="mobile"

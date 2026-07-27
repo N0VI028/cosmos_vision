@@ -19,6 +19,7 @@ import {
   readElementRect,
   readTutorialViewport,
   readVisibleElementRect,
+  scrollTutorialTargetIntoView,
   type TutorialRect,
   type TutorialSize,
 } from '@/panel/components/onboarding/tutorial-layout';
@@ -364,7 +365,8 @@ async function refreshTarget(): Promise<void> {
   targetElement.value = resolution.element;
   lastTrackingSignature = '';
   usingFallback.value = resolution.fallback;
-  resolution.element?.scrollIntoView({ block: 'center', inline: 'nearest' });
+  // 不用原生 scrollIntoView：移动端会连带滚动 document，把整页顶起遮挡内容
+  if (resolution.element) scrollTutorialTargetIntoView(resolution.element);
   await nextFrame();
   if (requestId !== targetRequestId) return;
 

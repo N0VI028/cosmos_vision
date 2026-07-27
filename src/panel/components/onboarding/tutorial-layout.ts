@@ -50,6 +50,51 @@ export function readTutorialViewport(): TutorialSize {
 }
 
 /**
+ * 仅在可滚动祖先容器内居中目标，避免 scrollIntoView 带动 document 顶起整页
+ * @param element 教程高亮目标
+ */
+export function scrollTutorialTargetIntoView(element: HTMLElement): void {
+  const pageX = window.scrollX;
+  const pageY = window.scrollY;
+  for (const container of collectScrollableAncestors(element)) {
+    centerElementInContainer(element, container);
+  }
+  // 兜底：若浏览器仍改了页面滚动，立即还原，防止 fixed 遮罩与底层错位
+  if (window.scrollX !== pageX || window.scrollY !== pageY) {
+    window.scrollTo(pageX, pageY);
+  }
+}
+
+/** 收集目标的可纵向滚动祖先，排除 html/body 以免移动端顶起整页 */
+function collectScrollableAncestors(element: HTMLElement): HTMLElement[] {
+  const containers: HTMLElement[] = [];
+  let current = element.parentElement;
+  while (current && current !== document.documentElement && current !== document.body) {
+    if (canScrollY(current)) containers.push(current);
+    current = current.parentElement;
+  }
+  return containers;
+}
+
+/** 将目标在滚动容器中垂直居中 */
+function centerElementInContainer(element: HTMLElement, container: HTMLElement): void {
+  const containerRect = container.getBoundingClientRect();
+  const elementRect = element.getBoundingClientRect();
+  const delta =
+    elementRect.top + elementRect.height / 2 - (containerRect.top + containerRect.height / 2);
+  if (Math.abs(delta) < 1) return;
+  container.scrollTop += delta;
+}
+
+/** 判断元素是否可纵向滚动 */
+function canScrollY(element: HTMLElement): boolean {
+  const style = window.getComputedStyle(element);
+  const overflowY = style.overflowY;
+  if (overflowY !== 'auto' && overflowY !== 'scroll' && overflowY !== 'overlay') return false;
+  return element.scrollHeight > element.clientHeight + 1;
+}
+
+/**
  * 读取元素相对布局视口的包围盒，直接用于 position:fixed
  * @param element 目标元素
  * @returns 四舍五入后的矩形，不可见时返回 null
