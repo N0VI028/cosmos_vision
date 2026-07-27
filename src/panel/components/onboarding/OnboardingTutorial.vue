@@ -175,12 +175,15 @@ function resolveTutorialTarget(step: TutorialStep): TargetResolution {
 }
 
 /**
- * 在选择器匹配集合中取第一个可见节点
+ * 在选择器匹配集合中取可见节点（聊天段落统一定位到第一个，与模拟选区/画廊保持一致）
  * @param selector CSS 选择器
  * @returns 可见元素；无可见匹配时返回 null
  */
 function findVisibleElement(selector: string): HTMLElement | null {
-  return Array.from(document.querySelectorAll<HTMLElement>(selector)).find(isVisibleElement) ?? null;
+  const elements = Array.from(document.querySelectorAll<HTMLElement>(selector)).filter(isVisibleElement);
+  if (!elements.length) return null;
+  if (selector === '.mes_text p') return elements[0] ?? null;
+  return elements[0];
 }
 
 /**
@@ -518,14 +521,14 @@ onBeforeUnmount(() => {
         v-show="!cardHidden"
         ref="cardRef"
         v-focus-trap="{ autoFocus: true, disabled: cardHidden }"
-        class="cv-onboarding__card fixed z-2 box-border flex w-[min(26rem,calc(100vw-2rem))] max-h-[calc(100vh-2rem)] flex-col gap-(--cv-space-4xl) overflow-y-auto border-(length:--cv-border-width) border-solid border-(--cv-outline) rounded-(--cv-radius-lg) bg-(--cv-surface-container-lowest) p-(--cv-space-7xl) text-(--cv-on-surface) shadow-[0_1.5rem_4rem_rgb(0_0_0/32%)] whitespace-normal wrap-break-word max-[40rem]:max-h-[min(42vh,calc(100vh-2rem))] max-[40rem]:p-(--cv-space-4xl)"
+        class="cv-onboarding__card fixed z-2 box-border flex w-[min(26rem,calc(100vw-2rem))] max-h-[calc(100vh-2rem)] flex-col gap-(--cv-space-4xl) overflow-y-auto border-(length:--cv-border-width) border-solid border-(--cv-outline) rounded-(--cv-radius-lg) bg-(--cv-surface-container-lowest) p-(--cv-space-7xl) text-(--cv-on-surface) shadow-[0_1.5rem_4rem_rgb(0_0_0/32%)] whitespace-normal wrap-break-word max-[40rem]:max-h-[min(75vh,calc(100vh-2rem))] max-[40rem]:p-(--cv-space-4xl)"
         :style="cardStyle"
         data-cv-tutorial-surface
       >
         <header class="flex items-center justify-between gap-(--cv-space-lg)">
           <span
             class="text-(length:--cv-font-size-xs) font-bold tracking-[0.08em] text-(--cv-on-surface-variant)"
-          >生图教程</span>
+          >使用教程</span>
           <div class="flex items-center gap-(--cv-space-sm)">
             <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
               第 {{ stepNumber }} / {{ totalSteps }} 步
@@ -602,14 +605,49 @@ onBeforeUnmount(() => {
             v-for="option in TUTORIAL_SOURCE_OPTIONS"
             :key="option.value"
             :label="option.label"
-            :icon="option.icon"
             :severity="selectedSource === option.value ? 'primary' : 'secondary'"
             :outlined="selectedSource !== option.value"
             :aria-pressed="selectedSource === option.value"
             data-cv-tutorial-control
             :data-cv-tutorial-primary="option.value === 'novelai' ? '' : undefined"
             @click="emit('select-source', option.value)"
-          />
+          >
+            <template #icon>
+              <svg
+                v-if="option.value === 'novelai'"
+                fill="currentColor"
+                fill-rule="evenodd"
+                height="1.15em"
+                style="flex: none; line-height: 1"
+                viewBox="0 0 24 24"
+                width="1.15em"
+                xmlns="http://www.w3.org/2000/svg"
+                class="p-button-icon p-button-icon-left"
+              >
+                <title>NovelAI</title>
+                <path
+                  clip-rule="evenodd"
+                  d="M5.861 18.918c-.829-1.368-1.838-2.504-3.04-3.289a.74.74 0 01-.18-1.045C4.817 11.764 8.199 4.378 9.97.359c.264-.601 1.17-.4 1.17.256v10.71a2.719 2.719 0 00-1.35 3.611l-3.935 3.982h.006zm.871 1.678c.415.924.763 1.92 1.04 2.948a.605.605 0 00.582.456h7.748a.61.61 0 00.583-.456 19.585 19.585 0 011.039-2.948l-2.06-2.085-1.718 1.738c.042.158.066.323.066.493 0 .997-.799 1.805-1.784 1.805a1.795 1.795 0 01-1.784-1.805c0-.997.799-1.806 1.784-1.806.15 0 .3.019.438.055l1.736-1.757-.979-.99a2.68 2.68 0 01-2.378 0l-4.3 4.352h-.013zm11.863-1.678c.829-1.368 1.838-2.504 3.04-3.289a.74.74 0 00.18-1.045C19.64 11.764 16.257 4.378 14.485.359c-.264-.601-1.17-.4-1.17.256v10.71a2.719 2.719 0 011.35 3.611l3.935 3.982h-.006z"
+                />
+              </svg>
+              <svg
+                v-else-if="option.value === 'comfyui'"
+                fill="currentColor"
+                fill-rule="evenodd"
+                height="1.15em"
+                style="flex: none; line-height: 1"
+                viewBox="0 0 24 24"
+                width="1.15em"
+                xmlns="http://www.w3.org/2000/svg"
+                class="p-button-icon p-button-icon-left"
+              >
+                <title>ComfyUI</title>
+                <path
+                  d="M5.485 23.76c-.568 0-1.026-.207-1.325-.598-.307-.402-.387-.964-.22-1.54l.672-2.315a.605.605 0 00-.1-.536.622.622 0 00-.494-.243H2.085c-.568 0-1.026-.207-1.325-.598-.307-.403-.387-.964-.22-1.54l2.31-7.917.255-.87c.343-1.18 1.592-2.14 2.786-2.14h2.313c.276 0 .519-.18.595-.442l.764-2.633C9.906 1.208 11.155.249 12.35.249l4.945-.008h3.62c.568 0 1.027.206 1.325.597.307.402.387.964.22 1.54l-1.035 3.566c-.343 1.178-1.593 2.137-2.787 2.137l-4.956.01H11.37a.618.618 0 00-.594.441l-1.928 6.604a.605.605 0 00.1.537c.118.153.3.243.495.243l3.275-.006h3.61c.568 0 1.026.206 1.325.598.307.402.387.964.22 1.54l-1.036 3.565c-.342 1.179-1.592 2.138-2.786 2.138l-4.957.01h-3.61z"
+                />
+              </svg>
+            </template>
+          </Button>
         </div>
 
         <footer
@@ -618,8 +656,8 @@ onBeforeUnmount(() => {
           <Button
             label="退出"
             icon="fa-solid fa-xmark"
-            severity="secondary"
-            text
+            severity="danger"
+            outlined
             data-cv-tutorial-control
             @click="emit('exit')"
           />
@@ -649,7 +687,7 @@ onBeforeUnmount(() => {
       <!-- 卡片收起后保留底部入口，便于移动端看完高亮再继续 -->
       <div
         v-if="cardHidden && layoutReady"
-        class="cv-onboarding__restore fixed z-2 bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2"
+        class="cv-onboarding__restore absolute z-2 bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2"
         data-cv-tutorial-surface
       >
         <Button

@@ -1,3 +1,5 @@
+import { getTavernHelper } from '@/services/tavern-helper/availability';
+
 /**
  * 教程模拟画廊注入器
  * 在没有真实生成图片时，用角色头像临时模拟画廊结构
@@ -7,16 +9,16 @@
 const MOCK_ATTR = 'data-cv-tutorial-mock';
 
 /**
- * 注入模拟画廊到最后一条消息下方
+ * 注入模拟画廊到第一条消息段落下方
  * @returns 注入的容器元素，找不到插入点时返回 null
  */
 export function injectMockGallery(): HTMLElement | null {
   // 检查是否已有真实画廊
   if (document.querySelector('.cv-render')) return null;
 
-  // 查找最后一条可见消息段落
-  const lastParagraph = findLastVisibleParagraph();
-  if (!lastParagraph) return null;
+  // 查找第一个可见消息段落
+  const firstParagraph = findFirstVisibleParagraph();
+  if (!firstParagraph) return null;
 
   // 读取角色头像
   const avatarUrl = findCharacterAvatar();
@@ -24,7 +26,7 @@ export function injectMockGallery(): HTMLElement | null {
 
   // 构建模拟画廊容器
   const mockContainer = buildMockGalleryContainer(avatarUrl);
-  lastParagraph.after(mockContainer);
+  firstParagraph.after(mockContainer);
 
   return mockContainer;
 }
@@ -37,8 +39,8 @@ export function injectMockSelection(): HTMLElement | null {
   // 检查是否已有真实选区
   if (document.querySelector('.cv-inline-selection-shell')) return null;
 
-  // 查找最后一条可见消息段落
-  const paragraph = findLastVisibleParagraph();
+  // 查找第一个可见消息段落
+  const paragraph = findFirstVisibleParagraph();
   if (!paragraph) return null;
 
   // 获取段落容器（.mes_text）
@@ -78,29 +80,22 @@ export function cleanupMockGallery(): void {
 }
 
 /**
- * 查找最后一个可见聊天段落
+ * 查找第一个可见聊天段落
  * @returns 段落元素或 null
  */
-function findLastVisibleParagraph(): HTMLElement | null {
+function findFirstVisibleParagraph(): HTMLElement | null {
   const paragraphs = Array.from(document.querySelectorAll<HTMLElement>('.mes_text p'));
-  return paragraphs.filter(isVisibleElement).at(-1) ?? null;
+  return paragraphs.find(isVisibleElement) ?? null;
 }
 
 /**
- * 查找当前角色头像 URL
- * @returns 头像 URL 或 null
+ * 查找当前角色头像原图 URL
+ * @returns 原图 URL 或 null
  */
 function findCharacterAvatar(): string | null {
-  // 尝试从最后一条消息读取头像
-  const lastMessage = Array.from(document.querySelectorAll<HTMLElement>('.mes'))
-    .filter(isVisibleElement)
-    .at(-1);
-
-  if (!lastMessage) return null;
-
-  // 读取消息头像
-  const avatarImg = lastMessage.querySelector<HTMLImageElement>('.avatar img');
-  return avatarImg?.src ?? null;
+  const tavernHelper = getTavernHelper({ silent: true });
+  const charAvatarPath = tavernHelper?.getCharAvatarPath('current');
+  return charAvatarPath?.trim() || null;
 }
 
 /**
