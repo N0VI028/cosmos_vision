@@ -83,7 +83,7 @@ const COMFYUI_STEPS: readonly TutorialStep[] = [
     description: '填写 ComfyUI 服务地址并测试连接，浏览器直连时还需确认 CORS 配置。',
     scene: { kind: 'settings', tab: 'comfyui', subTab: 'api' },
     target: {
-      selectors: ['[data-cv-tutorial=”comfyui-connection”]'],
+      selectors: ['[data-cv-tutorial="comfyui-connection"]'],
       missingText: 'ComfyUI 连接区域暂不可见，你仍可继续教程。',
     },
   },
@@ -93,7 +93,7 @@ const COMFYUI_STEPS: readonly TutorialStep[] = [
     description: '导入 API 格式工作流或选择预设，再检查画布中的节点与参数。',
     scene: { kind: 'settings', tab: 'comfyui', subTab: 'config' },
     target: {
-      selectors: ['[data-cv-tutorial=”comfyui-workflow”]'],
+      selectors: ['[data-cv-tutorial="comfyui-workflow"]'],
       missingText: 'ComfyUI 工作流区域暂不可见，你仍可继续教程。',
     },
   },
@@ -103,7 +103,7 @@ const COMFYUI_STEPS: readonly TutorialStep[] = [
     description: '在工作流编辑器中绑定正负提示词，并指定唯一的”段落生图结果”节点。',
     scene: { kind: 'settings', tab: 'comfyui', subTab: 'config' },
     target: {
-      selectors: ['[data-cv-tutorial=”comfyui-result-binding”]'],
+      selectors: ['[data-cv-tutorial="comfyui-result-binding"]'],
       missingText: '工作流绑定区域暂不可见，你仍可继续教程。',
     },
   },
@@ -116,7 +116,7 @@ const SHARED_STEPS: readonly TutorialStep[] = [
     description: '选择酒馆代理预设或直连接口，再选择用于生成生图提示词的模型。',
     scene: { kind: 'settings', tab: 'prompt-llm', subTab: 'settings' },
     target: {
-      selectors: ['[data-cv-tutorial=”prompt-llm-connection”]'],
+      selectors: ['[data-cv-tutorial="prompt-llm-connection"]'],
       missingText: 'LLM 连接区域暂不可见，你仍可继续教程。',
     },
   },
@@ -126,7 +126,7 @@ const SHARED_STEPS: readonly TutorialStep[] = [
     description: 'CosmosVision 拾取最近几条聊天记录生成提示词，无法捕捉角色的完整特质。教程已创建示例角色演示配置方法；实际使用时请为当前角色卡和用户各建一个人物。',
     scene: { kind: 'settings', tab: 'prompt-profiles', subTab: 'character' },
     target: {
-      selectors: ['[data-cv-tutorial=”prompt-profiles-overview”]'],
+      selectors: ['[data-cv-tutorial="prompt-profiles-overview"]'],
       missingText: '人物配置区域暂不可见，你仍可继续教程。',
     },
     needsMockPerson: true,
@@ -137,7 +137,7 @@ const SHARED_STEPS: readonly TutorialStep[] = [
     description: '固定 tag 描述角色长期不变的特征，会被强调原样保留在最终提示词中。示例中已填入 girl、blue eyes 等标签；你也可以用”从资料解析”按钮自动生成。',
     scene: { kind: 'settings', tab: 'prompt-profiles', subTab: 'character' },
     target: {
-      selectors: ['[data-cv-tutorial=”prompt-profiles-static-tags”]'],
+      selectors: ['[data-cv-tutorial="prompt-profiles-static-tags"]'],
       missingText: '固定 tag 区域暂不可见，你仍可继续教程。',
     },
     needsMockPerson: true,
@@ -148,7 +148,7 @@ const SHARED_STEPS: readonly TutorialStep[] = [
     description: '条目编辑器中可切换来源类型：自定义、角色描述、用户人设、世界书。建议选择”角色描述”直接插入该角色卡的完整描述，让 LLM 自动总结角色特性。',
     scene: { kind: 'settings', tab: 'prompt-profiles', subTab: 'character' },
     target: {
-      selectors: ['[data-cv-tutorial=”prompt-profiles-entry-editor”]', '[data-cv-tutorial=”prompt-profiles-template-entries”]'],
+      selectors: ['[data-cv-tutorial="prompt-profiles-entry-editor"]', '[data-cv-tutorial="prompt-profiles-template-entries"]'],
       missingText: '条目编辑器暂不可见，改为提示模板条目区域。',
     },
     needsMockPerson: true,
@@ -160,7 +160,7 @@ const SHARED_STEPS: readonly TutorialStep[] = [
     description: '完成配置后点击”应用更改”保存。教程不会代替你保存，也不会改动草稿。',
     scene: { kind: 'settings', tab: 'main', subTab: 'general' },
     target: {
-      selectors: ['[data-cv-tutorial=”apply-settings”]'],
+      selectors: ['[data-cv-tutorial="apply-settings"]'],
       missingText: '应用按钮暂不可见，你仍可继续教程。',
     },
   },
@@ -170,7 +170,7 @@ const SHARED_STEPS: readonly TutorialStep[] = [
     description: '回到聊天后，点击悬浮球进入段落选择模式；教程只指出入口，不会点击它。',
     scene: { kind: 'chat' },
     target: {
-      selectors: ['[data-cv-tutorial=”inline-generate-fab”]', '#chat'],
+      selectors: ['[data-cv-tutorial="inline-generate-fab"]', '#chat'],
       missingText: '悬浮球未显示，通常是插件尚未启用；当前改为提示聊天区域。',
     },
   },
