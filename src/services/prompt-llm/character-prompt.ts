@@ -1,4 +1,5 @@
-import type { CharacterPromptItem, PromptLlmSettings } from '@/constants/novelai';
+import type { CharacterPromptItem } from '@/constants/novelai';
+import type { PromptLlmSettings } from '@/constants/prompt-llm';
 import { extractOutputBlock } from '@/services/tavern-helper/prompt-llm';
 
 type CharacterRecord = Record<string, unknown>;

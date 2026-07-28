@@ -9,11 +9,11 @@ import type {
   PromptLlmMessage,
   PromptLlmMessageTriggerImageSource,
   PromptLlmMessageTriggerMatchMode,
-} from '@/constants/novelai';
+} from '@/constants/prompt-llm';
 import {
   PROMPT_LLM_MESSAGE_TRIGGER_IMAGE_SOURCES,
   PROMPT_LLM_MESSAGE_TRIGGER_MATCH_MODES,
-} from '@/constants/novelai';
+} from '@/constants/prompt-llm';
 
 /** LLM 条目触发字段 */
 export type PromptLlmMessageTriggerFields = Pick<

@@ -161,6 +161,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     maxTokens: 32000,
     topP: 1.0,
     topK: 0,
+    shouldStream: false,
     historyFloorCount: 2,
     ignoreUserMessagesInHistory: false,
     preferJsonSchemaExtraction: false,

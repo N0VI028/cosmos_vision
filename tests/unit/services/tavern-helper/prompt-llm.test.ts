@@ -45,7 +45,8 @@ describe('tavern-helper prompt-llm helper', () => {
     const schema = buildJsonSchema();
     expect(schema.name).toBe('cosmos_vision_prompt_output');
 
-    const req = buildGenerateRawMessagesRequest([{ role: 'user', content: 'test' }], customApi, schema);
+    const req = buildGenerateRawMessagesRequest([{ role: 'user', content: 'test' }], customApi, schema, true);
     expect(req.ordered_prompts).toHaveLength(1);
+    expect(req.should_stream).toBe(true);
   });
 });

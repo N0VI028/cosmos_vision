@@ -97,6 +97,11 @@
 
       <h2 class="cv-section-title">生成参数</h2>
       <div class="cv-section-body">
+        <label class="cv-field-inline">
+          <span>启用流式请求</span>
+          <ToggleSwitch v-model="settings.promptLlm.shouldStream" />
+        </label>
+
         <div class="cv-field-grid">
           <label class="cv-field">
             <span>温度</span>

@@ -65,6 +65,7 @@ export interface TavernHelperGenerateRawConfig {
   ordered_prompts?: Array<string | TavernHelperRolePrompt>;
   custom_api?: TavernHelperCustomApiConfig;
   json_schema?: TavernHelperJsonSchema;
+  should_stream?: boolean;
   should_silence?: boolean;
 }
 
@@ -377,17 +378,20 @@ function getFirstIssueMessage(error: z.ZodError): string {
  * @param orderedPrompts 按顺序发送的消息列表
  * @param customApi 自定义接口配置
  * @param jsonSchema 输出约束
+ * @param shouldStream 是否启用流式请求
  * @returns generateRaw 请求体
  */
 export function buildGenerateRawMessagesRequest(
   orderedPrompts: TavernHelperRolePrompt[],
   customApi: TavernHelperCustomApiConfig,
   jsonSchema?: TavernHelperJsonSchema,
+  shouldStream = false,
 ): TavernHelperGenerateRawConfig {
   return {
     ordered_prompts: orderedPrompts.filter(hasPromptContent),
     custom_api: customApi,
     json_schema: jsonSchema,
+    should_stream: shouldStream,
   };
 }
 

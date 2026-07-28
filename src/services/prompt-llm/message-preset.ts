@@ -10,7 +10,7 @@ import {
   PROMPT_LLM_PARTICIPANT_TOKEN,
   PROMPT_LLM_SPECIAL_REQUEST_TOKEN,
 } from '@/constants/default-settings';
-import type { PromptLlmMessage, PromptLlmMessagePreset, PromptLlmMessagePresetSettings } from '@/constants/novelai';
+import type { PromptLlmMessage, PromptLlmMessagePreset, PromptLlmMessagePresetSettings } from '@/constants/prompt-llm';
 import { resolvePromptLlmSourceMessage } from '@/services/prompt-llm/message-source';
 import { withPromptLlmMessageTriggerDefaults } from '@/services/prompt-llm/message-trigger';
 

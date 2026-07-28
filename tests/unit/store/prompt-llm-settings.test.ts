@@ -13,6 +13,7 @@ describe('prompt-llm settings schema and recovery', () => {
       model: 12345, // bad type
       temperature: 'invalid', // bad type
       historyFloorCount: -5, // bad value
+      shouldStream: 'yes', // bad type
       apiKey: 'sk-secret-key', // valid
     };
 
@@ -21,5 +22,6 @@ describe('prompt-llm settings schema and recovery', () => {
     expect(recovered.model).toBe(DEFAULT_SETTINGS.promptLlm.model);
     expect(recovered.temperature).toBe(DEFAULT_SETTINGS.promptLlm.temperature);
     expect(recovered.historyFloorCount).toBe(DEFAULT_SETTINGS.promptLlm.historyFloorCount);
+    expect(recovered.shouldStream).toBe(false);
   });
 });

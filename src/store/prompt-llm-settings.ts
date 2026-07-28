@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { DEFAULT_SETTINGS } from '@/constants/default-settings';
-import type { PromptLlmSettings } from '@/constants/novelai';
+import type { PromptLlmSettings } from '@/constants/prompt-llm';
 
 type PlainRecord = Record<string, unknown>;
 
@@ -19,6 +19,7 @@ export const promptLlmSettingsSchema = z.object({
   maxTokens: z.number(),
   topP: z.number(),
   topK: z.number(),
+  shouldStream: z.boolean(),
   historyFloorCount: z.number().int().min(0),
   ignoreUserMessagesInHistory: z.boolean(),
   preferJsonSchemaExtraction: z.boolean(),
@@ -59,6 +60,7 @@ export function recoverPromptLlmSettings(value: unknown): PromptLlmSettings {
     maxTokens: read('maxTokens', z.number()),
     topP: read('topP', z.number()),
     topK: read('topK', z.number()),
+    shouldStream: read('shouldStream', z.boolean()),
     historyFloorCount: read('historyFloorCount', z.number().int().min(0)),
     ignoreUserMessagesInHistory: read('ignoreUserMessagesInHistory', z.boolean()),
     preferJsonSchemaExtraction: read('preferJsonSchemaExtraction', z.boolean()),

@@ -1,12 +1,12 @@
 import { DEFAULT_PROMPT_LLM_OUTPUT_FIELDS } from '@/constants/default-settings';
+import type { CosmosVisionSettings } from '@/constants/novelai';
 import type {
-  CosmosVisionSettings,
   PromptLlmContext,
   PromptLlmMessagePresetSettings,
   PromptLlmOutputFields,
   PromptLlmSettings,
   PromptProfilesSettings,
-} from '@/constants/novelai';
+} from '@/constants/prompt-llm';
 import type { ImageSource } from '@/constants/comfyui';
 import {
   getActivePromptLlmPreset,
@@ -38,7 +38,7 @@ export interface PromptLlmGenerateOptions {
 }
 
 /**
- * 从全局设置构建触发上下文
+ * 构建显式触发上下文
  * @param settings 扩展设置
  * @param imageSource 覆盖生图来源；缺省用 settings.imageSource
  * @returns 触发上下文
@@ -125,7 +125,7 @@ export async function buildPromptLlmRuntimeRequest(
 ): Promise<TavernHelperGenerateRawConfig> {
   const orderedPrompts = await buildPromptLlmOrderedPrompts(presetSettings, runtimeContent, triggerContext);
   const schema = schemaFields ? buildJsonSchema(schemaFields) : undefined;
-  return buildGenerateRawMessagesRequest(orderedPrompts, buildCustomApi(settings), schema);
+  return buildGenerateRawMessagesRequest(orderedPrompts, buildCustomApi(settings), schema, settings.shouldStream);
 }
 
 /**

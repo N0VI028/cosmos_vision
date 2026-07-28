@@ -10,7 +10,7 @@ import {
   type PromptLlmMessage,
   type PromptLlmMessageRole,
   type PromptWorldbookSourceReference,
-} from '@/constants/novelai';
+} from '@/constants/prompt-llm';
 import {
   resolvePromptWorldbookSourceEntry,
   type ResolvedPromptSourceEntry,
