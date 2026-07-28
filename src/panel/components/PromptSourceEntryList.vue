@@ -155,6 +155,12 @@
                 @pointerdown.prevent="rememberEntrySelection"
                 @click.stop="selectEntryToken(option.token)"
               />
+              <CvMiniButton
+                label="变量"
+                class="cv-macro-button-root cv-macro-option-button"
+                @pointerdown.prevent="rememberEntrySelection"
+                @click.stop="openVariablePicker"
+              />
             </Popover>
           </div>
         </div>
@@ -187,9 +193,14 @@
       </div>
     </template>
   </Dialog>
+  <PromptVariablePickerDialog
+    v-model:visible="isVariablePickerVisible"
+    @insert="insertToken"
+  />
 </template>
 <script setup lang="ts">
 import Popover from 'primevue/popover';
+import PromptVariablePickerDialog from '@/panel/components/PromptVariablePickerDialog.vue';
 import {
   type PromptPersonKind,
   type PromptPersonTemplateEntry,
@@ -276,6 +287,7 @@ const macroPopover = ref<MacroPopoverInstance | null>(null);
 const entryContentTextarea = ref<TextareaRef>(null);
 const entrySelectionRange = ref<TextRange | null>(null);
 const isEditorVisible = ref(false);
+const isVariablePickerVisible = ref(false);
 const isLoadingWorldbookNames = ref(false);
 const isLoadingWorldbookEntries = ref(false);
 
@@ -564,6 +576,14 @@ function toggleMacroPopover(event: Event): void {
 function selectEntryToken(token: string): void {
   insertToken(token);
   macroPopover.value?.hide();
+}
+
+/**
+ * 打开变量选择弹窗
+ */
+function openVariablePicker(): void {
+  macroPopover.value?.hide();
+  isVariablePickerVisible.value = true;
 }
 
 /**

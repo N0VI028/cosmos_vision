@@ -855,6 +855,12 @@ export const cosmosPrimePreset = definePreset(Aura, {
         },
       },
     },
+    tree: {
+      root: {
+        padding: 'var(--cv-space-xs)',
+        background: 'transparent',
+      },
+    },
     // MultiSelect / Panel / TreeTable / DataTable：业务未使用，未预留配置
     // Checkbox：非颜色尺寸走 root；颜色走 colorScheme（覆盖 Aura primary solid / form.field 引用）
     // PT 锚点 + st-host-resets 反压 ST 对 input[type=checkbox] 的尺寸/伪元素污染

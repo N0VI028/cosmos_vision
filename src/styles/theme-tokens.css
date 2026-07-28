@@ -23,6 +23,7 @@
   --cv-on-surface-variant: color-mix(in srgb, var(--p-primary-color) 30%, #c4c6c8);
   --cv-surface-variant: #333537;
   --cv-outline: color-mix(in srgb, var(--p-primary-color) 40%, #8e9091);
+  --cv-outline-variant: color-mix(in srgb, var(--p-primary-color) 20%, #444746);
   --cv-background: #121416;
 }
 
@@ -82,6 +83,7 @@
   --cv-surface-variant: #cbd3dd;
   --cv-surface-bright: var(--cv-surface-variant);
   --cv-outline: color-mix(in srgb, var(--p-primary-color) 28%, #8a97a8);
+  --cv-outline-variant: color-mix(in srgb, var(--p-primary-color) 15%, #c2c7cf);
   --cv-primary-container: var(--p-primary-color);
   --cv-on-primary-container: var(--p-primary-contrast-color);
   --cv-background: #f8fafc;

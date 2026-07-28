@@ -171,6 +171,12 @@
                 @pointerdown.prevent="rememberMessageSelection"
                 @click.stop="selectMessageToken(option.token)"
               />
+              <CvMiniButton
+                label="变量"
+                class="cv-macro-button-root cv-macro-option-button"
+                @pointerdown.prevent="rememberMessageSelection"
+                @click.stop="openVariablePicker"
+              />
             </Popover>
           </div>
         </div>
@@ -203,10 +209,15 @@
       </div>
     </template>
   </Dialog>
+  <PromptVariablePickerDialog
+    v-model:visible="isVariablePickerVisible"
+    @insert="insertMessageToken"
+  />
 </template>
 
 <script setup lang="ts">
 import Popover from 'primevue/popover';
+import PromptVariablePickerDialog from '@/panel/components/PromptVariablePickerDialog.vue';
 import {
   getPromptLlmMessageEntryKind,
   type PromptLlmMessage,
@@ -286,6 +297,7 @@ const macroPopover = ref<MacroPopoverInstance | null>(null);
 const messageContentTextarea = ref<TextareaRef>(null);
 const messageSelectionRange = ref<TextRange | null>(null);
 const isEditorVisible = ref(false);
+const isVariablePickerVisible = ref(false);
 const isLoadingWorldbookSources = ref(false);
 
 let worldbookSourceRequestId = 0;
@@ -531,6 +543,14 @@ function toggleMacroPopover(event: Event): void {
 function selectMessageToken(token: string): void {
   insertMessageToken(token);
   macroPopover.value?.hide();
+}
+
+/**
+ * 打开变量选择弹窗
+ */
+function openVariablePicker(): void {
+  macroPopover.value?.hide();
+  isVariablePickerVisible.value = true;
 }
 
 /**

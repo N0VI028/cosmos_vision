@@ -168,6 +168,15 @@ declare global {
          * @returns 世界书条目列表
          */
         getWorldbook(worldbookName: string): Promise<TavernHelperWorldbookEntry[]>;
+        /**
+         * 获取指定作用域的变量表
+         * @param option 变量作用域配置
+         * @returns 变量字典或未定义
+         */
+        getVariables(option?: {
+          type: 'global' | 'character' | 'chat' | 'message';
+          message_id?: string | number;
+        }): Record<string, unknown> | undefined;
       }
     | undefined;
 
