@@ -31,7 +31,7 @@
         icon="fa-regular fa-trash"
         tone="danger"
         aria-label="删除条目"
-        @click="removeEntry(entry.id)"
+        @click="confirmRemoveEntry(entry as PromptPersonTemplateEntry)"
       />
     </template>
   </PromptEntryList>
@@ -200,6 +200,7 @@
 </template>
 <script setup lang="ts">
 import Popover from 'primevue/popover';
+import { requestConfirmation, type ShowConfirm } from '@/panel/confirm-action';
 import PromptVariablePickerDialog from '@/panel/components/PromptVariablePickerDialog.vue';
 import {
   type PromptPersonKind,
@@ -278,6 +279,7 @@ const props = withDefaults(
 );
 
 const entries = defineModel<PromptPersonTemplateEntry[]>({ required: true });
+const showConfirm = inject<ShowConfirm>('showConfirm');
 const entryList = ref<InstanceType<typeof PromptEntryList> | null>(null);
 const worldbookNames = ref<string[]>([]);
 const worldbookSourceOptions = ref<PromptWorldbookGroup[]>([]);
@@ -431,6 +433,21 @@ function clearWorldbookEntries(): void {
   worldbookEntryRequestId++;
   worldbookSourceOptions.value = [];
   loadedWorldbookName = '';
+}
+
+/**
+ * 确认后删除模板条目
+ * @param entry 模板条目
+ */
+async function confirmRemoveEntry(entry: PromptPersonTemplateEntry): Promise<void> {
+  const confirmed = await requestConfirmation(showConfirm, {
+    title: '删除人物条目',
+    message: `确定要删除人物条目“${getPromptSourceEntryTitle(entry)}”吗？此操作不可撤销。`,
+    acceptLabel: '确认删除',
+    cancelLabel: '取消',
+    severity: 'danger',
+  });
+  if (confirmed) removeEntry(entry.id);
 }
 
 /**

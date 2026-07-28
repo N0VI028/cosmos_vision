@@ -70,7 +70,7 @@
             icon="fa-regular fa-trash"
             tone="danger"
             title="删除账号"
-            @click="removeAccount(index)"
+            @click="confirmRemoveAccount(index)"
           />
         </template>
 
@@ -100,12 +100,15 @@
 <script setup lang="ts">
 import { uuidv4 } from '@sillytavern/scripts/utils';
 
+import { requestConfirmation, type ShowConfirm } from '@/panel/confirm-action';
+
 import { createNovelAIAccount, NOVELAI_DEFAULT_URL, type NovelAIAccount } from '@/constants/novelai';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import CvMiniToggleSwitch from '@/panel/components/CvMiniToggleSwitch.vue';
 
 const accounts = defineModel<NovelAIAccount[]>({ required: true });
+const showConfirm = inject<ShowConfirm>('showConfirm');
 
 /** 记录展开的账号 ID 集合，默认为空即全部折叠 */
 const expandedAccountIds = ref<Set<string>>(new Set());
@@ -185,6 +188,23 @@ function moveAccount(from: number, to: number): void {
   if (to < 0 || to >= accounts.value.length) return;
   const [account] = accounts.value.splice(from, 1);
   accounts.value.splice(to, 0, account);
+}
+
+/**
+ * 确认后删除 NovelAI 账号
+ * @param index 账号序号
+ */
+async function confirmRemoveAccount(index: number): Promise<void> {
+  const account = accounts.value[index];
+  if (!account) return;
+  const confirmed = await requestConfirmation(showConfirm, {
+    title: '删除 NovelAI 账号',
+    message: `确定要删除 NovelAI 账号“${getAccountTitle(account)}”吗？此操作不可撤销。`,
+    acceptLabel: '确认删除',
+    cancelLabel: '取消',
+    severity: 'danger',
+  });
+  if (confirmed) removeAccount(index);
 }
 
 /**

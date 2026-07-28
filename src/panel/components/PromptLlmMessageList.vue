@@ -48,7 +48,7 @@
         icon="fa-regular fa-trash"
         tone="danger"
         aria-label="删除条目"
-        @click="deleteMessage(entry.id)"
+        @click="confirmDeleteMessage(entry as PromptLlmMessage)"
       />
     </template>
   </PromptEntryList>
@@ -217,6 +217,7 @@
 
 <script setup lang="ts">
 import Popover from 'primevue/popover';
+import { requestConfirmation, type ShowConfirm } from '@/panel/confirm-action';
 import PromptVariablePickerDialog from '@/panel/components/PromptVariablePickerDialog.vue';
 import {
   getPromptLlmMessageEntryKind,
@@ -288,6 +289,7 @@ const ROLE_OPTIONS = [
 ];
 
 const messages = defineModel<PromptLlmMessage[]>({ required: true });
+const showConfirm = inject<ShowConfirm>('showConfirm');
 const entryList = ref<InstanceType<typeof PromptEntryList> | null>(null);
 const entryStatusMap = ref<Record<string, ResolvedPromptSourceEntry>>({});
 const worldbookSourceOptions = ref<PromptWorldbookGroup[]>([]);
@@ -414,6 +416,21 @@ async function loadWorldbookSources(): Promise<void> {
 function addMessage(): void {
   messages.value = [...messages.value, createCustomPromptLlmMessage('user')];
   entryList.value?.scrollToEnd();
+}
+
+/**
+ * 确认后删除 LLM 条目
+ * @param message LLM 消息条目
+ */
+async function confirmDeleteMessage(message: PromptLlmMessage): Promise<void> {
+  const confirmed = await requestConfirmation(showConfirm, {
+    title: '删除 LLM 条目',
+    message: `确定要删除 LLM 条目“${getMessageTitle(message)}”吗？此操作不可撤销。`,
+    acceptLabel: '确认删除',
+    cancelLabel: '取消',
+    severity: 'danger',
+  });
+  if (confirmed) deleteMessage(message.id);
 }
 
 /**

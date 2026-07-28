@@ -68,6 +68,7 @@
           selection-mode="single"
           :selection-keys="selectionKeys"
           :expanded-keys="expandedKeys"
+          :dt="variableTreeDt"
           class="w-full overflow-x-hidden text-(length:--cv-font-size-xs) [&_.p-tree-node-content]:w-full [&_.p-tree-node-content]:min-w-0 [&_.p-tree-node-label]:w-full [&_.p-tree-node-label]:min-w-0 [&_.p-tree-node-label]:break-all [&_.p-tree-node-label]:whitespace-normal"
           @node-select="onNodeSelect"
           @node-expand="onNodeExpand"
@@ -79,7 +80,7 @@
               :class="{ 'opacity-50': !slotProps.node.insertable }"
             >
               <div class="flex min-w-0 shrink-0 items-center gap-(--cv-space-xs)">
-                <span class="font-mono text-(length:--cv-font-size-xs) font-medium break-all text-(--cv-on-surface)">
+                <span class="font-mono text-(length:--cv-font-size-xs) font-bold break-all text-(--cv-on-surface)">
                   {{ slotProps.node.label }}{{ slotProps.node.summary ? ':' : '' }}
                 </span>
                 <span v-if="!slotProps.node.insertable" class="shrink-0 text-(length:--cv-font-size-xs) text-(--cv-error)"> (不可用) </span>
@@ -98,9 +99,9 @@
       <!-- 底部预览与确认 -->
       <div class="flex shrink-0 flex-col gap-(--cv-space-xs) pt-1.5">
         <div v-if="selectedNode" class="flex flex-col gap-1 text-(length:--cv-font-size-xs)">
-          <div class="flex items-center gap-2 font-mono min-w-0">
-            <span class="shrink-0 text-(--cv-on-surface-variant)">宏预览:</span>
-            <span class="rounded bg-(--cv-surface-container) px-1.5 py-0.5 font-bold text-(--cv-on-surface) break-all">
+          <div class="flex items-start gap-2 font-mono min-w-0">
+            <span class="shrink-0 pt-0.5 text-(--cv-on-surface-variant)">宏预览:</span>
+            <span class="min-w-0 flex-1 rounded bg-(--cv-surface-container) px-1.5 py-0.5 font-bold text-(--cv-on-surface) break-all whitespace-normal">
               {{ currentMacroPreview }}
             </span>
           </div>
@@ -181,6 +182,12 @@ const variablePickerDialogPt = {
     style: { zIndex: VARIABLE_PICKER_DIALOG_Z_INDEX },
   },
 } satisfies DialogPassThroughOptions;
+
+const variableTreeDt = {
+  node: {
+    padding: '0',
+  },
+};
 
 const dialogClass = computed(() => [
   'cv-confirm-dialog',
