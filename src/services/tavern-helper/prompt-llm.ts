@@ -665,7 +665,7 @@ function createPromptExtractRegex(rule: PromptExtractRule, label: string): RegEx
 function normalizePromptLlmOutput(value: unknown, fields: PromptLlmOutputFields): PromptLlmOutput | null {
   if (typeof value !== 'object' || value === null) return null;
   const obj = value as Record<string, unknown>;
-  // 逐侧读取:有键名则必须读到字符串否则整体失败触发降级,无键名则该侧置空交给固定预设
+  // 逐侧读取：配置了键名时必须解析出有效字符串（否则整体触发降级）；无键名时留空
   const positivePrompt = resolvePromptOutputField(obj, fields.positive);
   const negativePrompt = resolvePromptOutputField(obj, fields.negative);
   if (positivePrompt === null || negativePrompt === null) return null;

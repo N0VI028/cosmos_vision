@@ -177,7 +177,7 @@ async function testConnection(): Promise<void> {
     if (!settings.comfyui.url.trim()) {
       throw new Error('请先填写 ComfyUI URL');
     }
-    // 复用已有的元数据拉取函数作为连通性测试，顺便预热缓存
+    // 复用已有的元数据拉取函数作为连通性测试，同时进行缓存预热
     await fetchComfyUIObjectInfo(settings.comfyui.url, true);
     connectionTestStatus.value = 'success';
     toastr.success('ComfyUI 连接成功');

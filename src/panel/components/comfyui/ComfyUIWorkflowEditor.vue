@@ -424,12 +424,10 @@ let syncStatusTimer: number | null = null;
  * 触发同步状态显示，在指定秒数后自动隐藏
  */
 function triggerSyncStatusShow(): void {
-  // 如果当前已有定时器，先清除
   if (syncStatusTimer) {
     clearTimeout(syncStatusTimer);
   }
   showSyncStatus.value = true;
-  // 设置 3 秒后关闭显示
   syncStatusTimer = window.setTimeout(() => {
     showSyncStatus.value = false;
     syncStatusTimer = null;

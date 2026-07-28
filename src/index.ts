@@ -27,12 +27,12 @@ app.use(PrimeVue, {
     preset: cosmosPrimePreset,
     options: {
       darkModeSelector: `.cosmos-vision-root.${DARK_CLASS}`,
-      // 关闭 cssLayer:让 PrimeVue 规则保持 unlayered,凭类选择器特异性压过 ST 全局标签规则
+      // 关闭 cssLayer：让 PrimeVue 规则保持 unlayered，凭类选择器特异性覆盖 ST 全局标签规则
       cssLayer: false,
     },
   },
   pt: cosmosPrimePt,
-  // 局部 :pt 的 class/style 与全局 PT 合并（默认 false 会覆盖，导致丢 cosmos-vision-root）
+  // 局部 :pt 的 class/style 与全局 PT 合并（避免默认 false 覆盖根类名）
   ptOptions: {
     mergeProps: true,
   },
@@ -45,14 +45,14 @@ app.use(PrimeVue, {
 });
 
 $(async () => {
-  // 等 ST APP_READY 后再读取 --SmartThemeQuoteColor,避免读到空串导致 PrimeVue 退回灰阶
+  // 等待 ST APP_READY 后再读取 --SmartThemeQuoteColor，避免读到空串导致主题色退回灰阶
   await whenSillyTavernReady();
   syncThemeColorToPrimary();
   const $container = $('<div id="cosmos_vision">').appendTo('#extensions_settings');
   app.mount($container[0]);
 });
 
-// 命名空间 + off 先解绑:防止 HMR / 重复注入累计 handler 导致多次 unmount
+// 使用命名空间 + 先 off 解绑：防止 HMR 或重复注入导致多次 unmount
 $(window)
   .off('pagehide.cosmosVision')
   .on('pagehide.cosmosVision', () => {

@@ -13,18 +13,14 @@ const MOCK_ATTR = 'data-cv-tutorial-mock';
  * @returns 注入的容器元素，找不到插入点时返回 null
  */
 export function injectMockGallery(): HTMLElement | null {
-  // 检查是否已有真实画廊
   if (document.querySelector('.cv-render')) return null;
 
-  // 查找第一个可见消息段落
   const firstParagraph = findFirstVisibleParagraph();
   if (!firstParagraph) return null;
 
-  // 读取角色头像
   const avatarUrl = findCharacterAvatar();
   if (!avatarUrl) return null;
 
-  // 构建模拟画廊容器
   const mockContainer = buildMockGalleryContainer(avatarUrl);
   firstParagraph.after(mockContainer);
 
@@ -36,26 +32,20 @@ export function injectMockGallery(): HTMLElement | null {
  * @returns 注入的选区壳元素，找不到段落时返回 null
  */
 export function injectMockSelection(): HTMLElement | null {
-  // 检查是否已有真实选区
   if (document.querySelector('.cv-inline-selection-shell')) return null;
 
-  // 查找第一个可见消息段落
   const paragraph = findFirstVisibleParagraph();
   if (!paragraph) return null;
 
-  // 获取段落容器（.mes_text）
   const mesText = paragraph.closest('.mes_text') as HTMLElement;
   if (!mesText) return null;
 
-  // 添加选中样式
   paragraph.classList.add('cv-inline-selected');
   paragraph.setAttribute(MOCK_ATTR, 'paragraph');
 
-  // 确保容器可以容纳绝对定位的选区壳
   mesText.style.position = 'relative';
   mesText.style.overflow = 'visible';
 
-  // 构建选区壳和工具条
   const shell = buildMockSelectionShell(paragraph, mesText);
   mesText.appendChild(shell);
 
@@ -66,13 +56,10 @@ export function injectMockSelection(): HTMLElement | null {
  * 清理所有模拟元素（画廊、选区）
  */
 export function cleanupMockGallery(): void {
-  // 清理模拟画廊
   document.querySelectorAll(`[${MOCK_ATTR}="true"]`).forEach(el => el.remove());
 
-  // 清理模拟选区
   document.querySelectorAll(`[${MOCK_ATTR}="shell"]`).forEach(el => el.remove());
 
-  // 清理段落选中样式
   document.querySelectorAll(`[${MOCK_ATTR}="paragraph"]`).forEach(el => {
     el.classList.remove('cv-inline-selected');
     el.removeAttribute(MOCK_ATTR);
@@ -130,16 +117,16 @@ function buildMockGalleryContainer(avatarUrl: string): HTMLElement {
   img.src = avatarUrl;
   img.alt = '示例图片（教程演示）';
   img.draggable = false;
-  img.style.pointerEvents = 'none'; // 禁用点击
+  img.style.pointerEvents = 'none';
 
-  // 构建右上角收藏按钮（仅演示）
+  // 构建右上角收藏按钮
   const favoriteBtn = document.createElement('button');
   favoriteBtn.className = 'cv-inline-corner-button cv-inline-favorite-toggle';
   favoriteBtn.innerHTML = '<i class="cv-inline-favorite-star fa-star fa-regular" aria-hidden="true"></i>';
   favoriteBtn.disabled = true;
   favoriteBtn.title = '收藏功能（仅演示）';
 
-  // 构建左下角删除按钮（仅演示）
+  // 构建左下角删除按钮
   const removeBtn = document.createElement('button');
   removeBtn.className = 'cv-inline-corner-button cv-inline-remove-toggle';
   removeBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
@@ -191,7 +178,6 @@ function buildMockSelectionShell(paragraph: HTMLElement, container: HTMLElement)
   const containerRect = container.getBoundingClientRect();
   const paragraphRect = paragraph.getBoundingClientRect();
 
-  // 设置选区壳位置和尺寸
   shell.style.position = 'absolute';
   shell.style.top = `${paragraphRect.top - containerRect.top}px`;
   shell.style.left = `${paragraphRect.left - containerRect.left}px`;

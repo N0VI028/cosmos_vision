@@ -397,10 +397,8 @@ function buildStatusSlots(
         h('span', { class: 'cv-inline-generation-text' }, state.text),
       ];
 
-      // 按钮区域
       const buttons: any[] = [];
 
-      // 如果有重试回调，并且当前不在运行中，添加重试按钮
       if (!isRunning && retry) {
         buttons.push(
           h(
@@ -417,7 +415,6 @@ function buildStatusSlots(
         );
       }
 
-      // 添加取消或关闭按钮
       buttons.push(
         h(
           CvMiniButton,
@@ -429,7 +426,6 @@ function buildStatusSlots(
         )
       );
 
-      // 将按钮放入一行
       children.push(h('span', { class: 'cv-inline-button-row' }, buttons));
 
       return h('span', { class: 'cv-inline-generation-error-row' }, children);

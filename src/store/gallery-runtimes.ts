@@ -55,7 +55,7 @@ export interface GalleryMountRuntime {
   kindPatch: GalleryKindPatch | null;
 }
 
-/** 楼层粒度 runtime（对标 TH message runtime） */
+/** 楼层粒度 runtime */
 export interface GalleryMessageRuntime {
   message_id: number;
   reload_memo: string;
@@ -84,7 +84,7 @@ type PendingJob =
 
 /**
  * 段落画廊 runtime store：扫短码 / temp → cv-render → Teleport
- * 事件与幂等策略对齐酒馆助手 message iframe runtime，异步任务串行防重入
+ * 异步任务串行防重入
  */
 export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtimes', () => {
   const settingsStore = useSettingsStore();
@@ -276,7 +276,7 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
    * 绑定 ST 聊天事件
    */
   function bindEvents(): void {
-    // 对标 TH：全量靠 chatLoaded，不监听 CHAT_CHANGED 以防御重复清空问题
+    // 依靠 chatLoaded 事件进行初始化，不监听 CHAT_CHANGED 以防御重复清空问题
     eventSource.makeLast('chatLoaded', onChatLoaded);
     eventSource.makeLast(event_types.MORE_MESSAGES_LOADED, onMoreMessages);
     eventSource.makeLast(event_types.MESSAGE_DELETED, onMessageDeleted);
