@@ -6,6 +6,8 @@ export interface TavernHelperAvailabilityOptions {
 }
 
 export const MINIMUM_TAVERN_HELPER_VERSION = '4.8.13';
+export const TAVERN_HELPER_DOC_URL =
+  'https://n0vi028.github.io/JS-Slash-Runner-Doc/guide/%E5%85%B3%E4%BA%8E%E9%85%92%E9%A6%86%E5%8A%A9%E6%89%8B/%E5%AE%89%E8%A3%85%E4%B8%8E%E6%9B%B4%E6%96%B0.html';
 
 /**
  * 比较点分版本号是否达到最低要求
@@ -50,17 +52,20 @@ export function isTavernHelperSupported(): boolean {
 export function ensureTavernHelper(options: TavernHelperAvailabilityOptions = {}): boolean {
   if (isTavernHelperSupported()) return true;
   if (!options.silent) {
-    toastr.error(getTavernHelperUnavailableMessage());
+    toastr.error(getTavernHelperUnavailableMessage(), '', { escapeHtml: false });
   }
   return false;
 }
 
 /**
- * 获取 TavernHelper 不可用时的用户提示
+ * 获取 TavernHelper 不可用时的用户提示（包含安装与更新指南超链接）
  */
-function getTavernHelperUnavailableMessage(): string {
-  if (!isJsSlashRunnerInstalled()) return 'CosmosVision 需要"酒馆助手"扩展(JS-Slash-Runner),请先安装并启用';
-  return `CosmosVision 需要酒馆助手 ${MINIMUM_TAVERN_HELPER_VERSION} 或更高版本,请先更新`;
+export function getTavernHelperUnavailableMessage(): string {
+  const linkHtml = `<a href="${TAVERN_HELPER_DOC_URL}" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline; font-weight: bold; margin-left: 4px;">点击查看安装与更新指南</a>`;
+  if (!isJsSlashRunnerInstalled()) {
+    return `CosmosVision 需要“酒馆助手”扩展(JS-Slash-Runner)，请先安装并启用。${linkHtml}`;
+  }
+  return `CosmosVision 需要酒馆助手 ${MINIMUM_TAVERN_HELPER_VERSION} 或更高版本，请先更新。${linkHtml}`;
 }
 
 /**

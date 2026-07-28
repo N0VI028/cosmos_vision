@@ -30,9 +30,10 @@
     v-if="showConditionEditor"
     class="cv-field cv-trigger-conditions-field flex w-full min-w-0 flex-col gap-(--cv-space-md)"
   >
-    <span>触发条件</span>
-
-    <div class="cv-field-hint">{{ triggerMatchModeHint }}</div>
+    <div class="cv-field-header flex flex-col items-start! gap-(--cv-space-xs)">
+      <span>触发条件</span>
+      <div class="cv-field-hint">{{ triggerMatchModeHint }}</div>
+    </div>
 
     <Accordion :value="activePanel" :pt="ACCORDION_PT" @update:value="val => activePanel = val">
       <AccordionPanel v-for="(row, index) in conditionRows" :key="row.id" :value="row.id" :pt="ACCORDION_PANEL_PT">

@@ -66,13 +66,23 @@
       </template>
     </FileUpload>
 
-    <div class="grid grid-cols-2 gap-(--cv-space-xl)">
+    <div class="grid grid-cols-2 gap-(--cv-space-xl) mt-(--cv-space-lg)">
       <div class="cv-field">
-        <span>通用标签阈值 {{ generalThreshold.toFixed(2) }}</span>
+        <div class="cv-field-header">
+          <span>通用标签阈值</span>
+          <span class="text-(length:--cv-font-size-base) font-medium text-(--cv-on-surface-variant)">
+            {{ generalThreshold.toFixed(2) }}
+          </span>
+        </div>
         <Slider v-model="generalThreshold" :min="0.1" :max="0.9" :step="0.05" />
       </div>
       <div class="cv-field">
-        <span>角色标签阈值 {{ characterThreshold.toFixed(2) }}</span>
+        <div class="cv-field-header">
+          <span>角色标签阈值</span>
+          <span class="text-(length:--cv-font-size-base) font-medium text-(--cv-on-surface-variant)">
+            {{ characterThreshold.toFixed(2) }}
+          </span>
+        </div>
         <Slider v-model="characterThreshold" :min="0.1" :max="0.9" :step="0.05" />
       </div>
     </div>

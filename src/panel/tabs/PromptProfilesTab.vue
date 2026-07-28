@@ -66,7 +66,7 @@
             />
           </template>
 
-          <section class="flex flex-col gap-0 p-(--cv-space-2xl)">
+          <section class="flex flex-col gap-(--cv-space-5xl) p-(--cv-space-2xl)">
             <label class="cv-field">
               <span>触发模式</span>
               <Select
@@ -78,29 +78,26 @@
               />
             </label>
 
-            <template v-if="person.insertMode === 'keyword'">
-              <h3
-                class="mt-(--cv-space-5xl) mb-(--cv-space-xl) text-(length:--cv-font-size-base) font-bold text-(--cv-on-surface) first:mt-0"
-              >
-                关键词
-              </h3>
-              <div class="cv-field">
-                <div class="cv-field-control">
-                  <InputTags
-                    v-model="person.triggerKeywords"
-                    :allow-duplicate="false"
-                    add-on-blur
-                    delimiter=","
-                    fluid
-                  />
-                  <div class="cv-field-hint">输入关键词，回车或逗号添加</div>
-                </div>
+            <div v-if="person.insertMode === 'keyword'" class="cv-field">
+              <span>关键词</span>
+              <div class="cv-field-control">
+                <InputTags
+                  v-model="person.triggerKeywords"
+                  :allow-duplicate="false"
+                  add-on-blur
+                  delimiter=","
+                  fluid
+                />
+                <div class="cv-field-hint">输入关键词，回车或逗号添加</div>
               </div>
-            </template>
+            </div>
 
-            <div :data-cv-tutorial="isTutorialMockPersonId(person.id) ? 'prompt-profiles-static-tags' : undefined">
-              <div class="mt-(--cv-space-5xl) mb-(--cv-space-xl) flex items-center justify-between">
-                <h3 class="m-0 shrink-0 text-(length:--cv-font-size-base) font-bold text-(--cv-on-surface)">固定 tag</h3>
+            <div
+              class="cv-field"
+              :data-cv-tutorial="isTutorialMockPersonId(person.id) ? 'prompt-profiles-static-tags' : undefined"
+            >
+              <div class="cv-field-header">
+                <span>固定 tag</span>
                 <CvMiniButton
                   label="从资料解析"
                   icon="fa-regular fa-dice-d20"
@@ -108,27 +105,22 @@
                   @click="openParseTagsDialog(person)"
                 />
               </div>
-              <div class="cv-field">
-                <div class="cv-field-control">
-                  <Textarea
-                    v-model="person.staticTags"
-                    rows="3"
-                    auto-resize
-                    class="w-full font-mono"
-                  />
-                  <div class="cv-field-hint">固定tag中的内容将在发送到LLM时，被强调原样保留在最终tag中</div>
-                </div>
+              <div class="cv-field-control">
+                <Textarea
+                  v-model="person.staticTags"
+                  rows="3"
+                  auto-resize
+                  class="w-full font-mono"
+                />
+                <div class="cv-field-hint">固定tag中的内容将在发送到LLM时，被强调原样保留在最终tag中</div>
               </div>
             </div>
 
-            <h3
-              class="mt-(--cv-space-5xl) mb-(--cv-space-xl) text-(length:--cv-font-size-base) font-bold text-(--cv-on-surface) first:mt-0"
-            >
-              人物模板条目
-            </h3>
             <div
+              class="cv-field"
               :data-cv-tutorial="isTutorialMockPersonId(person.id) ? 'prompt-profiles-template-entries' : undefined"
             >
+              <span>人物模板条目</span>
               <PromptSourceEntryList
                 v-model="person.templateEntries"
                 :kind="person.kind"
@@ -168,7 +160,7 @@
       @append="appendToStaticTags"
     />
     <div v-else class="flex flex-col gap-(--cv-space-md)">
-      <div v-for="option in TAG_PARSE_MODE_OPTIONS" :key="option.value" class="flex flex-col">
+      <div v-for="option in TAG_PARSE_MODE_OPTIONS" :key="option.value" class="flex flex-col gap-(--cv-space-5xl)">
         <button
           type="button"
           class="grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) p-(--cv-space-lg) text-left text-(--cv-on-surface) hover:border-(--p-primary-color) hover:bg-[color-mix(in_srgb,var(--p-primary-color)_10%,var(--cv-surface-container-low))]"
@@ -187,7 +179,7 @@
             }}</span>
           </span>
         </button>
-        <label v-if="option.value === 'custom' && tagParseMode === 'custom'" class="cv-field mt-(--cv-space-5xl)">
+        <label v-if="option.value === 'custom' && tagParseMode === 'custom'" class="cv-field">
           <span>输入内容</span>
           <Textarea
             v-model="tagParseInput"
