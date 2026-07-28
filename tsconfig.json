@@ -28,6 +28,6 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["*.d.ts", "src/**/*.ts", "src/**/*.vue"],
+  "include": ["*.d.ts", "src/**/*.ts", "src/**/*.vue", "tests/**/*.ts"],
   "exclude": ["**/node_modules/**", "**/dist/**"]
 }

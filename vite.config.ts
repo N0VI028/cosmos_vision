@@ -46,7 +46,7 @@ export default defineConfig(({ mode }) => ({
       globs: ['src/panel/*.vue'],
       resolvers: [PrimeVueResolver()],
     }),
-    {
+    !process.env.VITEST && {
       name: 'sillytavern_resolver',
       enforce: 'pre',
       resolveId(id) {
@@ -58,18 +58,28 @@ export default defineConfig(({ mode }) => ({
         }
       },
     },
-    pluginExternal({
-      externals: libname => {
-        if (libname in externals) {
-          return externals[libname as keyof typeof externals];
-        }
-      },
-    }),
-  ],
+    !process.env.VITEST &&
+      pluginExternal({
+        externals: libname => {
+          if (libname in externals) {
+            return externals[libname as keyof typeof externals];
+          }
+        },
+      }),
+  ].filter(Boolean),
 
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
+      ...(process.env.VITEST
+        ? {
+            '@sillytavern/script': path.resolve(__dirname, 'tests/helpers/sillytavern-script-mock.ts'),
+            '@sillytavern/scripts/extensions': path.resolve(__dirname, 'tests/helpers/sillytavern-extensions-mock.ts'),
+            '@sillytavern/scripts/utils': path.resolve(__dirname, 'tests/helpers/sillytavern-utils-mock.ts'),
+            '@sillytavern/scripts/openai': path.resolve(__dirname, 'tests/helpers/sillytavern-openai-mock.ts'),
+            '@sillytavern/lib/jszip.min': path.resolve(__dirname, 'tests/helpers/sillytavern-jszip-mock.ts'),
+          }
+        : {}),
     },
   },
 
