@@ -901,7 +901,7 @@ export const cosmosPrimePreset = definePreset(Aura, {
         height: '0.5em',
         borderRadius: 'var(--cv-radius-full)',
       },
-      meterText: { fontSize: 'var(--cv-font-size-sm)' },
+      meterText: { fontSize: 'var(--cv-font-size-xs)' },
       overlay: {
         borderRadius: 'var(--cv-radius-lg)',
         padding: 'var(--cv-space-lg)',
@@ -925,10 +925,10 @@ export const cosmosPrimePreset = definePreset(Aura, {
         lg: { padding: '0.65em 0.9em' },
       },
       text: {
-        fontSize: 'var(--cv-font-size-sm)',
+        fontSize: 'var(--cv-font-size-xs)',
         fontWeight: '500',
         sm: { fontSize: 'var(--cv-font-size-xs)' },
-        lg: { fontSize: 'var(--cv-font-size-md)' },
+        lg: { fontSize: 'var(--cv-font-size-base)' },
       },
       icon: {
         size: '1em',
@@ -1051,7 +1051,7 @@ export const cosmosPrimePreset = definePreset(Aura, {
           shadow: 'none',
         },
         sm: {
-          fontSize: 'var(--cv-font-size-2xs)',
+          fontSize: 'var(--cv-font-size-xs)',
           padding: '0',
         },
       },
@@ -1091,7 +1091,7 @@ export const cosmosPrimePreset = definePreset(Aura, {
     // PT 锚点见 primevue-pt tag.*；业务紧凑变体用 class + --p-tag-font-size / padding
     tag: {
       root: {
-        fontSize: 'var(--cv-font-size-2xs)',
+        fontSize: 'var(--cv-font-size-xs)',
         fontWeight: '600',
         padding: '0.08rem 0.32rem',
         gap: 'var(--cv-space-xs)',
@@ -1210,7 +1210,7 @@ export const cosmosPrimePreset = definePreset(Aura, {
         padding: 'var(--cv-space-7xl) var(--cv-space-7xl) 0',
       },
       title: {
-        fontSize: 'var(--cv-font-size-2xl)',
+        fontSize: 'var(--cv-font-size-xl)',
         fontWeight: '600',
       },
       content: {

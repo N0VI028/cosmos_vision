@@ -55,7 +55,7 @@
             <Textarea
               :model-value="modelValue"
               rows="8"
-              class="w-full resize-y overflow-y-auto font-mono text-(length:--cv-font-size-sm)"
+              class="w-full resize-y overflow-y-auto font-mono text-(length:--cv-font-size-xs)"
               :invalid="Boolean(parseError)"
               @update:model-value="onJsonEdit"
             />
@@ -138,22 +138,22 @@
                   v-for="option in bindingLocateOptions"
                   :key="option.key"
                   type="button"
-                  class="flex w-full min-w-0 cursor-pointer items-center gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent px-(--cv-space-lg) py-(--cv-space-sm) text-left text-(length:--cv-font-size-sm) whitespace-nowrap text-(--cv-on-surface) hover:enabled:bg-(--cv-surface-container-highest) disabled:cursor-not-allowed disabled:opacity-45"
+                  class="flex w-full min-w-0 cursor-pointer items-center gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent px-(--cv-space-lg) py-(--cv-space-sm) text-left text-(length:--cv-font-size-xs) whitespace-nowrap text-(--cv-on-surface) hover:enabled:bg-(--cv-surface-container-highest) disabled:cursor-not-allowed disabled:opacity-45"
                   :disabled="!option.nodeId"
                   :title="option.label"
                   @click="onLocateNode(option.nodeId)"
                 >
-                  <span class="flex w-[1.125rem] shrink-0 items-center justify-center text-base">
+                  <span class="flex w-[1.125rem] shrink-0 items-center justify-center text-(length:--cv-font-size-base)">
                     <i :class="option.icon" :style="{ color: option.nodeId ? option.color : undefined }" aria-hidden="true" />
                   </span>
                   <span class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ option.label }}</span>
-                  <span class="ml-auto shrink-0 pl-(--cv-space-lg) text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)">
+                  <span class="ml-auto shrink-0 pl-(--cv-space-lg) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
                     {{ option.nodeId ? `#${option.nodeId}` : '未绑定' }}
                   </span>
                 </button>
                 <template v-if="favoriteLocateOptions.length">
                   <div
-                    class="my-(--cv-space-xs) border-t-(length:--cv-border-width) border-t-solid border-t-(--cv-surface-variant) pt-(--cv-space-sm) text-(length:--cv-font-size-2xs) font-semibold tracking-wide text-(--cv-on-surface-variant)"
+                    class="my-(--cv-space-xs) border-t-(length:--cv-border-width) border-t-solid border-t-(--cv-surface-variant) pt-(--cv-space-sm) text-(length:--cv-font-size-xs) font-semibold tracking-wide text-(--cv-on-surface-variant)"
                   >
                     收藏
                   </div>
@@ -161,15 +161,15 @@
                     v-for="option in favoriteLocateOptions"
                     :key="option.key"
                     type="button"
-                    class="flex w-full min-w-0 cursor-pointer items-center gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent px-(--cv-space-lg) py-(--cv-space-sm) text-left text-(length:--cv-font-size-sm) whitespace-nowrap text-(--cv-on-surface) hover:bg-(--cv-surface-container-highest)"
+                    class="flex w-full min-w-0 cursor-pointer items-center gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent px-(--cv-space-lg) py-(--cv-space-sm) text-left text-(length:--cv-font-size-xs) whitespace-nowrap text-(--cv-on-surface) hover:bg-(--cv-surface-container-highest)"
                     :title="option.label"
                     @click="onLocateNode(option.nodeId)"
                   >
-                    <span class="flex w-[1.125rem] shrink-0 items-center justify-center text-base text-(--p-orange-500)">
+                    <span class="flex w-[1.125rem] shrink-0 items-center justify-center text-(length:--cv-font-size-base) text-(--p-orange-500)">
                       <i :class="option.icon" aria-hidden="true" />
                     </span>
                     <span class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ option.label }}</span>
-                    <span class="ml-auto shrink-0 pl-(--cv-space-lg) text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)">
+                    <span class="ml-auto shrink-0 pl-(--cv-space-lg) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
                       #{{ option.nodeId }}
                     </span>
                   </button>

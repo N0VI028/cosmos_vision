@@ -83,7 +83,7 @@
             <img v-if="getThumbnailData(vibe)" :src="getThumbnailData(vibe)" alt="" class="block size-full object-cover" />
             <span
               v-else
-              class="flex size-full items-center justify-center text-(length:--cv-font-size-3xl)"
+              class="flex size-full items-center justify-center text-(length:--cv-font-size-2xl)"
             >
               <i class="fa-solid fa-image" />
             </span>
@@ -97,7 +97,7 @@
             <label
               v-for="field in VIBE_NUMBER_FIELDS"
               :key="field.key"
-              class="flex min-w-0 flex-col gap-(--cv-space-md) text-(length:--cv-font-size-md) text-(--cv-on-surface)"
+              class="flex min-w-0 flex-col gap-(--cv-space-md) text-(length:--cv-font-size-base) text-(--cv-on-surface)"
             >
               <span>{{ field.label }}</span>
               <InputNumber

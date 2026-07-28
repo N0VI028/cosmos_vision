@@ -42,7 +42,7 @@
             class="flex min-w-0 flex-1 items-center gap-(--cv-space-lg) bg-(--cv-surface-container-low) p-(--cv-space-md) text-(--cv-on-surface) select-none transition-colors duration-200 hover:bg-(--cv-surface-container)"
           >
             <span
-              class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-sm) font-medium text-(--cv-on-surface)"
+              class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-xs) font-medium text-(--cv-on-surface)"
             >
               {{ getConditionSummary(row) }}
             </span>
@@ -132,7 +132,7 @@
 
     <button
       type="button"
-      class="flex w-full cursor-pointer items-center justify-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)] py-(--cv-space-md) text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant) transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] hover:border-(--cv-outline) hover:bg-(--cv-surface-container-low) hover:text-(--p-primary-color) hover:shadow-[0_var(--cv-space-sm)_var(--cv-space-3xl)_color-mix(in_srgb,var(--cv-on-surface)_10%,transparent)]"
+      class="flex w-full cursor-pointer items-center justify-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)] py-(--cv-space-md) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] hover:border-(--cv-outline) hover:bg-(--cv-surface-container-low) hover:text-(--p-primary-color) hover:shadow-[0_var(--cv-space-sm)_var(--cv-space-3xl)_color-mix(in_srgb,var(--cv-on-surface)_10%,transparent)]"
       @click="addConditionRow"
     >
       <i class="fa-solid fa-plus" /> 新增条件

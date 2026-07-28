@@ -5,9 +5,9 @@
     <!-- 空态:未填接口密钥 -->
     <template v-if="isKeyEmpty">
       <div
-        class="flex min-h-32 flex-col items-center justify-center gap-(--cv-space-5xl) p-(--cv-space-10xl) text-(length:--cv-font-size-md) text-(--cv-on-surface-variant) max-[48rem]:p-(--cv-space-7xl)"
+        class="flex min-h-32 flex-col items-center justify-center gap-(--cv-space-5xl) p-(--cv-space-10xl) text-(length:--cv-font-size-base) text-(--cv-on-surface-variant) max-[48rem]:p-(--cv-space-7xl)"
       >
-        <i class="fa-solid fa-lock text-(length:--cv-font-size-4xl) opacity-50" />
+        <i class="fa-solid fa-lock text-(length:--cv-font-size-2xl) opacity-50" />
         <span>填写接口密钥后展示订阅信息</span>
       </div>
     </template>
@@ -17,9 +17,9 @@
       <div
         class="flex min-h-[9.3333em] flex-col items-center justify-center gap-(--cv-space-5xl) p-(--cv-space-10xl) text-center text-(--cv-on-surface-variant) max-[48rem]:p-(--cv-space-7xl)"
       >
-        <i class="fa-solid fa-lock text-(length:--cv-font-size-4xl) opacity-50" />
-        <div class="text-(length:--cv-font-size-xl) font-semibold text-(--cv-on-surface)">需要跨域代理才能查询订阅</div>
-        <div class="max-w-96 whitespace-normal text-(length:--cv-font-size-md) leading-[1.5]">
+        <i class="fa-solid fa-lock text-(length:--cv-font-size-2xl) opacity-50" />
+        <div class="text-(length:--cv-font-size-lg) font-semibold text-(--cv-on-surface)">需要跨域代理才能查询订阅</div>
+        <div class="max-w-96 whitespace-normal text-(length:--cv-font-size-base) leading-[1.5]">
           订阅接口禁止跨域访问,请在上方"跨域代理地址"中填入你的代理地址。
         </div>
       </div>
@@ -28,7 +28,7 @@
     <!-- 加载态 / 成功态 / 错误态 -->
     <template v-else>
       <header
-        class="flex items-center justify-between border-b-(length:--cv-border-width) border-b-solid border-b-(--cv-surface-variant) px-(--cv-space-8xl) py-(--cv-space-5xl) font-(family-name:--cv-font-headline) text-(length:--cv-font-size-xl) font-semibold text-(--cv-on-surface) max-[48rem]:px-(--cv-space-7xl) max-[48rem]:py-(--cv-space-4xl)"
+        class="flex items-center justify-between border-b-(length:--cv-border-width) border-b-solid border-b-(--cv-surface-variant) px-(--cv-space-8xl) py-(--cv-space-5xl) font-(family-name:--cv-font-headline) text-(length:--cv-font-size-lg) font-semibold text-(--cv-on-surface) max-[48rem]:px-(--cv-space-7xl) max-[48rem]:py-(--cv-space-4xl)"
       >
         <div class="inline-flex items-center gap-(--cv-space-sm)">
           <!-- 伪装标题 Select：任意后代选择器命中局部 PT 锚点 -->
@@ -38,7 +38,7 @@
             :options="accountOptions"
             option-label="label"
             option-value="value"
-            class="inline-flex h-auto! cursor-pointer items-center border-0! bg-transparent! p-0! font-(family-name:--cv-font-headline) text-(length:--cv-font-size-xl)! font-semibold text-(--cv-on-surface)! shadow-none! [&_.nai-sub-account-select-dropdown]:w-auto [&_.nai-sub-account-select-dropdown]:text-(--cv-on-surface-variant) [&_.nai-sub-account-select-label]:pr-(--cv-space-xs) [&_.nai-sub-account-select-label]:pl-0 [&_.nai-sub-account-select-label]:font-semibold [&_.nai-sub-account-select-label]:text-(--cv-on-surface)"
+            class="inline-flex h-auto! cursor-pointer items-center border-0! bg-transparent! p-0! font-(family-name:--cv-font-headline) text-(length:--cv-font-size-lg)! font-semibold text-(--cv-on-surface)! shadow-none! [&_.nai-sub-account-select-dropdown]:w-auto [&_.nai-sub-account-select-dropdown]:text-(--cv-on-surface-variant) [&_.nai-sub-account-select-label]:pr-(--cv-space-xs) [&_.nai-sub-account-select-label]:pl-0 [&_.nai-sub-account-select-label]:font-semibold [&_.nai-sub-account-select-label]:text-(--cv-on-surface)"
             :pt="ACCOUNT_SELECT_PT"
           />
           <span v-else>账号订阅</span>
@@ -80,7 +80,7 @@
             >剩余点数</span>
           </div>
           <div
-            class="text-(length:--cv-font-size-4xl) font-extrabold leading-[1.2] text-(--cv-primary-container) tabular-nums"
+            class="text-(length:--cv-font-size-2xl) font-extrabold leading-[1.2] text-(--cv-primary-container) tabular-nums"
           >
             {{ loading ? '—' : formatNumber(data?.totalAnlas ?? 0) }}
           </div>
@@ -94,7 +94,7 @@
             >过期时间</span>
           </div>
           <div class="flex flex-wrap items-baseline gap-(--cv-space-lg)">
-            <span class="text-(length:--cv-font-size-3xl) font-bold text-(--cv-on-surface) tabular-nums">
+            <span class="text-(length:--cv-font-size-2xl) font-bold text-(--cv-on-surface) tabular-nums">
               {{ loading ? '—' : formatExpireDate(data?.expiresAt ?? 0) }}
             </span>
           </div>
@@ -102,16 +102,16 @@
       </div>
       <div
         v-else-if="!error"
-        class="flex min-h-32 flex-col items-center justify-center gap-(--cv-space-5xl) p-(--cv-space-10xl) text-(length:--cv-font-size-md) text-(--cv-on-surface-variant) max-[48rem]:p-(--cv-space-7xl)"
+        class="flex min-h-32 flex-col items-center justify-center gap-(--cv-space-5xl) p-(--cv-space-10xl) text-(length:--cv-font-size-base) text-(--cv-on-surface-variant) max-[48rem]:p-(--cv-space-7xl)"
       >
-        <i class="fa-solid fa-floppy-disk text-(length:--cv-font-size-4xl) opacity-50" />
+        <i class="fa-solid fa-floppy-disk text-(length:--cv-font-size-2xl) opacity-50" />
         <span>保存设置后查看订阅信息</span>
       </div>
 
       <!-- 错误 banner -->
       <div
         v-if="error"
-        class="flex items-center gap-(--cv-space-3xl) border-t-(length:--cv-border-width) border-t-solid border-t-[rgba(239,68,68,0.2)] bg-[rgba(239,68,68,0.08)] px-(--cv-space-10xl) py-(--cv-space-3xl) text-(length:--cv-font-size-md) text-[#dc2626]"
+        class="flex items-center gap-(--cv-space-3xl) border-t-(length:--cv-border-width) border-t-solid border-t-[rgba(239,68,68,0.2)] bg-[rgba(239,68,68,0.08)] px-(--cv-space-10xl) py-(--cv-space-3xl) text-(length:--cv-font-size-base) text-[#dc2626]"
       >
         <i class="fa-solid fa-triangle-exclamation" />
         <span>{{ error }}</span>

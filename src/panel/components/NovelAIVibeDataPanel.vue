@@ -78,8 +78,8 @@
                 class="block size-full object-cover"
               />
               <template v-else>
-                <span class="text-(length:--cv-font-size-3xl) font-bold leading-none text-(--cv-primary-container)">V</span>
-                <span class="text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)">
+                <span class="text-(length:--cv-font-size-2xl) font-bold leading-none text-(--cv-primary-container)">V</span>
+                <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
                   {{ item.hasImage ? 'HAS IMG' : 'NO IMG' }}
                 </span>
               </template>
@@ -92,7 +92,7 @@
                 {{ getNovelAIVibeDisplayFileName(item) }}
               </div>
               <div
-                class="overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)"
+                class="overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
               >
                 {{ formatCreatedAt(item.createdAt) }} · {{ item.sourceHash.slice(0, 8) }}
               </div>

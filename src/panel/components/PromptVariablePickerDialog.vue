@@ -30,7 +30,7 @@
           />
         </div>
         <div class="relative w-full">
-          <InputText v-model="searchKeyword" placeholder="搜索变量名称、路径或摘要..." class="w-full text-sm" />
+          <InputText v-model="searchKeyword" placeholder="搜索变量名称、路径或摘要..." class="w-full text-(length:--cv-font-size-base)" />
         </div>
       </div>
 
@@ -42,7 +42,7 @@
           v-if="currentScopeResult?.error"
           class="flex flex-col items-center justify-center p-8 text-center text-(--cv-error)"
         >
-          <i class="fa-solid fa-triangle-exclamation mb-2 text-2xl"></i>
+          <i class="fa-solid fa-triangle-exclamation mb-2 text-(length:--cv-font-size-2xl)"></i>
           <span>{{ currentScopeResult.error }}</span>
         </div>
 
@@ -50,7 +50,7 @@
           v-else-if="!fullTreeNodes.length"
           class="flex flex-col items-center justify-center p-8 text-center text-(--cv-on-surface-variant)"
         >
-          <i class="fa-regular fa-folder-open mb-2 text-2xl"></i>
+          <i class="fa-regular fa-folder-open mb-2 text-(length:--cv-font-size-2xl)"></i>
           <span>该作用域暂无变量数据</span>
         </div>
 
@@ -58,7 +58,7 @@
           v-else-if="!filteredTreeNodes.length"
           class="flex flex-col items-center justify-center p-8 text-center text-(--cv-on-surface-variant)"
         >
-          <i class="fa-solid fa-magnifying-glass mb-2 text-2xl"></i>
+          <i class="fa-solid fa-magnifying-glass mb-2 text-(length:--cv-font-size-2xl)"></i>
           <span>未匹配到相关变量</span>
         </div>
 
@@ -68,7 +68,7 @@
           selection-mode="single"
           :selection-keys="selectionKeys"
           :expanded-keys="expandedKeys"
-          class="w-full overflow-x-hidden text-xs [&_.p-tree-node-content]:w-full [&_.p-tree-node-content]:min-w-0 [&_.p-tree-node-label]:w-full [&_.p-tree-node-label]:min-w-0 [&_.p-tree-node-label]:break-all [&_.p-tree-node-label]:whitespace-normal"
+          class="w-full overflow-x-hidden text-(length:--cv-font-size-xs) [&_.p-tree-node-content]:w-full [&_.p-tree-node-content]:min-w-0 [&_.p-tree-node-label]:w-full [&_.p-tree-node-label]:min-w-0 [&_.p-tree-node-label]:break-all [&_.p-tree-node-label]:whitespace-normal"
           @node-select="onNodeSelect"
           @node-expand="onNodeExpand"
           @node-collapse="onNodeCollapse"
@@ -79,14 +79,14 @@
               :class="{ 'opacity-50': !slotProps.node.insertable }"
             >
               <div class="flex min-w-0 shrink-0 items-center gap-(--cv-space-xs)">
-                <span class="font-mono text-xs font-medium break-all text-(--cv-on-surface)">
+                <span class="font-mono text-(length:--cv-font-size-xs) font-medium break-all text-(--cv-on-surface)">
                   {{ slotProps.node.label }}{{ slotProps.node.summary ? ':' : '' }}
                 </span>
-                <span v-if="!slotProps.node.insertable" class="shrink-0 text-[10px] text-(--cv-error)"> (不可用) </span>
+                <span v-if="!slotProps.node.insertable" class="shrink-0 text-(length:--cv-font-size-xs) text-(--cv-error)"> (不可用) </span>
               </div>
               <span
                 v-if="slotProps.node.summary"
-                class="min-w-0 flex-1 text-left font-mono text-xs break-all whitespace-normal text-(--cv-on-surface-variant)"
+                class="min-w-0 flex-1 text-left font-mono text-(length:--cv-font-size-xs) break-all whitespace-normal text-(--cv-on-surface-variant)"
               >
                 {{ slotProps.node.summary }}
               </span>
@@ -97,18 +97,18 @@
 
       <!-- 底部预览与确认 -->
       <div class="flex shrink-0 flex-col gap-(--cv-space-xs) pt-2">
-        <div v-if="selectedNode" class="flex flex-col gap-1 text-xs">
+        <div v-if="selectedNode" class="flex flex-col gap-1 text-(length:--cv-font-size-xs)">
           <div class="flex items-center gap-2 font-mono">
             <span class="text-(--cv-on-surface-variant)">宏预览:</span>
             <span class="rounded bg-(--cv-surface-container) px-1.5 py-0.5 font-bold text-(--cv-on-surface)">
               {{ currentMacroPreview }}
             </span>
           </div>
-          <div v-if="!selectedNode.insertable" class="text-xs text-(--cv-error)">
+          <div v-if="!selectedNode.insertable" class="text-(length:--cv-font-size-xs) text-(--cv-error)">
             {{ selectedNode.disableReason }}
           </div>
         </div>
-        <div v-else class="py-1 text-xs text-(--cv-on-surface-variant)">请选择要插入的变量节点</div>
+        <div v-else class="py-1 text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">请选择要插入的变量节点</div>
       </div>
     </div>
 

@@ -18,7 +18,7 @@
       <div class="flex min-h-0 flex-col gap-(--cv-space-sm)">
         <label
           v-if="primaryLabel"
-          class="text-(length:--cv-font-size-sm) font-semibold leading-[1.4] text-(--cv-on-surface)"
+          class="text-(length:--cv-font-size-xs) font-semibold leading-[1.4] text-(--cv-on-surface)"
         >{{ primaryLabel }}</label>
         <Textarea
           ref="inputRef"
@@ -28,7 +28,7 @@
         />
       </div>
       <div v-if="hasSecondaryField" class="flex min-h-0 flex-col gap-(--cv-space-sm)">
-        <label class="text-(length:--cv-font-size-sm) font-semibold leading-[1.4] text-(--cv-on-surface)">{{
+        <label class="text-(length:--cv-font-size-xs) font-semibold leading-[1.4] text-(--cv-on-surface)">{{
           secondaryLabel
         }}</label>
         <Textarea
@@ -38,7 +38,7 @@
         />
       </div>
       <div v-if="enableCharacters" class="flex flex-col gap-(--cv-space-xl)">
-        <div class="text-(length:--cv-font-size-sm) font-semibold leading-[1.4] text-(--cv-on-surface)">
+        <div class="text-(length:--cv-font-size-xs) font-semibold leading-[1.4] text-(--cv-on-surface)">
           角色提示词（{{ characters.length }}）
         </div>
         <div class="flex flex-col gap-(--cv-space-lg)">
@@ -59,7 +59,7 @@
             </template>
             <div class="flex flex-col gap-(--cv-space-xl) p-(--cv-space-xl)">
               <div class="flex min-h-0 flex-col gap-(--cv-space-sm)">
-                <label class="text-(length:--cv-font-size-sm) font-semibold leading-[1.4] text-(--cv-on-surface)"
+                <label class="text-(length:--cv-font-size-xs) font-semibold leading-[1.4] text-(--cv-on-surface)"
                   >角色正面</label
                 >
                 <Textarea
@@ -69,7 +69,7 @@
                 />
               </div>
               <div class="flex min-h-0 flex-col gap-(--cv-space-sm)">
-                <label class="text-(length:--cv-font-size-sm) font-semibold leading-[1.4] text-(--cv-on-surface)"
+                <label class="text-(length:--cv-font-size-xs) font-semibold leading-[1.4] text-(--cv-on-surface)"
                   >角色负面</label
                 >
                 <Textarea
@@ -80,7 +80,7 @@
               </div>
               <div class="grid grid-cols-2 gap-(--cv-space-xl)">
                 <label class="flex min-h-0 flex-col gap-(--cv-space-sm)">
-                  <span class="text-(length:--cv-font-size-sm) font-semibold leading-[1.4] text-(--cv-on-surface)"
+                  <span class="text-(length:--cv-font-size-xs) font-semibold leading-[1.4] text-(--cv-on-surface)"
                     >X 坐标</span
                   >
                   <InputNumber
@@ -95,7 +95,7 @@
                   />
                 </label>
                 <label class="flex min-h-0 flex-col gap-(--cv-space-sm)">
-                  <span class="text-(length:--cv-font-size-sm) font-semibold leading-[1.4] text-(--cv-on-surface)"
+                  <span class="text-(length:--cv-font-size-xs) font-semibold leading-[1.4] text-(--cv-on-surface)"
                     >Y 坐标</span
                   >
                   <InputNumber

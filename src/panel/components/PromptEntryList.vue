@@ -24,7 +24,7 @@
         >
           <button
             type="button"
-            class="cv-message-handle flex w-8 cursor-grab touch-none select-none items-center justify-center border-0 border-r-(length:--cv-border-width) border-r-solid border-r-(--cv-surface-variant) bg-transparent p-0 text-[0.8rem] text-[color-mix(in_srgb,var(--cv-on-surface)_25%,transparent)] transition-[color,background] duration-150 ease-in-out group-hover/row:bg-[color-mix(in_srgb,var(--cv-on-surface)_3%,transparent)] group-hover/row:text-[color-mix(in_srgb,var(--cv-on-surface)_50%,transparent)] hover:text-(--p-primary-color)! active:cursor-grabbing"
+            class="cv-message-handle flex w-8 cursor-grab touch-none select-none items-center justify-center border-0 border-r-(length:--cv-border-width) border-r-solid border-r-(--cv-surface-variant) bg-transparent p-0 text-(length:--cv-font-size-xs) text-[color-mix(in_srgb,var(--cv-on-surface)_25%,transparent)] transition-[color,background] duration-150 ease-in-out group-hover/row:bg-[color-mix(in_srgb,var(--cv-on-surface)_3%,transparent)] group-hover/row:text-[color-mix(in_srgb,var(--cv-on-surface)_50%,transparent)] hover:text-(--p-primary-color)! active:cursor-grabbing"
             title="拖拽排序"
             aria-label="拖拽排序"
           >

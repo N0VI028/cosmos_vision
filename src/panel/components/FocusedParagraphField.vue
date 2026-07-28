@@ -5,7 +5,7 @@
       v-model="model"
       rows="3"
       auto-resize
-      class="w-full resize-y text-(length:--cv-font-size-lg)"
+      class="w-full resize-y text-(length:--cv-font-size-base)"
       :placeholder="placeholder"
     />
     <Message v-if="!hasFocusedParagraph" severity="warn" size="small">

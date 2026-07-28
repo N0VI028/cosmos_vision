@@ -10,7 +10,7 @@
         class="cv-indicator size-1.5 shrink-0 rounded-full bg-(--p-primary-color) shadow-[0_0_6px_var(--p-primary-color)]"
       />
       <span
-        class="whitespace-nowrap text-(length:--cv-font-size-2xs) font-semibold uppercase tracking-normal text-(--cv-on-surface-variant)"
+        class="whitespace-nowrap text-(length:--cv-font-size-xs) font-semibold uppercase tracking-normal text-(--cv-on-surface-variant)"
       >{{ getEntrySourceLabel(entry as PromptPersonTemplateEntry) }}</span>
       <span
         class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-medium text-(--cv-on-surface)"
@@ -135,7 +135,7 @@
       <div class="cv-field">
         <div class="cv-field-header">
           <span>{{ editorDraft.kind === 'custom' ? '内容' : '资料预览' }}</span>
-          <div v-if="editorDraft.kind === 'custom'" class="flex items-center gap-(--cv-space-xs) text-(length:--cv-font-size-2xs)">
+          <div v-if="editorDraft.kind === 'custom'" class="flex items-center gap-(--cv-space-xs) text-(length:--cv-font-size-xs)">
             <CvMiniButton
               label="插入宏"
               class="cv-macro-button-root cv-macro-trigger-button"

@@ -89,7 +89,7 @@
 
     <div
       v-else
-      class="flex min-h-36 flex-col items-center justify-center gap-(--cv-space-3xl) rounded-(--cv-radius) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) p-(--cv-space-5xl) text-center text-(--cv-on-surface-variant) [&_i]:text-[1.2rem]"
+      class="flex min-h-36 flex-col items-center justify-center gap-(--cv-space-3xl) rounded-(--cv-radius) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) p-(--cv-space-5xl) text-center text-(--cv-on-surface-variant) [&_i]:text-(length:--cv-font-size-2xl)"
     >
       <i class="fa-regular fa-address-card" />
       <span>当前没有账号，新增后即可参与路由与故障转移</span>

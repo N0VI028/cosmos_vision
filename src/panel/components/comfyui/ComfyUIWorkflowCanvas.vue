@@ -30,7 +30,7 @@
         :data-cv-tutorial="nodeTutorialTarget(node.id)"
         @click.stop="emit('select', node.id)"
       >
-        <span class="flex w-full items-center truncate text-(length:--cv-font-size-sm) font-semibold">
+        <span class="flex w-full items-center truncate text-(length:--cv-font-size-xs) font-semibold">
           <i
             v-if="nodeStates[node.id]?.icon"
             :class="['mr-1.5 shrink-0', nodeStates[node.id].iconColor, nodeStates[node.id].icon]"
@@ -38,12 +38,12 @@
           ></i>
           {{ node.title }}
         </span>
-        <span class="text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)">#{{ node.id }}</span>
+        <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">#{{ node.id }}</span>
       </button>
     </div>
     <div
       v-if="!layout.nodes.length"
-      class="absolute inset-0 flex items-center justify-center text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant)"
+      class="absolute inset-0 flex items-center justify-center text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
     >
       无可显示节点
     </div>

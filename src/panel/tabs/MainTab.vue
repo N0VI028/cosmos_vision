@@ -49,7 +49,7 @@
               :key="link.title"
               :class="[
                 link.iconClass,
-                'cursor-pointer transition-colors duration-150 text-[1.2rem] text-(--cv-on-surface-variant) p-(--cv-space-xs) hover:text-(--p-primary-color)',
+                'cursor-pointer transition-colors duration-150 text-(length:--cv-font-size-lg) text-(--cv-on-surface-variant) p-(--cv-space-xs) hover:text-(--p-primary-color)',
               ]"
               :title="link.title"
               @click="openUrl(link.url)"

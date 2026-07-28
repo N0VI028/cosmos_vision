@@ -117,14 +117,14 @@
           <label class="cv-field">
             <span>Top P</span>
             <Slider v-model="settings.promptLlm.topP" :min="0" :max="1" :step="0.01" />
-            <div class="mt-(--cv-space-lg) text-center text-(length:--cv-font-size-md) font-medium text-(--cv-on-surface-variant)">
+            <div class="mt-(--cv-space-lg) text-center text-(length:--cv-font-size-base) font-medium text-(--cv-on-surface-variant)">
               {{ settings.promptLlm.topP.toFixed(2) }}
             </div>
           </label>
           <label class="cv-field">
             <span>Top K</span>
             <Slider v-model="settings.promptLlm.topK" :min="0" :max="100" :step="1" />
-            <div class="mt-(--cv-space-lg) text-center text-(length:--cv-font-size-md) font-medium text-(--cv-on-surface-variant)">
+            <div class="mt-(--cv-space-lg) text-center text-(length:--cv-font-size-base) font-medium text-(--cv-on-surface-variant)">
               {{ settings.promptLlm.topK }}
             </div>
           </label>

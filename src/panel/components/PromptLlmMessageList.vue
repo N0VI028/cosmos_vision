@@ -12,19 +12,19 @@
         :class="getMessageTriggerToneClass(entry as PromptLlmMessage)"
       />
       <i
-        class="shrink-0 text-(length:--cv-font-size-sm) text-[color-mix(in_srgb,var(--cv-on-surface)_55%,transparent)]"
+        class="shrink-0 text-(length:--cv-font-size-xs) text-[color-mix(in_srgb,var(--cv-on-surface)_55%,transparent)]"
         :class="ROLE_ICONS[(entry as PromptLlmMessage).role]"
         :title="ROLE_LABELS[(entry as PromptLlmMessage).role]"
       />
       <span class="sr-only">{{ ROLE_LABELS[(entry as PromptLlmMessage).role] }}</span>
       <span
         v-if="isSourceMessage(entry as PromptLlmMessage)"
-        class="shrink-0 whitespace-nowrap text-(length:--cv-font-size-2xs) font-semibold uppercase tracking-normal text-(--cv-on-surface-variant)"
+        class="shrink-0 whitespace-nowrap text-(length:--cv-font-size-xs) font-semibold uppercase tracking-normal text-(--cv-on-surface-variant)"
       >
         {{ getMessageSourceLabel(entry as PromptLlmMessage) }}
       </span>
       <span
-        class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-md) font-medium text-(--cv-on-surface)"
+        class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-base) font-medium text-(--cv-on-surface)"
       >{{ getMessageTitle(entry as PromptLlmMessage) }}</span>
       <Tag
         v-if="shouldShowSourceStatus(entry as PromptLlmMessage)"

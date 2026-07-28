@@ -38,7 +38,7 @@
           />
           <i
             v-else
-            class="fa-solid fa-image grid size-20 place-items-center rounded-(--cv-radius-md) bg-(--cv-surface-container-high) text-(length:--cv-font-size-xl) text-(--cv-on-surface-variant)"
+            class="fa-solid fa-image grid size-20 place-items-center rounded-(--cv-radius-md) bg-(--cv-surface-container-high) text-(length:--cv-font-size-lg) text-(--cv-on-surface-variant)"
             aria-hidden="true"
           />
           <span class="flex min-w-0 flex-col gap-(--cv-space-xs)">

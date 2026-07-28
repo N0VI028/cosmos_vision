@@ -12,7 +12,7 @@
     <section v-for="message in enabledMessages" :key="message.id">
       <div class="flex min-h-6 items-start">
         <pre
-          class="m-0 min-h-6 w-full whitespace-pre-wrap wrap-break-word text-(length:--cv-font-size-md) leading-[1.5] text-(--cv-on-surface)"
+          class="m-0 min-h-6 w-full whitespace-pre-wrap wrap-break-word text-(length:--cv-font-size-base) leading-[1.5] text-(--cv-on-surface)"
         >{{ getMessagePreviewText(message) }}</pre>
       </div>
     </section>

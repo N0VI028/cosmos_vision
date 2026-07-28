@@ -40,16 +40,13 @@
  * 挂到 :root 供设置面板、Teleport overlay 和聊天区内联 UI 复用。
  */
 :root {
+  /* 字号阶梯：常用 3 档（xs 备注小字 / base 正文 / lg 大号字）+ 少见 3 档（xl / 2xl / 3xl 标题与展示数值） */
   --cv-font-size-base: var(--mainFontSize, var(--mainFontsSize, var(--mainfontsize, 1em)));
-  --cv-font-size-2xs: calc(var(--cv-font-size-base) * 0.75);
   --cv-font-size-xs: calc(var(--cv-font-size-base) * 0.8);
-  --cv-font-size-sm: calc(var(--cv-font-size-base) * 0.85);
-  --cv-font-size-md: calc(var(--cv-font-size-base) * 0.9);
-  --cv-font-size-lg: calc(var(--cv-font-size-base) * 0.95);
-  --cv-font-size-xl: calc(var(--cv-font-size-base) * 1.0667);
-  --cv-font-size-2xl: calc(var(--cv-font-size-base) * 1.2);
-  --cv-font-size-3xl: calc(var(--cv-font-size-base) * 1.4);
-  --cv-font-size-4xl: calc(var(--cv-font-size-base) * 1.8);
+  --cv-font-size-lg: calc(var(--cv-font-size-base) * 1.0667);
+  --cv-font-size-xl: calc(var(--cv-font-size-base) * 1.2);
+  --cv-font-size-2xl: calc(var(--cv-font-size-base) * 1.4);
+  --cv-font-size-3xl: calc(var(--cv-font-size-base) * 1.8);
   --cv-spacing-unit: calc(var(--cv-font-size-base) * 0.25);
   --cv-space-xs: 0.2em;
   --cv-space-sm: 0.2667em;

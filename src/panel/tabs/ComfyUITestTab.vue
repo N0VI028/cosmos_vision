@@ -25,7 +25,7 @@
             v-model="directPositivePrompt"
             rows="3"
             auto-resize
-            class="w-full resize-y text-(length:--cv-font-size-lg)"
+            class="w-full resize-y text-(length:--cv-font-size-base)"
           />
         </div>
         <div class="cv-field">
@@ -34,7 +34,7 @@
             v-model="directNegativePrompt"
             rows="3"
             auto-resize
-            class="w-full resize-y text-(length:--cv-font-size-lg)"
+            class="w-full resize-y text-(length:--cv-font-size-base)"
           />
         </div>
       </template>
@@ -91,10 +91,10 @@
         class="overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl)"
       >
         <div v-if="requestSnapshot" class="flex flex-col gap-(--cv-space-xl)">
-          <div class="text-(length:--cv-font-size-md) font-semibold text-(--cv-on-surface-variant)">正面提示词</div>
-          <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm) text-(--cv-on-surface) break-all">{{ requestSnapshot.positivePrompt || '(空)' }}</pre>
-          <div class="text-(length:--cv-font-size-md) font-semibold text-(--cv-on-surface-variant)">负面提示词</div>
-          <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm) text-(--cv-on-surface) break-all">{{ requestSnapshot.negativePrompt || '(空)' }}</pre>
+          <div class="text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)">正面提示词</div>
+          <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--cv-on-surface) break-all">{{ requestSnapshot.positivePrompt || '(空)' }}</pre>
+          <div class="text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)">负面提示词</div>
+          <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--cv-on-surface) break-all">{{ requestSnapshot.negativePrompt || '(空)' }}</pre>
         </div>
         <div v-else class="p-(--cv-space-8xl) text-center text-(--cv-on-surface-variant)">尚未生成最终提示词</div>
       </div>
@@ -111,10 +111,10 @@
             :key="row.label"
             class="flex items-center justify-between gap-(--cv-space-xl) border-b border-(--cv-surface-variant) pb-(--cv-space-xl) last:border-b-0 last:pb-0"
           >
-            <span class="text-(length:--cv-font-size-md) text-(--cv-on-surface-variant)">{{ row.label }}</span>
+            <span class="text-(length:--cv-font-size-base) text-(--cv-on-surface-variant)">{{ row.label }}</span>
             <span
               class="break-all whitespace-normal text-right text-(--cv-on-surface)"
-              :class="row.code && 'font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm)'"
+              :class="row.code && 'font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs)'"
             >{{ row.value }}</span>
           </div>
         </div>
@@ -128,7 +128,7 @@
         <div
           class="overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl)"
         >
-          <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm) text-(--cv-on-surface) break-all">{{ llmRawResponse || '尚未收到 LLM 返回结果' }}</pre>
+          <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--cv-on-surface) break-all">{{ llmRawResponse || '尚未收到 LLM 返回结果' }}</pre>
         </div>
       </div>
 
@@ -143,10 +143,10 @@
               :key="row.label"
               class="flex items-center justify-between gap-(--cv-space-xl) border-b border-(--cv-surface-variant) pb-(--cv-space-xl) last:border-b-0 last:pb-0"
             >
-              <span class="text-(length:--cv-font-size-md) text-(--cv-on-surface-variant)">{{ row.label }}</span>
+              <span class="text-(length:--cv-font-size-base) text-(--cv-on-surface-variant)">{{ row.label }}</span>
               <span
                 class="break-all whitespace-normal text-right text-(--cv-on-surface)"
-                :class="row.code && 'font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm)'"
+                :class="row.code && 'font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs)'"
               >{{ row.value }}</span>
             </div>
           </div>
@@ -158,7 +158,7 @@
         <div
           class="overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl)"
         >
-          <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm) text-(--cv-on-surface) break-all">{{ llmSentPromptLog || '尚未发送 LLM 测试请求' }}</pre>
+          <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--cv-on-surface) break-all">{{ llmSentPromptLog || '尚未发送 LLM 测试请求' }}</pre>
         </div>
       </div>
     </template>

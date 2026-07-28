@@ -3,7 +3,7 @@
     class="cv-workflow-input flex flex-col gap-(--cv-space-sm) border-b-(length:--cv-border-width) border-b-solid border-b-(--cv-surface-variant) py-(--cv-space-lg) last:border-b-0"
   >
     <div class="flex items-center justify-between gap-(--cv-space-lg)">
-      <span class="text-(length:--cv-font-size-sm) font-semibold text-(--cv-on-surface)">{{ control.label }}</span>
+      <span class="text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)">{{ control.label }}</span>
       <div class="flex items-center gap-(--cv-space-sm)">
         <template v-if="control.canPromptBind">
           <!-- 三态 Chip：class 挂在 Chip 根（PT root）；全局 chip 默认被业务变体覆盖 -->
@@ -16,7 +16,7 @@
             <span class="flex items-center gap-1.5">
               <i :class="currentBinding.icon" aria-hidden="true" />
               <span>{{ currentBinding.label }}</span>
-              <i v-if="online" class="fa-solid fa-caret-down text-[0.65em] opacity-70" aria-hidden="true" />
+              <i v-if="online" class="fa-solid fa-caret-down text-(length:--cv-font-size-xs) opacity-70" aria-hidden="true" />
             </span>
           </Chip>
           <Popover
@@ -28,7 +28,7 @@
               v-for="option in alternateBindings"
               :key="option.value ?? 'none'"
               type="button"
-              class="cv-workflow-input__binding-option flex items-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent px-(--cv-space-lg) py-(--cv-space-xs) text-left text-(length:--cv-font-size-2xs) leading-[1.2] whitespace-nowrap cursor-pointer hover:bg-(--cv-surface-container-highest)"
+              class="cv-workflow-input__binding-option flex items-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent px-(--cv-space-lg) py-(--cv-space-xs) text-left text-(length:--cv-font-size-xs) leading-[1.2] whitespace-nowrap cursor-pointer hover:bg-(--cv-surface-container-highest)"
               :class="bindingOptionColorClass(option.value)"
               @click="selectPromptBinding(option.value)"
             >
@@ -55,7 +55,7 @@
 
     <div
       v-if="control.kind === 'link'"
-      class="font-mono text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant)"
+      class="font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
     >
       来自节点 #{{ control.linkSource?.nodeId }} 输出 {{ control.linkSource?.outputIndex }}
     </div>
@@ -243,7 +243,7 @@ const chipRootClass = computed(() => {
   const base = [
     'cv-workflow-action-chip',
     'cursor-pointer select-none transition-[background,border-color,color] duration-150 ease-in-out',
-    'text-(length:--cv-font-size-2xs) leading-[1.2] min-h-auto px-[0.5em] py-[0.15em]',
+    'text-(length:--cv-font-size-xs) leading-[1.2] min-h-auto px-[0.5em] py-[0.15em]',
   ];
   if (!props.online) {
     base.push('is-disabled opacity-50 cursor-not-allowed hover:bg-inherit hover:border-inherit hover:text-inherit');

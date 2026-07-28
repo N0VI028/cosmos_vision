@@ -247,7 +247,7 @@ body.dark .cv-inline-toolbar {
 
 /* 内部 icon，缩小为 --mainfontsize 的 0.75 倍，在圆形包裹层中更显精致，强制为白色防止覆盖 */
 .cv-inline-trigger-icon {
-  font-size: var(--cv-font-size-2xs) !important;
+  font-size: var(--cv-font-size-xs) !important;
   line-height: 1 !important;
   font-style: normal !important;
   color: #ffffff !important;
@@ -805,7 +805,7 @@ body.dark .cv-inline-toolbar {
 }
 
 .cv-inline-generation-text {
-  font-size: var(--cv-font-size-sm);
+  font-size: var(--cv-font-size-xs);
   line-height: 1.35;
   overflow-wrap: anywhere;
   white-space: pre-wrap;

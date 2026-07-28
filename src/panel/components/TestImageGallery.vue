@@ -122,7 +122,7 @@ onBeforeUnmount(clearGallery);
     </div>
     <div
       v-else
-      class="flex min-h-64 flex-col items-center justify-center gap-(--cv-space-lg) p-(--cv-space-8xl) text-center text-(--cv-on-surface-variant) [&_i]:text-[1.5rem] [&_i]:text-[color-mix(in_srgb,var(--p-primary-color)_60%,var(--cv-on-surface-variant))]"
+      class="flex min-h-64 flex-col items-center justify-center gap-(--cv-space-lg) p-(--cv-space-8xl) text-center text-(--cv-on-surface-variant) [&_i]:text-(length:--cv-font-size-2xl) [&_i]:text-[color-mix(in_srgb,var(--p-primary-color)_60%,var(--cv-on-surface-variant))]"
     >
       <i class="fa-regular fa-image" />
       <span>{{ placeholder }}</span>

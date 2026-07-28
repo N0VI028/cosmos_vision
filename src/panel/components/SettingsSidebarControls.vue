@@ -64,7 +64,7 @@ const THEME_OPTIONS = [
 ];
 
 const SIDEBAR_CONTROL_CLASS =
-  'box-border flex! shrink-0 items-center justify-center rounded-(--cv-radius-full)! border-(length:--cv-border-width)! border-solid! border-(--cv-surface-variant)! bg-(--cv-surface-container-low)! text-(--cv-on-surface-variant)! shadow-none! transition-all duration-150 ease-in-out [&_i]:shrink-0 [&_i]:text-(length:--cv-font-size-xl)';
+  'box-border flex! shrink-0 items-center justify-center rounded-(--cv-radius-full)! border-(length:--cv-border-width)! border-solid! border-(--cv-surface-variant)! bg-(--cv-surface-container-low)! text-(--cv-on-surface-variant)! shadow-none! transition-all duration-150 ease-in-out [&_i]:shrink-0 [&_i]:text-(length:--cv-font-size-lg)';
 const SIDEBAR_FULL_SIZE_CLASS = 'h-[2.75em]! min-h-[2.75em]! w-full! min-w-0!';
 const SIDEBAR_ICON_SIZE_CLASS = 'size-[2em]! min-h-[2em]! min-w-[2em]! p-0!';
 const SIDEBAR_ACTION_CLASS =

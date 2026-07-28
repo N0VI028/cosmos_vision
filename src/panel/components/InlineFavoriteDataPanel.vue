@@ -100,7 +100,7 @@
               class="relative aspect-square overflow-hidden border-b border-(length:--cv-border-width) border-solid border-[color-mix(in_srgb,var(--cv-surface-variant)_72%,transparent)] bg-(--cv-surface-container-high)"
             >
               <span
-                class="pointer-events-none absolute top-(--cv-space-md) right-(--cv-space-md) z-1 rounded-(--cv-radius-sm) px-[0.35rem] py-[0.1rem] text-(length:--cv-font-size-2xs) leading-[1.2] font-semibold"
+                class="pointer-events-none absolute top-(--cv-space-md) right-(--cv-space-md) z-1 rounded-(--cv-radius-sm) px-[0.35rem] py-[0.1rem] text-(length:--cv-font-size-xs) leading-[1.2] font-semibold"
                 :class="kindBadgeClass(item.kind)"
               >{{ kindLabel(item.kind) }}</span>
               <LightboxImage
@@ -118,7 +118,7 @@
                 {{ formatImageLabel(item.createdAt) }}
               </div>
               <div
-                class="overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)"
+                class="overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
               >
                 {{ stripPngExtension(item.characterKey) }} · {{ stripPngExtension(item.chatId) }}
               </div>

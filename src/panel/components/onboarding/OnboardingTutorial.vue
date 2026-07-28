@@ -548,9 +548,9 @@ onBeforeUnmount(() => {
 
         <div class="flex flex-col gap-(--cv-space-xl)" aria-live="polite">
           <h2
-            class="m-0 font-(family-name:--cv-font-headline) text-(length:--cv-font-size-2xl) leading-[1.2]"
+            class="m-0 font-(family-name:--cv-font-headline) text-(length:--cv-font-size-xl) leading-[1.2]"
           >{{ step.title }}</h2>
-          <p class="m-0 whitespace-normal wrap-break-word text-(length:--cv-font-size-md) leading-[1.65] text-(--cv-on-surface-variant)">
+          <p class="m-0 whitespace-normal wrap-break-word text-(length:--cv-font-size-base) leading-[1.65] text-(--cv-on-surface-variant)">
             <template v-for="(chunk, idx) in parseTextWithLinks(step.description)" :key="idx">
               <a
                 v-if="chunk.type === 'link'"
@@ -561,16 +561,16 @@ onBeforeUnmount(() => {
                 data-cv-tutorial-control
               >
                 <span>{{ chunk.content }}</span>
-                <i class="fa-solid fa-arrow-up-right-from-square text-[0.8em]" aria-hidden="true" />
+                <i class="fa-solid fa-arrow-up-right-from-square text-(length:--cv-font-size-xs)" aria-hidden="true" />
               </a>
               <template v-else>{{ chunk.content }}</template>
             </template>
           </p>
           <p
             v-if="step.tip"
-            class="m-0 flex items-start gap-(--cv-space-md) rounded-(--cv-radius-md) border border-solid border-[color-mix(in_srgb,var(--p-yellow-500)_35%,transparent)] bg-[color-mix(in_srgb,var(--p-yellow-500)_10%,var(--cv-surface-container-low))] p-(--cv-space-xl) whitespace-normal wrap-break-word text-(length:--cv-font-size-md) leading-[1.65] text-(--cv-on-surface)"
+            class="m-0 flex items-start gap-(--cv-space-md) rounded-(--cv-radius-md) border border-solid border-[color-mix(in_srgb,var(--p-yellow-500)_35%,transparent)] bg-[color-mix(in_srgb,var(--p-yellow-500)_10%,var(--cv-surface-container-low))] p-(--cv-space-xl) whitespace-normal wrap-break-word text-(length:--cv-font-size-base) leading-[1.65] text-(--cv-on-surface)"
           >
-            <i class="fa-solid fa-triangle-exclamation text-[color-mix(in_srgb,var(--p-yellow-500)_90%,#f59e0b)] shrink-0 text-[1.1em] mt-[0.15em]" aria-hidden="true" />
+            <i class="fa-solid fa-triangle-exclamation text-[color-mix(in_srgb,var(--p-yellow-500)_90%,#f59e0b)] shrink-0 text-(length:--cv-font-size-lg) mt-[0.15em]" aria-hidden="true" />
             <span>
               <template v-for="(chunk, idx) in parseTextWithLinks(step.tip)" :key="idx">
                 <a
@@ -582,7 +582,7 @@ onBeforeUnmount(() => {
                   data-cv-tutorial-control
                 >
                   <span>{{ chunk.content }}</span>
-                  <i class="fa-solid fa-arrow-up-right-from-square text-[0.8em]" aria-hidden="true" />
+                  <i class="fa-solid fa-arrow-up-right-from-square text-(length:--cv-font-size-xs)" aria-hidden="true" />
                 </a>
                 <template v-else>{{ chunk.content }}</template>
               </template>
@@ -590,7 +590,7 @@ onBeforeUnmount(() => {
           </p>
           <p
             v-if="fallbackText"
-            class="m-0 flex items-start gap-(--cv-space-md) rounded-(--cv-radius-md) bg-(--cv-surface-container) p-(--cv-space-xl) whitespace-normal wrap-break-word text-(length:--cv-font-size-md) leading-[1.65] text-(--cv-on-surface-variant)"
+            class="m-0 flex items-start gap-(--cv-space-md) rounded-(--cv-radius-md) bg-(--cv-surface-container) p-(--cv-space-xl) whitespace-normal wrap-break-word text-(length:--cv-font-size-base) leading-[1.65] text-(--cv-on-surface-variant)"
           >
             <i class="fa-solid fa-circle-info" aria-hidden="true" />
             <span>{{ fallbackText }}</span>

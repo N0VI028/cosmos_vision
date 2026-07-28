@@ -27,40 +27,40 @@
       >
         <div
           v-if="testStatus === 'idle'"
-          class="flex items-center justify-center py-(--cv-space-3xl) text-(length:--cv-font-size-lg) text-(--cv-on-surface-variant)"
+          class="flex items-center justify-center py-(--cv-space-3xl) text-(length:--cv-font-size-base) text-(--cv-on-surface-variant)"
         >
           <i class="fa-solid fa-hourglass-start mr-2"></i>等待测试运行...
         </div>
         <div
           v-else-if="testStatus === 'running'"
-          class="flex items-center justify-center py-(--cv-space-3xl) text-(length:--cv-font-size-lg) text-(--cv-on-surface-variant)"
+          class="flex items-center justify-center py-(--cv-space-3xl) text-(length:--cv-font-size-base) text-(--cv-on-surface-variant)"
         >
           <i class="fa-solid fa-spinner fa-spin mr-2"></i>正在向模型请求接口，请稍候...
         </div>
         <div v-else-if="testStatus === 'success'" class="flex flex-col gap-(--cv-space-xl)">
           <div
-            class="rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--p-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--p-green-500)_12%,transparent)] p-(--cv-space-xl) text-(length:--cv-font-size-lg) font-semibold text-(--p-green-500)"
+            class="rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--p-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--p-green-500)_12%,transparent)] p-(--cv-space-xl) text-(length:--cv-font-size-base) font-semibold text-(--p-green-500)"
           >
             <i class="fa-solid fa-circle-check mr-2"></i>测试成功！接口响应正常
           </div>
-          <div class="mb-(--cv-space-md) text-(length:--cv-font-size-md) font-semibold text-(--cv-on-surface-variant)">
+          <div class="mb-(--cv-space-md) text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)">
             原始响应文本
           </div>
           <pre
-            class="m-0 max-h-[12.5rem] overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm) text-(--cv-on-surface) break-all"
+            class="m-0 max-h-[12.5rem] overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--cv-on-surface) break-all"
           >{{ testResponseRaw }}</pre>
         </div>
         <div v-else-if="testStatus === 'error'" class="flex flex-col gap-(--cv-space-xl)">
           <div
-            class="rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--p-red-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--p-red-500)_12%,transparent)] p-(--cv-space-xl) text-(length:--cv-font-size-lg) font-semibold text-(--p-red-500)"
+            class="rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--p-red-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--p-red-500)_12%,transparent)] p-(--cv-space-xl) text-(length:--cv-font-size-base) font-semibold text-(--p-red-500)"
           >
             <i class="fa-solid fa-circle-exclamation mr-2"></i>测试失败
           </div>
-          <div class="mb-(--cv-space-md) text-(length:--cv-font-size-md) font-semibold text-(--cv-on-surface-variant)">
+          <div class="mb-(--cv-space-md) text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)">
             错误详情
           </div>
           <pre
-            class="m-0 max-h-[18.75rem] overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm) text-(--p-red-500) break-all"
+            class="m-0 max-h-[18.75rem] overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--p-red-500) break-all"
           >{{ testError }}</pre>
         </div>
       </div>
@@ -78,10 +78,10 @@
             :key="row.label"
             class="flex items-center justify-between gap-(--cv-space-xl) border-b border-(--cv-surface-variant) pb-(--cv-space-xl) last:border-b-0 last:pb-0"
           >
-            <span class="text-(length:--cv-font-size-md) text-(--cv-on-surface-variant)">{{ row.label }}</span>
+            <span class="text-(length:--cv-font-size-base) text-(--cv-on-surface-variant)">{{ row.label }}</span>
             <span
               class="break-all whitespace-normal text-right text-(--cv-on-surface)"
-              :class="row.code && 'font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm)'"
+              :class="row.code && 'font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs)'"
             >{{ row.value }}</span>
           </div>
         </div>
@@ -95,7 +95,7 @@
         class="overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl)"
       >
         <pre
-          class="m-0 max-h-[18.75rem] overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-sm) text-(--cv-on-surface) break-all"
+          class="m-0 max-h-[18.75rem] overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--cv-on-surface) break-all"
         >{{ sentPromptText || '尚未发送测试请求' }}</pre>
       </div>
     </div>

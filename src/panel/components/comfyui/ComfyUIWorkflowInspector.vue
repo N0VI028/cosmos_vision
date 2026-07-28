@@ -2,7 +2,7 @@
   <!-- 非全屏且无节点选中时展示空状态 -->
   <div
     v-if="!fullscreen && (!nodeId || !node)"
-    class="rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-5xl) text-center text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant)"
+    class="rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-5xl) text-center text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
   >
     点击画布节点以编辑参数
   </div>
@@ -30,7 +30,7 @@
           class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)"
         >{{ displayName }}</span>
         <span
-          class="shrink-0 font-mono text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant)"
+          class="shrink-0 font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
         >#{{ nodeId }}</span>
       </div>
       <div class="flex shrink-0 items-center gap-(--cv-space-md)" @click.stop>
@@ -57,12 +57,12 @@
           class="flex min-h-11 items-center justify-between gap-(--cv-space-lg) bg-(--cv-surface-container) px-(--cv-space-xl) py-(--cv-space-md)"
         >
           <div
-            class="flex min-w-0 items-center gap-(--cv-space-sm) text-(length:--cv-font-size-sm) font-semibold text-(--cv-on-surface)"
+            class="flex min-w-0 items-center gap-(--cv-space-sm) text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)"
           >
             <i class="fa-solid fa-sliders w-4 text-center text-(--cv-on-surface-variant)" aria-hidden="true" />
             <span>可调参数</span>
             <span
-              class="min-w-5 rounded-full bg-(--cv-surface-container-highest) px-(--cv-space-xs) py-[0.05rem] text-center font-mono text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)"
+              class="min-w-5 rounded-full bg-(--cv-surface-container-highest) px-(--cv-space-xs) py-[0.05rem] text-center font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
             >{{ parameterCount }}</span>
           </div>
         </div>
@@ -101,12 +101,12 @@
           class="flex min-h-11 items-center justify-between gap-(--cv-space-lg) bg-(--cv-surface-container) px-(--cv-space-xl) py-(--cv-space-md)"
         >
           <div
-            class="flex min-w-0 items-center gap-(--cv-space-sm) text-(length:--cv-font-size-sm) font-semibold text-(--cv-on-surface)"
+            class="flex min-w-0 items-center gap-(--cv-space-sm) text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)"
           >
             <i class="fa-solid fa-arrow-right-to-bracket w-4 text-center text-(--cv-on-surface-variant)" aria-hidden="true" />
             <span>输入</span>
             <span
-              class="min-w-5 rounded-full bg-(--cv-surface-container-highest) px-(--cv-space-xs) py-[0.05rem] text-center font-mono text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)"
+              class="min-w-5 rounded-full bg-(--cv-surface-container-highest) px-(--cv-space-xs) py-[0.05rem] text-center font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
             >{{ inputControls.length }}</span>
           </div>
         </div>
@@ -117,12 +117,12 @@
             class="group/port flex min-h-10 items-center justify-between gap-(--cv-space-xl) border-b-(length:--cv-border-width) border-b-solid border-b-(--cv-surface-variant) py-(--cv-space-sm) last:border-b-0"
           >
             <div class="flex min-w-0 items-center gap-(--cv-space-sm)">
-              <span class="min-w-7 font-mono text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)">IN</span>
+              <span class="min-w-7 font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">IN</span>
               <span
-                class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-sm) font-semibold text-(--cv-on-surface)"
+                class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)"
               >{{ control.label }}</span>
               <span
-                class="rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-outline) px-(--cv-space-sm) py-[0.1rem] font-mono text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)"
+                class="rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-outline) px-(--cv-space-sm) py-[0.1rem] font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
               >{{ control.dataType ?? 'UNKNOWN' }}</span>
             </div>
             <div class="flex shrink-0 items-center gap-(--cv-space-lg)">
@@ -146,12 +146,12 @@
           class="flex min-h-11 items-center justify-between gap-(--cv-space-lg) bg-(--cv-surface-container) px-(--cv-space-xl) py-(--cv-space-md)"
         >
           <div
-            class="flex min-w-0 items-center gap-(--cv-space-sm) text-(length:--cv-font-size-sm) font-semibold text-(--cv-on-surface)"
+            class="flex min-w-0 items-center gap-(--cv-space-sm) text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)"
           >
             <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center text-(--cv-on-surface-variant)" aria-hidden="true" />
             <span>输出</span>
             <span
-              class="min-w-5 rounded-full bg-(--cv-surface-container-highest) px-(--cv-space-xs) py-[0.05rem] text-center font-mono text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)"
+              class="min-w-5 rounded-full bg-(--cv-surface-container-highest) px-(--cv-space-xs) py-[0.05rem] text-center font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
             >{{ outputs.length }}</span>
           </div>
         </div>
@@ -162,16 +162,16 @@
             class="group/port flex min-h-10 items-center justify-between gap-(--cv-space-xl) border-b-(length:--cv-border-width) border-b-solid border-b-(--cv-surface-variant) py-(--cv-space-sm) last:border-b-0"
           >
             <div class="flex min-w-0 items-center gap-(--cv-space-sm)">
-              <span class="min-w-7 font-mono text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)">{{ output.index }}</span>
+              <span class="min-w-7 font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">{{ output.index }}</span>
               <span
-                class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-sm) font-semibold text-(--cv-on-surface)"
+                class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)"
               >{{ output.name }}</span>
               <span
-                class="rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-outline) px-(--cv-space-sm) py-[0.1rem] font-mono text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant)"
+                class="rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-outline) px-(--cv-space-sm) py-[0.1rem] font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
               >{{ output.type }}</span>
               <span
                 v-if="output.isList"
-                class="rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--p-primary-color) px-(--cv-space-sm) py-[0.1rem] font-mono text-(length:--cv-font-size-2xs) text-(--p-primary-color)"
+                class="rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--p-primary-color) px-(--cv-space-sm) py-[0.1rem] font-mono text-(length:--cv-font-size-xs) text-(--p-primary-color)"
               >LIST</span>
             </div>
             <div class="flex shrink-0 items-center gap-(--cv-space-lg)">

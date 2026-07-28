@@ -184,13 +184,13 @@
           />
           <div v-if="isV3Model" class="flex flex-wrap items-center gap-(--cv-space-xl)">
             <label
-              class="inline-flex min-h-7 items-center gap-(--cv-space-lg) text-(length:--cv-font-size-md) text-(--cv-on-surface)"
+              class="inline-flex min-h-7 items-center gap-(--cv-space-lg) text-(length:--cv-font-size-base) text-(--cv-on-surface)"
             >
               <Checkbox v-model="settings.novelai.smea" binary />
               <span class="min-w-0 leading-[1.35]">SMEA</span>
             </label>
             <label
-              class="inline-flex min-h-7 items-center gap-(--cv-space-lg) text-(length:--cv-font-size-md)"
+              class="inline-flex min-h-7 items-center gap-(--cv-space-lg) text-(length:--cv-font-size-base)"
               :class="
                 settings.novelai.smea
                   ? 'text-(--cv-on-surface)'
@@ -248,7 +248,7 @@
           </div>
           <label
             v-if="isV4OnlyModel"
-            class="inline-flex min-h-7 items-center gap-(--cv-space-lg) self-start text-(length:--cv-font-size-md) text-(--cv-on-surface)"
+            class="inline-flex min-h-7 items-center gap-(--cv-space-lg) self-start text-(length:--cv-font-size-base) text-(--cv-on-surface)"
           >
             <Checkbox v-model="settings.novelai.legacyPromptMode" binary />
             <span class="min-w-0 leading-[1.35]">旧版提示词条件模式（不推荐）</span>

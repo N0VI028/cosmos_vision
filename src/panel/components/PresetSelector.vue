@@ -7,6 +7,7 @@
       option-value="id"
       placeholder="选择预设"
       class="cv-preset-select"
+      :dt="PRESET_SELECT_DT"
       :pt="PRESET_SELECT_PT"
       @update:model-value="$emit('update:activePresetId', $event)"
     />
@@ -93,6 +94,24 @@ const emit = defineEmits<{
   'import-presets': [file: File];
   'delete-preset': [id: string];
 }>();
+const PRESET_SELECT_DT = {
+  background: 'transparent',
+  disabledBackground: 'transparent',
+  filledBackground: 'transparent',
+  filledHoverBackground: 'transparent',
+  filledFocusBackground: 'transparent',
+  borderColor: 'transparent',
+  hoverBorderColor: 'transparent',
+  focusBorderColor: 'transparent',
+  color: 'var(--p-primary-color)',
+  placeholderColor: 'var(--p-primary-color)',
+  shadow: 'none',
+  paddingX: '0',
+  paddingY: '0',
+  dropdownColor: 'var(--p-primary-color)',
+  fontSize: 'var(--cv-font-size-xs)',
+} as const;
+
 const PRESET_SELECT_PT = {
   label: { class: 'cv-prime-field-text cv-preset-select-label' },
   dropdown: { class: 'cv-preset-select-dropdown' },
@@ -165,29 +184,12 @@ async function handleDeleteActiveClick(): Promise<void> {
 
 /**
  * 伪装链接式 Select：无边框、无底色，主色文字
- * 局部覆写 --p-select-* 以压过全局 formField / Select token
  */
 .cv-preset-select {
-  --p-select-background: transparent;
-  --p-select-disabled-background: transparent;
-  --p-select-filled-background: transparent;
-  --p-select-filled-hover-background: transparent;
-  --p-select-filled-focus-background: transparent;
-  --p-select-border-color: transparent;
-  --p-select-hover-border-color: transparent;
-  --p-select-focus-border-color: transparent;
-  --p-select-color: var(--p-primary-color);
-  --p-select-placeholder-color: var(--p-primary-color);
-  --p-select-shadow: none;
-  --p-select-padding-x: 0;
-  --p-select-padding-y: 0;
-  --p-select-dropdown-color: var(--p-primary-color);
   @apply inline-flex min-w-0 cursor-pointer items-center border-0 bg-transparent p-0 shadow-none;
   flex: 0 1 9em;
-  width: 9em !important;
-  height: auto !important;
-  color: var(--p-primary-color) !important;
-  font-size: var(--cv-font-size-sm) !important;
+  width: 9em;
+  height: auto;
   font-weight: 600;
 }
 
@@ -217,7 +219,7 @@ async function handleDeleteActiveClick(): Promise<void> {
 
   .cv-preset-select {
     flex: 1 1 auto;
-    width: auto !important;
+    width: auto;
     @apply min-w-0;
   }
 

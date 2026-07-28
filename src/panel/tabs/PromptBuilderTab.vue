@@ -33,7 +33,7 @@
           <span>提示词生成预设</span>
           <div
             v-if="isDefaultPresetActive"
-            class="inline-flex size-[1.65em] shrink-0 cursor-pointer items-center justify-center rounded-(--cv-radius-sm) text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out outline-none hover:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] hover:text-(--p-red-500) focus-visible:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] focus-visible:text-(--p-red-500)"
+            class="inline-flex size-[1.65em] shrink-0 cursor-pointer items-center justify-center rounded-(--cv-radius-sm) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out outline-none hover:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] hover:text-(--p-red-500) focus-visible:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] focus-visible:text-(--p-red-500)"
             role="button"
             tabindex="0"
             title="重置内置预设"
@@ -69,7 +69,7 @@
       <h2 class="cv-section-title mt-(--cv-space-10xl) mb-0 inline-flex items-center gap-(--cv-space-sm)">
         <span>Tag提取规则</span>
         <div
-          class="inline-flex size-[1.65em] shrink-0 cursor-pointer items-center justify-center rounded-(--cv-radius-sm) text-(length:--cv-font-size-2xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out outline-none hover:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] hover:text-(--p-red-500) focus-visible:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] focus-visible:text-(--p-red-500)"
+          class="inline-flex size-[1.65em] shrink-0 cursor-pointer items-center justify-center rounded-(--cv-radius-sm) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out outline-none hover:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] hover:text-(--p-red-500) focus-visible:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] focus-visible:text-(--p-red-500)"
           role="button"
           tabindex="0"
           title="重置为默认值"
@@ -105,7 +105,7 @@
       />
       <template v-if="extractMode === 'json'">
         <div>
-          <span class="mt-(--cv-space-lg) block text-(length:--cv-font-size-2xs) font-semibold text-(--cv-on-surface-variant)">全局提示词</span>
+          <span class="mt-(--cv-space-lg) block text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface-variant)">全局提示词</span>
           <Divider />
           <div class="cv-field-grid">
             <label class="cv-field"><span>正面 JSON 字段名</span><InputText v-model="settings.promptLlm.positivePromptJsonField" /></label>
@@ -113,7 +113,7 @@
           </div>
         </div>
         <div>
-          <span class="mt-(--cv-space-lg) block text-(length:--cv-font-size-2xs) font-semibold text-(--cv-on-surface-variant)">NovelAI 角色提示词</span>
+          <span class="mt-(--cv-space-lg) block text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface-variant)">NovelAI 角色提示词</span>
           <Divider />
           <div class="cv-field-grid">
             <label class="cv-field"><span>角色数组字段名</span><InputText v-model="settings.promptLlm.characterPromptsJsonField" /></label>
@@ -127,7 +127,7 @@
       </template>
       <template v-else>
         <div>
-          <span class="mt-(--cv-space-lg) block text-(length:--cv-font-size-2xs) font-semibold text-(--cv-on-surface-variant)">全局提示词</span>
+          <span class="mt-(--cv-space-lg) block text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface-variant)">全局提示词</span>
           <Divider />
           <div class="cv-field-grid">
             <label v-for="field in promptExtractRuleFields" :key="field.label" class="cv-field">
@@ -137,7 +137,7 @@
           </div>
         </div>
         <div>
-          <span class="mt-(--cv-space-lg) block text-(length:--cv-font-size-2xs) font-semibold text-(--cv-on-surface-variant)">NovelAI 角色提示词</span>
+          <span class="mt-(--cv-space-lg) block text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface-variant)">NovelAI 角色提示词</span>
           <Divider />
           <div class="cv-field-grid items-end">
             <label v-for="field in characterExtractRuleFields" :key="field.label" class="cv-field">

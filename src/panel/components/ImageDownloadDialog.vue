@@ -37,7 +37,7 @@
         <div class="flex flex-col gap-(--cv-space-lg)">
           <div class="flex flex-col gap-(--cv-space-xs)">
             <span>JPG 压缩质量</span>
-            <span class="text-(length:--cv-font-size-sm) font-semibold text-(--cv-on-surface)"
+            <span class="text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)"
               >{{ jpgQualityPercent }}%</span
             >
           </div>

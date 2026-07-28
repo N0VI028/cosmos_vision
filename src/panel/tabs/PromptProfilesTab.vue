@@ -80,7 +80,7 @@
 
             <template v-if="person.insertMode === 'keyword'">
               <h3
-                class="mt-(--cv-space-5xl) mb-(--cv-space-xl) text-(length:--cv-font-size-lg) font-bold text-(--cv-on-surface) first:mt-0"
+                class="mt-(--cv-space-5xl) mb-(--cv-space-xl) text-(length:--cv-font-size-base) font-bold text-(--cv-on-surface) first:mt-0"
               >
                 关键词
               </h3>
@@ -100,7 +100,7 @@
 
             <div :data-cv-tutorial="isTutorialMockPersonId(person.id) ? 'prompt-profiles-static-tags' : undefined">
               <div class="mt-(--cv-space-5xl) mb-(--cv-space-xl) flex items-center justify-between">
-                <h3 class="m-0 shrink-0 text-(length:--cv-font-size-lg) font-bold text-(--cv-on-surface)">固定 tag</h3>
+                <h3 class="m-0 shrink-0 text-(length:--cv-font-size-base) font-bold text-(--cv-on-surface)">固定 tag</h3>
                 <CvMiniButton
                   label="从资料解析"
                   icon="fa-regular fa-dice-d20"
@@ -122,7 +122,7 @@
             </div>
 
             <h3
-              class="mt-(--cv-space-5xl) mb-(--cv-space-xl) text-(length:--cv-font-size-lg) font-bold text-(--cv-on-surface) first:mt-0"
+              class="mt-(--cv-space-5xl) mb-(--cv-space-xl) text-(length:--cv-font-size-base) font-bold text-(--cv-on-surface) first:mt-0"
             >
               人物模板条目
             </h3>
@@ -181,7 +181,7 @@
         >
           <i :class="[option.icon, 'mt-(--cv-space-xs) text-(--cv-on-surface-variant)']" />
           <span class="flex min-w-0 flex-col gap-(--cv-space-xs)">
-            <span class="text-(length:--cv-font-size-md) font-semibold">{{ option.label }}</span>
+            <span class="text-(length:--cv-font-size-base) font-semibold">{{ option.label }}</span>
             <span class="text-(length:--cv-font-size-xs) leading-[1.35] text-(--cv-on-surface-variant) whitespace-normal">{{
               option.description
             }}</span>

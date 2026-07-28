@@ -86,7 +86,7 @@ const toneColor = computed(() => TONE_COLOR_MAP[props.tone]);
 const hoverColor = computed(() => TONE_HOVER_COLOR_MAP[props.tone]);
 const buttonTokens = computed(() => buildButtonTokens(toneColor.value));
 const buttonStyle = computed(() => ({
-  fontSize: 'var(--cv-font-size-2xs)',
+  fontSize: 'var(--cv-font-size-xs)',
   color: toneColor.value,
   // 供 hover 混色使用（对齐 .cv-preset-btn）
   '--cv-mini-btn-hover': hoverColor.value,
