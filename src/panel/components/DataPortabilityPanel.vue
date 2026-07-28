@@ -27,7 +27,6 @@
         <Button
           label="导出 JSON"
           icon="fa-solid fa-file-import"
-          size="small"
           :loading="exportBusy"
           :disabled="!exportSections.length"
           @click="exportData"
@@ -39,7 +38,7 @@
     <div class="cv-section-body flex flex-col">
       <div class="flex flex-wrap items-center justify-between gap-(--cv-space-lg)">
         <input ref="fileInput" type="file" accept="application/json,.json" class="hidden" @change="handleFileChange" />
-        <Button label="选择 JSON" icon="fa-solid fa-file-import" size="small" severity="secondary" @click="openFilePicker" />
+        <Button label="选择 JSON" icon="fa-solid fa-file-import" severity="secondary" @click="openFilePicker" />
         <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
           >导入前只预览识别到的数据，不会自动覆盖当前设置。</span
         >
@@ -81,7 +80,6 @@
           <Button
             label="导入选中"
             icon="fa-solid fa-upload"
-            size="small"
             :loading="importBusy"
             :disabled="!importSections.length"
             @click="importData"
@@ -98,7 +96,6 @@
             label="重置为默认设置"
             icon="fa-solid fa-rotate-left"
             severity="danger"
-            size="small"
             @click="handleReset"
           />
           <div class="cv-field-hint">将所有设置恢复为默认值，此操作不可撤销</div>

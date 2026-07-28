@@ -1,6 +1,6 @@
 <template>
   <section
-    class="my-(--cv-space-10xl) overflow-hidden rounded-(--cv-radius-lg) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) border-t-(--cv-surface-bright) bg-(--cv-surface-container)"
+    class="my-(--cv-space-10xl) overflow-hidden rounded-(--cv-radius-lg) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) border-t-(--cv-surface-bright) bg-(--cv-surface-container) p-0!"
   >
     <!-- 空态:未填接口密钥 -->
     <template v-if="isKeyEmpty">

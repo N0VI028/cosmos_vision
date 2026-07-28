@@ -6,7 +6,6 @@
           label="新建人物"
           icon="fa-solid fa-user-plus"
           outlined
-          size="small"
           class="w-full"
           @click="createBlankPerson"
         />

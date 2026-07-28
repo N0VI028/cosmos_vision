@@ -1,7 +1,7 @@
 <template>
   <div class="cv-field">
     <div class="flex flex-col items-start justify-start gap-(--cv-space-xl) font-semibold">
-      <Button label="添加" icon="fa-solid fa-plus" size="small" :disabled="isAppendingFiles" @click="triggerFileInput" />
+      <Button label="添加" icon="fa-solid fa-plus" :disabled="isAppendingFiles" @click="triggerFileInput" />
       <input
         ref="fileInput"
         type="file"

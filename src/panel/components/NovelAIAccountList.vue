@@ -3,7 +3,7 @@
     <div class="flex w-full flex-col gap-(--cv-space-md)">
       <div class="shrink-0 whitespace-nowrap font-semibold text-(--cv-on-surface)">账号列表</div>
       <div class="mt-(--cv-space-sm) flex justify-start">
-        <Button label="新增账号" icon="fa-solid fa-plus" size="small" @click="addAccount" />
+        <Button label="新增账号" icon="fa-solid fa-plus" @click="addAccount" />
       </div>
     </div>
 

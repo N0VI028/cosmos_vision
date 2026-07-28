@@ -715,19 +715,29 @@ export const cosmosPrimePreset = definePreset(Aura, {
       shadow: 'none',
     },
     formField: {
+      fontSize: 'var(--cv-font-size-base)',
       paddingX: 'var(--cv-space-5xl)',
       paddingY: 'var(--cv-space-lg)',
       sm: {
+        fontSize: 'var(--cv-font-size-xs)',
         paddingX: 'var(--cv-space-4xl)',
         paddingY: 'var(--cv-space-sm)',
       },
       lg: {
+        fontSize: 'var(--cv-font-size-lg)',
         paddingX: 'var(--cv-space-5xl)',
         paddingY: 'var(--cv-space-lg)',
       },
       borderRadius: 'var(--cv-radius-full)',
     },
-    // 非颜色：overlay 结构尺寸（颜色见 colorScheme）
+    list: {
+      option: {
+        fontSize: 'var(--cv-font-size-base)',
+      },
+      optionGroup: {
+        fontSize: 'var(--cv-font-size-base)',
+      },
+    },
     overlay: {
       select: {
         borderRadius: 'var(--cv-radius-lg)',
@@ -828,11 +838,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
         gutterEnd: '0.375em',
       },
     },
-    // Button：结构尺寸走 root；颜色走 colorScheme 覆盖 Aura surface 灰阶
-    // 默认圆角 --cv-radius（0.5em，非 pill）；rounded 变体走 roundedBorderRadius full
-    // focusRing 清零对齐全局表单；primary solid/text/outlined 继续继承 Aura primary 语义
-    // secondary 实心/描边/文字改 cv surface；outlined secondary 边框对齐 form.field
-    // CvMiniButton 紧凑变体用局部 :dt（getMiniButtonRootTokens），不污染全局
     button: {
       root: {
         borderRadius: 'var(--cv-radius)',
@@ -840,13 +845,20 @@ export const cosmosPrimePreset = definePreset(Aura, {
         gap: '0.5em',
         iconOnlyWidth: '2.5em',
         badgeSize: '1em',
+        fontSize: 'var(--cv-font-size-base)',
         focusRing: {
           width: '0',
           style: 'none',
           offset: '0',
         },
-        sm: { iconOnlyWidth: '2em' },
-        lg: { iconOnlyWidth: '3em' },
+        sm: {
+          fontSize: 'var(--cv-font-size-xs)',
+          iconOnlyWidth: '2em',
+        },
+        lg: {
+          fontSize: 'var(--cv-font-size-lg)',
+          iconOnlyWidth: '3em',
+        },
       },
       colorScheme: {
         light: {
@@ -867,10 +879,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
         background: 'transparent',
       },
     },
-    // MultiSelect / Panel / TreeTable / DataTable：业务未使用，未预留配置
-    // Checkbox：非颜色尺寸走 root；颜色走 colorScheme（覆盖 Aura primary solid / form.field 引用）
-    // PT 锚点 + st-host-resets 反压 ST 对 input[type=checkbox] 的尺寸/伪元素污染
-    // width/height/icon.size 沿用 Aura 默认，不在此硬改
     checkbox: {
       root: {
         borderRadius: 'var(--cv-radius-sm)',
@@ -881,8 +889,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
       },
     },
     textarea: { root: { borderRadius: 'var(--cv-radius-md)' } },
-    // InputNumber：按钮非颜色尺寸走 root.button；颜色走 colorScheme 覆盖 Aura surface 灰阶
-    // 内嵌 pcInputText 继承 formField / InputText，不在此重复写 input 色
     inputnumber: {
       button: {
         width: '2.25em',
@@ -893,8 +899,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: { button: inputNumberButtonColor },
       },
     },
-    // Password：非颜色尺寸走 root；颜色走 colorScheme
-    // 内嵌 pcInputText 继承 formField / InputText；toggle 右内边距由官方 :has 规则算 form.field.padding.x
     password: {
       content: { gap: 'var(--cv-space-md)' },
       meter: {
@@ -911,8 +915,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: passwordColor,
       },
     },
-    // Message：非颜色尺寸走 root/content/text/closeButton；severity 色走 colorScheme
-    // 覆盖 Aura blue/green/… 与 surface 灰阶 secondary；close focusRing 清零
     message: {
       root: {
         borderRadius: 'var(--cv-radius-lg)',
@@ -955,14 +957,12 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: messageColor,
       },
     },
-    // ProgressSpinner：仅 root 四色；官方样式 circle-track 读 content.border，range 动画读 color.*
     progressspinner: {
       colorScheme: {
         light: progressSpinnerColor,
         dark: progressSpinnerColor,
       },
     },
-    // Skeleton：圆角非颜色走 root；底/扫光色走 colorScheme（覆盖 Aura surface 灰阶）
     skeleton: {
       root: {
         borderRadius: 'var(--cv-radius-sm)',
@@ -972,10 +972,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: skeletonColor,
       },
     },
-    // Slider：非颜色尺寸走 root；颜色走 colorScheme（覆盖 Aura content.border / primary / surface 灰阶）
-    // range 空对象阻止继承 Aura root 层 range.background 与 colorScheme 冲突
-    // token 无 handle.border；外圈描边用组件级 css 扩展补齐（指向 PT 语义锚点，不依赖 .p-* 内部命名）
-    // focusRing 清零对齐表单控件（全局不画外圈）
     slider: {
       css: `
         .cosmos-vision-root .cv-prime-slider-handle,
@@ -1014,9 +1010,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: sliderColor,
       },
     },
-    // ToggleSwitch：非颜色尺寸走 root/handle；颜色走 colorScheme（覆盖 Aura surface/primary solid）
-    // PT 锚点 + st-host-resets 反压 ST 对 input[type=checkbox] 的 margin/transform/::before
-    // 业务紧凑变体用局部 :dt 覆盖 width/height/handle.size（见账号列表 / 人物条目）
     toggleswitch: {
       root: {
         width: '2.5em',
@@ -1035,7 +1028,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: toggleSwitchColorDark,
       },
     },
-    // ToggleButton：尺寸与结构走 root/content/sm；颜色走 colorScheme.light/dark
     togglebutton: {
       root: {
         padding: '0',
@@ -1068,8 +1060,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: toggleButtonColorDark,
       },
     },
-    // SelectButton：仅 root 容器 token；子项视觉走 togglebutton + pcToggleButton
-    // Aura 默认是连体 segmented，本项目用独立 pill + gap（bridge 覆盖硬编码边框）
     selectbutton: {
       root: {
         borderRadius: 'var(--cv-radius-full)',
@@ -1087,8 +1077,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
         },
       },
     },
-    // Tag：非颜色尺寸走 root；severity 色走 colorScheme 覆盖 Aura surface/primary 灰阶
-    // PT 锚点见 primevue-pt tag.*；业务紧凑变体用 class + --p-tag-font-size / padding
     tag: {
       root: {
         fontSize: 'var(--cv-font-size-xs)',
@@ -1106,8 +1094,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: tagColor,
       },
     },
-    // Card：默认数据卡表面；CvDataCard 局部 :dt 与 scoped 边框状态覆盖
-    // 颜色走 colorScheme；body 零 padding 交给内容自管
     card: {
       root: {
         borderRadius: 'var(--cv-radius-sm)',
@@ -1121,8 +1107,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: cardColor,
       },
     },
-    // Accordion：全局透明壳；边框/底色由 CollapsiblePanelItem / TriggerEditor 业务壳承担
-    // 颜色拆 colorScheme；focusRing 清零对齐表单控件
     accordion: {
       panel: {
         borderWidth: '0',
@@ -1130,6 +1114,7 @@ export const cosmosPrimePreset = definePreset(Aura, {
       header: {
         borderWidth: '0',
         padding: 'var(--cv-space-2xl)',
+        fontSize: 'var(--cv-font-size-base)',
         focusRing: {
           width: '0',
           style: 'none',
@@ -1147,7 +1132,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: accordionColor,
       },
     },
-    // Galleria：inline 画廊无边框；导航/缩略图色走 colorScheme；业务布局见 inline-image.css
     galleria: {
       root: {
         borderWidth: '0',
@@ -1169,7 +1153,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: galleriaColor,
       },
     },
-    // FileUpload：默认对齐 WD Tagger 上传区；业务仍可局部 :dt 覆盖
     fileupload: {
       root: {
         borderRadius: 'var(--cv-radius-md)',
@@ -1189,18 +1172,12 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: fileUploadColor,
       },
     },
-    // Divider：线色 colorScheme；水平保留 Aura 默认外边距（Tag 提取规则分组线）
-    // 紧凑场景（Comfy inspector）用局部 :dt horizontal.margin:0
     divider: {
       colorScheme: {
         light: dividerColor,
         dark: dividerColor,
       },
     },
-    // Dialog：非颜色尺寸走 root；颜色走 colorScheme（覆盖 Aura overlay.modal surface 灰阶）
-    // padding 对齐确认框默认（header 顶+侧 / content 全侧 / footer 底+侧）
-    // 设置主壳 Dialog 用 contentStyle padding:0 覆盖；showHeader=false 不读 header padding
-    // PT 锚点见 primevue-pt dialog.*；Teleport 根 class 含 cosmos-vision-root
     dialog: {
       root: {
         borderRadius: 'var(--cv-radius-lg)',
@@ -1225,9 +1202,6 @@ export const cosmosPrimePreset = definePreset(Aura, {
         dark: dialogColor,
       },
     },
-    // Popover：非颜色 gutter/radius/content.padding 走 root；颜色走 colorScheme
-    // 业务紧凑变体（宏插入/绑定）可用局部 :dt 覆盖 padding/gutter
-    // PT root 必须带 cosmos-vision-root（Teleport 到 body）
     popover: {
       root: {
         borderRadius: 'var(--cv-radius)',

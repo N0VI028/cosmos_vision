@@ -75,6 +75,8 @@ const BUTTON_PT = {
   root: {
     class: 'cv-prime-button',
     style: {
+      // 字号对齐主题切换 SelectButton（bridge .cv-prime-togglebutton 的 xs）
+      '--p-button-font-size': 'var(--cv-font-size-xs)',
       '--p-button-padding-y': '0',
       '--p-button-padding-x': 'var(--cv-space-md)',
       '--p-button-icon-only-width': '2em',
