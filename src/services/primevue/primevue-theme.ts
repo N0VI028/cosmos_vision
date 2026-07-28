@@ -798,7 +798,13 @@ export const cosmosPrimePreset = definePreset(Aura, {
     // focusRing 显式清零 → 官方 .p-select.p-focus 的 outline/box-shadow 走 select.focus.ring.*
     // 内嵌 input.p-select-label 的 ST input:focus-visible 不在 token 范围，见 pt 锚点 + host-resets
     // 颜色仍走 semantic.formField + bridge 中 --p-overlay-select / --p-list-option / --p-select-*
+    // token 只有统一 option.borderRadius；选中态胶囊圆角需状态选择器 → 组件级 css 扩展指向 PT 锚点
     select: {
+      css: `
+        .cosmos-vision-root .cv-select-option[data-p-selected='true'] {
+          border-radius: var(--cv-radius-full);
+        }
+      `,
       root: {
         focusRing: {
           width: '0',
@@ -968,9 +974,15 @@ export const cosmosPrimePreset = definePreset(Aura, {
     },
     // Slider：非颜色尺寸走 root；颜色走 colorScheme（覆盖 Aura content.border / primary / surface 灰阶）
     // range 空对象阻止继承 Aura root 层 range.background 与 colorScheme 冲突
-    // handle 无 border token；外圈描边仍见 fallbacks 中 .cv-prime-slider-handle
+    // token 无 handle.border；外圈描边用组件级 css 扩展补齐（指向 PT 语义锚点，不依赖 .p-* 内部命名）
     // focusRing 清零对齐表单控件（全局不画外圈）
     slider: {
+      css: `
+        .cosmos-vision-root .cv-prime-slider-handle,
+        #cosmos_vision .cv-prime-slider-handle {
+          border: var(--cv-border-width) solid var(--cv-outline);
+        }
+      `,
       root: {
         transitionDuration: 'var(--p-transition-duration, 0.2s)',
       },

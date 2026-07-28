@@ -1,7 +1,7 @@
 @reference '../../global.css';
 
 /**
- * Batch B3 残留：设置 Dialog 业务壳设计系统（非 PrimeVue 视觉覆盖）
+ * 设置 Dialog 业务壳设计系统（非 PrimeVue 视觉覆盖，非兜底层）
  *
  * 为何不迁 Tailwind 行内：
  * 1. 共享契约：`cv-field*` / `cv-section-*` / `cv-confirm-*` / `custom-scrollbar`
@@ -11,11 +11,9 @@
  * 3. 子选择器：`.cv-section-body > *` 圆角/padding、`:is(.cv-field > span, …)`
  *    标签字样，token/PT 无法表达「任意子节点」约定。
  * 4. 伪元素：`.custom-scrollbar::-webkit-scrollbar*` 仅 CSS 可写。
- * 5. 主题变体：`.cv-theme-toggle` 作用域内覆写 `--p-togglebutton-*`
- *    （中性 surface 选中，非 primary-container）—— Phase 1 SelectButton 回合保留。
  *
  * 迁移条件：抽出共享 utility 组件 / `@utility` 层，且全仓替换 `cv-field*` 锚点后可再评估。
- * 无 `.p-*` / `:deep`；非 fallbacks。
+ * 无 `.p-*` / `:deep`。
  */
 
 .cosmos-vision-root .cv-shell {

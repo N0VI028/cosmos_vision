@@ -4,7 +4,7 @@
  * - theme 保持 layered：只提供 token，不参与宿主标签样式竞争
  * - utilities 必须 unlayered：ST / UA 的 button、input 等标签规则是 unlayered，
  *   若 utilities 仍在 @layer utilities 内，再高特异性也压不过
- * - host resets / bridge / fallbacks 同样 unlayered，靠作用域选择器收敛影响面
+ * - host resets / bridge 同样 unlayered，靠作用域选择器收敛影响面
  */
 @layer theme, base, components;
 
@@ -20,9 +20,6 @@
 
 /* ST 宿主反压:处理 checkbox / input / button / text-shadow 等全局污染 */
 @import './styles/st-host-resets.css';
-
-/* CosmosVision 组件兜底:保留 token / PT 仍无法稳定表达的全局修正 */
-@import './styles/primevue-fallbacks.css';
 
 /* 隐藏 PrimeVue 5 社区许可证在局域网下的错误提示 */
 #p-license-host {

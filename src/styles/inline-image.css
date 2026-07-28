@@ -619,7 +619,10 @@ body.dark .cv-inline-toolbar {
 }
 
 /* 导航按钮：完全圆形 + 白底 + 主题色图标 */
+/* pointer-events 兜底：inline 容器级 pointer-events:none 级联 + ST 宿主拦截，导航必须显式恢复可点 */
 .cv-inline-gallery-strip-nav {
+  pointer-events: auto !important;
+  touch-action: manipulation;
   display: inline-flex !important;
   flex-shrink: 0 !important;
   align-items: center !important;
