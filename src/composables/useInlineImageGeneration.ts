@@ -95,6 +95,13 @@ interface InlineImageGenerationOptions {
   getDarkMode: () => boolean;
 }
 
+type FreshPromptMode = 'new' | 'repeat';
+
+interface SpecialRequestContext {
+  anchor: HTMLElement;
+  value: string;
+}
+
 interface InlineGenerationBatchResult {
   imageBlobs: Blob[];
   promptSnapshot: InlinePromptSnapshot;
@@ -137,6 +144,9 @@ export function useInlineImageGeneration(
 
   /** 是否处于段落生图选择模式 */
   const isSelectionMode = ref(false);
+
+  /** 当前段落生图上下文中的临时追加要求 */
+  let specialRequestContext: SpecialRequestContext | null = null;
 
   /** TH 风格画廊 runtime（cv-render + Teleport） */
   const imageGallery = useGalleryRuntimesStore();
@@ -309,7 +319,7 @@ export function useInlineImageGeneration(
     trigger.append(text, iconWrap);
     trigger.addEventListener('click', () => {
       const paragraphs = [...selectedParagraphs.value];
-      if (paragraphs.length) void handleGenerateWithFreshPrompt(paragraphs);
+      if (paragraphs.length) void handleGenerateWithFreshPrompt(paragraphs, 'new');
     });
 
     host.appendChild(trigger);
@@ -319,18 +329,30 @@ export function useInlineImageGeneration(
   /**
    * 重新让 LLM 生成提示词后生图
    * @param source 目标段落或连续段落列表
+   * @param mode 生成模式：新上下文不复用，重复生成复用同一锚点缓存
    */
-  async function handleGenerateWithFreshPrompt(source?: HTMLElement | HTMLElement[]): Promise<void> {
+  async function handleGenerateWithFreshPrompt(
+    source?: HTMLElement | HTMLElement[],
+    mode: FreshPromptMode = 'repeat',
+  ): Promise<void> {
     const paragraphs = resolveGenerationParagraphs(source);
     if (!paragraphs.length) return;
+
+    const anchor = paragraphs.at(-1)!;
+    const defaultValue = mode === 'repeat' && specialRequestContext?.anchor === anchor
+      ? specialRequestContext.value
+      : '';
     exitSelectionMode();
+
     const specialRequest = await requestTextInput({
       title: '本次临时追加要求',
       message: '可输入本次生图的临时追加要求，如无，可不填写直接确定',
+      defaultValue,
       rows: 4,
     });
     if (specialRequest === null) return;
-    const anchor = paragraphs.at(-1)!;
+
+    specialRequestContext = { anchor, value: specialRequest };
     await runImageGeneration(anchor, true, (session, onSnapshotResolved) =>
       generateImageResultFromContext(paragraphs, specialRequest, session, onSnapshotResolved),
     );
@@ -752,6 +774,7 @@ export function useInlineImageGeneration(
    * 清理所有临时图片与 Object URL
    */
   function cleanup(): void {
+    specialRequestContext = null;
     imageGallery.cleanup();
     exitSelectionMode();
     generationSession.cleanup();
