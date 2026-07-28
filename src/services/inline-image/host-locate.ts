@@ -1,7 +1,10 @@
 /**
  * DOM 宿主正文 ↔ message.mes 原文定位
- * 优先子串精确匹配，失败后规范空白/标点/markdown 噪声，再 seed+块尾与段落索引回退
+ * 优先子串精确匹配，失败后规范噪声、识别正则删文，再按 seed 与段落索引回退
  */
+
+const MIN_DELETION_COVERAGE = 0.35;
+const MIN_DELETION_MATCH_LENGTH = 16;
 
 export interface HostLocateQuery {
   host: string;
@@ -30,11 +33,75 @@ interface RawBlock {
  */
 export function locateHostEndInRaw(raw: string, query: HostLocateQuery): number | null {
   return (
-    locateByExactHost(raw, query.host, query.occurrence)
-    ?? locateByNormalizedHost(raw, query.host, query.occurrence)
-    ?? locateBySeedBlockEnd(raw, query.host, query.occurrence)
+    locateByDirectHost(raw, query.host, query.occurrence)
+    ?? locateByTransformedHost(raw, query.host, query.occurrence)
     ?? locateByParagraphIndex(raw, query.paragraphIndex, query.siblingHosts)
   );
+}
+
+/**
+ * 使用连续正文匹配宿主
+ * @param raw 原文
+ * @param host 宿主正文
+ * @param occurrence 0-based
+ * @returns 宿主尾部偏移或 null
+ */
+function locateByDirectHost(raw: string, host: string, occurrence: number): number | null {
+  return locateByExactHost(raw, host, occurrence) ?? locateByNormalizedHost(raw, host, occurrence);
+}
+
+/**
+ * 使用正则变形后的正文匹配宿主
+ * @param raw 原文
+ * @param host 宿主正文
+ * @param occurrence 0-based
+ * @returns 原始段落尾部偏移或 null
+ */
+function locateByTransformedHost(raw: string, host: string, occurrence: number): number | null {
+  return locateByOrderedDeletion(raw, host, occurrence) ?? locateBySeedBlockEnd(raw, host, occurrence);
+}
+
+/**
+ * 将正则删文后的 DOM 文本按有序子序列匹配回 raw 段落
+ * @param raw 原文
+ * @param host 宿主正文
+ * @param occurrence 0-based
+ * @returns 原始段落尾部偏移或 null
+ */
+function locateByOrderedDeletion(raw: string, host: string, occurrence: number): number | null {
+  const hostNorm = mapNormalize(host).normalized;
+  if (hostNorm.length < MIN_DELETION_MATCH_LENGTH) return null;
+  const candidates = splitRawBlocks(raw).filter(block => {
+    const blockNorm = mapNormalize(block.text).normalized;
+    return isHighConfidenceDeletionMatch(hostNorm, blockNorm);
+  });
+  return candidates[occurrence]?.end ?? null;
+}
+
+/**
+ * 判断宿主是否是原段落删文后的高置信结果
+ * @param hostNorm 规范化宿主文本
+ * @param blockNorm 规范化 raw 段落
+ * @returns 是否满足保留比例与有序匹配
+ */
+function isHighConfidenceDeletionMatch(hostNorm: string, blockNorm: string): boolean {
+  if (!blockNorm || hostNorm.length / blockNorm.length < MIN_DELETION_COVERAGE) return false;
+  return isOrderedSubsequence(hostNorm, blockNorm);
+}
+
+/**
+ * 判断 needle 的全部字符是否在 haystack 中保持原顺序
+ * @param needle 待匹配文本
+ * @param haystack 原始文本
+ * @returns 是否为有序子序列
+ */
+function isOrderedSubsequence(needle: string, haystack: string): boolean {
+  let needleIndex = 0;
+  for (const char of haystack) {
+    if (char === needle[needleIndex]) needleIndex += 1;
+    if (needleIndex === needle.length) return true;
+  }
+  return false;
 }
 
 /**
