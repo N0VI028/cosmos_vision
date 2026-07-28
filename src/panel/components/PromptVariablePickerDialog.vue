@@ -14,10 +14,10 @@
     :content-style="contentStyle"
     @show="onDialogShow"
   >
-    <div class="flex h-[32rem] max-h-[75vh] w-full flex-col gap-(--cv-space-lg) overflow-hidden">
+    <div class="flex h-[32rem] max-h-[calc(100dvh-9.5rem)] min-h-0 w-full flex-col gap-(--cv-space-md) overflow-hidden">
       <!-- 作用域切换按钮组与搜索框 -->
       <div class="flex shrink-0 flex-col gap-(--cv-space-md)">
-        <div class="grid w-full grid-cols-4 gap-(--cv-space-sm) max-[36rem]:grid-cols-2 max-[24rem]:grid-cols-1">
+        <div class="grid w-full grid-cols-4 gap-(--cv-space-sm) max-[36rem]:grid-cols-2">
           <Button
             v-for="scope in VARIABLE_SCOPES"
             :key="scope.type"
@@ -25,12 +25,12 @@
             :size="'small'"
             :severity="activeScope === scope.type ? 'primary' : 'secondary'"
             :outlined="activeScope !== scope.type"
-            class="w-full"
+            class="w-full px-1"
             @click="selectScope(scope.type)"
           />
         </div>
         <div class="relative w-full">
-          <InputText v-model="searchKeyword" placeholder="搜索变量名称、路径或摘要..." class="w-full text-(length:--cv-font-size-base)" />
+          <InputText v-model="searchKeyword" placeholder="搜索变量名称、路径或摘要..." size="small" class="w-full text-(length:--cv-font-size-base)" />
         </div>
       </div>
 
@@ -96,19 +96,19 @@
       </div>
 
       <!-- 底部预览与确认 -->
-      <div class="flex shrink-0 flex-col gap-(--cv-space-xs) pt-2">
+      <div class="flex shrink-0 flex-col gap-(--cv-space-xs) pt-1.5">
         <div v-if="selectedNode" class="flex flex-col gap-1 text-(length:--cv-font-size-xs)">
-          <div class="flex items-center gap-2 font-mono">
-            <span class="text-(--cv-on-surface-variant)">宏预览:</span>
-            <span class="rounded bg-(--cv-surface-container) px-1.5 py-0.5 font-bold text-(--cv-on-surface)">
+          <div class="flex items-center gap-2 font-mono min-w-0">
+            <span class="shrink-0 text-(--cv-on-surface-variant)">宏预览:</span>
+            <span class="rounded bg-(--cv-surface-container) px-1.5 py-0.5 font-bold text-(--cv-on-surface) break-all">
               {{ currentMacroPreview }}
             </span>
           </div>
-          <div v-if="!selectedNode.insertable" class="text-(length:--cv-font-size-xs) text-(--cv-error)">
+          <div v-if="!selectedNode.insertable" class="text-(length:--cv-font-size-xs) text-(--cv-error) break-all">
             {{ selectedNode.disableReason }}
           </div>
         </div>
-        <div v-else class="py-1 text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">请选择要插入的变量节点</div>
+        <div v-else class="py-0.5 text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">请选择要插入的变量节点</div>
       </div>
     </div>
 
@@ -190,11 +190,17 @@ const dialogClass = computed(() => [
 
 const dialogStyle = computed(() =>
   isMobile.value
-    ? { width: 'calc(100vw - 2rem)', maxWidth: '36rem' }
-    : { width: '38rem', maxWidth: 'calc(100vw - 3rem)' },
+    ? { width: 'calc(100vw - 2rem)', maxWidth: '36rem', maxHeight: 'calc(100dvh - 2rem)' }
+    : { width: '38rem', maxWidth: 'calc(100vw - 3rem)', maxHeight: 'calc(100dvh - 3rem)' },
 );
 
-const contentStyle = { overflow: 'hidden' } as const;
+const contentStyle = {
+  overflow: 'hidden',
+  display: 'flex',
+  flexDirection: 'column',
+  flex: '1 1 auto',
+  minHeight: '0',
+} as const;
 
 const currentScopeResult = computed(() => scopeResults.value[activeScope.value]);
 

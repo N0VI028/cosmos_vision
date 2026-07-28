@@ -212,7 +212,7 @@ async function handleDeleteActiveClick(): Promise<void> {
   @apply hidden;
 }
 
-@media (max-width: 48rem) {
+@media (max-width: 87.5em) {
   .cv-preset-selector {
     @apply flex-nowrap;
   }

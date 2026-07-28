@@ -103,6 +103,37 @@
   font-size: 1.35em;
 }
 
+/* 移动端悬浮球与子菜单响应式按比例微调 */
+@media (max-width: 87.5em) {
+  .cv-speed-dial-container,
+  .cv-speed-dial-menu {
+    gap: 0.375em;
+  }
+
+  .cv-inline-mode-fab {
+    width: 2.6em;
+    height: 2.6em;
+  }
+
+  .cv-inline-mode-fab svg {
+    width: 1.45em;
+    height: 1.45em;
+  }
+
+  .cv-inline-mode-fab i {
+    font-size: 1.1em;
+  }
+
+  .cv-speed-dial-menu > button {
+    width: 2.1em;
+    height: 2.1em;
+  }
+
+  .cv-speed-dial-menu > button > i {
+    font-size: 0.9em;
+  }
+}
+
 /* Speed Dial 菜单动画 */
 .cv-speed-dial-menu-enter-active,
 .cv-speed-dial-menu-leave-active {

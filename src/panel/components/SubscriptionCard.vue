@@ -5,7 +5,7 @@
     <!-- 空态:未填接口密钥 -->
     <template v-if="isKeyEmpty">
       <div
-        class="flex min-h-32 flex-col items-center justify-center gap-(--cv-space-5xl) p-(--cv-space-10xl) text-(length:--cv-font-size-base) text-(--cv-on-surface-variant) max-[48rem]:p-(--cv-space-7xl)"
+        class="flex min-h-32 flex-col items-center justify-center gap-(--cv-space-5xl) p-(--cv-space-10xl) text-(length:--cv-font-size-base) text-(--cv-on-surface-variant) max-[87.5em]:p-(--cv-space-7xl)"
       >
         <i class="fa-solid fa-lock text-(length:--cv-font-size-2xl) opacity-50" />
         <span>填写接口密钥后展示订阅信息</span>
@@ -15,7 +15,7 @@
     <!-- 蒙版态:已填接口密钥但未配置跨域代理 -->
     <template v-else-if="isProxyEmpty">
       <div
-        class="flex min-h-[9.3333em] flex-col items-center justify-center gap-(--cv-space-5xl) p-(--cv-space-10xl) text-center text-(--cv-on-surface-variant) max-[48rem]:p-(--cv-space-7xl)"
+        class="flex min-h-[9.3333em] flex-col items-center justify-center gap-(--cv-space-5xl) p-(--cv-space-10xl) text-center text-(--cv-on-surface-variant) max-[87.5em]:p-(--cv-space-7xl)"
       >
         <i class="fa-solid fa-lock text-(length:--cv-font-size-2xl) opacity-50" />
         <div class="text-(length:--cv-font-size-lg) font-semibold text-(--cv-on-surface)">需要跨域代理才能查询订阅</div>
@@ -28,7 +28,7 @@
     <!-- 加载态 / 成功态 / 错误态 -->
     <template v-else>
       <header
-        class="flex items-center justify-between border-b-(length:--cv-border-width) border-b-solid border-b-(--cv-surface-variant) px-(--cv-space-8xl) py-(--cv-space-5xl) font-(family-name:--cv-font-headline) text-(length:--cv-font-size-lg) font-semibold text-(--cv-on-surface) max-[48rem]:px-(--cv-space-7xl) max-[48rem]:py-(--cv-space-4xl)"
+        class="flex items-center justify-between border-b-(length:--cv-border-width) border-b-solid border-b-(--cv-surface-variant) px-(--cv-space-8xl) py-(--cv-space-5xl) font-(family-name:--cv-font-headline) text-(length:--cv-font-size-lg) font-semibold text-(--cv-on-surface) max-[87.5em]:px-(--cv-space-7xl) max-[87.5em]:py-(--cv-space-4xl)"
       >
         <div class="inline-flex items-center gap-(--cv-space-sm)">
           <!-- 伪装标题 Select：任意后代选择器命中局部 PT 锚点 -->
@@ -69,7 +69,7 @@
       </header>
       <div
         v-if="data || loading"
-        class="grid grid-cols-1 gap-(--cv-space-8xl) px-(--cv-space-10xl) py-(--cv-space-8xl) max-[48rem]:gap-(--cv-space-7xl) max-[48rem]:px-(--cv-space-7xl) max-[48rem]:py-(--cv-space-5xl) md:grid-cols-2"
+        class="grid grid-cols-1 gap-(--cv-space-8xl) px-(--cv-space-10xl) py-(--cv-space-8xl) max-[87.5em]:gap-(--cv-space-7xl) max-[87.5em]:px-(--cv-space-7xl) max-[87.5em]:py-(--cv-space-5xl) md:grid-cols-2"
         :class="{ 'opacity-60': loading }"
       >
         <!-- 剩余点数 (Anlas) -->
@@ -102,7 +102,7 @@
       </div>
       <div
         v-else-if="!error"
-        class="flex min-h-32 flex-col items-center justify-center gap-(--cv-space-5xl) p-(--cv-space-10xl) text-(length:--cv-font-size-base) text-(--cv-on-surface-variant) max-[48rem]:p-(--cv-space-7xl)"
+        class="flex min-h-32 flex-col items-center justify-center gap-(--cv-space-5xl) p-(--cv-space-10xl) text-(length:--cv-font-size-base) text-(--cv-on-surface-variant) max-[87.5em]:p-(--cv-space-7xl)"
       >
         <i class="fa-solid fa-floppy-disk text-(length:--cv-font-size-2xl) opacity-50" />
         <span>保存设置后查看订阅信息</span>
