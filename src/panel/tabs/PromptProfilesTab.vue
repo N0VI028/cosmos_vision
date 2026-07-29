@@ -2,13 +2,7 @@
   <div class="cv-tab-content flex flex-col gap-0">
     <div class="mt-(--cv-space-5xl) flex flex-col gap-(--cv-space-4xl)">
       <div data-cv-tutorial="prompt-profiles-overview">
-        <Button
-          label="新建人物"
-          icon="fa-solid fa-user-plus"
-          outlined
-          class="w-full"
-          @click="createBlankPerson"
-        />
+        <Button label="新建人物" icon="fa-solid fa-user-plus" outlined class="w-full" @click="createBlankPerson" />
       </div>
 
       <div v-if="filteredProfiles.length > 0" class="flex flex-col gap-(--cv-space-xl)">
@@ -32,31 +26,20 @@
                 @keydown.enter="finishEditing(person)"
                 @keydown.esc="finishEditing(person)"
               />
-              <CvMiniButton
-                icon="fa-regular fa-check"
-                aria-label="完成"
-                @click.stop="finishEditing(person)"
-              />
+              <CvMiniButton icon="fa-regular fa-check" aria-label="完成" @click.stop="finishEditing(person)" />
             </div>
             <div v-else class="flex h-8 min-w-0 items-center gap-(--cv-space-sm)">
               <span
-                class="block min-w-0 flex-[0_1_auto] overflow-hidden font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface) leading-8"
+                class="block min-w-0 flex-[0_1_auto] overflow-hidden leading-8 font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
               >
                 {{ person.name || '未命名人物' }}
               </span>
-              <CvMiniButton
-                icon="fa-regular fa-pen"
-                aria-label="重命名"
-                @click.stop="toggleEditing(person)"
-              />
+              <CvMiniButton icon="fa-regular fa-pen" aria-label="重命名" @click.stop="toggleEditing(person)" />
             </div>
           </template>
 
           <template #actions>
-            <CvMiniToggleSwitch
-              v-model="person.enabled"
-              :aria-label="getPersonEnabledLabel(person)"
-            />
+            <CvMiniToggleSwitch v-model="person.enabled" :aria-label="getPersonEnabledLabel(person)" />
             <CvMiniButton
               icon="fa-regular fa-trash"
               tone="danger"
@@ -80,13 +63,7 @@
             <div v-if="person.insertMode === 'keyword'" class="cv-field">
               <span>关键词</span>
               <div class="cv-field-control">
-                <InputTags
-                  v-model="person.triggerKeywords"
-                  :allow-duplicate="false"
-                  add-on-blur
-                  delimiter=","
-                  fluid
-                />
+                <InputTags v-model="person.triggerKeywords" :allow-duplicate="false" add-on-blur delimiter="," fluid />
                 <div class="cv-field-hint">输入关键词，回车或逗号添加</div>
               </div>
             </div>
@@ -105,12 +82,7 @@
                 />
               </div>
               <div class="cv-field-control">
-                <Textarea
-                  v-model="person.staticTags"
-                  rows="3"
-                  auto-resize
-                  class="w-full font-mono"
-                />
+                <Textarea v-model="person.staticTags" rows="3" auto-resize class="w-full font-mono" />
                 <div class="cv-field-hint">固定tag中的内容将在发送到LLM时，被强调原样保留在最终tag中</div>
               </div>
             </div>
@@ -162,10 +134,10 @@
       <div v-for="option in TAG_PARSE_MODE_OPTIONS" :key="option.value" class="flex flex-col gap-(--cv-space-5xl)">
         <button
           type="button"
-          class="grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) p-(--cv-space-lg) text-left text-(--cv-on-surface) hover:border-(--p-primary-color) hover:bg-[color-mix(in_srgb,var(--p-primary-color)_10%,var(--cv-surface-container-low))]"
+          class="grid w-full cursor-pointer grid-cols-[auto_minmax(0,1fr)] gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) p-(--cv-space-lg) text-left text-(--cv-on-surface) hover:border-(--cvp-primary-color) hover:bg-[color-mix(in_srgb,var(--cvp-primary-color)_10%,var(--cv-surface-container-low))]"
           :class="
             tagParseMode === option.value &&
-            'border-(--p-primary-color) bg-[color-mix(in_srgb,var(--p-primary-color)_10%,var(--cv-surface-container-low))] [&_i]:text-(--p-primary-color)'
+            'border-(--cvp-primary-color) bg-[color-mix(in_srgb,var(--cvp-primary-color)_10%,var(--cv-surface-container-low))] [&_i]:text-(--cvp-primary-color)'
           "
           :aria-pressed="tagParseMode === option.value"
           @click="selectTagParseMode(option.value)"
@@ -173,9 +145,10 @@
           <i :class="[option.icon, 'mt-(--cv-space-xs) text-(--cv-on-surface-variant)']" />
           <span class="flex min-w-0 flex-col gap-(--cv-space-xs)">
             <span class="text-(length:--cv-font-size-base) font-semibold">{{ option.label }}</span>
-            <span class="text-(length:--cv-font-size-xs) leading-[1.35] text-(--cv-on-surface-variant) whitespace-normal">{{
-              option.description
-            }}</span>
+            <span
+              class="text-(length:--cv-font-size-xs) leading-[1.35] whitespace-normal text-(--cv-on-surface-variant)"
+              >{{ option.description }}</span
+            >
           </span>
         </button>
         <label v-if="option.value === 'custom' && tagParseMode === 'custom'" class="cv-field">
@@ -184,7 +157,7 @@
             v-model="tagParseInput"
             rows="6"
             auto-resize
-            class="custom-scrollbar w-full min-h-36 resize-y"
+            class="custom-scrollbar min-h-36 w-full resize-y"
             placeholder="输入人物资料、设定或描述..."
           />
         </label>

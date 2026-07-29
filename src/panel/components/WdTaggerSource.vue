@@ -27,7 +27,7 @@
       <template #header="{ chooseCallback, clearCallback }">
         <button
           type="button"
-          class="flex min-h-28 w-full cursor-pointer items-center border-0 gap-(--cv-space-lg) rounded-(--cv-radius-md) bg-(--cv-surface-container-low) p-(--cv-space-xl) text-left text-(--cv-on-surface)"
+          class="flex min-h-28 w-full cursor-pointer items-center gap-(--cv-space-lg) rounded-(--cv-radius-md) border-0 bg-(--cv-surface-container-low) p-(--cv-space-xl) text-left text-(--cv-on-surface)"
           @click="chooseUpload(clearCallback, chooseCallback)"
         >
           <img
@@ -53,7 +53,7 @@
         <button
           v-if="source === 'upload' && selectedFile"
           type="button"
-          class="absolute top-(--cv-space-sm) right-(--cv-space-sm) grid size-6 cursor-pointer place-items-center rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-high) text-(--cv-on-surface-variant) hover:border-(--p-primary-color) hover:text-(--cv-on-surface)"
+          class="absolute top-(--cv-space-sm) right-(--cv-space-sm) grid size-6 cursor-pointer place-items-center rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-high) text-(--cv-on-surface-variant) hover:border-(--cvp-primary-color) hover:text-(--cv-on-surface)"
           aria-label="移除已上传图片"
           title="移除图片"
           @click="clearUpload(clearCallback)"
@@ -66,7 +66,7 @@
       </template>
     </FileUpload>
 
-    <div class="grid grid-cols-2 gap-(--cv-space-xl) mt-(--cv-space-lg)">
+    <div class="mt-(--cv-space-lg) grid grid-cols-2 gap-(--cv-space-xl)">
       <div class="cv-field">
         <div class="cv-field-header">
           <span>通用标签阈值</span>
@@ -87,9 +87,7 @@
       </div>
     </div>
 
-    <p class="cv-field-hint">
-      图片会上传至第三方公共 WD Tagger 测试服务；该服务可能排队、限流或临时不可用。
-    </p>
+    <p class="cv-field-hint">图片会上传至第三方公共 WD Tagger 测试服务；该服务可能排队、限流或临时不可用。</p>
 
     <div class="flex flex-wrap justify-end gap-(--cv-space-md)">
       <Button

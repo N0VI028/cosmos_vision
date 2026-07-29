@@ -41,8 +41,8 @@
  */
 :is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox {
   @apply relative inline-flex items-center justify-center;
-  width: var(--p-checkbox-width, 1.25rem);
-  height: var(--p-checkbox-height, 1.25rem);
+  width: var(--cvp-checkbox-width, 1.25rem);
+  height: var(--cvp-checkbox-height, 1.25rem);
   flex: 0 0 auto;
 }
 
@@ -56,14 +56,14 @@
   width: 100%;
   height: 100%;
   flex: 0 0 auto;
-  border: var(--cv-border-width) solid var(--p-checkbox-border-color, var(--cv-surface-variant));
-  border-radius: var(--p-checkbox-border-radius, var(--cv-radius-sm));
-  background: var(--p-checkbox-background, var(--cv-surface-container-high));
-  color: var(--p-checkbox-icon-color, var(--cv-on-surface));
+  border: var(--cv-border-width) solid var(--cvp-checkbox-border-color, var(--cv-surface-variant));
+  border-radius: var(--cvp-checkbox-border-radius, var(--cv-radius-sm));
+  background: var(--cvp-checkbox-background, var(--cv-surface-container-high));
+  color: var(--cvp-checkbox-icon-color, var(--cv-on-surface));
   transition:
-    background var(--p-checkbox-transition-duration, 0.2s),
-    border-color var(--p-checkbox-transition-duration, 0.2s),
-    color var(--p-checkbox-transition-duration, 0.2s);
+    background var(--cvp-checkbox-transition-duration, 0.2s),
+    border-color var(--cvp-checkbox-transition-duration, 0.2s),
+    color var(--cvp-checkbox-transition-duration, 0.2s);
 }
 
 :is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox-indicator {
@@ -71,33 +71,33 @@
 }
 
 :is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox-icon {
-  width: var(--p-checkbox-icon-size, 0.875rem);
-  height: var(--p-checkbox-icon-size, 0.875rem);
+  width: var(--cvp-checkbox-icon-size, 0.875rem);
+  height: var(--cvp-checkbox-icon-size, 0.875rem);
   color: inherit;
 }
 
 :is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox[data-p-checked='true'] .cv-prime-checkbox-box {
-  background: var(--p-checkbox-checked-background, var(--cv-primary-container));
-  border-color: var(--p-checkbox-checked-border-color, var(--cv-primary-container));
-  color: var(--p-checkbox-icon-checked-color, var(--cv-on-primary-container));
+  background: var(--cvp-checkbox-checked-background, var(--cv-primary-container));
+  border-color: var(--cvp-checkbox-checked-border-color, var(--cv-primary-container));
+  color: var(--cvp-checkbox-icon-checked-color, var(--cv-on-primary-container));
 }
 
 :is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox:not([data-p-disabled='true']):hover .cv-prime-checkbox-box {
-  border-color: var(--p-checkbox-hover-border-color, var(--cv-outline));
+  border-color: var(--cvp-checkbox-hover-border-color, var(--cv-outline));
 }
 
 :is(#cosmos_vision, .cosmos-vision-root)
   .cv-prime-checkbox[data-p-checked='true']:not([data-p-disabled='true']):hover
   .cv-prime-checkbox-box {
-  background: var(--p-checkbox-checked-hover-background, var(--cv-primary-container));
-  border-color: var(--p-checkbox-checked-hover-border-color, var(--cv-primary-container));
-  color: var(--p-checkbox-icon-checked-hover-color, var(--cv-on-primary-container));
+  background: var(--cvp-checkbox-checked-hover-background, var(--cv-primary-container));
+  border-color: var(--cvp-checkbox-checked-hover-border-color, var(--cv-primary-container));
+  color: var(--cvp-checkbox-icon-checked-hover-color, var(--cv-on-primary-container));
 }
 
 :is(#cosmos_vision, .cosmos-vision-root) .cv-prime-checkbox[data-p-disabled='true'] .cv-prime-checkbox-box {
-  background: var(--p-checkbox-disabled-background, var(--p-form-field-disabled-background));
-  border-color: var(--p-checkbox-checked-disabled-border-color, var(--cv-surface-variant));
-  color: var(--p-checkbox-icon-disabled-color, var(--cv-on-surface-variant));
+  background: var(--cvp-checkbox-disabled-background, var(--cvp-form-field-disabled-background));
+  border-color: var(--cvp-checkbox-checked-disabled-border-color, var(--cv-surface-variant));
+  color: var(--cvp-checkbox-icon-disabled-color, var(--cv-on-surface-variant));
 }
 
 /**
@@ -109,73 +109,73 @@
  *     border: 固定描边 solid var(--ui-color-sec) !important;
  *   }
  * PrimeVue 的 token 样式没有 !important，压不过 ST。
- * 这里只做宿主反压：把属性指回 `--p-inputtext-*` token，不写死颜色值。
+ * 这里只做宿主反压：把属性指回 `--cvp-inputtext-*` token，不写死颜色值。
  * 禁用态必须单独映射 disabled token，否则会一直吃到普通 background。
  */
 .cosmos-vision-root input.cv-prime-field:not(:disabled),
 #cosmos_vision input.cv-prime-field:not(:disabled) {
-  background: var(--p-inputtext-background) !important;
-  border-color: var(--p-inputtext-border-color) !important;
-  color: var(--p-inputtext-color) !important;
+  background: var(--cvp-inputtext-background) !important;
+  border-color: var(--cvp-inputtext-border-color) !important;
+  color: var(--cvp-inputtext-color) !important;
 }
 
 .cosmos-vision-root input.cv-prime-field:disabled,
 #cosmos_vision input.cv-prime-field:disabled {
-  background: var(--p-inputtext-disabled-background) !important;
-  border-color: var(--p-inputtext-border-color) !important;
-  color: var(--p-inputtext-disabled-color) !important;
+  background: var(--cvp-inputtext-disabled-background) !important;
+  border-color: var(--cvp-inputtext-border-color) !important;
+  color: var(--cvp-inputtext-disabled-color) !important;
   /* ST st-tailwind: input:disabled { filter: brightness(0.5) } 会把浅底压成深灰 */
   filter: none !important;
 }
 
 .cosmos-vision-root input.cv-prime-field.p-invalid,
 #cosmos_vision input.cv-prime-field.p-invalid {
-  border-color: var(--p-inputtext-invalid-border-color, var(--p-red-500)) !important;
+  border-color: var(--cvp-inputtext-invalid-border-color, var(--cvp-red-500)) !important;
 }
 
 .cosmos-vision-root textarea.cv-prime-textarea:not(:disabled),
 #cosmos_vision textarea.cv-prime-textarea:not(:disabled) {
-  background: var(--p-textarea-background) !important;
-  border-color: var(--p-textarea-border-color) !important;
-  color: var(--p-textarea-color) !important;
+  background: var(--cvp-textarea-background) !important;
+  border-color: var(--cvp-textarea-border-color) !important;
+  color: var(--cvp-textarea-color) !important;
 }
 
 .cosmos-vision-root textarea.cv-prime-textarea:disabled,
 #cosmos_vision textarea.cv-prime-textarea:disabled {
-  background: var(--p-textarea-disabled-background) !important;
-  border-color: var(--p-textarea-border-color) !important;
-  color: var(--p-textarea-disabled-color) !important;
+  background: var(--cvp-textarea-disabled-background) !important;
+  border-color: var(--cvp-textarea-border-color) !important;
+  color: var(--cvp-textarea-disabled-color) !important;
   filter: none !important;
 }
 
 .cosmos-vision-root textarea.cv-prime-textarea.p-invalid,
 #cosmos_vision textarea.cv-prime-textarea.p-invalid {
-  border-color: var(--p-textarea-invalid-border-color, var(--p-red-500)) !important;
+  border-color: var(--cvp-textarea-invalid-border-color, var(--cvp-red-500)) !important;
 }
 
 .cosmos-vision-root input.cv-prime-field::placeholder,
 #cosmos_vision input.cv-prime-field::placeholder {
-  color: var(--p-inputtext-placeholder-color, var(--cv-on-surface-variant)) !important;
+  color: var(--cvp-inputtext-placeholder-color, var(--cv-on-surface-variant)) !important;
   opacity: 0.65 !important;
 }
 
 .cosmos-vision-root textarea.cv-prime-textarea::placeholder,
 #cosmos_vision textarea.cv-prime-textarea::placeholder {
-  color: var(--p-textarea-placeholder-color, var(--cv-on-surface-variant)) !important;
+  color: var(--cvp-textarea-placeholder-color, var(--cv-on-surface-variant)) !important;
   opacity: 0.65 !important;
 }
 
 /* focus 状态：还原 PrimeVue focus token，避免被 ST `:focus` 规则覆盖 */
 .cosmos-vision-root input.cv-prime-field:focus,
 #cosmos_vision input.cv-prime-field:focus {
-  border-color: var(--p-inputtext-focus-border-color, var(--p-form-field-focus-border-color)) !important;
-  box-shadow: var(--p-inputtext-focus-ring-shadow) !important;
+  border-color: var(--cvp-inputtext-focus-border-color, var(--cvp-form-field-focus-border-color)) !important;
+  box-shadow: var(--cvp-inputtext-focus-ring-shadow) !important;
 }
 
 .cosmos-vision-root textarea.cv-prime-textarea:focus,
 #cosmos_vision textarea.cv-prime-textarea:focus {
-  border-color: var(--p-textarea-focus-border-color, var(--p-form-field-focus-border-color)) !important;
-  box-shadow: var(--p-textarea-focus-ring-shadow, var(--p-inputtext-focus-ring-shadow)) !important;
+  border-color: var(--cvp-textarea-focus-border-color, var(--cvp-form-field-focus-border-color)) !important;
+  box-shadow: var(--cvp-textarea-focus-ring-shadow, var(--cvp-inputtext-focus-ring-shadow)) !important;
 }
 
 /**
@@ -191,13 +191,18 @@
   outline: none !important;
 }
 
-:is(#cosmos_vision, .cosmos-vision-root) :is(input.cv-prime-inputtags-input-field, input.cv-prime-select-label):is(:focus, :focus-visible) {
+:is(#cosmos_vision, .cosmos-vision-root)
+  :is(input.cv-prime-inputtags-input-field, input.cv-prime-select-label):is(:focus, :focus-visible) {
   outline: none !important;
   box-shadow: none !important;
 }
 
-:is(#cosmos_vision, .cosmos-vision-root) :is(input.cv-prime-inputtags-input-field, input.cv-prime-select-label)::placeholder {
-  color: var(--p-select-placeholder-color, var(--p-inputtext-placeholder-color, var(--cv-on-surface-variant))) !important;
+:is(#cosmos_vision, .cosmos-vision-root)
+  :is(input.cv-prime-inputtags-input-field, input.cv-prime-select-label)::placeholder {
+  color: var(
+    --cvp-select-placeholder-color,
+    var(--cvp-inputtext-placeholder-color, var(--cv-on-surface-variant))
+  ) !important;
   opacity: 0.65 !important;
 }
 

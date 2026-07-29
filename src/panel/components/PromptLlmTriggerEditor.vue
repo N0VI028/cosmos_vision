@@ -35,15 +35,15 @@
       <div class="cv-field-hint">{{ triggerMatchModeHint }}</div>
     </div>
 
-    <Accordion :value="activePanel" :pt="ACCORDION_PT" @update:value="val => activePanel = val">
+    <Accordion :value="activePanel" :pt="ACCORDION_PT" @update:value="val => (activePanel = val)">
       <AccordionPanel v-for="(row, index) in conditionRows" :key="row.id" :value="row.id" :pt="ACCORDION_PANEL_PT">
         <AccordionHeader :pt="ACCORDION_HEADER_PT">
           <!-- gap 在内层：header 根受官方 all:unset，utility 无效 -->
           <div
-            class="flex min-w-0 flex-1 items-center gap-(--cv-space-lg) bg-(--cv-surface-container-low) p-(--cv-space-md) text-(--cv-on-surface) select-none transition-colors duration-200 hover:bg-(--cv-surface-container)"
+            class="flex min-w-0 flex-1 items-center gap-(--cv-space-lg) bg-(--cv-surface-container-low) p-(--cv-space-md) text-(--cv-on-surface) transition-colors duration-200 select-none hover:bg-(--cv-surface-container)"
           >
             <span
-              class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-xs) font-medium text-(--cv-on-surface)"
+              class="min-w-0 flex-1 overflow-hidden text-(length:--cv-font-size-xs) font-medium text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
             >
               {{ getConditionSummary(row) }}
             </span>
@@ -133,7 +133,7 @@
 
     <button
       type="button"
-      class="flex w-full cursor-pointer items-center justify-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)] py-(--cv-space-md) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] hover:border-(--cv-outline) hover:bg-(--cv-surface-container-low) hover:text-(--p-primary-color) hover:shadow-[0_var(--cv-space-sm)_var(--cv-space-3xl)_color-mix(in_srgb,var(--cv-on-surface)_10%,transparent)]"
+      class="flex w-full cursor-pointer items-center justify-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)] py-(--cv-space-md) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] hover:border-(--cv-outline) hover:bg-(--cv-surface-container-low) hover:text-(--cvp-primary-color) hover:shadow-[0_var(--cv-space-sm)_var(--cv-space-3xl)_color-mix(in_srgb,var(--cv-on-surface)_10%,transparent)]"
       @click="addConditionRow"
     >
       <i class="fa-solid fa-plus" /> 新增条件
@@ -261,9 +261,7 @@ const ACCORDION_CONTENT_PT = {
 function getConditionSummary(row: ConditionRow): string {
   switch (row.type) {
     case 'keyword':
-      return row.keywords.length > 0
-        ? `关键词: ${row.keywords.join(', ')}`
-        : '关键词: 未配置';
+      return row.keywords.length > 0 ? `关键词: ${row.keywords.join(', ')}` : '关键词: 未配置';
     case 'model':
       return row.value ? `模型: ${row.value}` : '模型: 未配置';
     case 'image_source': {

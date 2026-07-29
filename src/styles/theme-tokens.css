@@ -20,18 +20,17 @@
   --cv-surface-container: #1e2022;
   --cv-surface-container-high: #282a2c;
   --cv-on-surface: #e2e2e5;
-  --cv-on-surface-variant: color-mix(in srgb, var(--p-primary-color) 30%, #c4c6c8);
+  --cv-on-surface-variant: color-mix(in srgb, var(--cvp-primary-color) 30%, #c4c6c8);
   --cv-surface-variant: #333537;
-  --cv-outline: color-mix(in srgb, var(--p-primary-color) 40%, #8e9091);
-  --cv-outline-variant: color-mix(in srgb, var(--p-primary-color) 20%, #444746);
+  --cv-outline: color-mix(in srgb, var(--cvp-primary-color) 40%, #8e9091);
+  --cv-outline-variant: color-mix(in srgb, var(--cvp-primary-color) 20%, #444746);
   --cv-background: #121416;
 }
 
 .cosmos-vision-root.cosmos-vision-app-dark {
   --cv-popover-shadow: 0 0.4em 0.8em rgba(0, 0, 0, 0.3);
   --cv-floating-shadow:
-    0 1.3333em 1.6667em -0.3333em rgba(0, 0, 0, 0.3),
-    0 0.6667em 0.6667em -0.3333em rgba(0, 0, 0, 0.2);
+    0 1.3333em 1.6667em -0.3333em rgba(0, 0, 0, 0.3), 0 0.6667em 0.6667em -0.3333em rgba(0, 0, 0, 0.2);
 }
 
 /**
@@ -76,12 +75,12 @@
   --cv-surface-container: #dde3ea;
   --cv-surface-container-high: #d2d7df;
   --cv-on-surface: #18202a;
-  --cv-on-surface-variant: color-mix(in srgb, var(--p-primary-color) 18%, #4d5968);
+  --cv-on-surface-variant: color-mix(in srgb, var(--cvp-primary-color) 18%, #4d5968);
   --cv-surface-variant: #cbd3dd;
   --cv-surface-bright: var(--cv-surface-variant);
-  --cv-outline: color-mix(in srgb, var(--p-primary-color) 28%, #8a97a8);
-  --cv-outline-variant: color-mix(in srgb, var(--p-primary-color) 15%, #c2c7cf);
-  --cv-primary-container: var(--p-primary-color);
-  --cv-on-primary-container: var(--p-primary-contrast-color);
+  --cv-outline: color-mix(in srgb, var(--cvp-primary-color) 28%, #8a97a8);
+  --cv-outline-variant: color-mix(in srgb, var(--cvp-primary-color) 15%, #c2c7cf);
+  --cv-primary-container: var(--cvp-primary-color);
+  --cv-on-primary-container: var(--cvp-primary-contrast-color);
   --cv-background: #f8fafc;
 }

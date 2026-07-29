@@ -83,11 +83,7 @@
           @toggle="toggleItem(item.key)"
         >
           <div class="relative flex min-w-0 flex-col">
-            <div
-              v-if="isSelecting"
-              class="absolute top-(--cv-space-lg) left-(--cv-space-lg) z-1"
-              @click.stop
-            >
+            <div v-if="isSelecting" class="absolute top-(--cv-space-lg) left-(--cv-space-lg) z-1" @click.stop>
               <Checkbox
                 binary
                 :model-value="isItemSelected(item.key)"
@@ -97,12 +93,13 @@
             </div>
 
             <div
-              class="relative aspect-square overflow-hidden border-b border-(length:--cv-border-width) border-solid border-[color-mix(in_srgb,var(--cv-surface-variant)_72%,transparent)] bg-(--cv-surface-container-high)"
+              class="relative aspect-square overflow-hidden border-(length:--cv-border-width) border-b border-solid border-[color-mix(in_srgb,var(--cv-surface-variant)_72%,transparent)] bg-(--cv-surface-container-high)"
             >
               <span
                 class="pointer-events-none absolute top-(--cv-space-md) right-(--cv-space-md) z-1 rounded-(--cv-radius-sm) px-[0.35rem] py-[0.1rem] text-(length:--cv-font-size-xs) leading-[1.2] font-semibold"
                 :class="kindBadgeClass(item.kind)"
-              >{{ kindLabel(item.kind) }}</span>
+                >{{ kindLabel(item.kind) }}</span
+              >
               <LightboxImage
                 :src="getPreviewUrl(item.key)"
                 :snapshot="item.promptSnapshot"
@@ -118,7 +115,7 @@
                 {{ formatImageLabel(item.createdAt) }}
               </div>
               <div
-                class="overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
+                class="overflow-hidden text-(length:--cv-font-size-xs) text-ellipsis whitespace-nowrap text-(--cv-on-surface-variant)"
               >
                 {{ stripPngExtension(item.characterKey) }} · {{ stripPngExtension(item.chatId) }}
               </div>
@@ -173,12 +170,7 @@
             @click="toggleSelectAll"
           />
           <CvMiniButton label="下载" :disabled="!selectedCount || busy" @click="downloadSelected" />
-          <CvMiniButton
-            label="删除"
-            tone="error"
-            :disabled="!selectedCount || busy"
-            @click="deleteSelected"
-          />
+          <CvMiniButton label="删除" tone="error" :disabled="!selectedCount || busy" @click="deleteSelected" />
           <CvMiniButton label="取消" :disabled="busy" @click="clearSelection" />
         </div>
       </div>
@@ -365,7 +357,7 @@ function kindLabel(kind: ManagedImageKind): string {
  */
 function kindBadgeClass(kind: ManagedImageKind): string {
   return kind === 'favorite'
-    ? 'bg-[color-mix(in_srgb,var(--p-yellow-400)_78%,var(--cv-surface))] text-[color-mix(in_srgb,var(--p-yellow-950,#422006)_88%,var(--cv-on-surface))]'
+    ? 'bg-[color-mix(in_srgb,var(--cvp-yellow-400)_78%,var(--cv-surface))] text-[color-mix(in_srgb,var(--cvp-yellow-950,#422006)_88%,var(--cv-on-surface))]'
     : 'bg-[color-mix(in_srgb,var(--cv-surface)_82%,transparent)] text-(--cv-on-surface-variant)';
 }
 
@@ -409,7 +401,8 @@ function syncPreviewUrls(items: ManagedImageItem[], previous: ManagedImageItem[]
   const nextMap: Record<string, string> = {};
   const keepUrls = new Set<string>();
   items.forEach(item => {
-    const objectUrl = previewUrlMap.value[item.key] ?? blobToUrl.get(item.imageBlob) ?? createPreviewUrl(item.imageBlob);
+    const objectUrl =
+      previewUrlMap.value[item.key] ?? blobToUrl.get(item.imageBlob) ?? createPreviewUrl(item.imageBlob);
     nextMap[item.key] = objectUrl;
     keepUrls.add(objectUrl);
   });

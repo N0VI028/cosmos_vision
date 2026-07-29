@@ -2,10 +2,7 @@
   <div class="cv-tab-content flex flex-col gap-0">
     <h2 class="cv-section-title">连接测试控制</h2>
     <div class="cv-section-body">
-      <FocusedParagraphField
-        v-model="testParagraph"
-        :has-focused-paragraph="hasFocusedParagraph"
-      />
+      <FocusedParagraphField v-model="testParagraph" :has-focused-paragraph="hasFocusedParagraph" />
     </div>
 
     <div class="mt-(--cv-space-5xl)" data-cv-tutorial="prompt-llm-test-action">
@@ -39,29 +36,35 @@
         </div>
         <div v-else-if="testStatus === 'success'" class="flex flex-col gap-(--cv-space-xl)">
           <div
-            class="rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--p-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--p-green-500)_12%,transparent)] p-(--cv-space-xl) text-(length:--cv-font-size-base) font-semibold text-(--p-green-500)"
+            class="rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-green-500)_12%,transparent)] p-(--cv-space-xl) text-(length:--cv-font-size-base) font-semibold text-(--cvp-green-500)"
           >
             <i class="fa-solid fa-circle-check mr-2"></i>测试成功！接口响应正常
           </div>
-          <div class="mb-(--cv-space-md) text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)">
+          <div
+            class="mb-(--cv-space-md) text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)"
+          >
             原始响应文本
           </div>
           <pre
-            class="m-0 max-h-[12.5rem] overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--cv-on-surface) break-all"
-          >{{ testResponseRaw }}</pre>
+            class="m-0 max-h-[12.5rem] overflow-y-auto rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) wrap-break-word break-all whitespace-pre-wrap text-(--cv-on-surface)"
+            >{{ testResponseRaw }}</pre
+          >
         </div>
         <div v-else-if="testStatus === 'error'" class="flex flex-col gap-(--cv-space-xl)">
           <div
-            class="rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--p-red-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--p-red-500)_12%,transparent)] p-(--cv-space-xl) text-(length:--cv-font-size-base) font-semibold text-(--p-red-500)"
+            class="rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-red-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-red-500)_12%,transparent)] p-(--cv-space-xl) text-(length:--cv-font-size-base) font-semibold text-(--cvp-red-500)"
           >
             <i class="fa-solid fa-circle-exclamation mr-2"></i>测试失败
           </div>
-          <div class="mb-(--cv-space-md) text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)">
+          <div
+            class="mb-(--cv-space-md) text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)"
+          >
             错误详情
           </div>
           <pre
-            class="m-0 max-h-[18.75rem] overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--p-red-500) break-all"
-          >{{ testError }}</pre>
+            class="m-0 max-h-[18.75rem] overflow-y-auto rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) wrap-break-word break-all whitespace-pre-wrap text-(--cvp-red-500)"
+            >{{ testError }}</pre
+          >
         </div>
       </div>
     </div>
@@ -80,9 +83,10 @@
           >
             <span class="text-(length:--cv-font-size-base) text-(--cv-on-surface-variant)">{{ row.label }}</span>
             <span
-              class="break-all whitespace-normal text-right text-(--cv-on-surface)"
+              class="text-right break-all whitespace-normal text-(--cv-on-surface)"
               :class="row.code && 'font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs)'"
-            >{{ row.value }}</span>
+              >{{ row.value }}</span
+            >
           </div>
         </div>
       </div>
@@ -95,8 +99,9 @@
         class="overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl)"
       >
         <pre
-          class="m-0 max-h-[18.75rem] overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--cv-on-surface) break-all"
-        >{{ sentPromptText || '尚未发送测试请求' }}</pre>
+          class="m-0 max-h-[18.75rem] overflow-y-auto rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) wrap-break-word break-all whitespace-pre-wrap text-(--cv-on-surface)"
+          >{{ sentPromptText || '尚未发送测试请求' }}</pre
+        >
       </div>
     </div>
   </div>
@@ -123,11 +128,7 @@ import {
 } from '@/services/prompt-llm/runtime-request';
 
 const { settings } = useSettingsStore();
-const {
-  paragraphText: testParagraph,
-  hasFocusedParagraph,
-  buildTestContext,
-} = useFocusedParagraphInput();
+const { paragraphText: testParagraph, hasFocusedParagraph, buildTestContext } = useFocusedParagraphInput();
 const requestSession = useTestRequestSession();
 
 /** 测试状态 */

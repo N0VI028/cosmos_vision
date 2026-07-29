@@ -65,7 +65,7 @@
 }
 
 :is(#cosmos_vision, .cosmos-vision-root) :is(.cv-prime-chip, .cv-prime-inputtags-chip) {
-  border: var(--cv-border-width) solid var(--p-primary-color);
+  border: var(--cv-border-width) solid var(--cvp-primary-color);
   box-shadow: none;
   line-height: 1.2;
   min-height: 1.85em;

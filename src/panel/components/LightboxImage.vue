@@ -84,8 +84,8 @@ async function downloadCurrentBlob(): Promise<void> {
 }
 
 .cv-lightbox-image:focus-visible {
-  outline: var(--p-focus-ring-width, 0.1333em) var(--p-focus-ring-style, solid)
-    var(--p-focus-ring-color, color-mix(in srgb, var(--cv-primary-container) 28%, transparent));
-  outline-offset: var(--p-focus-ring-offset, 0.1333em);
+  outline: var(--cvp-focus-ring-width, 0.1333em) var(--cvp-focus-ring-style, solid)
+    var(--cvp-focus-ring-color, color-mix(in srgb, var(--cv-primary-container) 28%, transparent));
+  outline-offset: var(--cvp-focus-ring-offset, 0.1333em);
 }
 </style>

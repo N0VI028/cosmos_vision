@@ -26,6 +26,8 @@ app.use(PrimeVue, {
   theme: {
     preset: cosmosPrimePreset,
     options: {
+      // 独立 design token 命名空间（cvp），避免与同页其他 PrimeVue 扩展默认 token 串扰
+      prefix: 'cvp',
       darkModeSelector: `.cosmos-vision-root.${DARK_CLASS}`,
       // 关闭 cssLayer：让 PrimeVue 规则保持 unlayered，凭类选择器特异性覆盖 ST 全局标签规则
       cssLayer: false,

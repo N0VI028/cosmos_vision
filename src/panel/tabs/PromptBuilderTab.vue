@@ -33,7 +33,7 @@
           <span>提示词生成预设</span>
           <div
             v-if="isDefaultPresetActive"
-            class="inline-flex size-[1.65em] shrink-0 cursor-pointer items-center justify-center rounded-(--cv-radius-sm) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out outline-none hover:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] hover:text-(--p-red-500) focus-visible:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] focus-visible:text-(--p-red-500)"
+            class="inline-flex size-[1.65em] shrink-0 cursor-pointer items-center justify-center rounded-(--cv-radius-sm) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out outline-none hover:bg-[color-mix(in_srgb,var(--cvp-red-500)_10%,transparent)] hover:text-(--cvp-red-500) focus-visible:bg-[color-mix(in_srgb,var(--cvp-red-500)_10%,transparent)] focus-visible:text-(--cvp-red-500)"
             role="button"
             tabindex="0"
             title="重置内置预设"
@@ -69,7 +69,7 @@
       <h2 class="cv-section-title mt-(--cv-space-10xl) mb-0 inline-flex items-center gap-(--cv-space-sm)">
         <span>Tag提取规则</span>
         <div
-          class="inline-flex size-[1.65em] shrink-0 cursor-pointer items-center justify-center rounded-(--cv-radius-sm) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out outline-none hover:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] hover:text-(--p-red-500) focus-visible:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] focus-visible:text-(--p-red-500)"
+          class="inline-flex size-[1.65em] shrink-0 cursor-pointer items-center justify-center rounded-(--cv-radius-sm) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out outline-none hover:bg-[color-mix(in_srgb,var(--cvp-red-500)_10%,transparent)] hover:text-(--cvp-red-500) focus-visible:bg-[color-mix(in_srgb,var(--cvp-red-500)_10%,transparent)] focus-visible:text-(--cvp-red-500)"
           role="button"
           tabindex="0"
           title="重置为默认值"
@@ -90,7 +90,8 @@
             <span>优先 JSON Schema 解析</span>
           </label>
           <div class="cv-field-hint">
-            开启后请求 LLM 时会附带 JSON Schema，并按字段名读取对应侧提示词；渠道未返回 JSON字段 时回退到下方的正则提取规则。若渠道报错请关闭此选项。
+            开启后请求 LLM 时会附带 JSON Schema，并按字段名读取对应侧提示词；渠道未返回 JSON字段
+            时回退到下方的正则提取规则。若渠道报错请关闭此选项。
           </div>
         </div>
       </div>
@@ -105,29 +106,54 @@
       />
       <template v-if="extractMode === 'json'">
         <div>
-          <span class="mt-(--cv-space-lg) block text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface-variant)">全局提示词</span>
+          <span
+            class="mt-(--cv-space-lg) block text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface-variant)"
+            >全局提示词</span
+          >
           <Divider />
           <div class="cv-field-grid">
-            <label class="cv-field"><span>正面 JSON 字段名</span><InputText v-model="settings.promptLlm.positivePromptJsonField" /></label>
-            <label class="cv-field"><span>负面 JSON 字段名</span><InputText v-model="settings.promptLlm.negativePromptJsonField" /></label>
+            <label class="cv-field"
+              ><span>正面 JSON 字段名</span><InputText v-model="settings.promptLlm.positivePromptJsonField"
+            /></label>
+            <label class="cv-field"
+              ><span>负面 JSON 字段名</span><InputText v-model="settings.promptLlm.negativePromptJsonField"
+            /></label>
           </div>
         </div>
         <div>
-          <span class="mt-(--cv-space-lg) block text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface-variant)">NovelAI 角色提示词</span>
+          <span
+            class="mt-(--cv-space-lg) block text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface-variant)"
+            >NovelAI 角色提示词</span
+          >
           <Divider />
           <div class="cv-field-grid">
-            <label class="cv-field"><span>角色数组字段名</span><InputText v-model="settings.promptLlm.characterPromptsJsonField" /></label>
-            <label class="cv-field"><span>角色正面字段名</span><InputText v-model="settings.promptLlm.characterPositivePromptJsonField" /></label>
-            <label class="cv-field"><span>角色负面字段名</span><InputText v-model="settings.promptLlm.characterNegativePromptJsonField" /></label>
-            <label class="cv-field"><span>角色位置字段名</span><InputText v-model="settings.promptLlm.characterPositionJsonField" /></label>
-            <label class="cv-field"><span>角色 X 坐标字段名</span><InputText v-model="settings.promptLlm.characterPositionXJsonField" /></label>
-            <label class="cv-field"><span>角色 Y 坐标字段名</span><InputText v-model="settings.promptLlm.characterPositionYJsonField" /></label>
+            <label class="cv-field"
+              ><span>角色数组字段名</span><InputText v-model="settings.promptLlm.characterPromptsJsonField"
+            /></label>
+            <label class="cv-field"
+              ><span>角色正面字段名</span><InputText v-model="settings.promptLlm.characterPositivePromptJsonField"
+            /></label>
+            <label class="cv-field"
+              ><span>角色负面字段名</span><InputText v-model="settings.promptLlm.characterNegativePromptJsonField"
+            /></label>
+            <label class="cv-field"
+              ><span>角色位置字段名</span><InputText v-model="settings.promptLlm.characterPositionJsonField"
+            /></label>
+            <label class="cv-field"
+              ><span>角色 X 坐标字段名</span><InputText v-model="settings.promptLlm.characterPositionXJsonField"
+            /></label>
+            <label class="cv-field"
+              ><span>角色 Y 坐标字段名</span><InputText v-model="settings.promptLlm.characterPositionYJsonField"
+            /></label>
           </div>
         </div>
       </template>
       <template v-else>
         <div>
-          <span class="mt-(--cv-space-lg) block text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface-variant)">全局提示词</span>
+          <span
+            class="mt-(--cv-space-lg) block text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface-variant)"
+            >全局提示词</span
+          >
           <Divider />
           <div class="cv-field-grid">
             <label v-for="field in promptExtractRuleFields" :key="field.label" class="cv-field">
@@ -137,12 +163,18 @@
           </div>
         </div>
         <div>
-          <span class="mt-(--cv-space-lg) block text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface-variant)">NovelAI 角色提示词</span>
+          <span
+            class="mt-(--cv-space-lg) block text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface-variant)"
+            >NovelAI 角色提示词</span
+          >
           <Divider />
           <div class="cv-field-grid items-end">
             <label v-for="field in characterExtractRuleFields" :key="field.label" class="cv-field">
               <span>{{ field.patternLabel }}</span>
-              <InputText v-model="settings.promptLlm[field.patternKey]" :placeholder="field.patternPlaceholder || '/角色:\\s*(.+)/g'" />
+              <InputText
+                v-model="settings.promptLlm[field.patternKey]"
+                :placeholder="field.patternPlaceholder || '/角色:\\s*(.+)/g'"
+              />
             </label>
           </div>
         </div>
@@ -227,8 +259,18 @@ const CHARACTER_EXTRACT_RULE_FIELDS = [
     patternLabel: '角色负面匹配正则',
     patternPlaceholder: '/"negativePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"/g',
   },
-  { label: '角色 X 位置', patternKey: 'characterPositionXExtractPattern', patternLabel: '角色 X 位置正则', patternPlaceholder: '/"x"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g' },
-  { label: '角色 Y 位置', patternKey: 'characterPositionYExtractPattern', patternLabel: '角色 Y 位置正则', patternPlaceholder: '/"y"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g' },
+  {
+    label: '角色 X 位置',
+    patternKey: 'characterPositionXExtractPattern',
+    patternLabel: '角色 X 位置正则',
+    patternPlaceholder: '/"x"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g',
+  },
+  {
+    label: '角色 Y 位置',
+    patternKey: 'characterPositionYExtractPattern',
+    patternLabel: '角色 Y 位置正则',
+    patternPlaceholder: '/"y"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)/g',
+  },
 ] as const satisfies ReadonlyArray<CharacterExtractRuleField>;
 
 const settingsStore = useSettingsStore();
@@ -253,8 +295,6 @@ const showConfirm = inject<(options: ConfirmOptions) => Promise<boolean>>('showC
 const isDefaultPresetActive = computed(
   () => settings.promptLlmMessagePresets.activePresetId === DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID,
 );
-
-
 
 const presetOptions = computed(() => {
   return settings.promptLlmMessagePresets.presets.map(preset => ({

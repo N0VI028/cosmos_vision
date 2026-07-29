@@ -19,18 +19,8 @@
         class="cv-preset-file-input"
         @change="handleFileChange"
       />
-      <CvMiniButton
-        icon="fa-regular fa-plus"
-        title="新建预设"
-        aria-label="新建预设"
-        @click="$emit('create')"
-      />
-      <CvMiniButton
-        icon="fa-regular fa-copy"
-        title="克隆当前预设"
-        aria-label="克隆当前预设"
-        @click="$emit('clone')"
-      />
+      <CvMiniButton icon="fa-regular fa-plus" title="新建预设" aria-label="新建预设" @click="$emit('create')" />
+      <CvMiniButton icon="fa-regular fa-copy" title="克隆当前预设" aria-label="克隆当前预设" @click="$emit('clone')" />
       <CvMiniButton
         icon="fa-regular fa-pen"
         title="重命名当前预设"
@@ -103,12 +93,12 @@ const PRESET_SELECT_DT = {
   borderColor: 'transparent',
   hoverBorderColor: 'transparent',
   focusBorderColor: 'transparent',
-  color: 'var(--p-primary-color)',
-  placeholderColor: 'var(--p-primary-color)',
+  color: 'var(--cvp-primary-color)',
+  placeholderColor: 'var(--cvp-primary-color)',
   shadow: 'none',
   paddingX: '0',
   paddingY: '0',
-  dropdownColor: 'var(--p-primary-color)',
+  dropdownColor: 'var(--cvp-primary-color)',
   fontSize: 'var(--cv-font-size-xs)',
 } as const;
 
@@ -195,12 +185,12 @@ async function handleDeleteActiveClick(): Promise<void> {
 
 .cv-preset-select :deep(.cv-preset-select-label) {
   padding: 0 var(--cv-space-sm) 0 0;
-  color: var(--p-primary-color);
+  color: var(--cvp-primary-color);
 }
 
 .cv-preset-select :deep(.cv-preset-select-dropdown) {
   width: auto;
-  color: var(--p-primary-color);
+  color: var(--cvp-primary-color);
 }
 
 .cv-preset-actions {

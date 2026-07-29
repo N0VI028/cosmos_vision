@@ -20,7 +20,7 @@
  */
 
 .cv-lightbox-overlay {
-  @apply fixed left-0 top-0 z-99999 flex h-screen w-screen items-center justify-center;
+  @apply fixed top-0 left-0 z-99999 flex h-screen w-screen items-center justify-center;
   top: 0;
   left: 0;
   z-index: 99999;
@@ -70,7 +70,7 @@
 }
 
 .cv-lightbox-wrapper {
-  @apply flex flex-col items-center justify-center w-full h-full;
+  @apply flex h-full w-full flex-col items-center justify-center;
   position: relative;
   gap: 0;
   transform: scale(0.95);
@@ -82,7 +82,7 @@
 }
 
 .cv-lightbox-img-box {
-  @apply flex w-full min-h-0 items-center justify-center;
+  @apply flex min-h-0 w-full items-center justify-center;
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -206,7 +206,7 @@
 }
 
 .cv-lightbox-title-pos {
-  color: var(--p-blue-400);
+  color: var(--cvp-blue-400);
 }
 
 .cv-lightbox-title-pos::before {
@@ -215,12 +215,12 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: var(--p-blue-500);
-  box-shadow: 0 0 8px var(--p-blue-500);
+  background-color: var(--cvp-blue-500);
+  box-shadow: 0 0 8px var(--cvp-blue-500);
 }
 
 .cv-lightbox-title-neg {
-  color: var(--p-red-400);
+  color: var(--cvp-red-400);
 }
 
 .cv-lightbox-title-neg::before {
@@ -229,12 +229,12 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: var(--p-red-500);
-  box-shadow: 0 0 8px var(--p-red-500);
+  background-color: var(--cvp-red-500);
+  box-shadow: 0 0 8px var(--cvp-red-500);
 }
 
 .cv-lightbox-title-char {
-  color: var(--p-purple-300);
+  color: var(--cvp-purple-300);
 }
 
 .cv-lightbox-title-char::before {
@@ -243,8 +243,8 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: var(--p-purple-500);
-  box-shadow: 0 0 8px var(--p-purple-500);
+  background-color: var(--cvp-purple-500);
+  box-shadow: 0 0 8px var(--cvp-purple-500);
 }
 
 .cv-lightbox-character-list {
@@ -359,7 +359,7 @@
 }
 
 .cv-lightbox-copy-btn.copied {
-  color: var(--p-green-400) !important;
+  color: var(--cvp-green-400) !important;
 }
 
 .cv-lightbox-prompt-content {

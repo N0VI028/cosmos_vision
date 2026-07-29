@@ -2,7 +2,7 @@
   <div class="block">
     <div
       ref="editorEl"
-      class="min-h-24 whitespace-pre-wrap wrap-break-word rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--p-content-border-color) bg-(--p-inputtext-background) p-(--cv-space-3xl) leading-[1.5] text-(--p-inputtext-color) outline-none focus-within:border-(--p-primary-color) focus-within:shadow-[0_0_0_1px_color-mix(in_srgb,var(--p-primary-color)_45%,transparent)]"
+      class="min-h-24 rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cvp-content-border-color) bg-(--cvp-inputtext-background) p-(--cv-space-3xl) leading-[1.5] wrap-break-word whitespace-pre-wrap text-(--cvp-inputtext-color) outline-none focus-within:border-(--cvp-primary-color) focus-within:shadow-[0_0_0_1px_color-mix(in_srgb,var(--cvp-primary-color)_45%,transparent)]"
       :class="{ 'is-dragging': isDragging }"
       role="textbox"
       aria-multiline="true"
@@ -17,7 +17,7 @@
       />
       <span
         ref="tokenEl"
-        class="mx-(--cv-space-sm) inline-flex min-h-5 cursor-grab touch-none select-none items-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-[color-mix(in_srgb,var(--p-primary-color)_60%,var(--p-content-border-color))] bg-[color-mix(in_srgb,var(--p-primary-color)_14%,transparent)] px-(--cv-space-lg) text-(--p-primary-color) active:cursor-grabbing"
+        class="mx-(--cv-space-sm) inline-flex min-h-5 cursor-grab touch-none items-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-[color-mix(in_srgb,var(--cvp-primary-color)_60%,var(--cvp-content-border-color))] bg-[color-mix(in_srgb,var(--cvp-primary-color)_14%,transparent)] px-(--cv-space-lg) text-(--cvp-primary-color) select-none active:cursor-grabbing"
         :class="{ 'pointer-events-none opacity-75': isDragging }"
         contenteditable="false"
         tabindex="0"

@@ -53,7 +53,12 @@
 <script setup lang="ts">
 import { isSupportedLoraNode } from '@/services/comfyui/lora-adapter';
 import { readNodeMeta } from '@/services/comfyui/meta';
-import type { ComfyUIGraphEdge, ComfyUILayoutNode, ComfyUIWorkflowLayout, ComfyUIWorkflow } from '@/services/comfyui/types';
+import type {
+  ComfyUIGraphEdge,
+  ComfyUILayoutNode,
+  ComfyUIWorkflowLayout,
+  ComfyUIWorkflow,
+} from '@/services/comfyui/types';
 
 const props = defineProps<{
   layout: ComfyUIWorkflowLayout;
@@ -69,40 +74,35 @@ interface NodeBindingState {
 }
 
 /** 默认节点表面（与主题态互斥，避免 Tailwind 同属性冲突） */
-const NODE_DEFAULT =
-  'rounded-(--cv-radius-sm) border-(--cv-outline) bg-(--cv-surface-container-lowest)';
+const NODE_DEFAULT = 'rounded-(--cv-radius-sm) border-(--cv-outline) bg-(--cv-surface-container-lowest)';
 
 const NODE_SELECTED =
   'rounded-(--cv-radius-sm) border-(--cv-primary-container) bg-[color-mix(in_srgb,var(--cv-primary-container)_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_var(--cv-primary-container)]';
 
 const NODE_THEMES = {
   lora: {
-    idle:
-      'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,var(--p-purple-500)_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--p-purple-500)_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,var(--p-purple-500)_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,var(--p-purple-500)_70%,var(--cv-outline))]',
+    idle: 'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,var(--cvp-purple-500)_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--cvp-purple-500)_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,var(--cvp-purple-500)_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,var(--cvp-purple-500)_70%,var(--cv-outline))]',
     selected:
-      'rounded-(--cv-radius-sm) border-(--p-purple-500) bg-[color-mix(in_srgb,var(--p-purple-500)_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_var(--p-purple-500)]',
-    icon: 'text-(--p-purple-400)',
+      'rounded-(--cv-radius-sm) border-(--cvp-purple-500) bg-[color-mix(in_srgb,var(--cvp-purple-500)_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_var(--cvp-purple-500)]',
+    icon: 'text-(--cvp-purple-400)',
   },
   positive: {
-    idle:
-      'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,var(--p-green-500)_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--p-green-500)_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,var(--p-green-500)_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,var(--p-green-500)_70%,var(--cv-outline))]',
+    idle: 'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,var(--cvp-green-500)_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--cvp-green-500)_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,var(--cvp-green-500)_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,var(--cvp-green-500)_70%,var(--cv-outline))]',
     selected:
-      'rounded-(--cv-radius-sm) border-(--p-green-500) bg-[color-mix(in_srgb,var(--p-green-500)_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_var(--p-green-500)]',
-    icon: 'text-(--p-green-500)',
+      'rounded-(--cv-radius-sm) border-(--cvp-green-500) bg-[color-mix(in_srgb,var(--cvp-green-500)_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_var(--cvp-green-500)]',
+    icon: 'text-(--cvp-green-500)',
   },
   negative: {
-    idle:
-      'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,var(--p-red-500)_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--p-red-500)_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,var(--p-red-500)_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,var(--p-red-500)_70%,var(--cv-outline))]',
+    idle: 'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,var(--cvp-red-500)_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--cvp-red-500)_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,var(--cvp-red-500)_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,var(--cvp-red-500)_70%,var(--cv-outline))]',
     selected:
-      'rounded-(--cv-radius-sm) border-(--p-red-500) bg-[color-mix(in_srgb,var(--p-red-500)_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_var(--p-red-500)]',
-    icon: 'text-(--p-red-500)',
+      'rounded-(--cv-radius-sm) border-(--cvp-red-500) bg-[color-mix(in_srgb,var(--cvp-red-500)_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_var(--cvp-red-500)]',
+    icon: 'text-(--cvp-red-500)',
   },
   image: {
-    idle:
-      'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,var(--p-blue-500)_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--p-blue-500)_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,var(--p-blue-500)_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,var(--p-blue-500)_70%,var(--cv-outline))]',
+    idle: 'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,var(--cvp-blue-500)_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--cvp-blue-500)_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,var(--cvp-blue-500)_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,var(--cvp-blue-500)_70%,var(--cv-outline))]',
     selected:
-      'rounded-(--cv-radius-sm) border-(--p-blue-500) bg-[color-mix(in_srgb,var(--p-blue-500)_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_var(--p-blue-500)]',
-    icon: 'text-(--p-blue-500)',
+      'rounded-(--cv-radius-sm) border-(--cvp-blue-500) bg-[color-mix(in_srgb,var(--cvp-blue-500)_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_var(--cvp-blue-500)]',
+    icon: 'text-(--cvp-blue-500)',
   },
 } as const;
 
@@ -228,10 +228,8 @@ const viewportStyle = computed(() => ({
  * 计算画布背景网格样式（随缩放切换主/次网格可见性）
  */
 const canvasStyle = computed(() => {
-  const majorColor =
-    scale.value > 0.15 ? 'color-mix(in srgb, var(--cv-outline) 14%, transparent)' : 'transparent';
-  const minorColor =
-    scale.value > 0.35 ? 'color-mix(in srgb, var(--cv-outline) 6%, transparent)' : 'transparent';
+  const majorColor = scale.value > 0.15 ? 'color-mix(in srgb, var(--cv-outline) 14%, transparent)' : 'transparent';
+  const minorColor = scale.value > 0.35 ? 'color-mix(in srgb, var(--cv-outline) 6%, transparent)' : 'transparent';
   const majorSize = `calc(100px * ${scale.value})`;
   const minorSize = `calc(20px * ${scale.value})`;
   const pos = `${offsetX.value}px ${offsetY.value}px`;
@@ -486,8 +484,7 @@ defineExpose({ fitView, focusNode });
  * 仅拓扑（节点/边 ID）变化时自动适配；改参只换 layout 引用时不重置视口
  */
 watch(
-  () =>
-    `${props.layout.nodes.map(node => node.id).join(',')}|${props.layout.edges.map(edge => edge.id).join(',')}`,
+  () => `${props.layout.nodes.map(node => node.id).join(',')}|${props.layout.edges.map(edge => edge.id).join(',')}`,
   () => nextTick(fitView),
   { immediate: true },
 );

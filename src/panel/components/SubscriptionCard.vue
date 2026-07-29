@@ -19,7 +19,7 @@
       >
         <i class="fa-solid fa-lock text-(length:--cv-font-size-2xl) opacity-50" />
         <div class="text-(length:--cv-font-size-lg) font-semibold text-(--cv-on-surface)">需要跨域代理才能查询订阅</div>
-        <div class="max-w-96 whitespace-normal text-(length:--cv-font-size-base) leading-[1.5]">
+        <div class="max-w-96 text-(length:--cv-font-size-base) leading-[1.5] whitespace-normal">
           订阅接口禁止跨域访问,请在上方"跨域代理地址"中填入你的代理地址。
         </div>
       </div>
@@ -28,7 +28,7 @@
     <!-- 加载态 / 成功态 / 错误态 -->
     <template v-else>
       <header
-        class="flex items-center justify-between border-b-(length:--cv-border-width) border-b-solid border-b-(--cv-surface-variant) px-(--cv-space-8xl) py-(--cv-space-5xl) font-(family-name:--cv-font-headline) text-(length:--cv-font-size-lg) font-semibold text-(--cv-on-surface) max-[87.5em]:px-(--cv-space-7xl) max-[87.5em]:py-(--cv-space-4xl)"
+        class="border-b-solid flex items-center justify-between border-b-(length:--cv-border-width) border-b-(--cv-surface-variant) px-(--cv-space-8xl) py-(--cv-space-5xl) font-(family-name:--cv-font-headline) text-(length:--cv-font-size-lg) font-semibold text-(--cv-on-surface) max-[87.5em]:px-(--cv-space-7xl) max-[87.5em]:py-(--cv-space-4xl)"
       >
         <div class="inline-flex items-center gap-(--cv-space-sm)">
           <!-- 伪装标题 Select：任意后代选择器命中局部 PT 锚点 -->
@@ -47,7 +47,8 @@
           <span
             v-if="loading"
             class="font-(family-name:--cv-font-label) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) tabular-nums"
-          >更新中...</span>
+            >更新中...</span
+          >
           <span
             v-else-if="fetchedAt"
             class="font-(family-name:--cv-font-label) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) tabular-nums"
@@ -58,7 +59,7 @@
           <Button
             v-if="!loading"
             icon="fa-solid fa-rotate"
-            class="inline-flex! size-[1.6em]! items-center! justify-center! rounded-full! p-0! text-(--cv-on-surface-variant)! transition-all duration-200 ease-in-out hover:bg-(--cv-surface-container-high)! hover:text-(--cv-on-surface)! hover:rotate-45"
+            class="inline-flex! size-[1.6em]! items-center! justify-center! rounded-full! p-0! text-(--cv-on-surface-variant)! transition-all duration-200 ease-in-out hover:rotate-45 hover:bg-(--cv-surface-container-high)! hover:text-(--cv-on-surface)!"
             size="small"
             text
             :loading="loading"
@@ -77,10 +78,11 @@
           <div class="h-[1.6em]">
             <span
               class="font-(family-name:--cv-font-label) text-(length:--cv-font-size-xs) font-medium tracking-[0.05em] text-(--cv-on-surface-variant) uppercase"
-            >剩余点数</span>
+              >剩余点数</span
+            >
           </div>
           <div
-            class="text-(length:--cv-font-size-2xl) font-extrabold leading-[1.2] text-(--cv-primary-container) tabular-nums"
+            class="text-(length:--cv-font-size-2xl) leading-[1.2] font-extrabold text-(--cv-primary-container) tabular-nums"
           >
             {{ loading ? '—' : formatNumber(data?.totalAnlas ?? 0) }}
           </div>
@@ -91,7 +93,8 @@
           <div class="h-[1.6em]">
             <span
               class="font-(family-name:--cv-font-label) text-(length:--cv-font-size-xs) font-medium tracking-[0.05em] text-(--cv-on-surface-variant) uppercase"
-            >过期时间</span>
+              >过期时间</span
+            >
           </div>
           <div class="flex flex-wrap items-baseline gap-(--cv-space-lg)">
             <span class="text-(length:--cv-font-size-2xl) font-bold text-(--cv-on-surface) tabular-nums">
@@ -111,7 +114,7 @@
       <!-- 错误 banner -->
       <div
         v-if="error"
-        class="flex items-center gap-(--cv-space-3xl) border-t-(length:--cv-border-width) border-t-solid border-t-[color-mix(in_srgb,var(--p-red-500)_20%,transparent)] bg-[color-mix(in_srgb,var(--p-red-500)_8%,transparent)] px-(--cv-space-10xl) py-(--cv-space-3xl) text-(length:--cv-font-size-base) text-(--p-red-600)"
+        class="border-t-solid flex items-center gap-(--cv-space-3xl) border-t-(length:--cv-border-width) border-t-[color-mix(in_srgb,var(--cvp-red-500)_20%,transparent)] bg-[color-mix(in_srgb,var(--cvp-red-500)_8%,transparent)] px-(--cv-space-10xl) py-(--cv-space-3xl) text-(length:--cv-font-size-base) text-(--cvp-red-600)"
       >
         <i class="fa-solid fa-triangle-exclamation" />
         <span>{{ error }}</span>

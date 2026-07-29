@@ -17,11 +17,11 @@ const formFieldColorBase = {
   borderColor: 'var(--cv-surface-variant)',
   hoverBorderColor: 'var(--cv-outline)',
   focusBorderColor: 'var(--cv-primary-container)',
-  invalidBorderColor: 'var(--p-red-500)',
+  invalidBorderColor: 'var(--cvp-red-500)',
   color: 'var(--cv-on-surface)',
   disabledColor: 'var(--cv-on-surface-variant)',
   placeholderColor: 'var(--cv-on-surface-variant)',
-  invalidPlaceholderColor: 'color-mix(in srgb, var(--p-red-500) 75%, var(--cv-on-surface-variant))',
+  invalidPlaceholderColor: 'color-mix(in srgb, var(--cvp-red-500) 75%, var(--cv-on-surface-variant))',
   iconColor: 'var(--cv-on-surface-variant)',
   shadow: 'none',
 } as const;
@@ -49,15 +49,15 @@ export const formFieldColorDark = {
  */
 export const chipColor = {
   root: {
-    background: 'color-mix(in srgb, var(--p-primary-color) 12%, transparent)',
-    focusBackground: 'color-mix(in srgb, var(--p-primary-color) 18%, transparent)',
-    color: 'var(--p-primary-color)',
+    background: 'color-mix(in srgb, var(--cvp-primary-color) 12%, transparent)',
+    focusBackground: 'color-mix(in srgb, var(--cvp-primary-color) 18%, transparent)',
+    color: 'var(--cvp-primary-color)',
   },
   icon: {
-    color: 'var(--p-primary-color)',
+    color: 'var(--cvp-primary-color)',
   },
   removeIcon: {
-    color: 'var(--p-primary-color)',
+    color: 'var(--cvp-primary-color)',
     focusRing: {
       width: '0',
       style: 'none',
@@ -139,7 +139,7 @@ const toggleSwitchColorBase = {
     checkedHoverBackground: 'var(--cv-primary-container)',
     checkedBorderColor: 'transparent',
     checkedHoverBorderColor: 'transparent',
-    invalidBorderColor: 'var(--p-red-500)',
+    invalidBorderColor: 'var(--cvp-red-500)',
     shadow: 'none',
   },
   handle: {
@@ -259,9 +259,9 @@ export const passwordColor = {
     shadow: 'var(--cv-popover-shadow)',
   },
   strength: {
-    weakBackground: 'var(--p-red-500)',
-    mediumBackground: 'var(--p-amber-500)',
-    strongBackground: 'var(--p-green-500)',
+    weakBackground: 'var(--cvp-red-500)',
+    mediumBackground: 'var(--cvp-amber-500)',
+    strongBackground: 'var(--cvp-green-500)',
   },
 } as const;
 
@@ -282,7 +282,7 @@ export const dialogColor = {
 /**
  * Message 单 severity 颜色 —— light/dark 共用
  * shadow 清零；closeButton focusRing 清零（对齐全局无外圈）
- * @param tone 半透明叠底的色阶变量（如 --p-blue-500）
+ * @param tone 半透明叠底的色阶变量（如 --cvp-blue-500）
  * @param text 文字/图标色
  */
 function messageSeverity(tone: string, text: string) {
@@ -305,10 +305,10 @@ function messageSeverity(tone: string, text: string) {
  * secondary 走 cv surface（inline running 状态默认 severity）；其余走 p-* 色阶
  */
 export const messageColor = {
-  info: messageSeverity('var(--p-blue-500)', 'var(--p-blue-600)'),
-  success: messageSeverity('var(--p-green-500)', 'var(--p-green-600)'),
-  warn: messageSeverity('var(--p-yellow-500)', 'var(--p-yellow-600)'),
-  error: messageSeverity('var(--p-red-500)', 'var(--p-red-600)'),
+  info: messageSeverity('var(--cvp-blue-500)', 'var(--cvp-blue-600)'),
+  success: messageSeverity('var(--cvp-green-500)', 'var(--cvp-green-600)'),
+  warn: messageSeverity('var(--cvp-yellow-500)', 'var(--cvp-yellow-600)'),
+  error: messageSeverity('var(--cvp-red-500)', 'var(--cvp-red-600)'),
   secondary: {
     background: 'var(--cv-surface-container-high)',
     borderColor: 'var(--cv-surface-variant)',
@@ -348,9 +348,9 @@ export const messageColor = {
 export const progressSpinnerColor = {
   root: {
     colorOne: 'var(--cv-primary-container)',
-    colorTwo: 'var(--p-primary-color)',
+    colorTwo: 'var(--cvp-primary-color)',
     colorThree: 'var(--cv-primary-container)',
-    colorFour: 'var(--p-primary-color)',
+    colorFour: 'var(--cvp-primary-color)',
   },
 } as const;
 
@@ -371,28 +371,28 @@ export const skeletonColor = {
  */
 export const tagColor = {
   primary: {
-    background: 'var(--p-primary-color)',
-    color: 'var(--p-primary-contrast-color)',
+    background: 'var(--cvp-primary-color)',
+    color: 'var(--cvp-primary-contrast-color)',
   },
   secondary: {
     background: 'var(--cv-surface-container-high)',
     color: 'var(--cv-on-surface-variant)',
   },
   success: {
-    background: 'color-mix(in srgb, var(--p-green-500) 16%, var(--cv-surface-container-high))',
-    color: 'var(--p-green-600)',
+    background: 'color-mix(in srgb, var(--cvp-green-500) 16%, var(--cv-surface-container-high))',
+    color: 'var(--cvp-green-600)',
   },
   info: {
-    background: 'color-mix(in srgb, var(--p-blue-500) 16%, var(--cv-surface-container-high))',
-    color: 'var(--p-blue-600)',
+    background: 'color-mix(in srgb, var(--cvp-blue-500) 16%, var(--cv-surface-container-high))',
+    color: 'var(--cvp-blue-600)',
   },
   warn: {
-    background: 'color-mix(in srgb, var(--p-yellow-500) 16%, var(--cv-surface-container-high))',
-    color: 'var(--p-yellow-600)',
+    background: 'color-mix(in srgb, var(--cvp-yellow-500) 16%, var(--cv-surface-container-high))',
+    color: 'var(--cvp-yellow-600)',
   },
   danger: {
-    background: 'color-mix(in srgb, var(--p-red-500) 16%, var(--cv-surface-container-high))',
-    color: 'var(--p-red-600)',
+    background: 'color-mix(in srgb, var(--cvp-red-500) 16%, var(--cv-surface-container-high))',
+    color: 'var(--cvp-red-600)',
   },
   contrast: {
     background: 'var(--cv-on-surface)',
@@ -458,7 +458,7 @@ export const galleriaColor = {
   indicatorButton: {
     background: 'var(--cv-surface-variant)',
     hoverBackground: 'var(--cv-outline)',
-    activeBackground: 'var(--p-primary-color)',
+    activeBackground: 'var(--cvp-primary-color)',
     focusRing: {
       width: '0',
       style: 'none',
@@ -498,7 +498,7 @@ export const fileUploadColor = {
     borderColor: 'transparent',
   },
   content: {
-    highlightBorderColor: 'var(--p-primary-color)',
+    highlightBorderColor: 'var(--cvp-primary-color)',
   },
   file: {
     borderColor: 'var(--cv-surface-variant)',
@@ -589,7 +589,7 @@ const checkboxColorBase = {
     checkedHoverBorderColor: 'var(--cv-primary-container)',
     checkedFocusBorderColor: 'var(--cv-primary-container)',
     checkedDisabledBorderColor: 'var(--cv-surface-variant)',
-    invalidBorderColor: 'var(--p-red-500)',
+    invalidBorderColor: 'var(--cvp-red-500)',
     shadow: 'none',
   },
   icon: {

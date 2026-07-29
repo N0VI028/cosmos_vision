@@ -7,21 +7,19 @@
   >
     <template #main="{ entry }">
       <span
-        class="cv-indicator size-1.5 shrink-0 rounded-full bg-(--p-primary-color) shadow-[0_0_6px_var(--p-primary-color)]"
+        class="cv-indicator size-1.5 shrink-0 rounded-full bg-(--cvp-primary-color) shadow-[0_0_6px_var(--cvp-primary-color)]"
       />
       <span
-        class="whitespace-nowrap text-(length:--cv-font-size-xs) font-semibold uppercase tracking-normal text-(--cv-on-surface-variant)"
-      >{{ getEntrySourceLabel(entry as PromptPersonTemplateEntry) }}</span>
-      <span
-        class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-medium text-(--cv-on-surface)"
-      >{{ getEntryTitle(entry as PromptPersonTemplateEntry) }}</span>
+        class="text-(length:--cv-font-size-xs) font-semibold tracking-normal whitespace-nowrap text-(--cv-on-surface-variant) uppercase"
+        >{{ getEntrySourceLabel(entry as PromptPersonTemplateEntry) }}</span
+      >
+      <span class="min-w-0 overflow-hidden font-medium text-ellipsis whitespace-nowrap text-(--cv-on-surface)">{{
+        getEntryTitle(entry as PromptPersonTemplateEntry)
+      }}</span>
     </template>
 
     <template #actions="{ entry }">
-      <CvMiniToggleSwitch
-        v-model="entry.enabled"
-        :aria-label="entry.enabled ? '禁用条目' : '启用条目'"
-      />
+      <CvMiniToggleSwitch v-model="entry.enabled" :aria-label="entry.enabled ? '禁用条目' : '启用条目'" />
       <CvMiniButton
         icon="fa-regular fa-pen"
         aria-label="编辑条目"
@@ -123,7 +121,7 @@
         </div>
       </div>
       <label class="cv-field">
-          <span>条目名称</span>
+        <span>条目名称</span>
         <InputText
           v-if="editorDraft.kind === 'custom'"
           :model-value="editorDraft.title"
@@ -135,18 +133,17 @@
       <div class="cv-field">
         <div class="cv-field-header">
           <span>{{ editorDraft.kind === 'custom' ? '内容' : '资料预览' }}</span>
-          <div v-if="editorDraft.kind === 'custom'" class="flex items-center gap-(--cv-space-xs) text-(length:--cv-font-size-xs)">
+          <div
+            v-if="editorDraft.kind === 'custom'"
+            class="flex items-center gap-(--cv-space-xs) text-(length:--cv-font-size-xs)"
+          >
             <CvMiniButton
               label="插入宏"
               class="cv-macro-button-root cv-macro-trigger-button"
               @pointerdown.prevent="rememberEntrySelection"
               @click.stop="toggleMacroPopover"
             />
-            <Popover
-              ref="macroPopover"
-              :base-z-index="MACRO_POPOVER_BASE_Z_INDEX"
-              :pt="MACRO_POPOVER_PT"
-            >
+            <Popover ref="macroPopover" :base-z-index="MACRO_POPOVER_BASE_Z_INDEX" :pt="MACRO_POPOVER_PT">
               <CvMiniButton
                 v-for="option in PROMPT_PERSON_TOKEN_OPTIONS"
                 :key="option.token"
@@ -193,10 +190,7 @@
       </div>
     </template>
   </Dialog>
-  <PromptVariablePickerDialog
-    v-model:visible="isVariablePickerVisible"
-    @insert="insertToken"
-  />
+  <PromptVariablePickerDialog v-model:visible="isVariablePickerVisible" @insert="insertToken" />
 </template>
 <script setup lang="ts">
 import Popover from 'primevue/popover';
@@ -610,7 +604,11 @@ function openVariablePicker(): void {
 function insertToken(token: string): void {
   const draft = editorDraft.value;
   if (!draft || draft.kind !== 'custom') return;
-  const range = readTextareaInsertRange(getEntryContentTextareaElement(), entrySelectionRange.value, draft.customContent);
+  const range = readTextareaInsertRange(
+    getEntryContentTextareaElement(),
+    entrySelectionRange.value,
+    draft.customContent,
+  );
   updateCustomContent(replaceTextRange(draft.customContent, range, token));
   focusEntryContentTextarea(range.start + token.length);
 }

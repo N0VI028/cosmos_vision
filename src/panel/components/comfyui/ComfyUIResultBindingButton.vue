@@ -6,7 +6,7 @@
   <button
     type="button"
     data-cv-tutorial="comfyui-output-binding"
-    class="cv-workflow-action-btn flex shrink-0 cursor-pointer items-center gap-1.5 rounded border border-solid px-[0.4rem] py-[0.15rem] text-(length:--cv-font-size-xs) leading-[1.2] select-none transition-all duration-200 w-fit min-h-auto"
+    class="cv-workflow-action-btn flex min-h-auto w-fit shrink-0 cursor-pointer items-center gap-1.5 rounded border border-solid px-[0.4rem] py-[0.15rem] text-(length:--cv-font-size-xs) leading-[1.2] transition-all duration-200 select-none"
     :class="rootStateClass"
     :disabled="disabled"
     @click="emit('click')"
@@ -36,9 +36,9 @@ const rootStateClass = computed(() => {
   if (props.active) {
     return [
       'is-active opacity-100!',
-      'bg-[color-mix(in_srgb,var(--p-primary-color)_12%,transparent)]!',
-      'border-(--p-primary-color)! text-(--p-primary-color)!',
-      'hover:bg-[color-mix(in_srgb,var(--p-primary-color)_20%,transparent)]!',
+      'bg-[color-mix(in_srgb,var(--cvp-primary-color)_12%,transparent)]!',
+      'border-(--cvp-primary-color)! text-(--cvp-primary-color)!',
+      'hover:bg-[color-mix(in_srgb,var(--cvp-primary-color)_20%,transparent)]!',
     ].join(' ');
   }
   return [

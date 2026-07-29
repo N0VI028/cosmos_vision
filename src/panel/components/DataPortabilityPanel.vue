@@ -1,107 +1,102 @@
 <template>
-    <h2 class="cv-section-title">导出数据</h2>
-    <div class="cv-section-body flex flex-col">
+  <h2 class="cv-section-title">导出数据</h2>
+  <div class="cv-section-body flex flex-col">
+    <div class="flex flex-col gap-(--cv-space-md)">
+      <div class="flex flex-wrap items-center gap-(--cv-space-md)">
+        <button
+          v-for="section in sections"
+          :key="section.id"
+          type="button"
+          class="cursor-pointer rounded-(--cv-radius-full) border border-solid px-[0.55rem] py-[0.25rem] text-(length:--cv-font-size-xs) leading-[1.2] transition-[opacity,color,border-color,background] duration-150 ease-in-out"
+          :class="
+            isExportSelected(section.id)
+              ? 'border-(--cvp-primary-color) bg-[color-mix(in_srgb,var(--cvp-primary-color)_12%,transparent)] text-(--cvp-primary-color) opacity-100'
+              : 'border-(--cv-surface-variant) bg-transparent text-(--cv-on-surface-variant) opacity-55 hover:border-(--cvp-primary-color) hover:text-(--cvp-primary-color) hover:opacity-85'
+          "
+          :aria-pressed="isExportSelected(section.id)"
+          @click="toggleExportSection(section.id)"
+        >
+          {{ section.label }}
+        </button>
+      </div>
+      <p v-if="exportDescription" class="m-0 text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
+        {{ exportDescription }}
+      </p>
+    </div>
+    <div class="flex flex-wrap items-center justify-between gap-(--cv-space-lg)">
+      <Button
+        label="导出 JSON"
+        icon="fa-solid fa-file-import"
+        :loading="exportBusy"
+        :disabled="!exportSections.length"
+        @click="exportData"
+      />
+    </div>
+  </div>
+
+  <h2 class="cv-section-title">导入数据</h2>
+  <div class="cv-section-body flex flex-col">
+    <div class="flex flex-wrap items-center justify-between gap-(--cv-space-lg)">
+      <input ref="fileInput" type="file" accept="application/json,.json" class="hidden" @change="handleFileChange" />
+      <Button label="选择 JSON" icon="fa-solid fa-file-import" severity="secondary" @click="openFilePicker" />
+      <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
+        >导入前只预览识别到的数据，不会自动覆盖当前设置。</span
+      >
+    </div>
+
+    <div v-if="preview" class="flex flex-col gap-(--cv-space-2xl)">
+      <div
+        class="flex flex-wrap items-center justify-between gap-(--cv-space-lg) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
+      >
+        <span>识别到的数据</span>
+        <span>{{ importSummaryText }}</span>
+      </div>
       <div class="flex flex-col gap-(--cv-space-md)">
         <div class="flex flex-wrap items-center gap-(--cv-space-md)">
           <button
-            v-for="section in sections"
+            v-for="section in preview.sections"
             :key="section.id"
             type="button"
             class="cursor-pointer rounded-(--cv-radius-full) border border-solid px-[0.55rem] py-[0.25rem] text-(length:--cv-font-size-xs) leading-[1.2] transition-[opacity,color,border-color,background] duration-150 ease-in-out"
             :class="
-              isExportSelected(section.id)
-                ? 'border-(--p-primary-color) bg-[color-mix(in_srgb,var(--p-primary-color)_12%,transparent)] text-(--p-primary-color) opacity-100'
-                : 'border-(--cv-surface-variant) bg-transparent text-(--cv-on-surface-variant) opacity-55 hover:border-(--p-primary-color) hover:text-(--p-primary-color) hover:opacity-85'
+              isImportSelected(section.id)
+                ? 'border-(--cvp-primary-color) bg-[color-mix(in_srgb,var(--cvp-primary-color)_12%,transparent)] text-(--cvp-primary-color) opacity-100'
+                : 'border-(--cv-surface-variant) bg-transparent text-(--cv-on-surface-variant) opacity-55 hover:border-(--cvp-primary-color) hover:text-(--cvp-primary-color) hover:opacity-85'
             "
-            :aria-pressed="isExportSelected(section.id)"
-            @click="toggleExportSection(section.id)"
+            :aria-pressed="isImportSelected(section.id)"
+            @click="toggleImportSection(section.id)"
           >
             {{ section.label }}
           </button>
         </div>
-        <p v-if="exportDescription" class="m-0 text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
-          {{ exportDescription }}
+        <p v-if="importDescription" class="m-0 text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
+          {{ importDescription }}
         </p>
       </div>
-      <div class="flex flex-wrap items-center justify-between gap-(--cv-space-lg)">
+      <Message v-if="previewWarnings.length" severity="warn" size="small" class="w-full">
+        {{ previewWarnings.join('；') }}
+      </Message>
+      <div class="flex flex-wrap items-center justify-end gap-(--cv-space-lg)">
         <Button
-          label="导出 JSON"
-          icon="fa-solid fa-file-import"
-          :loading="exportBusy"
-          :disabled="!exportSections.length"
-          @click="exportData"
+          label="导入选中"
+          icon="fa-solid fa-upload"
+          :loading="importBusy"
+          :disabled="!importSections.length"
+          @click="importData"
         />
       </div>
     </div>
+  </div>
 
-    <h2 class="cv-section-title">导入数据</h2>
-    <div class="cv-section-body flex flex-col">
-      <div class="flex flex-wrap items-center justify-between gap-(--cv-space-lg)">
-        <input ref="fileInput" type="file" accept="application/json,.json" class="hidden" @change="handleFileChange" />
-        <Button label="选择 JSON" icon="fa-solid fa-file-import" severity="secondary" @click="openFilePicker" />
-        <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
-          >导入前只预览识别到的数据，不会自动覆盖当前设置。</span
-        >
-      </div>
-
-      <div v-if="preview" class="flex flex-col gap-(--cv-space-2xl)">
-        <div
-          class="flex flex-wrap items-center justify-between gap-(--cv-space-lg) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
-        >
-          <span>识别到的数据</span>
-          <span>{{ importSummaryText }}</span>
-        </div>
-        <div class="flex flex-col gap-(--cv-space-md)">
-          <div class="flex flex-wrap items-center gap-(--cv-space-md)">
-            <button
-              v-for="section in preview.sections"
-              :key="section.id"
-              type="button"
-              class="cursor-pointer rounded-(--cv-radius-full) border border-solid px-[0.55rem] py-[0.25rem] text-(length:--cv-font-size-xs) leading-[1.2] transition-[opacity,color,border-color,background] duration-150 ease-in-out"
-              :class="
-                isImportSelected(section.id)
-                  ? 'border-(--p-primary-color) bg-[color-mix(in_srgb,var(--p-primary-color)_12%,transparent)] text-(--p-primary-color) opacity-100'
-                  : 'border-(--cv-surface-variant) bg-transparent text-(--cv-on-surface-variant) opacity-55 hover:border-(--p-primary-color) hover:text-(--p-primary-color) hover:opacity-85'
-              "
-              :aria-pressed="isImportSelected(section.id)"
-              @click="toggleImportSection(section.id)"
-            >
-              {{ section.label }}
-            </button>
-          </div>
-          <p v-if="importDescription" class="m-0 text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
-            {{ importDescription }}
-          </p>
-        </div>
-        <Message v-if="previewWarnings.length" severity="warn" size="small" class="w-full">
-          {{ previewWarnings.join('；') }}
-        </Message>
-        <div class="flex flex-wrap items-center justify-end gap-(--cv-space-lg)">
-          <Button
-            label="导入选中"
-            icon="fa-solid fa-upload"
-            :loading="importBusy"
-            :disabled="!importSections.length"
-            @click="importData"
-          />
-        </div>
+  <h2 class="cv-section-title">重置数据</h2>
+  <div class="cv-section-body">
+    <div class="cv-field">
+      <div class="cv-field-control">
+        <Button label="重置为默认设置" icon="fa-solid fa-rotate-left" severity="danger" @click="handleReset" />
+        <div class="cv-field-hint">将所有设置恢复为默认值，此操作不可撤销</div>
       </div>
     </div>
-
-    <h2 class="cv-section-title">重置数据</h2>
-    <div class="cv-section-body">
-      <div class="cv-field">
-        <div class="cv-field-control">
-          <Button
-            label="重置为默认设置"
-            icon="fa-solid fa-rotate-left"
-            severity="danger"
-            @click="handleReset"
-          />
-          <div class="cv-field-hint">将所有设置恢复为默认值，此操作不可撤销</div>
-        </div>
-      </div>
-    </div>
+  </div>
 </template>
 
 <script setup lang="ts">

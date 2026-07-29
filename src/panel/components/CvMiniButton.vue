@@ -9,7 +9,7 @@
     :dt="buttonTokens"
     :fluid="false"
     variant="text"
-    class="cv-mini-button inline-flex h-[2em]! w-max! min-h-[2em]! min-w-0 flex-none cursor-pointer items-center justify-center overflow-visible! border-(length:--cv-border-width)! border-solid! border-transparent! bg-transparent leading-none shadow-none transition-all duration-150 focus-visible:border-transparent! focus-visible:bg-transparent! focus-visible:shadow-none! focus-visible:outline-0 data-[p-disabled=true]:cursor-not-allowed [&_.cv-prime-button-label]:leading-none [&_.cv-prime-icon]:inline-flex [&_.cv-prime-icon]:size-[1em] [&_.cv-prime-icon]:shrink-0 [&_.cv-prime-icon]:items-center [&_.cv-prime-icon]:justify-center [&_.cv-prime-icon]:leading-none"
+    class="cv-mini-button inline-flex h-[2em]! min-h-[2em]! w-max! min-w-0 flex-none cursor-pointer items-center justify-center overflow-visible! border-(length:--cv-border-width)! border-solid! border-transparent! bg-transparent leading-none shadow-none transition-all duration-150 focus-visible:border-transparent! focus-visible:bg-transparent! focus-visible:shadow-none! focus-visible:outline-0 data-[p-disabled=true]:cursor-not-allowed [&_.cv-prime-button-label]:leading-none [&_.cv-prime-icon]:inline-flex [&_.cv-prime-icon]:size-[1em] [&_.cv-prime-icon]:shrink-0 [&_.cv-prime-icon]:items-center [&_.cv-prime-icon]:justify-center [&_.cv-prime-icon]:leading-none"
     :style="buttonStyle"
   >
     <slot />
@@ -65,20 +65,20 @@ const TONE_SEVERITY_MAP: Record<CvMiniButtonTone, ButtonProps['severity']> = {
 // 色调 → 默认文字色
 const TONE_COLOR_MAP: Record<CvMiniButtonTone, string> = {
   neutral: 'var(--cv-on-surface-variant)',
-  primary: 'var(--p-primary-color)',
-  warn: 'var(--p-orange-500)',
-  warning: 'var(--p-orange-500)',
-  danger: 'var(--p-red-500)',
-  error: 'var(--p-red-500)',
-  success: 'var(--p-green-500)',
-  info: 'var(--p-sky-500)',
-  help: 'var(--p-purple-500)',
+  primary: 'var(--cvp-primary-color)',
+  warn: 'var(--cvp-orange-500)',
+  warning: 'var(--cvp-orange-500)',
+  danger: 'var(--cvp-red-500)',
+  error: 'var(--cvp-red-500)',
+  success: 'var(--cvp-green-500)',
+  info: 'var(--cvp-sky-500)',
+  help: 'var(--cvp-purple-500)',
 } as const;
 
 // neutral hover 对齐预设工具条（升为主色）；其余 tone 用自身色
 const TONE_HOVER_COLOR_MAP: Record<CvMiniButtonTone, string> = {
   ...TONE_COLOR_MAP,
-  neutral: 'var(--p-primary-color)',
+  neutral: 'var(--cvp-primary-color)',
 };
 
 const severity = computed(() => TONE_SEVERITY_MAP[props.tone]);

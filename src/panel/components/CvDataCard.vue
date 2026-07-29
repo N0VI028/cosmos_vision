@@ -43,7 +43,7 @@ const cardPt = {
 const cardClass = computed(() => [
   // 语义锚点 + 布局；选中/禁用/焦点用工具类表达
   'cv-data-card relative min-w-0 overflow-hidden border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) transition-[border-color,background] duration-150 ease-in-out',
-  'focus-visible:outline focus-visible:outline-(length:--p-focus-ring-width,0.1333em) focus-visible:outline-(--p-focus-ring-style,solid) focus-visible:outline-[color:var(--p-focus-ring-color,color-mix(in_srgb,var(--cv-primary-container)_28%,transparent))] focus-visible:outline-offset-(--p-focus-ring-offset,0.1333em)',
+  'focus-visible:outline focus-visible:outline-(length:--cvp-focus-ring-width,0.1333em) focus-visible:outline-(--cvp-focus-ring-style,solid) focus-visible:outline-[color:var(--cvp-focus-ring-color,color-mix(in_srgb,var(--cv-primary-container)_28%,transparent))] focus-visible:outline-offset-(--cvp-focus-ring-offset,0.1333em)',
   props.selecting && 'cursor-pointer',
   props.selected &&
     'border-(--cv-primary-container) bg-[color-mix(in_srgb,var(--cv-primary-container)_10%,var(--cv-surface-container-low))]',

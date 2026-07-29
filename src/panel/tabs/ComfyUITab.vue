@@ -8,11 +8,7 @@
           <span>ComfyUI URL</span>
           <div class="cv-field-control">
             <div class="flex items-center gap-(--cv-space-md)">
-              <InputText
-                v-model="settings.comfyui.url"
-                placeholder="http://127.0.0.1:8188"
-                class="min-w-0 flex-1"
-              />
+              <InputText v-model="settings.comfyui.url" placeholder="http://127.0.0.1:8188" class="min-w-0 flex-1" />
               <Button
                 :icon="connectionTestIcon"
                 :severity="connectionTestSeverity"
@@ -37,7 +33,7 @@
         <button
           v-if="isDefaultWorkflowActive"
           type="button"
-          class="inline-flex size-[1.65em] cursor-pointer items-center justify-center rounded-(--cv-radius-sm) border-0 bg-transparent p-0 text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) outline-none hover:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] hover:text-(--p-red-500) focus-visible:bg-[color-mix(in_srgb,var(--p-red-500)_10%,transparent)] focus-visible:text-(--p-red-500)"
+          class="inline-flex size-[1.65em] cursor-pointer items-center justify-center rounded-(--cv-radius-sm) border-0 bg-transparent p-0 text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) outline-none hover:bg-[color-mix(in_srgb,var(--cvp-red-500)_10%,transparent)] hover:text-(--cvp-red-500) focus-visible:bg-[color-mix(in_srgb,var(--cvp-red-500)_10%,transparent)] focus-visible:text-(--cvp-red-500)"
           title="重置默认工作流"
           aria-label="重置默认工作流"
           @click="resetDefaultWorkflow"

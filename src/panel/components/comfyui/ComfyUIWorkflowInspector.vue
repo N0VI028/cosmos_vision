@@ -26,12 +26,12 @@
           class="fa-solid shrink-0 text-(--cv-on-surface-variant)"
           :class="isCollapsed ? 'fa-chevron-right' : 'fa-chevron-down'"
         />
-        <span
-          class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)"
-        >{{ displayName }}</span>
-        <span
-          class="shrink-0 font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
-        >#{{ nodeId }}</span>
+        <span class="min-w-0 overflow-hidden font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)">{{
+          displayName
+        }}</span>
+        <span class="shrink-0 font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
+          >#{{ nodeId }}</span
+        >
       </div>
       <div class="flex shrink-0 items-center gap-(--cv-space-md)" @click.stop>
         <CvMiniButton
@@ -52,7 +52,7 @@
     </div>
 
     <div v-show="!isCollapsed" class="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <section class="flex flex-col border-t-(length:--cv-border-width) border-t-solid border-t-(--cv-surface-variant)">
+      <section class="border-t-solid flex flex-col border-t-(length:--cv-border-width) border-t-(--cv-surface-variant)">
         <div
           class="flex min-h-11 items-center justify-between gap-(--cv-space-lg) bg-(--cv-surface-container) px-(--cv-space-xl) py-(--cv-space-md)"
         >
@@ -63,7 +63,8 @@
             <span>可调参数</span>
             <span
               class="min-w-5 rounded-full bg-(--cv-surface-container-highest) px-(--cv-space-xs) py-[0.05rem] text-center font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
-            >{{ parameterCount }}</span>
+              >{{ parameterCount }}</span
+            >
           </div>
         </div>
         <div class="flex flex-col px-(--cv-space-xl)">
@@ -75,10 +76,7 @@
             @update:preset-settings="emit('update:lora-preset-settings', $event)"
             @refresh-options="emit('refresh-lora-options')"
           />
-          <Divider
-            v-if="showLoraPanel && loraPresetSettings && parameterControls.length"
-            :dt="dividerTokens"
-          />
+          <Divider v-if="showLoraPanel && loraPresetSettings && parameterControls.length" :dt="dividerTokens" />
           <ComfyUIWorkflowInput
             v-for="control in parameterControls"
             :key="`${control.nodeId}:${control.inputName}`"
@@ -92,38 +90,46 @@
           <div
             v-if="!parameterCount"
             class="py-(--cv-space-lg) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
-          >无可调参数</div>
+          >
+            无可调参数
+          </div>
         </div>
       </section>
 
-      <section class="flex flex-col border-t-(length:--cv-border-width) border-t-solid border-t-(--cv-surface-variant)">
+      <section class="border-t-solid flex flex-col border-t-(length:--cv-border-width) border-t-(--cv-surface-variant)">
         <div
           class="flex min-h-11 items-center justify-between gap-(--cv-space-lg) bg-(--cv-surface-container) px-(--cv-space-xl) py-(--cv-space-md)"
         >
           <div
             class="flex min-w-0 items-center gap-(--cv-space-sm) text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)"
           >
-            <i class="fa-solid fa-arrow-right-to-bracket w-4 text-center text-(--cv-on-surface-variant)" aria-hidden="true" />
+            <i
+              class="fa-solid fa-arrow-right-to-bracket w-4 text-center text-(--cv-on-surface-variant)"
+              aria-hidden="true"
+            />
             <span>输入</span>
             <span
               class="min-w-5 rounded-full bg-(--cv-surface-container-highest) px-(--cv-space-xs) py-[0.05rem] text-center font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
-            >{{ inputControls.length }}</span>
+              >{{ inputControls.length }}</span
+            >
           </div>
         </div>
         <div class="flex flex-col px-(--cv-space-xl) pt-(--cv-space-sm) pb-(--cv-space-lg)">
           <div
             v-for="control in inputControls"
             :key="control.inputName"
-            class="group/port flex min-h-10 items-center justify-between gap-(--cv-space-xl) border-b-(length:--cv-border-width) border-b-solid border-b-(--cv-surface-variant) py-(--cv-space-sm) last:border-b-0"
+            class="group/port border-b-solid flex min-h-10 items-center justify-between gap-(--cv-space-xl) border-b-(length:--cv-border-width) border-b-(--cv-surface-variant) py-(--cv-space-sm) last:border-b-0"
           >
             <div class="flex min-w-0 items-center gap-(--cv-space-sm)">
               <span class="min-w-7 font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">IN</span>
               <span
-                class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)"
-              >{{ control.label }}</span>
+                class="min-w-0 overflow-hidden text-(length:--cv-font-size-xs) font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
+                >{{ control.label }}</span
+              >
               <span
                 class="rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-outline) px-(--cv-space-sm) py-[0.1rem] font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
-              >{{ control.dataType ?? 'UNKNOWN' }}</span>
+                >{{ control.dataType ?? 'UNKNOWN' }}</span
+              >
             </div>
             <div class="flex shrink-0 items-center gap-(--cv-space-lg)">
               <ComfyUIResultBindingButton
@@ -137,42 +143,53 @@
           <div
             v-if="!inputControls.length"
             class="py-(--cv-space-lg) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
-          >无连线输入</div>
+          >
+            无连线输入
+          </div>
         </div>
       </section>
 
-      <section class="flex flex-col border-t-(length:--cv-border-width) border-t-solid border-t-(--cv-surface-variant)">
+      <section class="border-t-solid flex flex-col border-t-(length:--cv-border-width) border-t-(--cv-surface-variant)">
         <div
           class="flex min-h-11 items-center justify-between gap-(--cv-space-lg) bg-(--cv-surface-container) px-(--cv-space-xl) py-(--cv-space-md)"
         >
           <div
             class="flex min-w-0 items-center gap-(--cv-space-sm) text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)"
           >
-            <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center text-(--cv-on-surface-variant)" aria-hidden="true" />
+            <i
+              class="fa-solid fa-arrow-right-from-bracket w-4 text-center text-(--cv-on-surface-variant)"
+              aria-hidden="true"
+            />
             <span>输出</span>
             <span
               class="min-w-5 rounded-full bg-(--cv-surface-container-highest) px-(--cv-space-xs) py-[0.05rem] text-center font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
-            >{{ outputs.length }}</span>
+              >{{ outputs.length }}</span
+            >
           </div>
         </div>
         <div class="flex flex-col px-(--cv-space-xl) pt-(--cv-space-sm) pb-(--cv-space-lg)">
           <div
             v-for="output in outputs"
             :key="output.index"
-            class="group/port flex min-h-10 items-center justify-between gap-(--cv-space-xl) border-b-(length:--cv-border-width) border-b-solid border-b-(--cv-surface-variant) py-(--cv-space-sm) last:border-b-0"
+            class="group/port border-b-solid flex min-h-10 items-center justify-between gap-(--cv-space-xl) border-b-(length:--cv-border-width) border-b-(--cv-surface-variant) py-(--cv-space-sm) last:border-b-0"
           >
             <div class="flex min-w-0 items-center gap-(--cv-space-sm)">
-              <span class="min-w-7 font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">{{ output.index }}</span>
+              <span class="min-w-7 font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">{{
+                output.index
+              }}</span>
               <span
-                class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)"
-              >{{ output.name }}</span>
+                class="min-w-0 overflow-hidden text-(length:--cv-font-size-xs) font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
+                >{{ output.name }}</span
+              >
               <span
                 class="rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-outline) px-(--cv-space-sm) py-[0.1rem] font-mono text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
-              >{{ output.type }}</span>
+                >{{ output.type }}</span
+              >
               <span
                 v-if="output.isList"
-                class="rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--p-primary-color) px-(--cv-space-sm) py-[0.1rem] font-mono text-(length:--cv-font-size-xs) text-(--p-primary-color)"
-              >LIST</span>
+                class="rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cvp-primary-color) px-(--cv-space-sm) py-[0.1rem] font-mono text-(length:--cv-font-size-xs) text-(--cvp-primary-color)"
+                >LIST</span
+              >
             </div>
             <div class="flex shrink-0 items-center gap-(--cv-space-lg)">
               <ComfyUIResultBindingButton
@@ -186,7 +203,9 @@
           <div
             v-if="!outputs.length"
             class="py-(--cv-space-lg) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
-          >{{ outputEmptyText }}</div>
+          >
+            {{ outputEmptyText }}
+          </div>
         </div>
       </section>
     </div>

@@ -15,24 +15,22 @@
         <section
           v-for="entry in entries"
           :key="entry.id"
-          class="cv-message-row group/row grid grid-cols-[auto_minmax(0,1fr)] items-stretch overflow-hidden rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) transition-[border-color,box-shadow] duration-150 ease-in-out [content-visibility:auto] [contain-intrinsic-block-size:47px] hover:border-(--cv-outline) hover:shadow-[0_var(--cv-space-sm)_var(--cv-space-3xl)_color-mix(in_srgb,var(--cv-on-surface)_12%,transparent)] group-[.is-dragging]/list:transition-none"
+          class="cv-message-row group/row grid grid-cols-[auto_minmax(0,1fr)] items-stretch overflow-hidden rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) transition-[border-color,box-shadow] duration-150 ease-in-out [contain-intrinsic-block-size:47px] [content-visibility:auto] group-[.is-dragging]/list:transition-none hover:border-(--cv-outline) hover:shadow-[0_var(--cv-space-sm)_var(--cv-space-3xl)_color-mix(in_srgb,var(--cv-on-surface)_12%,transparent)]"
           :class="{
-            'is-disabled opacity-55 bg-[color-mix(in_srgb,var(--cv-surface-container-low)_60%,transparent)] [&_.cv-indicator]:bg-[color-mix(in_srgb,var(--cv-on-surface)_20%,transparent)] [&_.cv-indicator]:shadow-none':
+            'is-disabled bg-[color-mix(in_srgb,var(--cv-surface-container-low)_60%,transparent)] opacity-55 [&_.cv-indicator]:bg-[color-mix(in_srgb,var(--cv-on-surface)_20%,transparent)] [&_.cv-indicator]:shadow-none':
               entry.enabled === false,
           }"
           :data-role="getRole?.(entry)"
         >
           <button
             type="button"
-            class="cv-message-handle flex w-8 cursor-grab touch-none select-none items-center justify-center border-0 border-r-(length:--cv-border-width) border-r-solid border-r-(--cv-surface-variant) bg-transparent p-0 text-(length:--cv-font-size-xs) text-[color-mix(in_srgb,var(--cv-on-surface)_25%,transparent)] transition-[color,background] duration-150 ease-in-out group-hover/row:bg-[color-mix(in_srgb,var(--cv-on-surface)_3%,transparent)] group-hover/row:text-[color-mix(in_srgb,var(--cv-on-surface)_50%,transparent)] hover:text-(--p-primary-color)! active:cursor-grabbing"
+            class="cv-message-handle border-r-solid flex w-8 cursor-grab touch-none items-center justify-center border-0 border-r-(length:--cv-border-width) border-r-(--cv-surface-variant) bg-transparent p-0 text-(length:--cv-font-size-xs) text-[color-mix(in_srgb,var(--cv-on-surface)_25%,transparent)] transition-[color,background] duration-150 ease-in-out select-none group-hover/row:bg-[color-mix(in_srgb,var(--cv-on-surface)_3%,transparent)] group-hover/row:text-[color-mix(in_srgb,var(--cv-on-surface)_50%,transparent)] hover:text-(--cvp-primary-color)! active:cursor-grabbing"
             title="拖拽排序"
             aria-label="拖拽排序"
           >
             <i class="fa-solid fa-grip-vertical" />
           </button>
-          <div
-            class="cv-message-item flex min-w-0 items-center justify-between gap-(--cv-space-xl) p-(--cv-space-xl)"
-          >
+          <div class="cv-message-item flex min-w-0 items-center justify-between gap-(--cv-space-xl) p-(--cv-space-xl)">
             <div class="cv-message-main flex min-w-0 flex-1 items-center gap-(--cv-space-xl)">
               <slot name="main" :entry="entry" />
             </div>
@@ -48,7 +46,7 @@
   </div>
   <div
     v-else
-    class="cv-empty-hint mb-(--cv-space-5xl) flex flex-col items-center justify-center gap-(--cv-space-3xl) p-(--cv-space-8xl) text-center text-muted-color"
+    class="cv-empty-hint text-muted-color mb-(--cv-space-5xl) flex flex-col items-center justify-center gap-(--cv-space-3xl) p-(--cv-space-8xl) text-center"
   >
     {{ emptyText }}
   </div>
@@ -115,8 +113,8 @@ defineExpose({ scrollToEnd });
 .cv-message-row-ghost {
   opacity: 1 !important;
   border-style: dashed !important;
-  border-color: var(--p-primary-color) !important;
-  background: color-mix(in srgb, var(--p-primary-color) 12%, transparent) !important;
+  border-color: var(--cvp-primary-color) !important;
+  background: color-mix(in srgb, var(--cvp-primary-color) 12%, transparent) !important;
   box-shadow: none !important;
 }
 
@@ -125,14 +123,14 @@ defineExpose({ scrollToEnd });
 }
 
 .cv-message-row-chosen {
-  border-color: var(--p-primary-color);
+  border-color: var(--cvp-primary-color);
   opacity: 0.85;
 }
 
 .cv-message-row-fallback {
   z-index: 10000;
   opacity: 0.95 !important;
-  border-color: var(--p-primary-color) !important;
+  border-color: var(--cvp-primary-color) !important;
   background: var(--cv-surface-container) !important;
   box-shadow: 0 8px 24px color-mix(in srgb, var(--cv-on-surface) 24%, transparent) !important;
   pointer-events: none;

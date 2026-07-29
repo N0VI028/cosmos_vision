@@ -68,12 +68,8 @@
 
       <div
         v-if="workflow"
-        class="cv-workflow-canvas-wrapper relative w-full min-h-0 overflow-hidden"
-        :class="
-          fullscreen
-            ? 'min-h-0 flex-1 aspect-auto! max-h-none! h-auto!'
-            : 'aspect-video max-h-72 h-auto!'
-        "
+        class="cv-workflow-canvas-wrapper relative min-h-0 w-full overflow-hidden"
+        :class="fullscreen ? 'aspect-auto! h-auto! max-h-none! min-h-0 flex-1' : 'aspect-video h-auto! max-h-72'"
       >
         <ComfyUIWorkflowCanvas
           ref="canvasRef"
@@ -84,7 +80,9 @@
         />
 
         <!-- 悬浮状态提示与右侧操作按钮的统一容器，避免绝对定位冲突导致覆盖 -->
-        <div class="pointer-events-none absolute top-(--cv-space-lg) right-(--cv-space-lg) left-(--cv-space-lg) z-2 flex items-start justify-between gap-(--cv-space-md)">
+        <div
+          class="pointer-events-none absolute top-(--cv-space-lg) right-(--cv-space-lg) left-(--cv-space-lg) z-2 flex items-start justify-between gap-(--cv-space-md)"
+        >
           <!-- 左侧统一状态提示 -->
           <div class="min-w-0 flex-1">
             <Transition
@@ -101,19 +99,15 @@
               >
                 <i
                   v-if="statusTone === 'error'"
-                  class="fa-solid fa-circle-xmark shrink-0 text-(--p-red-500)"
+                  class="fa-solid fa-circle-xmark shrink-0 text-(--cvp-red-500)"
                   aria-hidden="true"
                 />
                 <i
                   v-else-if="statusTone === 'warn'"
-                  class="fa-solid fa-triangle-exclamation shrink-0 text-(--p-orange-500)"
+                  class="fa-solid fa-triangle-exclamation shrink-0 text-(--cvp-orange-500)"
                   aria-hidden="true"
                 />
-                <i
-                  v-else
-                  class="fa-solid fa-circle-info shrink-0 text-(--cv-primary)"
-                  aria-hidden="true"
-                />
+                <i v-else class="fa-solid fa-circle-info shrink-0 text-(--cv-primary)" aria-hidden="true" />
                 <span class="whitespace-break-spaces">{{ statusText }}</span>
               </div>
             </Transition>
@@ -121,18 +115,11 @@
 
           <!-- 右侧操作按钮 -->
           <div class="pointer-events-auto flex shrink-0 gap-(--cv-space-sm)">
-            <ReuseIconButton
-              title="定位绑定节点"
-              @click="locatePopover?.toggle($event)"
-            >
+            <ReuseIconButton title="定位绑定节点" @click="locatePopover?.toggle($event)">
               <i class="fa-solid fa-location-crosshairs" aria-hidden="true" />
             </ReuseIconButton>
 
-            <Popover
-              ref="locatePopover"
-              :base-z-index="3200"
-              :pt="locatePopoverPt"
-            >
+            <Popover ref="locatePopover" :base-z-index="3200" :pt="locatePopoverPt">
               <div class="flex w-full flex-col items-stretch gap-(--cv-space-xs) p-(--cv-space-xs)">
                 <button
                   v-for="option in bindingLocateOptions"
@@ -143,17 +130,25 @@
                   :title="option.label"
                   @click="onLocateNode(option.nodeId)"
                 >
-                  <span class="flex w-[1.125rem] shrink-0 items-center justify-center text-(length:--cv-font-size-base)">
-                    <i :class="option.icon" :style="{ color: option.nodeId ? option.color : undefined }" aria-hidden="true" />
+                  <span
+                    class="flex w-[1.125rem] shrink-0 items-center justify-center text-(length:--cv-font-size-base)"
+                  >
+                    <i
+                      :class="option.icon"
+                      :style="{ color: option.nodeId ? option.color : undefined }"
+                      aria-hidden="true"
+                    />
                   </span>
                   <span class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ option.label }}</span>
-                  <span class="ml-auto shrink-0 pl-(--cv-space-lg) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
+                  <span
+                    class="ml-auto shrink-0 pl-(--cv-space-lg) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
+                  >
                     {{ option.nodeId ? `#${option.nodeId}` : '未绑定' }}
                   </span>
                 </button>
                 <template v-if="favoriteLocateOptions.length">
                   <div
-                    class="my-(--cv-space-xs) border-t-(length:--cv-border-width) border-t-solid border-t-(--cv-surface-variant) pt-(--cv-space-sm) text-(length:--cv-font-size-xs) font-semibold tracking-wide text-(--cv-on-surface-variant)"
+                    class="border-t-solid my-(--cv-space-xs) border-t-(length:--cv-border-width) border-t-(--cv-surface-variant) pt-(--cv-space-sm) text-(length:--cv-font-size-xs) font-semibold tracking-wide text-(--cv-on-surface-variant)"
                   >
                     收藏
                   </div>
@@ -165,11 +160,17 @@
                     :title="option.label"
                     @click="onLocateNode(option.nodeId)"
                   >
-                    <span class="flex w-[1.125rem] shrink-0 items-center justify-center text-(length:--cv-font-size-base) text-(--p-orange-500)">
+                    <span
+                      class="flex w-[1.125rem] shrink-0 items-center justify-center text-(length:--cv-font-size-base) text-(--cvp-orange-500)"
+                    >
                       <i :class="option.icon" aria-hidden="true" />
                     </span>
-                    <span class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ option.label }}</span>
-                    <span class="ml-auto shrink-0 pl-(--cv-space-lg) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
+                    <span class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{
+                      option.label
+                    }}</span>
+                    <span
+                      class="ml-auto shrink-0 pl-(--cv-space-lg) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
+                    >
                       #{{ option.nodeId }}
                     </span>
                   </button>
@@ -177,23 +178,13 @@
               </div>
             </Popover>
 
-            <ReuseIconButton
-              title="同步节点定义"
-              :disabled="schemaLoading"
-              @click="refreshSchema(true)"
-            >
+            <ReuseIconButton title="同步节点定义" :disabled="schemaLoading" @click="refreshSchema(true)">
               <i class="fa-solid fa-rotate" :class="{ 'fa-spin': schemaLoading }" aria-hidden="true" />
             </ReuseIconButton>
-            <ReuseIconButton
-              title="适配视图"
-              @click="canvasRef?.fitView()"
-            >
+            <ReuseIconButton title="适配视图" @click="canvasRef?.fitView()">
               <i class="fa-solid fa-expand" aria-hidden="true" />
             </ReuseIconButton>
-            <ReuseIconButton
-              :title="fullscreen ? '退出全屏' : '全屏编辑'"
-              @click="fullscreen = !fullscreen"
-            >
+            <ReuseIconButton :title="fullscreen ? '退出全屏' : '全屏编辑'" @click="fullscreen = !fullscreen">
               <i
                 :class="fullscreen ? 'fa-solid fa-compress' : 'fa-solid fa-up-right-and-down-left-from-center'"
                 aria-hidden="true"
@@ -271,7 +262,15 @@ import { DARK_CLASS } from '@/constants/default-settings';
 import { getActiveComfyUILoraPreset } from '@/services/comfyui/lora-presets';
 import { writeLoraPresetToNode, isSupportedLoraNode } from '@/services/comfyui/lora-adapter';
 import { layoutWorkflow, readNodeDisplayName } from '@/services/comfyui/layout';
-import { readImageOutputNodeId, setImageOutputNode, clearImageOutputNode, readNodeMeta, setPromptBinding, setSeedMode, readPromptBindings } from '@/services/comfyui/meta';
+import {
+  readImageOutputNodeId,
+  setImageOutputNode,
+  clearImageOutputNode,
+  readNodeMeta,
+  setPromptBinding,
+  setSeedMode,
+  readPromptBindings,
+} from '@/services/comfyui/meta';
 import {
   fetchComfyUIObjectInfo,
   getCachedComfyUIObjectInfo,
@@ -349,10 +348,22 @@ const bindingLocateOptions = computed(() => {
   const outputId = readImageOutputNodeId(wf);
 
   return [
-    { key: 'positive', label: '正面提示词', icon: 'fa-solid fa-circle-plus', nodeId: positiveId, color: 'var(--p-green-500)' },
-    { key: 'negative', label: '负面提示词', icon: 'fa-solid fa-circle-minus', nodeId: negativeId, color: 'var(--p-red-500)' },
-    { key: 'lora', label: 'Lora组', icon: 'fa-solid fa-puzzle-piece', nodeId: loraId, color: 'var(--p-purple-400)' },
-    { key: 'output', label: '段落生图结果', icon: 'fa-solid fa-image', nodeId: outputId, color: 'var(--p-blue-500)' },
+    {
+      key: 'positive',
+      label: '正面提示词',
+      icon: 'fa-solid fa-circle-plus',
+      nodeId: positiveId,
+      color: 'var(--cvp-green-500)',
+    },
+    {
+      key: 'negative',
+      label: '负面提示词',
+      icon: 'fa-solid fa-circle-minus',
+      nodeId: negativeId,
+      color: 'var(--cvp-red-500)',
+    },
+    { key: 'lora', label: 'Lora组', icon: 'fa-solid fa-puzzle-piece', nodeId: loraId, color: 'var(--cvp-purple-400)' },
+    { key: 'output', label: '段落生图结果', icon: 'fa-solid fa-image', nodeId: outputId, color: 'var(--cvp-blue-500)' },
   ];
 });
 
@@ -393,10 +404,7 @@ function onLocateNode(nodeId: string | null): void {
 function toggleSelectedFavorite(): void {
   if (!selectedNodeId.value) return;
   const valid = Boolean(workflow.value?.[selectedNodeId.value]);
-  emit(
-    'update:favorite-node-ids',
-    toggleFavoriteNodeId(props.favoriteNodeIds, selectedNodeId.value, valid),
-  );
+  emit('update:favorite-node-ids', toggleFavoriteNodeId(props.favoriteNodeIds, selectedNodeId.value, valid));
 }
 
 /**
@@ -493,8 +501,6 @@ const canSetSelectedOutput = computed(() => {
   if (!selectedNodeId.value) return false;
   return outputCandidates.value.includes(selectedNodeId.value);
 });
-
-
 
 const statusText = computed(() => {
   if (parseError.value) return parseError.value;
@@ -613,9 +619,7 @@ function tryClearParagraphResult(next: ComfyUIWorkflow, nodeId: string): boolean
  */
 function canBindParagraphResult(nodeId: string): boolean {
   if (outputCandidates.value.includes(nodeId)) return true;
-  const message = objectInfo.value
-    ? '当前节点没有可用的 IMAGE 输入或输出端口'
-    : '未同步节点定义，不能设置段落生图结果';
+  const message = objectInfo.value ? '当前节点没有可用的 IMAGE 输入或输出端口' : '未同步节点定义，不能设置段落生图结果';
   toastr.warning(message);
   return false;
 }
@@ -631,13 +635,15 @@ async function confirmParagraphResultRebind(next: ComfyUIWorkflow, nodeId: strin
   if (!existingId || existingId === nodeId) return true;
   const existing = next[existingId];
   const name = existing ? readNodeDisplayName(existing, existingId) : existingId;
-  return Boolean(await showConfirm?.({
-    title: '改绑段落生图结果',
-    message: `节点 #${existingId}（${name}）已绑定为段落生图结果。是否改绑到当前节点 #${nodeId}？`,
-    acceptLabel: '确认改绑',
-    cancelLabel: '取消',
-    severity: 'warn',
-  }));
+  return Boolean(
+    await showConfirm?.({
+      title: '改绑段落生图结果',
+      message: `节点 #${existingId}（${name}）已绑定为段落生图结果。是否改绑到当前节点 #${nodeId}？`,
+      acceptLabel: '确认改绑',
+      cancelLabel: '取消',
+      severity: 'warn',
+    }),
+  );
 }
 
 /**
@@ -713,7 +719,7 @@ watch(
   { immediate: true, flush: 'post' },
 );
 
-watch(fullscreen, async (value) => {
+watch(fullscreen, async value => {
   document.body.classList.toggle('cv-workflow-editor-open', value);
   await nextTick();
   canvasRef.value?.fitView();

@@ -74,7 +74,7 @@ export const cosmosPrimeComponents = {
   // Select：root 颜色全量继承 form.field；此处只补 dropdown / overlay / option 结构尺寸
   // focusRing 显式清零 → 官方 .p-select.p-focus 的 outline/box-shadow 走 select.focus.ring.*
   // 内嵌 input.p-select-label 的 ST input:focus-visible 不在 token 范围，见 pt 锚点 + host-resets
-  // 颜色仍走 semantic.formField + bridge 中 --p-overlay-select / --p-list-option / --p-select-*
+  // 颜色仍走 semantic.formField + bridge 中 --cvp-overlay-select / --cvp-list-option / --cvp-select-*
   // token 只有统一 option.borderRadius；选中态胶囊圆角需状态选择器 → 组件级 css 扩展指向 PT 锚点
   select: {
     css: `
@@ -247,7 +247,7 @@ export const cosmosPrimeComponents = {
       }
     `,
     root: {
-      transitionDuration: 'var(--p-transition-duration, 0.2s)',
+      transitionDuration: 'var(--cvp-transition-duration, 0.2s)',
     },
     track: {
       borderRadius: 'var(--cv-radius-full)',
@@ -334,12 +334,12 @@ export const cosmosPrimeComponents = {
     colorScheme: {
       light: {
         root: {
-          invalidBorderColor: 'var(--p-red-500)',
+          invalidBorderColor: 'var(--cvp-red-500)',
         },
       },
       dark: {
         root: {
-          invalidBorderColor: 'var(--p-red-500)',
+          invalidBorderColor: 'var(--cvp-red-500)',
         },
       },
     },

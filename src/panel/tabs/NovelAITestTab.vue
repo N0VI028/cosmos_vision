@@ -123,21 +123,21 @@
       >
         <div
           v-if="testStatus === 'running'"
-          class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--p-primary-color)_30%,transparent)] bg-[color-mix(in_srgb,var(--p-primary-color)_10%,transparent)] p-(--cv-space-xl) font-semibold text-(--p-primary-color)"
+          class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-primary-color)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-primary-color)_10%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-primary-color)"
         >
           <i class="fa-solid fa-spinner fa-spin" />
           <span>{{ runningStateText }}</span>
         </div>
         <div
           v-else-if="testStatus === 'success'"
-          class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--p-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--p-green-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--p-green-500)"
+          class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-green-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-green-500)"
         >
           <i class="fa-solid fa-circle-check" />
           <span>{{ successStateText }}</span>
         </div>
         <div
           v-else-if="testStatus === 'error'"
-          class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--p-red-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--p-red-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--p-red-500)"
+          class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-red-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-red-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-red-500)"
         >
           <i class="fa-solid fa-circle-exclamation" />
           <span>{{ errorMessage }}</span>
@@ -157,9 +157,15 @@
       >
         <div v-if="novelaiSnapshot" class="flex flex-col gap-(--cv-space-xl)">
           <div class="text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)">正面提示词</div>
-          <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--cv-on-surface) break-all">{{ novelaiSnapshot.positivePrompt || '(空)' }}</pre>
+          <pre
+            class="m-0 max-h-80 overflow-y-auto rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) wrap-break-word break-all whitespace-pre-wrap text-(--cv-on-surface)"
+            >{{ novelaiSnapshot.positivePrompt || '(空)' }}</pre
+          >
           <div class="text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)">负面提示词</div>
-          <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--cv-on-surface) break-all">{{ novelaiSnapshot.negativePrompt || '(空)' }}</pre>
+          <pre
+            class="m-0 max-h-80 overflow-y-auto rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) wrap-break-word break-all whitespace-pre-wrap text-(--cv-on-surface)"
+            >{{ novelaiSnapshot.negativePrompt || '(空)' }}</pre
+          >
           <div class="text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)">
             角色提示词（{{ novelaiSnapshot.characterPrompts.length }}）
           </div>
@@ -172,12 +178,25 @@
               @toggle="toggleCharacterPrompt(index)"
             >
               <div class="flex flex-col gap-(--cv-space-xl) p-(--cv-space-xl)">
-                <div class="text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)">角色正面</div>
-                <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--cv-on-surface) break-all">{{ item.positivePrompt || '(空)' }}</pre>
-                <div class="text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)">角色负面</div>
-                <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--cv-on-surface) break-all">{{ item.negativePrompt || '(空)' }}</pre>
+                <div class="text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)">
+                  角色正面
+                </div>
+                <pre
+                  class="m-0 max-h-80 overflow-y-auto rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) wrap-break-word break-all whitespace-pre-wrap text-(--cv-on-surface)"
+                  >{{ item.positivePrompt || '(空)' }}</pre
+                >
+                <div class="text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)">
+                  角色负面
+                </div>
+                <pre
+                  class="m-0 max-h-80 overflow-y-auto rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) wrap-break-word break-all whitespace-pre-wrap text-(--cv-on-surface)"
+                  >{{ item.negativePrompt || '(空)' }}</pre
+                >
                 <div class="text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)">坐标</div>
-                <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--cv-on-surface) break-all">{{ formatCharacterPosition(item) }}</pre>
+                <pre
+                  class="m-0 max-h-80 overflow-y-auto rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) wrap-break-word break-all whitespace-pre-wrap text-(--cv-on-surface)"
+                  >{{ formatCharacterPosition(item) }}</pre
+                >
               </div>
             </CollapsiblePanelItem>
           </div>
@@ -200,9 +219,10 @@
           >
             <span class="text-(length:--cv-font-size-base) text-(--cv-on-surface-variant)">{{ row.label }}</span>
             <span
-              class="break-all whitespace-normal text-right text-(--cv-on-surface)"
+              class="text-right break-all whitespace-normal text-(--cv-on-surface)"
               :class="row.code && 'font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs)'"
-            >{{ row.value }}</span>
+              >{{ row.value }}</span
+            >
           </div>
         </div>
         <div v-else class="p-(--cv-space-8xl) text-center text-(--cv-on-surface-variant)">{{ emptyParamText }}</div>
@@ -215,7 +235,10 @@
         <div
           class="overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl)"
         >
-          <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--cv-on-surface) break-all">{{ llmRawResponse || '尚未收到 LLM 返回结果' }}</pre>
+          <pre
+            class="m-0 max-h-80 overflow-y-auto rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) wrap-break-word break-all whitespace-pre-wrap text-(--cv-on-surface)"
+            >{{ llmRawResponse || '尚未收到 LLM 返回结果' }}</pre
+          >
         </div>
       </div>
 
@@ -232,9 +255,10 @@
             >
               <span class="text-(length:--cv-font-size-base) text-(--cv-on-surface-variant)">{{ row.label }}</span>
               <span
-                class="break-all whitespace-normal text-right text-(--cv-on-surface)"
+                class="text-right break-all whitespace-normal text-(--cv-on-surface)"
                 :class="row.code && 'font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs)'"
-              >{{ row.value }}</span>
+                >{{ row.value }}</span
+              >
             </div>
           </div>
         </div>
@@ -245,7 +269,10 @@
         <div
           class="overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl)"
         >
-          <pre class="m-0 max-h-80 overflow-y-auto wrap-break-word whitespace-pre-wrap rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) text-(--cv-on-surface) break-all">{{ llmSentPromptLog || '尚未发送 LLM 测试请求' }}</pre>
+          <pre
+            class="m-0 max-h-80 overflow-y-auto rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-variant) p-(--cv-space-2xl) font-[Consolas,Monaco,monospace] text-(length:--cv-font-size-xs) wrap-break-word break-all whitespace-pre-wrap text-(--cv-on-surface)"
+            >{{ llmSentPromptLog || '尚未发送 LLM 测试请求' }}</pre
+          >
         </div>
       </div>
     </template>
@@ -491,10 +518,7 @@ async function runLlmModeTest(session: TestRequestSession): Promise<void> {
  * @param overrides 提示词覆写参数
  * @param session 当前测试会话
  */
-async function runNovelAIWithOverrides(
-  overrides: NovelAIPromptOverrides,
-  session: TestRequestSession,
-): Promise<void> {
+async function runNovelAIWithOverrides(overrides: NovelAIPromptOverrides, session: TestRequestSession): Promise<void> {
   const request = buildNovelAIResolvedRequest(
     settings.novelai,
     settings.imagePromptPresets,
@@ -678,6 +702,4 @@ function handleTestError(error: unknown): void {
   errorMessage.value = error instanceof Error ? error.message : '测试失败，未知错误';
   toastr.error(errorMessage.value);
 }
-
 </script>
-

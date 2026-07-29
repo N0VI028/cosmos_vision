@@ -130,7 +130,7 @@
   }
 
   .cv-speed-dial-menu > button > i {
-    font-size: 1.0em;
+    font-size: 1em;
   }
 }
 
@@ -270,7 +270,7 @@ body.dark .cv-inline-toolbar {
   border-radius: 50% !important;
 
   /* 默认使用系统高亮主题色，圆圈去除阴影，避免看起来像空洞 */
-  background-color: var(--SmartThemeQuoteColor, var(--p-blue-500)) !important;
+  background-color: var(--SmartThemeQuoteColor, var(--cvp-blue-500)) !important;
   box-shadow: none !important;
 
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -313,12 +313,12 @@ body.dark .cv-inline-toolbar {
 
 /* 图片卡片操作按钮特异样式：固定白底黑字，不随主题切换 */
 .cv-inline-img-actions .cv-inline-action-button {
-  background-color: color-mix(in srgb, var(--p-surface-0) 80%, transparent) !important;
+  background-color: color-mix(in srgb, var(--cvp-surface-0) 80%, transparent) !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
-  border: 1px solid color-mix(in srgb, var(--p-gray-200) 50%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--cvp-gray-200) 50%, transparent) !important;
   box-shadow: none !important;
-  color: var(--p-gray-950) !important;
+  color: var(--cvp-gray-950) !important;
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease,
@@ -326,38 +326,38 @@ body.dark .cv-inline-toolbar {
 }
 
 .cv-inline-img-actions .cv-inline-action-button:not([data-p-disabled='true']):hover {
-  background-color: color-mix(in srgb, var(--p-surface-0) 90%, transparent) !important;
-  border-color: color-mix(in srgb, var(--p-gray-300) 60%, transparent) !important;
+  background-color: color-mix(in srgb, var(--cvp-surface-0) 90%, transparent) !important;
+  border-color: color-mix(in srgb, var(--cvp-gray-300) 60%, transparent) !important;
   transform: translateY(-1px);
 }
 
 /* secondary 按钮与默认样式保持一致 */
 .cv-inline-img-actions .cv-inline-action-button[data-p-severity='secondary'] {
-  color: var(--p-gray-950) !important;
-  background-color: color-mix(in srgb, var(--p-surface-0) 50%, transparent) !important;
-  border: 1px solid color-mix(in srgb, var(--p-gray-200) 50%, transparent) !important;
+  color: var(--cvp-gray-950) !important;
+  background-color: color-mix(in srgb, var(--cvp-surface-0) 50%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--cvp-gray-200) 50%, transparent) !important;
 }
 
 .cv-inline-img-actions .cv-inline-action-button[data-p-severity='secondary']:not([data-p-disabled='true']):hover {
-  color: var(--p-gray-950) !important;
+  color: var(--cvp-gray-950) !important;
 }
 
 /* secondary 按钮内图标同样固定黑色 */
 .cv-inline-img-actions .cv-inline-action-button[data-p-severity='secondary'] i {
-  color: var(--p-gray-950) !important;
+  color: var(--cvp-gray-950) !important;
 }
 
 /* 危险按钮（danger）覆盖：保持危险红色，但采用与整体一致的半透明毛玻璃加不透明文字的设计 */
 .cv-inline-img-actions .cv-inline-action-button[data-p-severity='danger'] {
-  color: var(--p-red-500) !important;
-  background-color: color-mix(in srgb, var(--p-red-500) 18%, transparent) !important;
-  border: 1px solid color-mix(in srgb, var(--p-red-500) 30%, transparent) !important;
+  color: var(--cvp-red-500) !important;
+  background-color: color-mix(in srgb, var(--cvp-red-500) 18%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--cvp-red-500) 30%, transparent) !important;
 }
 
 .cv-inline-img-actions .cv-inline-action-button[data-p-severity='danger']:not([data-p-disabled='true']):hover {
-  background-color: color-mix(in srgb, var(--p-red-500) 30%, transparent) !important;
-  border-color: color-mix(in srgb, var(--p-red-500) 50%, transparent) !important;
-  color: var(--p-red-500) !important;
+  background-color: color-mix(in srgb, var(--cvp-red-500) 30%, transparent) !important;
+  border-color: color-mix(in srgb, var(--cvp-red-500) 50%, transparent) !important;
+  color: var(--cvp-red-500) !important;
 }
 
 /* 临时图片容器:纯净展示原图,无背景无边框,hover/移动端点击浮现操作图标 */
@@ -470,11 +470,11 @@ body.dark .cv-inline-toolbar {
   width: 2.4em;
   height: 2.4em;
   padding: 0 !important;
-  border: 1px solid color-mix(in srgb, var(--p-gray-200) 50%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--cvp-gray-200) 50%, transparent) !important;
   border-radius: var(--cv-radius, 0.2667em) !important;
   background-image: none !important;
-  background-color: color-mix(in srgb, var(--p-surface-0) 30%, transparent) !important;
-  color: var(--p-gray-950) !important;
+  background-color: color-mix(in srgb, var(--cvp-surface-0) 30%, transparent) !important;
+  color: var(--cvp-gray-950) !important;
   font-size: var(--cv-font-size-xs) !important;
   -webkit-backdrop-filter: blur(8px) !important;
   backdrop-filter: blur(8px) !important;
@@ -511,19 +511,19 @@ body.dark .cv-inline-toolbar {
 .cv-inline-corner-button:hover,
 .cv-inline-corner-button:focus-visible {
   transform: translateY(-1px);
-  background-color: color-mix(in srgb, var(--p-surface-0) 92%, transparent) !important;
-  border-color: color-mix(in srgb, var(--p-gray-300) 60%, transparent) !important;
+  background-color: color-mix(in srgb, var(--cvp-surface-0) 92%, transparent) !important;
+  border-color: color-mix(in srgb, var(--cvp-gray-300) 60%, transparent) !important;
 }
 
 /* 收藏星标: 默认弱化, 已收藏使用局部语义色 */
 .cv-inline-favorite-star {
   display: block;
-  color: var(--p-gray-400) !important;
+  color: var(--cvp-gray-400) !important;
   font-size: 1.1em;
   line-height: 1;
 }
 .cv-inline-favorite-star.fa-solid {
-  color: var(--p-yellow-400) !important;
+  color: var(--cvp-yellow-400) !important;
 }
 
 /* 收藏星标: 右下角 */
@@ -534,19 +534,19 @@ body.dark .cv-inline-toolbar {
 /* 移除按钮: 左下角, 与危险操作按钮一致的警告红色 */
 .cv-inline-remove-toggle {
   left: 0.6667em;
-  border-color: color-mix(in srgb, var(--p-red-500) 30%, transparent) !important;
-  background-color: color-mix(in srgb, var(--p-red-500) 18%, transparent) !important;
+  border-color: color-mix(in srgb, var(--cvp-red-500) 30%, transparent) !important;
+  background-color: color-mix(in srgb, var(--cvp-red-500) 18%, transparent) !important;
 }
 
 /* 直接覆盖 .mes_text i 对图标颜色的干扰 */
 .cv-inline-remove-toggle i {
-  color: var(--p-red-500) !important;
+  color: var(--cvp-red-500) !important;
 }
 
 .cv-inline-remove-toggle:hover,
 .cv-inline-remove-toggle:focus-visible {
-  border-color: color-mix(in srgb, var(--p-red-500) 50%, transparent) !important;
-  background-color: color-mix(in srgb, var(--p-red-500) 30%, transparent) !important;
+  border-color: color-mix(in srgb, var(--cvp-red-500) 50%, transparent) !important;
+  background-color: color-mix(in srgb, var(--cvp-red-500) 30%, transparent) !important;
 }
 
 .cv-inline-favorite-content .cv-prime-galleria {
@@ -572,7 +572,7 @@ body.dark .cv-inline-toolbar {
   align-items: center !important;
   gap: 0.8em !important;
   padding: 0.75em 1em !important;
-  background: var(--cv-inline-gallery-surface, #FBF9F5) !important;
+  background: var(--cv-inline-gallery-surface, #fbf9f5) !important;
   border: none !important;
   outline: none !important;
   border-radius: 0 !important;
@@ -581,7 +581,7 @@ body.dark .cv-inline-toolbar {
 
 /* 暗色模式：缩略图条切换为深炭灰底色 */
 .cosmos-vision-app-dark .cv-inline-gallery-strip {
-  background: var(--cv-inline-gallery-surface-dark, #1C1C22) !important;
+  background: var(--cv-inline-gallery-surface-dark, #1c1c22) !important;
 }
 
 /* 滚动区域：隐藏滚动条 */
@@ -615,7 +615,7 @@ body.dark .cv-inline-toolbar {
   padding: 0 !important;
   border: 1px solid transparent !important;
   border-radius: 0.5em !important;
-  background: #FFFFFF !important;
+  background: #ffffff !important;
   box-shadow:
     0 1px 3px rgba(31, 36, 33, 0.08),
     0 1px 2px rgba(31, 36, 33, 0.04) !important;
@@ -636,15 +636,15 @@ body.dark .cv-inline-toolbar {
 
 /* 活动缩略图：主题色边框高亮 */
 .cv-inline-gallery-strip-item[data-p-active='true'] {
-  border-color: var(--SmartThemeQuoteColor, var(--p-blue-500)) !important;
+  border-color: var(--SmartThemeQuoteColor, var(--cvp-blue-500)) !important;
   box-shadow:
-    0 2px 6px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--p-blue-500)) 25%, transparent),
-    0 1px 3px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--p-blue-500)) 15%, transparent) !important;
+    0 2px 6px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 25%, transparent),
+    0 1px 3px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 15%, transparent) !important;
 }
 
 /* 暗色模式：缩略图按钮深灰底 */
 .cosmos-vision-app-dark .cv-inline-gallery-strip-item {
-  background: #2A2A34 !important;
+  background: #2a2a34 !important;
   border-color: transparent !important;
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.2),
@@ -653,17 +653,17 @@ body.dark .cv-inline-toolbar {
 
 .cosmos-vision-app-dark .cv-inline-gallery-strip-item:hover,
 .cosmos-vision-app-dark .cv-inline-gallery-strip-item:focus-visible {
-  background: #34343F !important;
+  background: #34343f !important;
   box-shadow:
     0 4px 8px rgba(0, 0, 0, 0.3),
     0 2px 4px rgba(0, 0, 0, 0.2) !important;
 }
 
 .cosmos-vision-app-dark .cv-inline-gallery-strip-item[data-p-active='true'] {
-  border-color: var(--SmartThemeQuoteColor, var(--p-blue-500)) !important;
+  border-color: var(--SmartThemeQuoteColor, var(--cvp-blue-500)) !important;
   box-shadow:
-    0 2px 6px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--p-blue-500)) 40%, transparent),
-    0 1px 3px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--p-blue-500)) 25%, transparent) !important;
+    0 2px 6px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 40%, transparent),
+    0 1px 3px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 25%, transparent) !important;
 }
 
 /* 导航按钮：完全圆形 + 白底 + 主题色图标 */
@@ -678,11 +678,11 @@ body.dark .cv-inline-toolbar {
   padding: 0 !important;
   width: 2.6em !important;
   height: 2.6em !important;
-  border: 1px solid #E7E1D7 !important;
+  border: 1px solid #e7e1d7 !important;
   border-radius: 9999px !important;
-  background: #FFFFFF !important;
+  background: #ffffff !important;
   background-image: none !important;
-  color: var(--SmartThemeQuoteColor, var(--p-blue-500)) !important;
+  color: var(--SmartThemeQuoteColor, var(--cvp-blue-500)) !important;
   box-shadow:
     0 2px 4px rgba(31, 36, 33, 0.08),
     0 1px 2px rgba(31, 36, 33, 0.04) !important;
@@ -698,11 +698,11 @@ body.dark .cv-inline-toolbar {
 .cv-inline-gallery-strip-nav:not(:disabled):hover,
 .cv-inline-gallery-strip-nav:not(:disabled):focus-visible {
   transform: translateY(-2px) !important;
-  background: #FFFFFF !important;
-  border-color: var(--SmartThemeQuoteColor, var(--p-blue-500)) !important;
+  background: #ffffff !important;
+  border-color: var(--SmartThemeQuoteColor, var(--cvp-blue-500)) !important;
   box-shadow:
-    0 4px 10px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--p-blue-500)) 25%, transparent),
-    0 2px 4px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--p-blue-500)) 15%, transparent) !important;
+    0 4px 10px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 25%, transparent),
+    0 2px 4px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 15%, transparent) !important;
 }
 
 .cv-inline-gallery-strip-nav:not(:disabled):active {
@@ -713,17 +713,17 @@ body.dark .cv-inline-toolbar {
 .cv-inline-gallery-strip-nav:disabled {
   opacity: 0.35 !important;
   cursor: not-allowed !important;
-  background: #F7F4EF !important;
-  border-color: #E7E1D7 !important;
-  color: #5C635D !important;
+  background: #f7f4ef !important;
+  border-color: #e7e1d7 !important;
+  color: #5c635d !important;
   box-shadow: none !important;
 }
 
 /* 暗色模式：导航按钮深灰底 + 主题色图标 */
 .cosmos-vision-app-dark .cv-inline-gallery-strip-nav {
-  background: #2A2A34 !important;
-  border-color: #3A3A44 !important;
-  color: var(--SmartThemeQuoteColor, var(--p-blue-500)) !important;
+  background: #2a2a34 !important;
+  border-color: #3a3a44 !important;
+  color: var(--SmartThemeQuoteColor, var(--cvp-blue-500)) !important;
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.25),
     0 1px 2px rgba(0, 0, 0, 0.15) !important;
@@ -731,17 +731,17 @@ body.dark .cv-inline-toolbar {
 
 .cosmos-vision-app-dark .cv-inline-gallery-strip-nav:not(:disabled):hover,
 .cosmos-vision-app-dark .cv-inline-gallery-strip-nav:not(:disabled):focus-visible {
-  background: #34343F !important;
-  border-color: var(--SmartThemeQuoteColor, var(--p-blue-500)) !important;
+  background: #34343f !important;
+  border-color: var(--SmartThemeQuoteColor, var(--cvp-blue-500)) !important;
   box-shadow:
-    0 4px 10px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--p-blue-500)) 35%, transparent),
-    0 2px 4px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--p-blue-500)) 20%, transparent) !important;
+    0 4px 10px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 35%, transparent),
+    0 2px 4px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 20%, transparent) !important;
 }
 
 .cosmos-vision-app-dark .cv-inline-gallery-strip-nav:disabled {
-  background: #1C1C22 !important;
-  border-color: #3A3A44 !important;
-  color: #5C5C66 !important;
+  background: #1c1c22 !important;
+  border-color: #3a3a44 !important;
+  color: #5c5c66 !important;
 }
 
 /* 缩略图不活跃时降低透明度 */
@@ -841,11 +841,11 @@ body.dark .cv-inline-toolbar {
 .cv-inline-generation-message--running {
   background: color-mix(
     in srgb,
-    var(--SmartThemeQuoteColor, var(--p-blue-500)) 14%,
+    var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 14%,
     var(--cv-surface-container-high)
   ) !important;
-  border-color: color-mix(in srgb, var(--SmartThemeQuoteColor, var(--p-blue-500)) 30%, transparent) !important;
-  color: var(--SmartThemeQuoteColor, var(--p-blue-500)) !important;
+  border-color: color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 30%, transparent) !important;
+  color: var(--SmartThemeQuoteColor, var(--cvp-blue-500)) !important;
 }
 
 /* 状态条内部元素样式 */
@@ -887,8 +887,8 @@ body.dark .cv-inline-toolbar {
   pointer-events: none;
   background: linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--SmartThemeQuoteColor, var(--p-blue-500)) 35%, transparent) 0%,
-    color-mix(in srgb, var(--SmartThemeQuoteColor, var(--p-blue-500)) 15%, transparent) 40%,
+    color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 35%, transparent) 0%,
+    color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 15%, transparent) 40%,
     transparent 100%
   );
 }
@@ -910,11 +910,16 @@ body.dark .cv-inline-toolbar {
   align-items: center;
   gap: 0.5rem;
   padding: 0.35rem 1rem;
-  border: 1px solid color-mix(in srgb, var(--p-primary-color, var(--SmartThemeQuoteColor, var(--p-blue-500))) 40%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--cvp-primary-color, var(--SmartThemeQuoteColor, var(--cvp-blue-500))) 40%, transparent);
   border-radius: var(--cv-radius-full, 9999px);
-  background: color-mix(in srgb, var(--p-primary-color, var(--SmartThemeQuoteColor, var(--p-blue-500))) 16%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--cvp-primary-color, var(--SmartThemeQuoteColor, var(--cvp-blue-500))) 16%,
+    transparent
+  );
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  color: var(--p-primary-color, var(--SmartThemeQuoteColor, var(--p-blue-500)));
+  color: var(--cvp-primary-color, var(--SmartThemeQuoteColor, var(--cvp-blue-500)));
   font-size: 0.85rem;
   font-weight: 500;
   -webkit-backdrop-filter: blur(8px);

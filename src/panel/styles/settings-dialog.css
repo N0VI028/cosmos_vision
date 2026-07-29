@@ -340,7 +340,7 @@
   font-size: var(--cv-font-size-xl);
 }
 
-/* Dialog header/content/footer padding 已迁 definePreset components.dialog + bridge --p-dialog-* */
+/* Dialog header/content/footer padding 已迁 definePreset components.dialog + bridge --cvp-dialog-* */
 
 .cosmos-vision-root .cv-confirm-message,
 .cv-confirm-message {
@@ -457,7 +457,7 @@
 
 .cosmos-vision-root .cv-field-warn {
   font-size: var(--cv-font-size-xs);
-  color: var(--p-red-500);
+  color: var(--cvp-red-500);
   line-height: 1.4;
   white-space: normal;
   overflow-wrap: anywhere;

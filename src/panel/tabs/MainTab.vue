@@ -33,7 +33,7 @@
           :value="'v' + manifest.version"
           severity="primary"
           rounded
-          class="font-(--cv-font-headline)! text-(length:--cv-font-size-xs)! py-(--cv-space-sm)! px-(--cv-space-md)! leading-none! h-auto!"
+          class="h-auto! px-(--cv-space-md)! py-(--cv-space-sm)! text-(length:--cv-font-size-xs)! leading-none! font-(--cv-font-headline)!"
         />
       </h2>
       <div class="cv-section-body">
@@ -43,13 +43,13 @@
         </div>
         <div class="cv-field-inline">
           <span>相关链接</span>
-          <div class="inline-flex items-center justify-end gap-(--cv-space-md) -mr-(--cv-space-xs)">
+          <div class="-mr-(--cv-space-xs) inline-flex items-center justify-end gap-(--cv-space-md)">
             <i
               v-for="link in relatedLinks"
               :key="link.title"
               :class="[
                 link.iconClass,
-                'cursor-pointer transition-colors duration-150 text-(length:--cv-font-size-lg) text-(--cv-on-surface-variant) p-(--cv-space-xs) hover:text-(--p-primary-color)',
+                'cursor-pointer p-(--cv-space-xs) text-(length:--cv-font-size-lg) text-(--cv-on-surface-variant) transition-colors duration-150 hover:text-(--cvp-primary-color)',
               ]"
               :title="link.title"
               @click="openUrl(link.url)"
@@ -90,10 +90,7 @@
 
 <script setup lang="ts">
 import { computed, inject, ref, watch } from 'vue';
-import {
-  appendGeneratedSessionItem,
-  removeSessionItemsByIds,
-} from '@/composables/inlineGallerySession';
+import { appendGeneratedSessionItem, removeSessionItemsByIds } from '@/composables/inlineGallerySession';
 import { IMAGE_SOURCES } from '@/constants/comfyui';
 import DataPortabilityPanel from '@/panel/components/DataPortabilityPanel.vue';
 import InlineFavoriteDataPanel from '@/panel/components/InlineFavoriteDataPanel.vue';
@@ -111,10 +108,7 @@ import {
   downloadInlineImageBlobItems,
   downloadInlineImageFavoriteItems,
 } from '@/services/inline-image/favorites-download';
-import {
-  convertManagedImageKind,
-  type ConvertImageKindResult,
-} from '@/services/inline-image/managed-kind-toggle';
+import { convertManagedImageKind, type ConvertImageKindResult } from '@/services/inline-image/managed-kind-toggle';
 import {
   mergeManagedImageItems,
   parseManagedImageKey,
@@ -366,12 +360,7 @@ async function toggleManagedItemKind(key: string): Promise<void> {
 function applyManagedKindLocalPatch(item: ManagedImageItem, result: ConvertImageKindResult): void {
   if (result.from === 'temporary') {
     temporaryRecords.value = temporaryRecords.value.filter(record => record.id !== result.temporaryId);
-    favoriteGroups.value = upsertManagedFavoriteGroup(
-      favoriteGroups.value,
-      item,
-      result.favoriteId,
-      result.filePath,
-    );
+    favoriteGroups.value = upsertManagedFavoriteGroup(favoriteGroups.value, item, result.favoriteId, result.filePath);
     return;
   }
   favoriteGroups.value = removeManagedFavoriteId(favoriteGroups.value, result.favoriteId);
@@ -585,11 +574,7 @@ function partitionManagedKeys(keys: string[], items: ManagedImageItem[]): Manage
  * @param itemMap 当前管理项索引
  * @param buckets 分桶结果
  */
-function appendPartitionedKey(
-  key: string,
-  itemMap: Map<string, ManagedImageItem>,
-  buckets: ManagedKeyBuckets,
-): void {
+function appendPartitionedKey(key: string, itemMap: Map<string, ManagedImageItem>, buckets: ManagedKeyBuckets): void {
   const parsed = parseManagedImageKey(key);
   if (!parsed) return;
   if (parsed.kind === 'favorite') {

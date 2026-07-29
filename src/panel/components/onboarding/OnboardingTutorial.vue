@@ -480,7 +480,7 @@ onBeforeUnmount(() => {
   <Teleport to="body">
     <div
       ref="overlayRef"
-      class="cv-onboarding cosmos-vision-root fixed inset-0 z-2147482000 h-screen w-screen overflow-hidden pointer-events-auto isolate font-(family-name:--cv-font-body)"
+      class="cv-onboarding cosmos-vision-root pointer-events-auto fixed inset-0 isolate z-2147482000 h-screen w-screen overflow-hidden font-(family-name:--cv-font-body)"
       :class="{ [DARK_CLASS]: darkMode }"
       role="dialog"
       aria-modal="true"
@@ -492,26 +492,21 @@ onBeforeUnmount(() => {
       -->
       <svg
         v-if="layoutReady && highlightRect"
-        class="cv-onboarding__mask absolute inset-0 size-full pointer-events-auto"
+        class="cv-onboarding__mask pointer-events-auto absolute inset-0 size-full"
         aria-hidden="true"
       >
-        <path
-          :d="maskPathD"
-          fill="rgb(5 8 14 / 72%)"
-          fill-rule="evenodd"
-          clip-rule="evenodd"
-        />
+        <path :d="maskPathD" fill="rgb(5 8 14 / 72%)" fill-rule="evenodd" clip-rule="evenodd" />
       </svg>
       <div
         v-else
-        class="cv-onboarding__backdrop absolute inset-0 size-full bg-[rgb(5_8_14/72%)] pointer-events-auto"
+        class="cv-onboarding__backdrop pointer-events-auto absolute inset-0 size-full bg-[rgb(5_8_14/72%)]"
         aria-hidden="true"
       />
 
       <!-- fixed 描边框贴洞口绘制，不受目标滚动容器裁剪；被裁剪边隐藏对应边框 -->
       <div
         v-if="layoutReady && highlightRect"
-        class="cv-onboarding__ring absolute z-1 box-border border-2 border-solid border-(--p-primary-color) shadow-[0_0_0_4px_color-mix(in_srgb,var(--p-primary-color)_28%,transparent)] pointer-events-none"
+        class="cv-onboarding__ring pointer-events-none absolute z-1 box-border border-2 border-solid border-(--cvp-primary-color) shadow-[0_0_0_4px_color-mix(in_srgb,var(--cvp-primary-color)_28%,transparent)]"
         :style="ringStyle"
         aria-hidden="true"
       />
@@ -521,14 +516,14 @@ onBeforeUnmount(() => {
         v-show="!cardHidden"
         ref="cardRef"
         v-focus-trap="{ autoFocus: true, disabled: cardHidden }"
-        class="cv-onboarding__card fixed z-2 box-border flex w-[min(26rem,calc(100vw-2rem))] max-h-[calc(100vh-2rem)] flex-col gap-(--cv-space-4xl) overflow-y-auto border-(length:--cv-border-width) border-solid border-(--cv-outline) rounded-(--cv-radius-lg) bg-(--cv-surface-container-lowest) p-(--cv-space-7xl) text-(--cv-on-surface) shadow-[0_1.5rem_4rem_rgb(0_0_0/32%)] whitespace-normal wrap-break-word max-[40rem]:max-h-[min(75vh,calc(100vh-2rem))] max-[40rem]:p-(--cv-space-4xl)"
+        class="cv-onboarding__card fixed z-2 box-border flex max-h-[calc(100vh-2rem)] w-[min(26rem,calc(100vw-2rem))] flex-col gap-(--cv-space-4xl) overflow-y-auto rounded-(--cv-radius-lg) border-(length:--cv-border-width) border-solid border-(--cv-outline) bg-(--cv-surface-container-lowest) p-(--cv-space-7xl) wrap-break-word whitespace-normal text-(--cv-on-surface) shadow-[0_1.5rem_4rem_rgb(0_0_0/32%)] max-[40rem]:max-h-[min(75vh,calc(100vh-2rem))] max-[40rem]:p-(--cv-space-4xl)"
         :style="cardStyle"
         data-cv-tutorial-surface
       >
         <header class="flex items-center justify-between gap-(--cv-space-lg)">
-          <span
-            class="text-(length:--cv-font-size-xs) font-bold tracking-[0.08em] text-(--cv-on-surface-variant)"
-          >使用教程</span>
+          <span class="text-(length:--cv-font-size-xs) font-bold tracking-[0.08em] text-(--cv-on-surface-variant)"
+            >使用教程</span
+          >
           <div class="flex items-center gap-(--cv-space-sm)">
             <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
               第 {{ stepNumber }} / {{ totalSteps }} 步
@@ -547,17 +542,19 @@ onBeforeUnmount(() => {
         </header>
 
         <div class="flex flex-col gap-(--cv-space-xl)" aria-live="polite">
-          <h2
-            class="m-0 font-(family-name:--cv-font-headline) text-(length:--cv-font-size-xl) leading-[1.2]"
-          >{{ step.title }}</h2>
-          <p class="m-0 whitespace-normal wrap-break-word text-(length:--cv-font-size-base) leading-[1.65] text-(--cv-on-surface-variant)">
+          <h2 class="m-0 font-(family-name:--cv-font-headline) text-(length:--cv-font-size-xl) leading-[1.2]">
+            {{ step.title }}
+          </h2>
+          <p
+            class="m-0 text-(length:--cv-font-size-base) leading-[1.65] wrap-break-word whitespace-normal text-(--cv-on-surface-variant)"
+          >
             <template v-for="(chunk, idx) in parseTextWithLinks(step.description)" :key="idx">
               <a
                 v-if="chunk.type === 'link'"
                 :href="chunk.url"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="inline-flex items-center gap-1 text-(--p-primary-color) underline underline-offset-2 transition-opacity hover:opacity-80"
+                class="inline-flex items-center gap-1 text-(--cvp-primary-color) underline underline-offset-2 transition-opacity hover:opacity-80"
                 data-cv-tutorial-control
               >
                 <span>{{ chunk.content }}</span>
@@ -568,9 +565,12 @@ onBeforeUnmount(() => {
           </p>
           <p
             v-if="step.tip"
-            class="m-0 flex items-start gap-(--cv-space-md) rounded-(--cv-radius-md) border border-solid border-[color-mix(in_srgb,var(--p-yellow-500)_35%,transparent)] bg-[color-mix(in_srgb,var(--p-yellow-500)_10%,var(--cv-surface-container-low))] p-(--cv-space-xl) whitespace-normal wrap-break-word text-(length:--cv-font-size-base) leading-[1.65] text-(--cv-on-surface)"
+            class="m-0 flex items-start gap-(--cv-space-md) rounded-(--cv-radius-md) border border-solid border-[color-mix(in_srgb,var(--cvp-yellow-500)_35%,transparent)] bg-[color-mix(in_srgb,var(--cvp-yellow-500)_10%,var(--cv-surface-container-low))] p-(--cv-space-xl) text-(length:--cv-font-size-base) leading-[1.65] wrap-break-word whitespace-normal text-(--cv-on-surface)"
           >
-            <i class="fa-solid fa-triangle-exclamation text-[color-mix(in_srgb,var(--p-yellow-500)_90%,#f59e0b)] shrink-0 text-(length:--cv-font-size-lg) mt-[0.15em]" aria-hidden="true" />
+            <i
+              class="fa-solid fa-triangle-exclamation mt-[0.15em] shrink-0 text-(length:--cv-font-size-lg) text-[color-mix(in_srgb,var(--cvp-yellow-500)_90%,#f59e0b)]"
+              aria-hidden="true"
+            />
             <span>
               <template v-for="(chunk, idx) in parseTextWithLinks(step.tip)" :key="idx">
                 <a
@@ -578,11 +578,14 @@ onBeforeUnmount(() => {
                   :href="chunk.url"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="inline-flex items-center gap-1 text-(--p-primary-color) underline underline-offset-2 transition-opacity hover:opacity-80"
+                  class="inline-flex items-center gap-1 text-(--cvp-primary-color) underline underline-offset-2 transition-opacity hover:opacity-80"
                   data-cv-tutorial-control
                 >
                   <span>{{ chunk.content }}</span>
-                  <i class="fa-solid fa-arrow-up-right-from-square text-(length:--cv-font-size-xs)" aria-hidden="true" />
+                  <i
+                    class="fa-solid fa-arrow-up-right-from-square text-(length:--cv-font-size-xs)"
+                    aria-hidden="true"
+                  />
                 </a>
                 <template v-else>{{ chunk.content }}</template>
               </template>
@@ -590,7 +593,7 @@ onBeforeUnmount(() => {
           </p>
           <p
             v-if="fallbackText"
-            class="m-0 flex items-start gap-(--cv-space-md) rounded-(--cv-radius-md) bg-(--cv-surface-container) p-(--cv-space-xl) whitespace-normal wrap-break-word text-(length:--cv-font-size-base) leading-[1.65] text-(--cv-on-surface-variant)"
+            class="m-0 flex items-start gap-(--cv-space-md) rounded-(--cv-radius-md) bg-(--cv-surface-container) p-(--cv-space-xl) text-(length:--cv-font-size-base) leading-[1.65] wrap-break-word whitespace-normal text-(--cv-on-surface-variant)"
           >
             <i class="fa-solid fa-circle-info" aria-hidden="true" />
             <span>{{ fallbackText }}</span>
@@ -687,7 +690,7 @@ onBeforeUnmount(() => {
       <!-- 卡片收起后保留底部入口，便于移动端看完高亮再继续 -->
       <div
         v-if="cardHidden && layoutReady"
-        class="cv-onboarding__restore absolute z-2 bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2"
+        class="cv-onboarding__restore absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-2 -translate-x-1/2"
         data-cv-tutorial-surface
       >
         <Button

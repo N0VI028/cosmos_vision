@@ -1,14 +1,8 @@
 <script setup lang="ts">
 import { buildInlineActionHostClass } from '@/composables/inlineImageDom';
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
-import {
-  InlineGalleryGroupView,
-  type InlineGalleryItem,
-} from '@/composables/inlineImageGalleryView';
-import {
-  createTrackedObjectUrl,
-  revokeTrackedObjectUrls,
-} from '@/composables/inlineGalleryMountActions';
+import { InlineGalleryGroupView, type InlineGalleryItem } from '@/composables/inlineImageGalleryView';
+import { createTrackedObjectUrl, revokeTrackedObjectUrls } from '@/composables/inlineGalleryMountActions';
 import { useSettingsStore } from '@/store/settings';
 
 const props = defineProps<{
@@ -30,7 +24,7 @@ const stageClass = computed(() => [
   'cv-preview-stage w-full min-h-64 overflow-hidden rounded-(--cv-radius)',
   items.value.length > 0
     ? 'border-(length:--cv-border-width) border-solid border-(--cv-surface-variant)'
-    : 'border-(length:--cv-border-width) border-dashed border-[color-mix(in_srgb,var(--p-content-border-color)_78%,transparent)] bg-[color-mix(in_srgb,var(--p-content-background)_92%,var(--cv-surface-container-low))]',
+    : 'border-(length:--cv-border-width) border-dashed border-[color-mix(in_srgb,var(--cvp-content-border-color)_78%,transparent)] bg-[color-mix(in_srgb,var(--cvp-content-background)_92%,var(--cv-surface-container-low))]',
 ]);
 
 watch(
@@ -122,7 +116,7 @@ onBeforeUnmount(clearGallery);
     </div>
     <div
       v-else
-      class="flex min-h-64 flex-col items-center justify-center gap-(--cv-space-lg) p-(--cv-space-8xl) text-center text-(--cv-on-surface-variant) [&_i]:text-(length:--cv-font-size-2xl) [&_i]:text-[color-mix(in_srgb,var(--p-primary-color)_60%,var(--cv-on-surface-variant))]"
+      class="flex min-h-64 flex-col items-center justify-center gap-(--cv-space-lg) p-(--cv-space-8xl) text-center text-(--cv-on-surface-variant) [&_i]:text-(length:--cv-font-size-2xl) [&_i]:text-[color-mix(in_srgb,var(--cvp-primary-color)_60%,var(--cv-on-surface-variant))]"
     >
       <i class="fa-regular fa-image" />
       <span>{{ placeholder }}</span>

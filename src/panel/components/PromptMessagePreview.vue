@@ -1,19 +1,20 @@
 <template>
   <div
     v-if="enabledMessages.length === 0"
-    class="mb-(--cv-space-5xl) flex min-h-64 items-center justify-center rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--p-content-border-color) bg-(--p-content-background) p-(--cv-space-8xl) text-center text-(--p-text-muted-color)"
+    class="mb-(--cv-space-5xl) flex min-h-64 items-center justify-center rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cvp-content-border-color) bg-(--cvp-content-background) p-(--cv-space-8xl) text-center text-(--cvp-text-muted-color)"
   >
     暂无已启用条目
   </div>
   <div
     v-else
-    class="custom-scrollbar mb-(--cv-space-5xl) flex h-64 min-h-24 resize-y flex-col gap-(--cv-space-4xl) overflow-y-auto rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--p-content-border-color) bg-(--p-content-background) p-(--cv-space-5xl)"
+    class="custom-scrollbar mb-(--cv-space-5xl) flex h-64 min-h-24 resize-y flex-col gap-(--cv-space-4xl) overflow-y-auto rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cvp-content-border-color) bg-(--cvp-content-background) p-(--cv-space-5xl)"
   >
     <section v-for="message in enabledMessages" :key="message.id">
       <div class="flex min-h-6 items-start">
         <pre
-          class="m-0 min-h-6 w-full whitespace-pre-wrap wrap-break-word text-(length:--cv-font-size-base) leading-[1.5] text-(--cv-on-surface)"
-        >{{ getMessagePreviewText(message) }}</pre>
+          class="m-0 min-h-6 w-full text-(length:--cv-font-size-base) leading-[1.5] wrap-break-word whitespace-pre-wrap text-(--cv-on-surface)"
+          >{{ getMessagePreviewText(message) }}</pre
+        >
       </div>
     </section>
   </div>
@@ -44,7 +45,9 @@ watch(sourcePreviewSignature, refreshSourcePreviews, { immediate: true });
 async function refreshSourcePreviews(): Promise<void> {
   const requestId = ++previewRequestId;
   const sourceMessages = enabledMessages.value.filter(isSourceMessage);
-  const entries = await Promise.all(sourceMessages.map(async message => [message.id, await readSourcePreview(message)]));
+  const entries = await Promise.all(
+    sourceMessages.map(async message => [message.id, await readSourcePreview(message)]),
+  );
   if (requestId === previewRequestId) sourcePreviewMap.value = Object.fromEntries(entries);
 }
 

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="cv-workflow-input flex flex-col gap-(--cv-space-sm) border-b-(length:--cv-border-width) border-b-solid border-b-(--cv-surface-variant) py-(--cv-space-lg) last:border-b-0"
+    class="cv-workflow-input border-b-solid flex flex-col gap-(--cv-space-sm) border-b-(length:--cv-border-width) border-b-(--cv-surface-variant) py-(--cv-space-lg) last:border-b-0"
   >
     <div class="flex items-center justify-between gap-(--cv-space-lg)">
       <span class="text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)">{{ control.label }}</span>
@@ -16,19 +16,19 @@
             <span class="flex items-center gap-1.5">
               <i :class="currentBinding.icon" aria-hidden="true" />
               <span>{{ currentBinding.label }}</span>
-              <i v-if="online" class="fa-solid fa-caret-down text-(length:--cv-font-size-xs) opacity-70" aria-hidden="true" />
+              <i
+                v-if="online"
+                class="fa-solid fa-caret-down text-(length:--cv-font-size-xs) opacity-70"
+                aria-hidden="true"
+              />
             </span>
           </Chip>
-          <Popover
-            ref="promptPopover"
-            :base-z-index="MACRO_POPOVER_BASE_Z_INDEX"
-            :pt="bindingPopoverPt"
-          >
+          <Popover ref="promptPopover" :base-z-index="MACRO_POPOVER_BASE_Z_INDEX" :pt="bindingPopoverPt">
             <button
               v-for="option in alternateBindings"
               :key="option.value ?? 'none'"
               type="button"
-              class="cv-workflow-input__binding-option flex items-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent px-(--cv-space-lg) py-(--cv-space-xs) text-left text-(length:--cv-font-size-xs) leading-[1.2] whitespace-nowrap cursor-pointer hover:bg-(--cv-surface-container-highest)"
+              class="cv-workflow-input__binding-option flex cursor-pointer items-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent bg-transparent px-(--cv-space-lg) py-(--cv-space-xs) text-left text-(length:--cv-font-size-xs) leading-[1.2] whitespace-nowrap hover:bg-(--cv-surface-container-highest)"
               :class="bindingOptionColorClass(option.value)"
               @click="selectPromptBinding(option.value)"
             >
@@ -116,10 +116,7 @@
       class="w-full"
       @update:model-value="emit('update:value', $event)"
     />
-    <div
-      v-else-if="control.kind === 'boolean'"
-      class="flex items-center gap-(--cv-space-lg)"
-    >
+    <div v-else-if="control.kind === 'boolean'" class="flex items-center gap-(--cv-space-lg)">
       <Checkbox
         binary
         :model-value="Boolean(control.value)"
@@ -169,10 +166,7 @@ import type { PopoverPassThroughOptions } from 'primevue/popover';
 import Popover from 'primevue/popover';
 import { computed } from 'vue';
 import { COMFYUI_DIMENSION_PRESETS } from '@/constants/comfyui';
-import {
-  MACRO_POPOVER_BASE_Z_INDEX,
-  type MacroPopoverInstance,
-} from '@/panel/components/prompt-llm-macro-popover';
+import { MACRO_POPOVER_BASE_Z_INDEX, type MacroPopoverInstance } from '@/panel/components/prompt-llm-macro-popover';
 import type { ComfyUIInputControlDesc, PromptBinding, SeedMode } from '@/services/comfyui/types';
 
 import { fetchComfyUICheckpointNames } from '@/services/comfyui/api';
@@ -252,14 +246,14 @@ const chipRootClass = computed(() => {
   if (binding === 'positive') {
     base.push(
       'is-positive',
-      'bg-[color-mix(in_srgb,var(--p-primary-color)_12%,transparent)] border-(--p-primary-color) text-(--p-primary-color)',
-      'hover:bg-[color-mix(in_srgb,var(--p-primary-color)_20%,transparent)]',
+      'bg-[color-mix(in_srgb,var(--cvp-primary-color)_12%,transparent)] border-(--cvp-primary-color) text-(--cvp-primary-color)',
+      'hover:bg-[color-mix(in_srgb,var(--cvp-primary-color)_20%,transparent)]',
     );
   } else if (binding === 'negative') {
     base.push(
       'is-negative',
-      'bg-[color-mix(in_srgb,var(--p-orange-500)_12%,transparent)] border-(--p-orange-500) text-(--p-orange-500)',
-      'hover:bg-[color-mix(in_srgb,var(--p-orange-500)_20%,transparent)]',
+      'bg-[color-mix(in_srgb,var(--cvp-orange-500)_12%,transparent)] border-(--cvp-orange-500) text-(--cvp-orange-500)',
+      'hover:bg-[color-mix(in_srgb,var(--cvp-orange-500)_20%,transparent)]',
     );
   } else {
     base.push(
@@ -276,8 +270,8 @@ const chipRootClass = computed(() => {
  * @param value 绑定值
  */
 function bindingOptionColorClass(value: PromptBinding | null): string {
-  if (value === 'positive') return 'is-positive text-(--p-primary-color)';
-  if (value === 'negative') return 'is-negative text-(--p-orange-500)';
+  if (value === 'positive') return 'is-positive text-(--cvp-primary-color)';
+  if (value === 'negative') return 'is-negative text-(--cvp-orange-500)';
   return 'is-none text-(--cv-on-surface-variant)';
 }
 
@@ -285,23 +279,18 @@ const showSeedMode = computed(
   () => props.control.kind === 'number' && Boolean(props.control.controlAfterGenerate || props.control.seedMode),
 );
 
-const isSeedRandom = computed(
-  () => props.control.seedMode !== 'fixed' && props.control.seedMode != null,
-);
+const isSeedRandom = computed(() => props.control.seedMode !== 'fixed' && props.control.seedMode != null);
 
 /** 已绑提示词或随机 seed 时禁用值编辑 */
 const isValueDisabled = computed(
   () => Boolean(props.control.promptBinding) || (showSeedMode.value && isSeedRandom.value),
 );
 
-const selectOptions = computed(() =>
-  (props.control.options ?? []).map(value => ({ value, label: value })),
-);
+const selectOptions = computed(() => (props.control.options ?? []).map(value => ({ value, label: value })));
 
 const isDimensionControl = computed(
   () =>
-    props.control.kind === 'number' &&
-    (props.control.inputName === 'width' || props.control.inputName === 'height'),
+    props.control.kind === 'number' && (props.control.inputName === 'width' || props.control.inputName === 'height'),
 );
 
 const textValue = computed(() => {
@@ -352,9 +341,7 @@ function onSeedToggleChange(value: boolean): void {
   emit('update:seed-mode', value ? 'randomize' : 'fixed');
 }
 
-const isCkptControl = computed(
-  () => props.control.inputName === 'ckpt_name',
-);
+const isCkptControl = computed(() => props.control.inputName === 'ckpt_name');
 
 const isLoadingCheckpoints = ref(false);
 const fetchedCheckpoints = ref<string[]>([]);

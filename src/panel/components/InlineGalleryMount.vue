@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import {
-  InlineGalleryGroupView,
-  type InlineGalleryItem,
-} from '@/composables/inlineImageGalleryView';
+import { InlineGalleryGroupView, type InlineGalleryItem } from '@/composables/inlineImageGalleryView';
 import {
   invokeDownload,
   invokeGenerateEditable,
@@ -73,9 +70,7 @@ async function reloadItems(): Promise<void> {
 function applyKindPatch(patch: GalleryKindPatch): void {
   const activeItem = items.value.find(item => item.id === activeItemId.value);
   items.value = items.value.map(item => mapGalleryItemKind(item, patch));
-  activeItemId.value = activeItem
-    ? mapGalleryItemKind(activeItem, patch).id
-    : (items.value[0]?.id ?? '');
+  activeItemId.value = activeItem ? mapGalleryItemKind(activeItem, patch).id : (items.value[0]?.id ?? '');
   isLost.value = !items.value.length;
 }
 
@@ -207,10 +202,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div
-    v-if="!loading && (items.length || isLost)"
-    :class="hostClass"
-  >
+  <div v-if="!loading && (items.length || isLost)" :class="hostClass">
     <!-- 图片源文件丢失占位符 -->
     <div v-if="isLost" class="cv-inline-favorite-content">
       <div class="cv-inline-favorite-galleria">
@@ -260,8 +252,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding: 16px 20px;
-  background: color-mix(in srgb, var(--p-yellow-500) 5%, transparent);
-  border: 1px dashed color-mix(in srgb, var(--p-yellow-500) 30%, transparent);
+  background: color-mix(in srgb, var(--cvp-yellow-500) 5%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--cvp-yellow-500) 30%, transparent);
   border-radius: 8px;
   margin: 8px 0;
   text-align: center;
@@ -272,7 +264,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--p-yellow-500);
+  color: var(--cvp-yellow-500);
   font-size: 14px;
 }
 
@@ -288,9 +280,9 @@ onUnmounted(() => {
 .cv-delete-shortcode-btn {
   display: inline-block;
   outline: none;
-  border: 1px solid color-mix(in srgb, var(--p-red-500) 30%, transparent) !important;
-  background: color-mix(in srgb, var(--p-red-500) 15%, transparent) !important;
-  color: var(--p-red-500) !important;
+  border: 1px solid color-mix(in srgb, var(--cvp-red-500) 30%, transparent) !important;
+  background: color-mix(in srgb, var(--cvp-red-500) 15%, transparent) !important;
+  color: var(--cvp-red-500) !important;
   border-radius: 4px;
   padding: 6px 14px;
   font-size: 12px;
@@ -304,10 +296,10 @@ onUnmounted(() => {
 }
 
 .cv-delete-shortcode-btn:hover {
-  background: color-mix(in srgb, var(--p-red-500) 30%, transparent) !important;
-  border-color: color-mix(in srgb, var(--p-red-500) 60%, transparent) !important;
-  color: var(--p-red-400) !important;
-  box-shadow: 0 0 8px color-mix(in srgb, var(--p-red-500) 20%, transparent);
+  background: color-mix(in srgb, var(--cvp-red-500) 30%, transparent) !important;
+  border-color: color-mix(in srgb, var(--cvp-red-500) 60%, transparent) !important;
+  color: var(--cvp-red-400) !important;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--cvp-red-500) 20%, transparent);
 }
 
 .cv-delete-shortcode-btn:active {

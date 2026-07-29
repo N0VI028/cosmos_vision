@@ -3,7 +3,7 @@
     <div class="mt-(--cv-space-10xl) mb-(--cv-space-3xl) flex items-center gap-(--cv-space-md)">
       <h2 class="cv-section-title m-0!">LoRA 库</h2>
       <i
-        class="fa-solid fa-rotate cursor-pointer text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-colors duration-200 ease-in-out hover:text-(--p-primary-color)"
+        class="fa-solid fa-rotate cursor-pointer text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-colors duration-200 ease-in-out hover:text-(--cvp-primary-color)"
         :class="{ 'animate-spin': props.isLoadingLoras }"
         role="button"
         tabindex="0"
@@ -12,88 +12,88 @@
         @keydown.enter="emit('refresh-options')"
       />
     </div>
-  <div class="cv-section-body">
-    <div class="cv-field p-0!">
-      <PresetSelector
-        :presets="presetOptions"
-        :active-preset-id="props.presetSettings.activePresetId"
-        :default-preset-id="defaultPresetId"
-        @update:active-preset-id="updateActivePresetId"
-        @create="createPreset"
-        @clone="clonePreset"
-        @rename="renamePreset"
-        @delete-preset="deletePreset"
-      />
+    <div class="cv-section-body">
+      <div class="cv-field p-0!">
+        <PresetSelector
+          :presets="presetOptions"
+          :active-preset-id="props.presetSettings.activePresetId"
+          :default-preset-id="defaultPresetId"
+          @update:active-preset-id="updateActivePresetId"
+          @create="createPreset"
+          @clone="clonePreset"
+          @rename="renamePreset"
+          @delete-preset="deletePreset"
+        />
 
-      <Fluid v-if="activePreset?.loras.length" class="flex flex-col gap-(--cv-space-xl)">
+        <Fluid v-if="activePreset?.loras.length" class="flex flex-col gap-(--cv-space-xl)">
+          <div
+            v-for="lora in activePreset.loras"
+            :key="lora.id"
+            class="grid grid-cols-[auto_minmax(0,1fr)_5.75rem_auto] items-center gap-(--cv-space-md) border-b border-(--cv-surface-variant) pb-(--cv-space-lg) last:border-b-0 last:pb-0 max-[32rem]:grid-cols-[auto_minmax(0,1fr)_auto] max-[32rem]:[&_.cv-lora-strength]:col-start-2"
+          >
+            <ToggleSwitch
+              :model-value="lora.enabled"
+              class="self-center"
+              :aria-label="`${lora.name || '未命名 LoRA'} 启用状态`"
+              @update:model-value="updateLora(lora.id, { enabled: Boolean($event) })"
+            />
+            <Select
+              :model-value="lora.name"
+              :options="props.loraOptions"
+              option-label="label"
+              option-value="value"
+              placeholder="选择 ComfyUI LoRA"
+              class="w-full max-w-full min-w-0"
+              fluid
+              :loading="props.isLoadingLoras"
+              aria-label="LoRA 文件"
+              filter
+              @update:model-value="updateLora(lora.id, { name: String($event ?? '') })"
+            />
+            <InputNumber
+              :model-value="lora.strength"
+              :min="-5"
+              :max="5"
+              :step="0.05"
+              :min-fraction-digits="0"
+              :max-fraction-digits="3"
+              :use-grouping="false"
+              fluid
+              placeholder="强度"
+              class="cv-lora-strength min-w-0"
+              :pt="loraStrengthPt"
+              aria-label="LoRA 强度"
+              @update:model-value="updateLora(lora.id, { strength: normalizeStrength($event) })"
+            />
+            <Button
+              icon="fa-solid fa-trash"
+              severity="danger"
+              variant="outlined"
+              rounded
+              class="self-center"
+              aria-label="删除 LoRA"
+              @click="removeLora(lora.id)"
+            />
+          </div>
+        </Fluid>
         <div
-          v-for="lora in activePreset.loras"
-          :key="lora.id"
-          class="grid items-center gap-(--cv-space-md) border-b border-(--cv-surface-variant) pb-(--cv-space-lg) last:border-b-0 last:pb-0 max-[32rem]:grid-cols-[auto_minmax(0,1fr)_auto] max-[32rem]:[&_.cv-lora-strength]:col-start-2 grid-cols-[auto_minmax(0,1fr)_5.75rem_auto]"
+          v-else
+          class="rounded-(--cv-radius) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) p-(--cv-space-xl) text-center text-(--cv-on-surface-variant)"
         >
-          <ToggleSwitch
-            :model-value="lora.enabled"
-            class="self-center"
-            :aria-label="`${lora.name || '未命名 LoRA'} 启用状态`"
-            @update:model-value="updateLora(lora.id, { enabled: Boolean($event) })"
-          />
-          <Select
-            :model-value="lora.name"
-            :options="props.loraOptions"
-            option-label="label"
-            option-value="value"
-            placeholder="选择 ComfyUI LoRA"
-            class="min-w-0 w-full max-w-full"
-            fluid
-            :loading="props.isLoadingLoras"
-            aria-label="LoRA 文件"
-            filter
-            @update:model-value="updateLora(lora.id, { name: String($event ?? '') })"
-          />
-          <InputNumber
-            :model-value="lora.strength"
-            :min="-5"
-            :max="5"
-            :step="0.05"
-            :min-fraction-digits="0"
-            :max-fraction-digits="3"
-            :use-grouping="false"
-            fluid
-            placeholder="强度"
-            class="cv-lora-strength min-w-0"
-            :pt="loraStrengthPt"
-            aria-label="LoRA 强度"
-            @update:model-value="updateLora(lora.id, { strength: normalizeStrength($event) })"
-          />
-          <Button
-            icon="fa-solid fa-trash"
-            severity="danger"
-            variant="outlined"
-            rounded
-            class="self-center"
-            aria-label="删除 LoRA"
-            @click="removeLora(lora.id)"
-          />
+          当前分组暂无 LoRA
         </div>
-      </Fluid>
-      <div
-        v-else
-        class="rounded-(--cv-radius) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) p-(--cv-space-xl) text-center text-(--cv-on-surface-variant)"
-      >
-        当前分组暂无 LoRA
-      </div>
 
-      <button
-        type="button"
-        class="mb-(--cv-space-lg) flex w-full cursor-pointer items-center justify-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)] py-(--cv-space-md) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-all duration-200 ease-in-out hover:border-(--cv-outline) hover:bg-(--cv-surface-container-low) hover:text-(--p-primary-color)"
-        @click="addLora"
-      >
-        <i class="fa-solid fa-plus" />
-        添加 LoRA
-      </button>
+        <button
+          type="button"
+          class="mb-(--cv-space-lg) flex w-full cursor-pointer items-center justify-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)] py-(--cv-space-md) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-all duration-200 ease-in-out hover:border-(--cv-outline) hover:bg-(--cv-surface-container-low) hover:text-(--cvp-primary-color)"
+          @click="addLora"
+        >
+          <i class="fa-solid fa-plus" />
+          添加 LoRA
+        </button>
+      </div>
     </div>
   </div>
-</div>
 </template>
 
 <script setup lang="ts">
@@ -142,7 +142,9 @@ const showPrompt =
   inject<(options: { title?: string; message: string; defaultValue?: string }) => Promise<string | null>>('showPrompt');
 
 const presetOptions = computed<PresetOption[]>(() => props.presetSettings.presets.map(toPresetOption));
-const activePreset = computed(() => findComfyUILoraPreset(props.presetSettings.presets, props.presetSettings.activePresetId));
+const activePreset = computed(() =>
+  findComfyUILoraPreset(props.presetSettings.presets, props.presetSettings.activePresetId),
+);
 
 /**
  * 转换预设选择器选项

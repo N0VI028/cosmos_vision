@@ -19,13 +19,14 @@
       <span class="sr-only">{{ ROLE_LABELS[(entry as PromptLlmMessage).role] }}</span>
       <span
         v-if="isSourceMessage(entry as PromptLlmMessage)"
-        class="shrink-0 whitespace-nowrap text-(length:--cv-font-size-xs) font-semibold uppercase tracking-normal text-(--cv-on-surface-variant)"
+        class="shrink-0 text-(length:--cv-font-size-xs) font-semibold tracking-normal whitespace-nowrap text-(--cv-on-surface-variant) uppercase"
       >
         {{ getMessageSourceLabel(entry as PromptLlmMessage) }}
       </span>
       <span
-        class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-base) font-medium text-(--cv-on-surface)"
-      >{{ getMessageTitle(entry as PromptLlmMessage) }}</span>
+        class="min-w-0 overflow-hidden text-(length:--cv-font-size-base) font-medium text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
+        >{{ getMessageTitle(entry as PromptLlmMessage) }}</span
+      >
       <Tag
         v-if="shouldShowSourceStatus(entry as PromptLlmMessage)"
         class="cv-status-tag-mini h-auto leading-none"
@@ -133,17 +134,11 @@
         cv-trigger-conditions-field 跨两列（任意后代选择器，非 :deep）
       -->
       <Fluid
-        class="grid w-full grid-cols-1 gap-x-(--cv-space-md) gap-y-(--cv-space-3xl) min-[520px]:grid-cols-2 [&_.cv-trigger-match-field]:col-span-full [&_.cv-trigger-match-field]:min-w-0 [&_.cv-trigger-conditions-field]:col-span-full [&_.cv-trigger-conditions-field]:min-w-0"
+        class="grid w-full grid-cols-1 gap-x-(--cv-space-md) gap-y-(--cv-space-3xl) min-[520px]:grid-cols-2 [&_.cv-trigger-conditions-field]:col-span-full [&_.cv-trigger-conditions-field]:min-w-0 [&_.cv-trigger-match-field]:col-span-full [&_.cv-trigger-match-field]:min-w-0"
       >
         <label class="cv-field min-w-0">
           <span>角色</span>
-          <Select
-            v-model="editorDraft.role"
-            :options="ROLE_OPTIONS"
-            option-label="label"
-            option-value="value"
-            fluid
-          />
+          <Select v-model="editorDraft.role" :options="ROLE_OPTIONS" option-label="label" option-value="value" fluid />
         </label>
         <PromptLlmTriggerEditor v-model="editorDraft" />
       </Fluid>
@@ -158,11 +153,7 @@
               @pointerdown.prevent="rememberMessageSelection"
               @click.stop="toggleMacroPopover"
             />
-            <Popover
-              ref="macroPopover"
-              :base-z-index="MACRO_POPOVER_BASE_Z_INDEX"
-              :pt="MACRO_POPOVER_PT"
-            >
+            <Popover ref="macroPopover" :base-z-index="MACRO_POPOVER_BASE_Z_INDEX" :pt="MACRO_POPOVER_PT">
               <CvMiniButton
                 v-for="option in PROMPT_LLM_TOKEN_OPTIONS"
                 :key="option.token"
@@ -209,10 +200,7 @@
       </div>
     </template>
   </Dialog>
-  <PromptVariablePickerDialog
-    v-model:visible="isVariablePickerVisible"
-    @insert="insertMessageToken"
-  />
+  <PromptVariablePickerDialog v-model:visible="isVariablePickerVisible" @insert="insertMessageToken" />
 </template>
 
 <script setup lang="ts">
@@ -635,8 +623,8 @@ function isSourceMessage(message: PromptLlmMessage): boolean {
  */
 function getMessageTriggerToneClass(message: PromptLlmMessage): string {
   return message.triggerMatchMode === 'always' || !message.triggerMatchMode
-    ? 'bg-(--p-blue-500) shadow-[0_0_6px_var(--p-blue-500)]'
-    : 'bg-(--p-green-500) shadow-[0_0_6px_var(--p-green-500)]';
+    ? 'bg-(--cvp-blue-500) shadow-[0_0_6px_var(--cvp-blue-500)]'
+    : 'bg-(--cvp-green-500) shadow-[0_0_6px_var(--cvp-green-500)]';
 }
 
 /**
@@ -770,7 +758,7 @@ async function resolveSourceMessage(message: PromptLlmMessage): Promise<Resolved
   迁移条件：Aura 补 tag size variant 或包装 CvMiniTag 后迁入。
 */
 .cv-status-tag-mini {
-  --p-tag-font-size: 0.65rem;
-  --p-tag-padding: 0.05rem 0.2rem;
+  --cvp-tag-font-size: 0.65rem;
+  --cvp-tag-padding: 0.05rem 0.2rem;
 }
 </style>
