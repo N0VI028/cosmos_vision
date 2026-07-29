@@ -1,17 +1,17 @@
 <template>
   <div data-cv-tutorial="comfyui-lora-binding">
-    <div class="mb-(--cv-space-3xl) flex items-end gap-(--cv-space-md) [&_.cv-section-title]:mb-0">
-    <h2 class="cv-section-title">LoRA 库</h2>
-    <i
-      class="fa-solid fa-rotate cursor-pointer text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-colors duration-200 ease-in-out hover:text-(--p-primary-color)"
-      :class="{ 'animate-spin': props.isLoadingLoras }"
-      role="button"
-      tabindex="0"
-      aria-label="刷新 LoRA 库"
-      @click="emit('refresh-options')"
-      @keydown.enter="emit('refresh-options')"
-    />
-  </div>
+    <div class="mt-(--cv-space-10xl) mb-(--cv-space-3xl) flex items-center gap-(--cv-space-md)">
+      <h2 class="cv-section-title m-0!">LoRA 库</h2>
+      <i
+        class="fa-solid fa-rotate cursor-pointer text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-colors duration-200 ease-in-out hover:text-(--p-primary-color)"
+        :class="{ 'animate-spin': props.isLoadingLoras }"
+        role="button"
+        tabindex="0"
+        aria-label="刷新 LoRA 库"
+        @click="emit('refresh-options')"
+        @keydown.enter="emit('refresh-options')"
+      />
+    </div>
   <div class="cv-section-body">
     <div class="cv-field p-0!">
       <PresetSelector

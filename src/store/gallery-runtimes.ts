@@ -260,16 +260,16 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
   }
 
   /**
-   * 读取段落 after 的图片包裹容器，优先精确至大图舞台或单图包裹层以支持 overlay 毛玻璃蒙版
+   * 读取段落 after 的生成蒙版宿主
    * @param paragraph 段落
    * @returns 宿主容器或 null
    */
   function getHost(paragraph: HTMLElement): HTMLElement | null {
     const container = findRenderContainerAfter(paragraph);
     if (!container) return null;
-    return container.querySelector('.cv-inline-favorite-stage') ??
-      container.querySelector('.cv-inline-img-wrap') ??
-      container;
+    return container.querySelector('.cv-inline-generation-overlay-shell')
+      ?? container.querySelector('.cv-inline-img-wrap')
+      ?? container;
   }
 
   /**

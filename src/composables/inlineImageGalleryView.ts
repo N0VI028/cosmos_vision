@@ -80,34 +80,25 @@ function renderGalleryGroup(
   props: Readonly<InlineGalleryGroupProps>,
   thumbnailRefs: Map<string, HTMLButtonElement>,
 ): VNode {
-  return h('div', { class: 'cv-inline-favorite-content' }, [renderGalleria(props, thumbnailRefs)]);
+  const children: VNode[] = [
+    h('div', { class: 'cv-inline-favorite-main' }, [
+      h('div', { class: 'cv-inline-generation-overlay-shell' }),
+      renderGalleria(props),
+    ]),
+  ];
+  if (props.items.length > 1) children.push(renderThumbnailStrip(props, thumbnailRefs));
+  return h('div', { class: 'cv-inline-favorite-content' }, children);
 }
 
 /**
- * 渲染 PrimeVue Galleria
+ * 渲染 PrimeVue Galleria（仅主图，缩略图由外层稳定区渲染）
  * @param props 组件参数
  * @returns VNode
  */
-function renderGalleria(
-  props: Readonly<InlineGalleryGroupProps>,
-  thumbnailRefs: Map<string, HTMLButtonElement>,
-): VNode {
+function renderGalleria(props: Readonly<InlineGalleryGroupProps>): VNode {
   return h(Galleria, buildGalleriaProps(props), {
     item: (slot: { item: InlineGalleryItem }) => [renderFocusImage(props, slot.item)],
-    footer: () => renderGalleryFooter(props, thumbnailRefs),
   });
-}
-
-/**
- * 渲染画廊底部插槽
- * @param props 组件参数
- * @returns 底部插槽节点
- */
-function renderGalleryFooter(
-  props: Readonly<InlineGalleryGroupProps>,
-  thumbnailRefs: Map<string, HTMLButtonElement>,
-): VNode[] {
-  return props.items.length > 1 ? [renderThumbnailStrip(props, thumbnailRefs)] : [];
 }
 
 /**

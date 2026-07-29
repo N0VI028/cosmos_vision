@@ -380,6 +380,23 @@ body.dark .cv-inline-toolbar {
   width: 100%;
 }
 
+/* 主图区：蒙版壳相对此节点铺满；缩略图在区外 */
+.cv-inline-favorite-main {
+  position: relative;
+  width: 100%;
+}
+
+/* 稳定蒙版壳：Vue 树内、Galleria item 外，切缩略图不销毁 */
+.cv-inline-generation-overlay-shell {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  box-sizing: border-box;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: var(--cv-radius-sm);
+}
+
 .cv-inline-img-wrap img {
   display: block;
   width: 100%;
@@ -787,6 +804,8 @@ body.dark .cv-inline-toolbar {
   z-index: 4;
   min-height: 100%;
   margin: 0;
+  /* 壳本身不拦点击；消息条可点取消/重试，缩略图在壳外可点 */
+  pointer-events: none;
   background: color-mix(in srgb, var(--cv-surface-container-high) 42%, transparent);
   -webkit-backdrop-filter: blur(0.35em);
   backdrop-filter: blur(0.35em);
@@ -800,6 +819,7 @@ body.dark .cv-inline-toolbar {
 .cv-inline-generation-status--overlay .cv-prime-message {
   width: calc(100% - 1.5em);
   margin: 0.75em;
+  pointer-events: auto;
 }
 
 /* Message 内容紧凑：文本撑开，业务按钮行靠右 */
