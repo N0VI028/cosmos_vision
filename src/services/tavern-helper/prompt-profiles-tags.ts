@@ -5,7 +5,9 @@ import { buildPromptLlmRuntimeRequest } from '@/services/prompt-llm/runtime-requ
 import { renderPromptPersonTemplate } from '@/services/prompt-profiles/runtime';
 import { getTavernHelper } from '@/services/tavern-helper/availability';
 import { requestTavernHelperGenerateRaw } from '@/services/tavern-helper/generate-raw';
+import { readCharacterPrompts } from '@/services/prompt-llm/character-prompt';
 import { parsePromptLlmOutput } from '@/services/tavern-helper/prompt-llm';
+
 
 /**
  * 从人物模板条目解析固定 tag
@@ -41,6 +43,10 @@ export async function parsePromptPersonStaticTagsFromText(
   if (!contextText) throw new Error('没有可解析的人物资料，请先添加有效资料条目');
   const rawText = await requestPromptPersonTags(contextText, settings, presetSettings);
   const output = parsePromptLlmOutput(rawText, DEFAULT_PROMPT_LLM_OUTPUT_FIELDS);
+  const characterPositive = readCharacterPrompts(rawText, settings)[0]?.positivePrompt.trim();
+  if (characterPositive) {
+    return characterPositive;
+  }
   if (!output.positivePrompt.trim()) throw new Error('LLM 返回值无法提取人物 tag');
   return output.positivePrompt.trim();
 }
@@ -91,5 +97,9 @@ function buildPromptPersonTagContext(personName: string, sourceText: string): st
   const source = sourceText.trim();
   if (!source) return '';
   const name = personName.trim() || '未命名人物';
-  return [`人物：${name}`, '请根据以下人物资料生成固定人物 tag，只保留可复用的正面提示词部分', source].join('\n\n');
+  return [
+    `人物：${name}`,
+    '请专注于根据以下人物资料生成人物生图 tag，忽略其他无关的资料提供，并保持原有的 JSON 输出格式。',
+    source,
+  ].join('\n\n');
 }
