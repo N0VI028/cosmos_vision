@@ -111,26 +111,26 @@
   }
 
   .cv-inline-mode-fab {
-    width: 2.6em;
-    height: 2.6em;
+    width: 2.9em;
+    height: 2.9em;
   }
 
   .cv-inline-mode-fab svg {
-    width: 1.45em;
-    height: 1.45em;
+    width: 1.6em;
+    height: 1.6em;
   }
 
   .cv-inline-mode-fab i {
-    font-size: 1.1em;
+    font-size: 1.22em;
   }
 
   .cv-speed-dial-menu > button {
-    width: 2.1em;
-    height: 2.1em;
+    width: 2.35em;
+    height: 2.35em;
   }
 
   .cv-speed-dial-menu > button > i {
-    font-size: 0.9em;
+    font-size: 1.0em;
   }
 }
 
