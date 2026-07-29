@@ -323,11 +323,17 @@ function buildCharacterItemMarkup(
       </button>
       <div class="cv-lightbox-character-body">
         <div class="cv-lightbox-character-field">
-          <span class="cv-lightbox-character-label">角色正面</span>
+          <div class="cv-lightbox-character-label-row">
+            <span class="cv-lightbox-character-label">角色正面</span>
+            <button class="cv-lightbox-copy-btn cv-copy-char-pos" data-char-index="${index}"><i class="fa-solid fa-copy"></i> 复制</button>
+          </div>
           <div class="cv-lightbox-prompt-content">${escapeHtml(item.positivePrompt || '(空)')}</div>
         </div>
         <div class="cv-lightbox-character-field">
-          <span class="cv-lightbox-character-label">角色负面</span>
+          <div class="cv-lightbox-character-label-row">
+            <span class="cv-lightbox-character-label">角色负面</span>
+            <button class="cv-lightbox-copy-btn cv-copy-char-neg" data-char-index="${index}"><i class="fa-solid fa-copy"></i> 复制</button>
+          </div>
           <div class="cv-lightbox-prompt-content">${escapeHtml(item.negativePrompt || '(空)')}</div>
         </div>
         <div class="cv-lightbox-character-field">
@@ -458,6 +464,25 @@ function bindLightboxCopyButtons(overlay: HTMLElement, snapshot?: InlinePromptSn
   const copyNeg = overlay.querySelector('.cv-copy-neg');
   copyPos?.addEventListener('click', e => copyText(snapshot?.positivePrompt || '', e.currentTarget as HTMLElement));
   copyNeg?.addEventListener('click', e => copyText(snapshot?.negativePrompt || '', e.currentTarget as HTMLElement));
+
+  const characters = snapshot?.novelai?.characterPrompts ?? [];
+  overlay.querySelectorAll<HTMLElement>('.cv-copy-char-pos').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idxStr = btn.dataset.charIndex;
+      const idx = idxStr !== undefined ? parseInt(idxStr, 10) : -1;
+      const text = characters[idx]?.positivePrompt || '';
+      void copyText(text, e.currentTarget as HTMLElement);
+    });
+  });
+
+  overlay.querySelectorAll<HTMLElement>('.cv-copy-char-neg').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idxStr = btn.dataset.charIndex;
+      const idx = idxStr !== undefined ? parseInt(idxStr, 10) : -1;
+      const text = characters[idx]?.negativePrompt || '';
+      void copyText(text, e.currentTarget as HTMLElement);
+    });
+  });
 }
 
 /**
