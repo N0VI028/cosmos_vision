@@ -260,8 +260,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding: 16px 20px;
-  background: rgba(255, 193, 7, 0.05);
-  border: 1px dashed rgba(255, 193, 7, 0.3);
+  background: color-mix(in srgb, var(--p-yellow-500) 5%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--p-yellow-500) 30%, transparent);
   border-radius: 8px;
   margin: 8px 0;
   text-align: center;
@@ -272,7 +272,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #ffc107;
+  color: var(--p-yellow-500);
   font-size: 14px;
 }
 
@@ -288,9 +288,9 @@ onUnmounted(() => {
 .cv-delete-shortcode-btn {
   display: inline-block;
   outline: none;
-  border: 1px solid rgba(220, 53, 69, 0.3) !important;
-  background: rgba(220, 53, 69, 0.15) !important;
-  color: #dc3545 !important;
+  border: 1px solid color-mix(in srgb, var(--p-red-500) 30%, transparent) !important;
+  background: color-mix(in srgb, var(--p-red-500) 15%, transparent) !important;
+  color: var(--p-red-500) !important;
   border-radius: 4px;
   padding: 6px 14px;
   font-size: 12px;
@@ -304,10 +304,10 @@ onUnmounted(() => {
 }
 
 .cv-delete-shortcode-btn:hover {
-  background: rgba(220, 53, 69, 0.3) !important;
-  border-color: rgba(220, 53, 69, 0.6) !important;
-  color: #ff4d5a !important;
-  box-shadow: 0 0 8px rgba(220, 53, 69, 0.2);
+  background: color-mix(in srgb, var(--p-red-500) 30%, transparent) !important;
+  border-color: color-mix(in srgb, var(--p-red-500) 60%, transparent) !important;
+  color: var(--p-red-400) !important;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--p-red-500) 20%, transparent);
 }
 
 .cv-delete-shortcode-btn:active {

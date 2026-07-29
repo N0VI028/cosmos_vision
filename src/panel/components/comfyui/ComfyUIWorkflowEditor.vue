@@ -349,10 +349,10 @@ const bindingLocateOptions = computed(() => {
   const outputId = readImageOutputNodeId(wf);
 
   return [
-    { key: 'positive', label: '正面提示词', icon: 'fa-solid fa-circle-plus', nodeId: positiveId, color: '#10b981' },
-    { key: 'negative', label: '负面提示词', icon: 'fa-solid fa-circle-minus', nodeId: negativeId, color: '#ef4444' },
-    { key: 'lora', label: 'Lora组', icon: 'fa-solid fa-puzzle-piece', nodeId: loraId, color: '#a855f7' },
-    { key: 'output', label: '段落生图结果', icon: 'fa-solid fa-image', nodeId: outputId, color: '#3b82f6' },
+    { key: 'positive', label: '正面提示词', icon: 'fa-solid fa-circle-plus', nodeId: positiveId, color: 'var(--p-green-500)' },
+    { key: 'negative', label: '负面提示词', icon: 'fa-solid fa-circle-minus', nodeId: negativeId, color: 'var(--p-red-500)' },
+    { key: 'lora', label: 'Lora组', icon: 'fa-solid fa-puzzle-piece', nodeId: loraId, color: 'var(--p-purple-400)' },
+    { key: 'output', label: '段落生图结果', icon: 'fa-solid fa-image', nodeId: outputId, color: 'var(--p-blue-500)' },
   ];
 });
 

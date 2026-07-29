@@ -206,7 +206,7 @@
 }
 
 .cv-lightbox-title-pos {
-  color: #60a5fa;
+  color: var(--p-blue-400);
 }
 
 .cv-lightbox-title-pos::before {
@@ -215,12 +215,12 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: #3b82f6;
-  box-shadow: 0 0 8px #3b82f6;
+  background-color: var(--p-blue-500);
+  box-shadow: 0 0 8px var(--p-blue-500);
 }
 
 .cv-lightbox-title-neg {
-  color: #f87171;
+  color: var(--p-red-400);
 }
 
 .cv-lightbox-title-neg::before {
@@ -229,12 +229,12 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: #ef4444;
-  box-shadow: 0 0 8px #ef4444;
+  background-color: var(--p-red-500);
+  box-shadow: 0 0 8px var(--p-red-500);
 }
 
 .cv-lightbox-title-char {
-  color: #c4b5fd;
+  color: var(--p-purple-300);
 }
 
 .cv-lightbox-title-char::before {
@@ -243,8 +243,8 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: #8b5cf6;
-  box-shadow: 0 0 8px #8b5cf6;
+  background-color: var(--p-purple-500);
+  box-shadow: 0 0 8px var(--p-purple-500);
 }
 
 .cv-lightbox-character-list {
@@ -359,7 +359,7 @@
 }
 
 .cv-lightbox-copy-btn.copied {
-  color: #34d399 !important;
+  color: var(--p-green-400) !important;
 }
 
 .cv-lightbox-prompt-content {

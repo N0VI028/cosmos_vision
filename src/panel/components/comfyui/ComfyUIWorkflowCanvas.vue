@@ -78,31 +78,31 @@ const NODE_SELECTED =
 const NODE_THEMES = {
   lora: {
     idle:
-      'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,#9333ea_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,#9333ea_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,#9333ea_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,#9333ea_70%,var(--cv-outline))]',
+      'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,var(--p-purple-500)_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--p-purple-500)_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,var(--p-purple-500)_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,var(--p-purple-500)_70%,var(--cv-outline))]',
     selected:
-      'rounded-(--cv-radius-sm) border-[#9333ea] bg-[color-mix(in_srgb,#9333ea_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_#9333ea]',
-    icon: 'text-[#a855f7]',
+      'rounded-(--cv-radius-sm) border-(--p-purple-500) bg-[color-mix(in_srgb,var(--p-purple-500)_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_var(--p-purple-500)]',
+    icon: 'text-(--p-purple-400)',
   },
   positive: {
     idle:
-      'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,#10b981_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,#10b981_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,#10b981_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,#10b981_70%,var(--cv-outline))]',
+      'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,var(--p-green-500)_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--p-green-500)_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,var(--p-green-500)_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,var(--p-green-500)_70%,var(--cv-outline))]',
     selected:
-      'rounded-(--cv-radius-sm) border-[#10b981] bg-[color-mix(in_srgb,#10b981_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_#10b981]',
-    icon: 'text-[#10b981]',
+      'rounded-(--cv-radius-sm) border-(--p-green-500) bg-[color-mix(in_srgb,var(--p-green-500)_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_var(--p-green-500)]',
+    icon: 'text-(--p-green-500)',
   },
   negative: {
     idle:
-      'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,#ef4444_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,#ef4444_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,#ef4444_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,#ef4444_70%,var(--cv-outline))]',
+      'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,var(--p-red-500)_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--p-red-500)_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,var(--p-red-500)_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,var(--p-red-500)_70%,var(--cv-outline))]',
     selected:
-      'rounded-(--cv-radius-sm) border-[#ef4444] bg-[color-mix(in_srgb,#ef4444_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_#ef4444]',
-    icon: 'text-[#ef4444]',
+      'rounded-(--cv-radius-sm) border-(--p-red-500) bg-[color-mix(in_srgb,var(--p-red-500)_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_var(--p-red-500)]',
+    icon: 'text-(--p-red-500)',
   },
   image: {
     idle:
-      'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,#3b82f6_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,#3b82f6_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,#3b82f6_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,#3b82f6_70%,var(--cv-outline))]',
+      'rounded-(--cv-radius-sm) border-[color-mix(in_srgb,var(--p-blue-500)_45%,var(--cv-outline))] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--p-blue-500)_8%,var(--cv-surface-container-lowest)),color-mix(in_srgb,var(--p-blue-500)_2%,var(--cv-surface-container-lowest)))] hover:border-[color-mix(in_srgb,var(--p-blue-500)_70%,var(--cv-outline))]',
     selected:
-      'rounded-(--cv-radius-sm) border-[#3b82f6] bg-[color-mix(in_srgb,#3b82f6_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_#3b82f6]',
-    icon: 'text-[#3b82f6]',
+      'rounded-(--cv-radius-sm) border-(--p-blue-500) bg-[color-mix(in_srgb,var(--p-blue-500)_16%,var(--cv-surface-container-lowest))] shadow-[0_0_0_1px_var(--p-blue-500)]',
+    icon: 'text-(--p-blue-500)',
   },
 } as const;
 

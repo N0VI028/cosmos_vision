@@ -111,7 +111,7 @@
       <!-- 错误 banner -->
       <div
         v-if="error"
-        class="flex items-center gap-(--cv-space-3xl) border-t-(length:--cv-border-width) border-t-solid border-t-[rgba(239,68,68,0.2)] bg-[rgba(239,68,68,0.08)] px-(--cv-space-10xl) py-(--cv-space-3xl) text-(length:--cv-font-size-base) text-[#dc2626]"
+        class="flex items-center gap-(--cv-space-3xl) border-t-(length:--cv-border-width) border-t-solid border-t-[color-mix(in_srgb,var(--p-red-500)_20%,transparent)] bg-[color-mix(in_srgb,var(--p-red-500)_8%,transparent)] px-(--cv-space-10xl) py-(--cv-space-3xl) text-(length:--cv-font-size-base) text-(--p-red-600)"
       >
         <i class="fa-solid fa-triangle-exclamation" />
         <span>{{ error }}</span>

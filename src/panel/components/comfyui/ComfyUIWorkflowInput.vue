@@ -258,8 +258,8 @@ const chipRootClass = computed(() => {
   } else if (binding === 'negative') {
     base.push(
       'is-negative',
-      'bg-[color-mix(in_srgb,var(--p-orange-500,#f59e0b)_12%,transparent)] border-(--p-orange-500,#f59e0b) text-(--p-orange-500,#f59e0b)',
-      'hover:bg-[color-mix(in_srgb,var(--p-orange-500,#f59e0b)_20%,transparent)]',
+      'bg-[color-mix(in_srgb,var(--p-orange-500)_12%,transparent)] border-(--p-orange-500) text-(--p-orange-500)',
+      'hover:bg-[color-mix(in_srgb,var(--p-orange-500)_20%,transparent)]',
     );
   } else {
     base.push(
@@ -277,7 +277,7 @@ const chipRootClass = computed(() => {
  */
 function bindingOptionColorClass(value: PromptBinding | null): string {
   if (value === 'positive') return 'is-positive text-(--p-primary-color)';
-  if (value === 'negative') return 'is-negative text-(--p-orange-500,#f59e0b)';
+  if (value === 'negative') return 'is-negative text-(--p-orange-500)';
   return 'is-none text-(--cv-on-surface-variant)';
 }
 
