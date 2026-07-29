@@ -46,7 +46,8 @@
     <Transition name="cv-fade">
       <div
         v-if="isSelectionMode"
-        class="cv-mode-indicator-bar"
+        class="cv-mode-indicator-bar cosmos-vision-root"
+        :class="{ [DARK_CLASS]: darkMode }"
         aria-hidden="true"
       />
     </Transition>
@@ -55,7 +56,8 @@
     <Transition name="cv-fade">
       <div
         v-if="isSelectionMode"
-        class="cv-mode-indicator-bottom"
+        class="cv-mode-indicator-bottom cosmos-vision-root"
+        :class="{ [DARK_CLASS]: darkMode }"
         aria-hidden="true"
       >
         <div class="cv-mode-indicator-text">

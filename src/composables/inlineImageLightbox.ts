@@ -1,9 +1,11 @@
 import type { ImageSource } from '@/constants/comfyui';
 import type { CharacterPromptItem } from '@/constants/novelai';
 import type { ImagePromptVibeRef } from '@/constants/novelai-vibe';
+import { buildInlineActionHostClass } from '@/composables/inlineImageDom';
 import type { ComfyUIRequestSnapshot } from '@/services/comfyui/types';
 import type { NovelAIFinalPrompts } from '@/services/novelai/api';
 import type { NovelAIVibeParameters } from '@/services/novelai/vibe-types';
+import { useSettingsStore } from '@/store/settings';
 
 /** 内联生图提示词快照 */
 export interface InlinePromptSnapshot {
@@ -194,14 +196,15 @@ function markCopyButtonSuccess(btn: HTMLElement): void {
 }
 
 /**
- * 创建 Lightbox 的 DOM 结构
+ * 创建 Lightbox 的 DOM 结构（挂 body，需自带 cosmos-vision-root + dark class）
  * @param src 图片地址
  * @param snapshot 提示词快照
+ * @param actions Lightbox 操作集合
  * @returns Lightbox 根元素
  */
 function createLightboxDOM(src: string, snapshot?: InlinePromptSnapshot, actions?: InlineLightboxActions): HTMLElement {
   const overlay = document.createElement('div');
-  overlay.className = 'cv-lightbox-overlay';
+  overlay.className = buildInlineActionHostClass('cv-lightbox-overlay', useSettingsStore().darkMode);
   overlay.innerHTML = buildLightboxMarkup(src, snapshot, actions);
   return overlay;
 }
