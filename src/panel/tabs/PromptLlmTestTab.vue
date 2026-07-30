@@ -36,7 +36,7 @@
         </div>
         <div v-else-if="testStatus === 'success'" class="flex flex-col gap-(--cv-space-xl)">
           <div
-            class="rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-green-500)_12%,transparent)] p-(--cv-space-xl) text-(length:--cv-font-size-base) font-semibold text-(--cvp-green-500)"
+            class="rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-green-500)_12%,transparent)] p-(--cv-space-xl) text-(length:--cv-font-size-base) font-semibold text-(--cvp-green-500) whitespace-normal"
           >
             <i class="fa-solid fa-circle-check mr-2"></i>测试成功！接口响应正常
           </div>
@@ -52,7 +52,7 @@
         </div>
         <div v-else-if="testStatus === 'error'" class="flex flex-col gap-(--cv-space-xl)">
           <div
-            class="rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-red-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-red-500)_12%,transparent)] p-(--cv-space-xl) text-(length:--cv-font-size-base) font-semibold text-(--cvp-red-500)"
+            class="rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-red-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-red-500)_12%,transparent)] p-(--cv-space-xl) text-(length:--cv-font-size-base) font-semibold text-(--cvp-red-500) whitespace-normal"
           >
             <i class="fa-solid fa-circle-exclamation mr-2"></i>测试失败
           </div>

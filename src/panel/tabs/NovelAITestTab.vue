@@ -126,21 +126,21 @@
           class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-primary-color)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-primary-color)_10%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-primary-color)"
         >
           <i class="fa-solid fa-spinner fa-spin" />
-          <span>{{ runningStateText }}</span>
+          <span class="whitespace-normal break-all">{{ runningStateText }}</span>
         </div>
         <div
           v-else-if="testStatus === 'success'"
           class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-green-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-green-500)"
         >
           <i class="fa-solid fa-circle-check" />
-          <span>{{ successStateText }}</span>
+          <span class="whitespace-normal break-all">{{ successStateText }}</span>
         </div>
         <div
           v-else-if="testStatus === 'error'"
           class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-red-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-red-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-red-500)"
         >
           <i class="fa-solid fa-circle-exclamation" />
-          <span>{{ errorMessage }}</span>
+          <span class="whitespace-normal break-all">{{ errorMessage }}</span>
         </div>
         <TestImageGallery
           :image-blobs="previewBlobs"

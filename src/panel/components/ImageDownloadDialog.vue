@@ -14,11 +14,14 @@
   >
     <div class="flex flex-col gap-(--cv-space-3xl)">
       <div class="cv-confirm-message">下载前先确认导出格式和处理方式。</div>
-      <!-- SubTabNav 锚点 class 仍在子组件 DOM 上；用任意后代选择器拉满宽度 -->
-      <SubTabNav
+      <SelectButton
         v-model="options.format"
-        class="w-full [&_.cv-subtab-nav]:w-full [&_.cv-subtab-item]:flex-1"
-        :tabs="formatTabs"
+        fluid
+        :options="formatOptions"
+        option-label="label"
+        option-value="value"
+        :allow-empty="false"
+        aria-label="导出格式"
       />
 
       <div v-if="options.format === 'png'" class="flex flex-col gap-(--cv-space-2xl)">
@@ -61,7 +64,6 @@
 import { useMediaQuery } from '@vueuse/core';
 import type { DialogPassThroughOptions } from 'primevue/dialog';
 
-import SubTabNav from '@/panel/components/SubTabNav.vue';
 import { DARK_CLASS } from '@/constants/default-settings';
 import {
   cloneInlineImageDownloadOptions,
@@ -100,10 +102,11 @@ const downloadDialogPt = {
     style: { zIndex: DOWNLOAD_DIALOG_Z_INDEX },
   },
 } satisfies DialogPassThroughOptions;
-const formatTabs = [
-  { value: 'png', label: 'PNG' },
-  { value: 'jpg', label: 'JPG' },
-] as const;
+/** 下载格式选项：对齐设置侧栏 SelectButton 的 option 结构 */
+const formatOptions = [
+  { value: 'png' as const, label: 'PNG' },
+  { value: 'jpg' as const, label: 'JPG' },
+];
 const jpgQualityPercent = computed({
   get: () => Math.round(options.value.jpgQuality * 100),
   set: value => {
