@@ -11,7 +11,7 @@
             ]
           : 'flex flex-col gap-(--cv-space-xl)',
       ]"
-      :style="fullscreen ? 'z-index: 99999; height: 100vh' : undefined"
+      :style="fullscreen ? 'z-index: 99999; height: 100dvh; height: 100vh' : undefined"
     >
       <DefineIconButton v-slot="{ $slots, title, disabled }">
         <button
