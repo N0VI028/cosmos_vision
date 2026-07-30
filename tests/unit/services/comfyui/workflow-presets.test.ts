@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   findComfyUIWorkflowPreset,
   getActiveComfyUIWorkflowPreset,
+  importComfyUIWorkflowPreset,
   toggleFavoriteNodeId,
 } from '@/services/comfyui/workflow-presets';
 
@@ -31,5 +32,18 @@ describe('comfyui workflow-presets helper', () => {
 
     const removed = toggleFavoriteNodeId(added, 'node-2', true);
     expect(removed).not.toContain('node-2');
+  });
+
+  it('imports workflow into a new active preset without overwriting the current preset', () => {
+    const settings = {
+      activePresetId: 'current',
+      presets: [{ id: 'current', name: '当前预设', workflowJson: 'old-json', favoriteNodeIds: ['node-1'] }],
+    };
+
+    const preset = importComfyUIWorkflowPreset(settings, 'imported', 'flux-api.json', 'new-json');
+
+    expect(preset).toMatchObject({ id: 'imported', name: 'flux-api', workflowJson: 'new-json', favoriteNodeIds: [] });
+    expect(settings.activePresetId).toBe('imported');
+    expect(settings.presets[0]).toMatchObject({ workflowJson: 'old-json', favoriteNodeIds: ['node-1'] });
   });
 });

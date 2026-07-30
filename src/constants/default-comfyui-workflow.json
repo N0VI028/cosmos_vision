@@ -2,7 +2,7 @@
   "3": {
     "inputs": {
       "seed": 0,
-      "steps": 28,
+      "steps": 30,
       "cfg": 5,
       "sampler_name": "euler_ancestral",
       "scheduler": "karras",
@@ -36,7 +36,7 @@
   },
   "4": {
     "inputs": {
-      "ckpt_name": "Illustrious\\hassakuXLIllustrious_v13StyleA.safetensors"
+      "ckpt_name": "waiIllustriousSDXL_v150.safetensors"
     },
     "class_type": "CheckpointLoaderSimple",
     "_meta": {
@@ -87,11 +87,20 @@
   },
   "55": {
     "inputs": {
-      "group_mode": false,
+      "group_mode": true,
       "default_active": {
-        "__value__": []
+        "__value__": [
+          {
+            "text": "createconcept",
+            "active": true
+          },
+          {
+            "text": "DS-Illu",
+            "active": true
+          }
+        ]
       },
-      "allow_strength_adjustment": false,
+      "allow_strength_adjustment": true,
       "toggle_trigger_words": {
         "__value__": []
       },

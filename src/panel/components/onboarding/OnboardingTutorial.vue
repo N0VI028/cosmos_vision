@@ -480,8 +480,9 @@ onBeforeUnmount(() => {
   <Teleport to="body">
     <div
       ref="overlayRef"
-      class="cv-onboarding cosmos-vision-root pointer-events-auto fixed inset-0 isolate z-2147482000 h-screen w-screen overflow-hidden font-(family-name:--cv-font-body)"
+      class="cv-onboarding cosmos-vision-root pointer-events-auto absolute inset-0 isolate h-screen w-screen overflow-hidden font-(family-name:--cv-font-body)"
       :class="{ [DARK_CLASS]: darkMode }"
+      style="z-index: 999999;"
       role="dialog"
       aria-modal="true"
       aria-label="Cosmos Vision 使用教程"

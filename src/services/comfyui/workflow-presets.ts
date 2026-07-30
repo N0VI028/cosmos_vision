@@ -1,4 +1,4 @@
-import type { ComfyUIWorkflowPreset, ComfyUIWorkflowPresetSettings } from '@/constants/comfyui';
+import { createComfyUIWorkflowPreset, type ComfyUIWorkflowPreset, type ComfyUIWorkflowPresetSettings } from '@/constants/comfyui';
 import { readNodeDisplayName } from '@/services/comfyui/layout';
 import type { ComfyUIWorkflow } from '@/services/comfyui/types';
 
@@ -33,6 +33,27 @@ export function getActiveComfyUIWorkflowPreset(settings: ComfyUIWorkflowPresetSe
  */
 export function getActiveComfyUIWorkflowJson(settings: ComfyUIWorkflowPresetSettings): string {
   return getActiveComfyUIWorkflowPreset(settings).workflowJson;
+}
+
+/**
+ * 导入 JSON 工作流并切换到新建预设，避免覆盖当前选择的预设
+ * @param settings 工作流预设集合
+ * @param presetId 新预设 ID
+ * @param fileName 导入文件名
+ * @param workflowJson 导入的工作流 JSON
+ * @returns 新建并激活的预设
+ */
+export function importComfyUIWorkflowPreset(
+  settings: ComfyUIWorkflowPresetSettings,
+  presetId: string,
+  fileName: string,
+  workflowJson: string,
+): ComfyUIWorkflowPreset {
+  const name = fileName.replace(/\.json$/i, '').trim() || '导入的工作流';
+  const preset = createComfyUIWorkflowPreset(presetId, name, workflowJson);
+  settings.presets.push(preset);
+  settings.activePresetId = preset.id;
+  return preset;
 }
 
 /**

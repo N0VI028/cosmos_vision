@@ -105,7 +105,7 @@ import { fetchComfyUILoraNames } from '@/services/comfyui/api';
 import { fetchComfyUIObjectInfo } from '@/services/comfyui/object-info';
 import { getActiveComfyUILoras } from '@/services/comfyui/lora-presets';
 import { getComfyUIWorkflowValidationError } from '@/services/comfyui/parse';
-import { findComfyUIWorkflowPreset } from '@/services/comfyui/workflow-presets';
+import { findComfyUIWorkflowPreset, importComfyUIWorkflowPreset } from '@/services/comfyui/workflow-presets';
 import ComfyUIWorkflowEditor from '@/panel/components/comfyui/ComfyUIWorkflowEditor.vue';
 import PresetSelector from '@/panel/components/PresetSelector.vue';
 import { useSettingsStore } from '@/store/settings';
@@ -395,8 +395,13 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
   if (!file) return;
 
   try {
-    activeWorkflowJson.value = await file.text();
-    toastr.success(`已导入工作流: ${file.name}`);
+    const preset = importComfyUIWorkflowPreset(
+      settings.comfyui.workflowPresets,
+      uuidv4(),
+      file.name,
+      await file.text(),
+    );
+    toastr.success(`已导入工作流到新预设: ${preset.name}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : '读取工作流文件失败';
     toastr.error(message);
