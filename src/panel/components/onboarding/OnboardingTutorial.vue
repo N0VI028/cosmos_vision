@@ -23,7 +23,12 @@ import {
   type TutorialRect,
   type TutorialSize,
 } from '@/panel/components/onboarding/tutorial-layout';
-import { cleanupMockGallery, injectMockGallery, injectMockSelection } from '@/panel/components/onboarding/mock-gallery';
+import {
+  cleanupMockGallery,
+  findLatestMessageFirstParagraph,
+  injectMockGallery,
+  injectMockSelection,
+} from '@/panel/components/onboarding/mock-gallery';
 import {
   cleanupMockEntryEditor,
   cleanupMockPerson,
@@ -175,14 +180,14 @@ function resolveTutorialTarget(step: TutorialStep): TargetResolution {
 }
 
 /**
- * 在选择器匹配集合中取可见节点（聊天段落统一定位到第一个，与模拟选区/画廊保持一致）
+ * 在选择器匹配集合中取可见节点（聊天段落统一定位到最新楼层第一个，与模拟选区/画廊保持一致）
  * @param selector CSS 选择器
  * @returns 可见元素；无可见匹配时返回 null
  */
 function findVisibleElement(selector: string): HTMLElement | null {
   const elements = Array.from(document.querySelectorAll<HTMLElement>(selector)).filter(isVisibleElement);
   if (!elements.length) return null;
-  if (selector === '.mes_text p') return elements[0] ?? null;
+  if (selector === '.mes_text p') return findLatestMessageFirstParagraph() ?? elements[0] ?? null;
   return elements[0];
 }
 

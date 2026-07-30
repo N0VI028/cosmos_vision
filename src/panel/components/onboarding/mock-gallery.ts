@@ -9,32 +9,32 @@ import { getTavernHelper } from '@/services/tavern-helper/availability';
 const MOCK_ATTR = 'data-cv-tutorial-mock';
 
 /**
- * 注入模拟画廊到第一条消息段落下方
+ * 注入模拟画廊到最新消息楼层第一个段落下方
  * @returns 注入的容器元素，找不到插入点时返回 null
  */
 export function injectMockGallery(): HTMLElement | null {
   if (document.querySelector('.cv-render')) return null;
 
-  const firstParagraph = findFirstVisibleParagraph();
-  if (!firstParagraph) return null;
+  const targetParagraph = findLatestMessageFirstParagraph();
+  if (!targetParagraph) return null;
 
   const avatarUrl = findCharacterAvatar();
   if (!avatarUrl) return null;
 
   const mockContainer = buildMockGalleryContainer(avatarUrl);
-  firstParagraph.after(mockContainer);
+  targetParagraph.after(mockContainer);
 
   return mockContainer;
 }
 
 /**
- * 注入模拟选区：给段落添加选中效果和生图按钮
+ * 注入模拟选区：给最新消息楼层第一个段落添加选中效果和生图按钮
  * @returns 注入的选区壳元素，找不到段落时返回 null
  */
 export function injectMockSelection(): HTMLElement | null {
   if (document.querySelector('.cv-inline-selection-shell')) return null;
 
-  const paragraph = findFirstVisibleParagraph();
+  const paragraph = findLatestMessageFirstParagraph();
   if (!paragraph) return null;
 
   const mesText = paragraph.closest('.mes_text') as HTMLElement;
@@ -67,10 +67,16 @@ export function cleanupMockGallery(): void {
 }
 
 /**
- * 查找第一个可见聊天段落
+ * 查找最新一个消息楼层的 DOM 的第一个可见段落
  * @returns 段落元素或 null
  */
-function findFirstVisibleParagraph(): HTMLElement | null {
+export function findLatestMessageFirstParagraph(): HTMLElement | null {
+  const mesTexts = Array.from(document.querySelectorAll<HTMLElement>('.mes_text')).reverse();
+  for (const mesText of mesTexts) {
+    if (!isVisibleElement(mesText)) continue;
+    const firstP = Array.from(mesText.querySelectorAll<HTMLElement>('p')).find(isVisibleElement);
+    if (firstP) return firstP;
+  }
   const paragraphs = Array.from(document.querySelectorAll<HTMLElement>('.mes_text p'));
   return paragraphs.find(isVisibleElement) ?? null;
 }

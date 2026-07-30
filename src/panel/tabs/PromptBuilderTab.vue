@@ -90,7 +90,7 @@
             <span>优先 JSON Schema 解析</span>
           </label>
           <div class="cv-field-hint">
-            开启后请求 LLM 时会附带 JSON Schema，并按字段名读取对应侧提示词；渠道未返回 JSON字段
+            开启后请求 LLM 时会附带 JSON Schema，返回格式更稳定；渠道未返回 JSON字段
             时回退到下方的正则提取规则。若渠道报错请关闭此选项。
           </div>
         </div>
