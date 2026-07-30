@@ -6,11 +6,12 @@
         'cv-workflow-editor-container',
         fullscreen
           ? [
-              'cosmos-vision-root absolute! inset-0! z-99999! flex h-full! w-full! flex-col gap-(--cv-space-lg) overflow-hidden bg-(--cv-background) p-(--cv-space-lg)',
+              'cosmos-vision-root absolute! top-0 flex w-full! flex-col gap-(--cv-space-lg) overflow-hidden bg-(--cv-background) p-(--cv-space-lg)',
               { [DARK_CLASS]: darkMode },
             ]
           : 'flex flex-col gap-(--cv-space-xl)',
       ]"
+      :style="fullscreen ? 'z-index: 99999; height: 100vh' : undefined"
     >
       <DefineIconButton v-slot="{ $slots, title, disabled }">
         <button
