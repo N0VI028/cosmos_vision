@@ -155,6 +155,7 @@
 import PromptBuilderTab from './PromptBuilderTab.vue';
 import PromptLlmTestTab from './PromptLlmTestTab.vue';
 import { useSettingsStore } from '@/store/settings';
+import { useSyncCacheStore } from '@/store/sync-cache';
 import {
   CHAT_COMPLETION_SOURCE_OPTIONS,
   findProxyPreset,
@@ -168,6 +169,7 @@ const props = defineProps<{ subTab: SubTab }>();
 const subTab = computed(() => props.subTab);
 
 const { settings } = useSettingsStore();
+const syncCacheStore = useSyncCacheStore();
 
 const proxyPresetOptions = ref<ProxyPresetOption[]>(getProxyPresets());
 
@@ -186,12 +188,11 @@ watch(useTavernProxy, useProxy => {
   }
 });
 
-const fetchedModels = ref<string[]>([]);
 const isLoadingModels = ref(false);
 
 // 模型下拉选项:合并已拉取列表与当前已选模型,避免关闭重开后已选模型从列表中消失导致 UI 显示空白
 const modelOptions = computed<string[]>(() => {
-  const values = new Set(fetchedModels.value);
+  const values = new Set(syncCacheStore.fetchedLlmModels);
   const selected = settings.promptLlm.model.trim();
   if (selected) values.add(selected);
   return [...values];
@@ -215,11 +216,12 @@ async function fetchModels(): Promise<void> {
     if (!TavernHelper || typeof TavernHelper.getModelList !== 'function') {
       throw new Error('未检测到兼容的酒馆助手模型拉取接口，请更新扩展');
     }
-    fetchedModels.value = await TavernHelper.getModelList({
+    const models = await TavernHelper.getModelList({
       apiurl: apiUrl,
       key: apiKey,
     });
-    toastr.success(`成功获取 ${fetchedModels.value.length} 个模型`);
+    syncCacheStore.setLlmModels(models);
+    toastr.success(`成功获取 ${syncCacheStore.fetchedLlmModels.length} 个模型`);
   } catch (error) {
     const message = error instanceof Error ? error.message : '获取模型列表失败';
     toastr.error(message);

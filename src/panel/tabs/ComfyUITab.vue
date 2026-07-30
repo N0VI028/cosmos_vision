@@ -109,6 +109,7 @@ import { findComfyUIWorkflowPreset, importComfyUIWorkflowPreset } from '@/servic
 import ComfyUIWorkflowEditor from '@/panel/components/comfyui/ComfyUIWorkflowEditor.vue';
 import PresetSelector from '@/panel/components/PresetSelector.vue';
 import { useSettingsStore } from '@/store/settings';
+import { useSyncCacheStore } from '@/store/sync-cache';
 import ImagePromptPresetPanel from '@/panel/components/ImagePromptPresetPanel.vue';
 import ComfyUITestTab from './ComfyUITestTab.vue';
 
@@ -117,6 +118,7 @@ type TextOption = { value: string; label: string };
 type PresetOption = { id: string; name: string };
 
 const { settings } = useSettingsStore();
+const syncCacheStore = useSyncCacheStore();
 const workflowFileInput = ref<HTMLInputElement | null>(null);
 
 const props = withDefaults(defineProps<{ subTab: ComfyUISubTab; tutorialNodeId?: string | null }>(), {
@@ -137,7 +139,6 @@ const showConfirm =
       severity?: string;
     }) => Promise<boolean>
   >('showConfirm');
-const loraNames = ref<string[]>([]);
 const isLoadingLoras = ref(false);
 
 const isTestingConnection = ref(false);
@@ -229,7 +230,7 @@ const isDefaultWorkflowActive = computed(
 
 const loraOptions = computed(() =>
   buildTextOptions(
-    loraNames.value,
+    syncCacheStore.fetchedComfyUiLoras,
     (settings.comfyui.loraPresets.presets.length ? getActiveComfyUILoras(settings.comfyui.loraPresets) : []).map(
       lora => lora.name,
     ),
@@ -367,8 +368,9 @@ async function fetchLoraOptions(): Promise<void> {
 
   isLoadingLoras.value = true;
   try {
-    loraNames.value = await fetchComfyUILoraNames(settings.comfyui);
-    toastr.success(`成功获取 ${loraNames.value.length} 个 LoRA`);
+    const loras = await fetchComfyUILoraNames(settings.comfyui);
+    syncCacheStore.setComfyUiLoras(loras);
+    toastr.success(`成功获取 ${syncCacheStore.fetchedComfyUiLoras.length} 个 LoRA`);
   } catch (error) {
     const message = error instanceof Error ? error.message : '获取 LoRA 列表失败';
     toastr.error(message);
