@@ -198,7 +198,9 @@ export async function generatePromptTextFromRuntimeContext(
     options.triggerContext,
   );
   try {
-    return requestTavernHelperGenerateRaw(tavernHelper, buildSilentGenerateRawRequest(request, options));
+    return requestTavernHelperGenerateRaw(tavernHelper, buildSilentGenerateRawRequest(request, options), {
+      timeoutSeconds: settings.timeout,
+    });
   } catch (error) {
     throw new Error(`提示词生成失败: ${(error as Error).message}`);
   }

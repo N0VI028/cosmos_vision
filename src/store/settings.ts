@@ -137,6 +137,7 @@ const novelAIVibePresetSettingsSchema = novelAIVibePresetSettingsBaseSchema.refi
 const novelAISettingsSchema = z.object({
   accounts: z.array(novelAIAccountSchema),
   routingMode: novelAIRoutingModeSchema,
+  timeout: z.number().int().positive(),
   corsProxy: z.string(),
   novelAIVibePresets: novelAIVibePresetSettingsSchema,
   model: novelAIModelSchema,
@@ -165,6 +166,7 @@ const novelAISettingsSchema = z.object({
 
 const comfyUISettingsSchema = z.object({
   url: z.string(),
+  timeout: z.number().int().positive(),
   workflowPresets: comfyUIWorkflowPresetSettingsSchema,
   loraPresets: comfyUILoraPresetSettingsSchema,
   positivePromptPresetId: imagePromptPresetIdSchema,
@@ -427,6 +429,7 @@ function recoverNovelAISettings(value: unknown): NovelAISettings {
   const { record, read } = createRecoveryReader(value, fallback);
   return {
     accounts: recoverNovelAIAccounts(record.accounts), routingMode: read('routingMode', novelAIRoutingModeSchema),
+    timeout: read('timeout', z.number().int().positive()),
     corsProxy: read('corsProxy', z.string()), novelAIVibePresets: recoverNovelAIVibePresetSettings(record.novelAIVibePresets),
     model: read('model', novelAIModelSchema),
     resolutionPreset: read('resolutionPreset', novelAIResolutionPresetSchema),

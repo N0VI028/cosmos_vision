@@ -1,4 +1,5 @@
 import { getOptionalTavernHelper } from '@/services/tavern-helper/availability';
+import { stopTavernHelperGeneration } from '@/services/tavern-helper/generation-control';
 import {
   formatPromptLlmRawResult,
   type TavernHelperGenerateRawConfig,
@@ -7,17 +8,64 @@ import {
 
 type TavernHelperInstance = NonNullable<typeof TavernHelper>;
 
+/** TavernHelper generateRaw 请求控制选项 */
+export interface TavernHelperGenerateRawOptions {
+  timeoutSeconds?: number;
+}
+
 /**
  * 发送会先经过 ST 宏替换的 generateRaw 请求
  * @param tavernHelper 酒馆助手实例
  * @param request 原始 generateRaw 请求
+ * @param options 请求控制选项
  * @returns 格式化后的 LLM 原始响应
  */
 export async function requestTavernHelperGenerateRaw(
   tavernHelper: TavernHelperInstance,
   request: TavernHelperGenerateRawConfig,
+  options: TavernHelperGenerateRawOptions = {},
 ): Promise<string> {
-  return formatPromptLlmRawResult(await tavernHelper.generateRaw(resolveGenerateRawRequestMacros(tavernHelper, request)));
+  const generationId = request.generation_id || createGenerateRawGenerationId();
+  const resolvedRequest = resolveGenerateRawRequestMacros(tavernHelper, { ...request, generation_id: generationId });
+  const result = await requestGenerateRawWithTimeout(tavernHelper, resolvedRequest, generationId, options.timeoutSeconds);
+  return formatPromptLlmRawResult(result);
+}
+
+/**
+ * 为 generateRaw 请求执行本地超时与终止控制
+ * @param tavernHelper 酒馆助手实例
+ * @param request 已完成宏替换的请求
+ * @param generationId 请求唯一标识
+ * @param timeoutSeconds 请求总超时秒数
+ * @returns TavernHelper 原始响应
+ */
+async function requestGenerateRawWithTimeout(
+  tavernHelper: TavernHelperInstance,
+  request: TavernHelperGenerateRawConfig,
+  generationId: string,
+  timeoutSeconds: number | undefined,
+): Promise<Awaited<ReturnType<TavernHelperInstance['generateRaw']>>> {
+  if (!timeoutSeconds) return tavernHelper.generateRaw(request);
+  let timer = 0;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = window.setTimeout(() => {
+      stopTavernHelperGeneration(generationId);
+      reject(new Error(`Prompt LLM 请求超时（${timeoutSeconds} 秒）`));
+    }, timeoutSeconds * 1000);
+  });
+  try {
+    return await Promise.race([tavernHelper.generateRaw(request), timeout]);
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+/**
+ * 创建用于精确终止的 TavernHelper 请求标识
+ * @returns 本次 generateRaw 请求 ID
+ */
+function createGenerateRawGenerationId(): string {
+  return `cosmos-vision-llm-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 /**

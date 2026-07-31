@@ -67,7 +67,9 @@ async function requestPromptPersonTags(
   if (!tavernHelper) throw new Error('TavernHelper 不可用，无法解析人物 tag');
   const request = await buildPromptLlmRuntimeRequest(settings, presetSettings, buildPromptPersonRuntimeContent(contextText));
   try {
-    return requestTavernHelperGenerateRaw(tavernHelper, { ...request, should_silence: true });
+    return requestTavernHelperGenerateRaw(tavernHelper, { ...request, should_silence: true }, {
+      timeoutSeconds: settings.timeout,
+    });
   } catch (error) {
     throw new Error(`提示词生成失败: ${(error as Error).message}`);
   }

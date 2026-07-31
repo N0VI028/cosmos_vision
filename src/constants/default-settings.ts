@@ -5,6 +5,7 @@ import defaultPromptLlmPresetSettings, {
   DEFAULT_PROMPT_LLM_PARTICIPANT_MESSAGE_ID,
 } from '@/constants/default-prompt-llm-preset';
 import {
+  COMFYUI_DEFAULT_TIMEOUT,
   createComfyUILoraPresetSettings,
   createComfyUIWorkflowPresetSettings,
   type ImageSource,
@@ -26,6 +27,7 @@ import {
 import {
   createNovelAIAccount,
   NOVELAI_DEFAULT_ACCOUNT_ID,
+  NOVELAI_DEFAULT_TIMEOUT,
   type CosmosVisionSettings,
   type PromptLlmMessageTriggerImageSource,
   type PromptLlmMessageTriggerMatchMode,
@@ -116,6 +118,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
   novelai: {
     accounts: [createNovelAIAccount(NOVELAI_DEFAULT_ACCOUNT_ID)],
     routingMode: 'sequential',
+    timeout: NOVELAI_DEFAULT_TIMEOUT,
     corsProxy: '',
     novelAIVibePresets: createNovelAIVibePresetSettings(
       DEFAULT_NOVELAI_VIBE_PRESET_ID,
@@ -146,6 +149,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
   },
   comfyui: {
     url: 'http://127.0.0.1:8188',
+    timeout: COMFYUI_DEFAULT_TIMEOUT,
     workflowPresets: createComfyUIWorkflowPresetSettings(),
     loraPresets: createComfyUILoraPresetSettings(),
     positivePromptPresetId: DEFAULT_POSITIVE_PROMPT_PRESET_ID,
@@ -156,6 +160,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     apiUrl: '',
     apiKey: '',
     model: '',
+    timeout: 60,
     source: 'openai',
     temperature: 0.7,
     maxTokens: 32000,

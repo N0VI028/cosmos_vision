@@ -417,7 +417,10 @@ async function runLlmModeTest(generationId: string): Promise<ComfyUIResolvedRequ
   const schemaFields = buildPromptLlmSchemaFields(settings.promptLlm);
   const request = await buildLlmModeRequest(schemaFields);
   llmSentPromptLog.value = formatPromptLlmRequestLog(request);
-  llmRawResponse.value = await requestPromptLlmRaw(request, { generationId });
+  llmRawResponse.value = await requestPromptLlmRaw(request, {
+    generationId,
+    timeoutSeconds: settings.promptLlm.timeout,
+  });
 
   const prompts = readPromptLlmOutputWithRules(llmRawResponse.value, settings.promptLlm, schemaFields);
   if (!prompts) throw new Error('LLM 返回值无法提取正负提示词');

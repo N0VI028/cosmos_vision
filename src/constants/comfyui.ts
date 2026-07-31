@@ -14,9 +14,7 @@ export const COMFYUI_MAX_SEED = Number.MAX_SAFE_INTEGER;
  * width/height 常用尺寸（对齐 NAI 分辨率预设轴值去重）
  * 不 import novelai，避免循环依赖
  */
-export const COMFYUI_DIMENSION_PRESETS: number[] = [
-  512, 640, 768, 832, 1024, 1088, 1216, 1472, 1536, 1920,
-];
+export const COMFYUI_DIMENSION_PRESETS: number[] = [512, 640, 768, 832, 1024, 1088, 1216, 1472, 1536, 1920];
 
 export const DEFAULT_COMFYUI_LORA_PRESET_ID = 'comfyui-lora-default-preset';
 export const DEFAULT_COMFYUI_LORA_PRESET_NAME = '默认 LoRA 组';
@@ -169,8 +167,13 @@ export function createComfyUILoraPresetSettings(
 }
 
 /** ComfyUI 子设置：当前工作流预设为参数唯一来源 */
+/** ComfyUI 默认超时时间 */
+export const COMFYUI_DEFAULT_TIMEOUT = 300;
+
 export interface ComfyUISettings extends ImagePromptPresetReferences {
   url: string;
+  /** 超时时间 */
+  timeout: number;
   workflowPresets: ComfyUIWorkflowPresetSettings;
   loraPresets: ComfyUILoraPresetSettings;
 }

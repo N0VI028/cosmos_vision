@@ -39,10 +39,7 @@ export const NOVELAI_NOISE_SCHEDULES = [
 ] as const;
 
 /** NovelAI V3 噪声调度固定列表 */
-export const NOVELAI_V3_NOISE_SCHEDULES = [
-  { value: 'native', label: 'native' },
-  ...NOVELAI_NOISE_SCHEDULES,
-] as const;
+export const NOVELAI_V3_NOISE_SCHEDULES = [{ value: 'native', label: 'native' }, ...NOVELAI_NOISE_SCHEDULES] as const;
 
 /** NovelAI 负向提示词程度固定列表 */
 export const NOVELAI_UC_PRESETS = [
@@ -79,6 +76,9 @@ export const NOVELAI_ROUTING_MODES = [
   { value: 'sequential', label: '顺序使用' },
   { value: 'load_balance', label: '负载均衡' },
 ] as const;
+
+/** NovelAI 默认超时时间 */
+export const NOVELAI_DEFAULT_TIMEOUT = 120;
 
 /** NovelAI 模型 value 联合类型 */
 export type NovelAIModel = (typeof NOVELAI_MODELS)[number]['value'];
@@ -163,6 +163,8 @@ export interface NovelAIAccount {
 export interface NovelAISettings extends ImagePromptPresetReferences {
   accounts: NovelAIAccount[];
   routingMode: NovelAIRoutingMode;
+  /** 超时时间 */
+  timeout: number;
   corsProxy: string;
   novelAIVibePresets: NovelAIVibePresetSettings;
   model: NovelAIModel;

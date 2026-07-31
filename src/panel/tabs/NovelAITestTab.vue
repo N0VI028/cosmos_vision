@@ -507,7 +507,10 @@ async function runLlmModeTest(session: TestRequestSession): Promise<void> {
   const request = await buildLlmModeRequest();
   if (!requestSession.isCurrent(session)) return;
   llmSentPromptLog.value = formatPromptLlmRequestLog(request);
-  llmRawResponse.value = await requestPromptLlmRaw(request, { generationId: session.generationId });
+  llmRawResponse.value = await requestPromptLlmRaw(request, {
+    generationId: session.generationId,
+    timeoutSeconds: settings.promptLlm.timeout,
+  });
   if (!requestSession.isCurrent(session)) return;
 
   await runNovelAIWithOverrides(buildNovelAILlmPromptOverrides(settings.promptLlm, llmRawResponse.value), session);

@@ -26,6 +26,7 @@ export interface PromptLlmParamRow {
 /** Prompt LLM 测试请求选项 */
 export interface PromptLlmRawRequestOptions {
   generationId?: string;
+  timeoutSeconds?: number;
 }
 
 /**
@@ -43,11 +44,11 @@ export async function requestPromptLlmRaw(
     throw new Error('TavernHelper 不可用，请确保酒馆环境正常加载');
   }
 
-  return requestTavernHelperGenerateRaw(tavernHelper, {
-    ...request,
-    should_silence: true,
-    generation_id: options.generationId ?? request.generation_id,
-  });
+  return requestTavernHelperGenerateRaw(
+    tavernHelper,
+    { ...request, should_silence: true, generation_id: options.generationId ?? request.generation_id },
+    { timeoutSeconds: options.timeoutSeconds },
+  );
 }
 
 /**

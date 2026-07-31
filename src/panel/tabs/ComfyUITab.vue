@@ -23,6 +23,13 @@
             <div class="cv-field-hint">浏览器直连本地 ComfyUI 时，请确认已允许当前来源的 CORS</div>
           </div>
         </label>
+        <label class="cv-field">
+          <span>超时时间</span>
+          <div class="cv-field-control">
+            <InputNumber v-model="settings.comfyui.timeout" :min="1" :max="3600" show-buttons />
+            <div class="cv-field-hint">请求超时截断时间,单位为秒</div>
+          </div>
+        </label>
       </div>
     </template>
 

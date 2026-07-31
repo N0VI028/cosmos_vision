@@ -67,12 +67,22 @@
           </div>
         </div>
 
+        <label class="cv-field">
+          <span>超时时间</span>
+          <div class="cv-field-control">
+            <InputNumber v-model="settings.promptLlm.timeout" :min="1" :max="3600" show-buttons />
+            <div class="cv-field-hint">请求超时截断时间,单位为秒</div>
+          </div>
+        </label>
+
         <template v-if="settings.promptLlm.source === 'custom'">
           <label class="cv-field">
             <span>包含请求体参数</span>
             <div class="cv-field-control">
               <Textarea v-model="settings.promptLlm.customIncludeBody" rows="3" class="w-full" />
-              <div class="cv-field-hint">YAML 格式，附加到请求 body 的字段（如 reasoning_effort: high），留空则不发送</div>
+              <div class="cv-field-hint">
+                YAML 格式，附加到请求 body 的字段（如 reasoning_effort: high），留空则不发送
+              </div>
             </div>
           </label>
 
@@ -92,7 +102,6 @@
             </div>
           </label>
         </template>
-        
       </div>
 
       <h2 class="cv-section-title">生成参数</h2>

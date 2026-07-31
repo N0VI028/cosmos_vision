@@ -195,7 +195,10 @@ async function runTest(): Promise<void> {
       );
       if (!requestSession.isCurrent(session)) return;
       sentPromptText.value = formatPromptLlmRequestLog(request);
-      applyTestResponse(await requestPromptLlmRaw(request, { generationId: session.generationId }));
+      applyTestResponse(await requestPromptLlmRaw(request, {
+        generationId: session.generationId,
+        timeoutSeconds: settings.promptLlm.timeout,
+      }));
       if (!requestSession.isCurrent(session)) return;
       testStatus.value = 'success';
       toastr.success('LLM 连接测试成功');

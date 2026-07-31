@@ -12,6 +12,8 @@ export interface PromptLlmSettings {
   apiKey: string;
   /** 模型名 */
   model: string;
+  /** 超时时间 */
+  timeout: number;
   /** 来源标识(如 openai/anthropic/custom) */
   source: string;
   /** 温度(可选) */
@@ -155,10 +157,7 @@ export const PROMPT_LLM_MESSAGE_ENTRY_KIND_LABELS: Record<PromptLlmMessageEntryK
   worldbook_entry: '世界书',
 };
 
-const PROMPT_PERSON_TEMPLATE_ENTRY_ID_PREFIXES: Record<
-  Exclude<PromptPersonTemplateEntryKind, 'custom'>,
-  string
-> = {
+const PROMPT_PERSON_TEMPLATE_ENTRY_ID_PREFIXES: Record<Exclude<PromptPersonTemplateEntryKind, 'custom'>, string> = {
   character_description: 'character-description',
   character_worldbook_entry: 'character-worldbook-entry',
   user_persona: 'user-persona',
@@ -294,9 +293,7 @@ export function normalizePromptLlmMessageId(id: string, kind: PromptLlmMessageEn
  * @param id 条目 id
  * @returns 外部条目类型或 null
  */
-function readPromptPersonTemplateEntryKindFromId(
-  id: string,
-): Exclude<PromptPersonTemplateEntryKind, 'custom'> | null {
+function readPromptPersonTemplateEntryKindFromId(id: string): Exclude<PromptPersonTemplateEntryKind, 'custom'> | null {
   for (const [kind, prefix] of Object.entries(PROMPT_PERSON_TEMPLATE_ENTRY_ID_PREFIXES)) {
     if (id === prefix || id.startsWith(`${prefix}:`)) {
       return kind as Exclude<PromptPersonTemplateEntryKind, 'custom'>;

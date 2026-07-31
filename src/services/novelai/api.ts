@@ -29,6 +29,7 @@ import { readCharacterPrompts } from '@/services/prompt-llm/character-prompt';
 import { extractNovelAIJsonImages } from '@/services/novelai/response-images';
 import { extractImages } from '@/services/novelai/zip';
 import { getNovelAIRequestAccounts } from '@/services/novelai/router';
+import { createRequestTimeoutController, throwIfRequestTimedOut } from '@/services/request-timeout';
 import {
   getActiveNovelAIVibePresetRefs,
   resolveNovelAIVibeParameters,
@@ -160,6 +161,29 @@ export async function generateNovelAIImagesFromResolvedRequest(
   request: NovelAIResolvedRequest,
   imageCount: number,
   options: NovelAIRequestOptions = {},
+): Promise<NovelAIImagesResult> {
+  const timeout = createRequestTimeoutController(options.signal, request.settings.timeout);
+  try {
+    return await requestNovelAIImages(request, imageCount, { ...options, signal: timeout.signal });
+  } catch (error) {
+    throwIfRequestTimedOut(timeout, 'NovelAI', request.settings.timeout);
+    throw error;
+  } finally {
+    timeout.dispose();
+  }
+}
+
+/**
+ * 在已解析请求中选择账号并生成图片
+ * @param request 已确定提示词与账号顺序的请求
+ * @param imageCount 请求图片数
+ * @param options 请求控制选项
+ * @returns 生成图片与快照
+ */
+async function requestNovelAIImages(
+  request: NovelAIResolvedRequest,
+  imageCount: number,
+  options: NovelAIRequestOptions,
 ): Promise<NovelAIImagesResult> {
   validateImageCount(imageCount);
   validatePrompts(request.prompts);

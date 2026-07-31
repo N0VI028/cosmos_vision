@@ -8,6 +8,7 @@ import {
 } from '@/services/comfyui/request';
 import { normalizeComfyUIUrl } from '@/services/comfyui/parse';
 import { extractHistoryImages, type ComfyUIHistoryEntry } from '@/services/comfyui/history';
+import { createRequestTimeoutController, throwIfRequestTimedOut } from '@/services/request-timeout';
 import type {
   ComfyUIHistoryImage,
   ComfyUIResolvedRequest,
@@ -34,7 +35,6 @@ interface ComfyUIModelFolderEntry {
 }
 
 const COMFYUI_POLL_INTERVAL_MS = 1000;
-const COMFYUI_MAX_POLL_COUNT = 60;
 
 /** ComfyUI 请求控制选项 */
 export interface ComfyUIRequestOptions {
@@ -93,19 +93,25 @@ export async function generateComfyUIImagesFromResolvedRequest(
   request: ComfyUIResolvedRequest,
   options: ComfyUIRequestOptions = {},
 ): Promise<Blob[]> {
+  const timeout = createRequestTimeoutController(options.signal, settings.timeout);
   const baseUrl = normalizeComfyUIUrl(settings.url);
-  const promptId = await queueComfyUIPrompt(baseUrl, request.workflow, options.signal);
-  const cleanupAbort = bindComfyUIAbort(baseUrl, options.signal);
+  let cleanupAbort: () => void = () => undefined;
   try {
+    const promptId = await queueComfyUIPrompt(baseUrl, request.workflow, timeout.signal);
+    cleanupAbort = bindComfyUIAbort(baseUrl, timeout.signal);
     const images = await waitForComfyUIHistoryImages(
       baseUrl,
       promptId,
       request.imageOutputNodeId,
-      options.signal,
+      timeout.signal,
     );
-    return downloadComfyUIImages(baseUrl, images, options.signal);
+    return await downloadComfyUIImages(baseUrl, images, timeout.signal);
+  } catch (error) {
+    throwIfRequestTimedOut(timeout, 'ComfyUI', settings.timeout);
+    throw error;
   } finally {
     cleanupAbort();
+    timeout.dispose();
   }
 }
 
@@ -234,14 +240,13 @@ async function waitForComfyUIHistoryImages(
   imageOutputNodeId: string,
   signal?: AbortSignal,
 ): Promise<ComfyUIHistoryImage[]> {
-  for (let index = 0; index < COMFYUI_MAX_POLL_COUNT; index += 1) {
+  while (true) {
     throwIfComfyUIAborted(signal);
     const result = await fetchComfyUIHistoryResult(baseUrl, promptId, imageOutputNodeId, signal);
     if (result.executionError) throw new Error(result.executionError);
     if (result.images) return result.images;
     await sleep(COMFYUI_POLL_INTERVAL_MS, signal);
   }
-  throw new Error('ComfyUI 生成超时，请检查队列状态或工作流执行结果');
 }
 
 interface ComfyUIHistoryPollResult {

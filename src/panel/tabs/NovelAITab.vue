@@ -17,6 +17,13 @@
             <div class="cv-field-hint">{{ routingModeHint }}</div>
           </div>
         </label>
+        <label class="cv-field">
+          <span>超时时间</span>
+          <div class="cv-field-control">
+            <InputNumber v-model="settings.novelai.timeout" :min="1" :max="3600" show-buttons />
+            <div class="cv-field-hint">请求超时截断时间,单位为秒</div>
+          </div>
+        </label>
         <NovelAIAccountList v-model="settings.novelai.accounts" />
         <label class="cv-field">
           <span>CORS 代理 URL</span>
@@ -91,9 +98,14 @@
             <InputNumber v-model="settings.novelai.steps" :min="1" :max="50" show-buttons />
           </label>
           <div class="cv-field">
-            <div class="flex flex-wrap items-end justify-between gap-(--cv-space-lg) font-semibold text-(--cv-on-surface)">
+            <div
+              class="flex flex-wrap items-end justify-between gap-(--cv-space-lg) font-semibold text-(--cv-on-surface)"
+            >
               <span>提示词引导</span>
-              <div v-if="supportsVarietyPlus || isV3Model" class="ml-auto flex flex-wrap items-end justify-end gap-(--cv-space-xs)">
+              <div
+                v-if="supportsVarietyPlus || isV3Model"
+                class="ml-auto flex flex-wrap items-end justify-end gap-(--cv-space-xs)"
+              >
                 <ToggleButton
                   v-if="supportsVarietyPlus"
                   v-model="settings.novelai.varietyPlus"
@@ -134,7 +146,9 @@
             />
           </label>
           <div class="cv-field">
-            <div class="flex flex-wrap items-end justify-between gap-(--cv-space-lg) font-semibold text-(--cv-on-surface)">
+            <div
+              class="flex flex-wrap items-end justify-between gap-(--cv-space-lg) font-semibold text-(--cv-on-surface)"
+            >
               <span>种子</span>
               <div class="ml-auto flex flex-wrap items-end justify-end gap-(--cv-space-xs)">
                 <ToggleButton
@@ -160,7 +174,9 @@
           </div>
         </div>
         <div class="cv-field">
-          <div class="flex flex-wrap items-end justify-between gap-(--cv-space-lg) font-semibold text-(--cv-on-surface)">
+          <div
+            class="flex flex-wrap items-end justify-between gap-(--cv-space-lg) font-semibold text-(--cv-on-surface)"
+          >
             <span>采样器</span>
             <ToggleButton
               v-if="isV3Model"
@@ -191,11 +207,7 @@
             </label>
             <label
               class="inline-flex min-h-7 items-center gap-(--cv-space-lg) text-(length:--cv-font-size-base)"
-              :class="
-                settings.novelai.smea
-                  ? 'text-(--cv-on-surface)'
-                  : 'text-(--cv-on-surface-variant) opacity-62'
-              "
+              :class="settings.novelai.smea ? 'text-(--cv-on-surface)' : 'text-(--cv-on-surface-variant) opacity-62'"
             >
               <Checkbox v-model="settings.novelai.smeaDyn" binary :disabled="!settings.novelai.smea" />
               <span class="min-w-0 leading-[1.35]">DYN</span>
@@ -220,39 +232,39 @@
 
       <h2 class="cv-section-title">高级设置</h2>
       <div class="cv-section-body">
-          <label v-if="!isV3Model" class="cv-field-inline">
-            <ToggleSwitch v-model="settings.novelai.autoCharacterCoords" />
-            <span>多角色提示词时自动安排位置</span>
+        <label v-if="!isV3Model" class="cv-field-inline">
+          <ToggleSwitch v-model="settings.novelai.autoCharacterCoords" />
+          <span>多角色提示词时自动安排位置</span>
+        </label>
+        <div class="cv-field-grid">
+          <label class="cv-field">
+            <span>提示词引导重缩放</span>
+            <InputNumber
+              v-model="settings.novelai.promptGuidanceRescale"
+              :min="0"
+              :max="1"
+              :step="0.01"
+              :min-fraction-digits="2"
+            />
           </label>
-          <div class="cv-field-grid">
-            <label class="cv-field">
-              <span>提示词引导重缩放</span>
-              <InputNumber
-                v-model="settings.novelai.promptGuidanceRescale"
-                :min="0"
-                :max="1"
-                :step="0.01"
-                :min-fraction-digits="2"
-              />
-            </label>
-            <label class="cv-field">
-              <span>噪声调度</span>
-              <Select
-                v-model="settings.novelai.noiseSchedule"
-                :options="noiseScheduleOptions"
-                option-label="label"
-                option-value="value"
-                fluid
-              />
-            </label>
-          </div>
-          <label
-            v-if="isV4OnlyModel"
-            class="inline-flex min-h-7 items-center gap-(--cv-space-lg) self-start text-(length:--cv-font-size-base) text-(--cv-on-surface)"
-          >
-            <Checkbox v-model="settings.novelai.legacyPromptMode" binary />
-            <span class="min-w-0 leading-[1.35]">旧版提示词条件模式（不推荐）</span>
+          <label class="cv-field">
+            <span>噪声调度</span>
+            <Select
+              v-model="settings.novelai.noiseSchedule"
+              :options="noiseScheduleOptions"
+              option-label="label"
+              option-value="value"
+              fluid
+            />
           </label>
+        </div>
+        <label
+          v-if="isV4OnlyModel"
+          class="inline-flex min-h-7 items-center gap-(--cv-space-lg) self-start text-(length:--cv-font-size-base) text-(--cv-on-surface)"
+        >
+          <Checkbox v-model="settings.novelai.legacyPromptMode" binary />
+          <span class="min-w-0 leading-[1.35]">旧版提示词条件模式（不推荐）</span>
+        </label>
       </div>
     </template>
 
