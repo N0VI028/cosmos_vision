@@ -21,7 +21,7 @@
           <span>超时时间</span>
           <div class="cv-field-control">
             <InputNumber v-model="settings.novelai.timeout" :min="1" :max="3600" show-buttons />
-            <div class="cv-field-hint">请求超时截断时间,单位为秒</div>
+            <div class="cv-field-hint">请求超时截断时间，单位为秒</div>
           </div>
         </label>
         <NovelAIAccountList v-model="settings.novelai.accounts" />
