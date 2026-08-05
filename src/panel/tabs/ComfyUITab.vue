@@ -112,7 +112,7 @@ import {
 } from '@/constants/comfyui';
 import { fetchComfyUILoraNames } from '@/services/comfyui/api';
 import { fetchComfyUIObjectInfo } from '@/services/comfyui/object-info';
-import { getActiveComfyUILoras } from '@/services/comfyui/lora-presets';
+import { applyActiveLoraPresetToWorkflowJson, getActiveComfyUILoras } from '@/services/comfyui/lora-presets';
 import { getComfyUIWorkflowValidationError } from '@/services/comfyui/parse';
 import { findComfyUIWorkflowPreset, importComfyUIWorkflowPreset } from '@/services/comfyui/workflow-presets';
 import ComfyUIWorkflowEditor from '@/panel/components/comfyui/ComfyUIWorkflowEditor.vue';
@@ -347,7 +347,11 @@ async function resetDefaultWorkflow(): Promise<void> {
       })
     : confirm(message);
   if (!confirmed || !activeWorkflow.value) return;
-  activeWorkflow.value.workflowJson = DEFAULT_COMFYUI_WORKFLOW_JSON;
+  // 重置后同步写入当前激活 LoRA 预设，避免默认工作流的空 LoRA 节点直接生图
+  activeWorkflow.value.workflowJson = applyActiveLoraPresetToWorkflowJson(
+    DEFAULT_COMFYUI_WORKFLOW_JSON,
+    settings.comfyui.loraPresets,
+  );
   toastr.success('默认工作流已重置');
 }
 
