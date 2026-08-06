@@ -32,15 +32,6 @@ const ERROR_MESSAGES: Record<PromptLlmExtractionErrorType, string> = {
   invalid_format: 'LLM 返回的格式不符合预期',
 };
 
-/** 错误建议模板 */
-const ERROR_SUGGESTIONS: Record<PromptLlmExtractionErrorType, string> = {
-  empty_output: '请检查 LLM 连接和配置',
-  parse_failed: '请检查 JSON Schema 配置或提示词模板',
-  regex_no_match: '请检查提取规则的正则表达式配置',
-  missing_required_field: '请检查 JSON Schema 字段配置',
-  invalid_format: '请检查提示词模板和 LLM 输出格式要求',
-};
-
 /**
  * 截断文本用于预览
  * @param text 原始文本
@@ -93,13 +84,9 @@ export function createExtractionError(
 ): PromptLlmExtractionError {
   const preview = truncateText(rawOutput, MAX_PREVIEW_LENGTH);
   const message = ERROR_MESSAGES[type];
-  const suggestion = ERROR_SUGGESTIONS[type];
-
   const error = new Error(message) as PromptLlmExtractionError;
   error.type = type;
   error.rawOutput = rawOutput;
   error.preview = preview;
-  error.suggestion = suggestion;
-
   return error;
 }

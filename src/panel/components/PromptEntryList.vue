@@ -77,16 +77,15 @@ const entries = defineModel<PromptEntryListItem[]>({ required: true });
 const listEl = ref<HTMLElement | null>(null);
 const isDragging = ref(false);
 
-/** Sortable 配置：forceFallback 保证手机可用，fallback 浮层挂 body */
+/** Sortable 配置：只保留轻量 ghost（细蓝色虚线占位），禁用粗 fallback 幽灵元素 */
 const dragOptions = {
   handle: '.cv-message-handle',
   animation: 150,
   ghostClass: 'cv-message-row-ghost',
   chosenClass: 'cv-message-row-chosen',
-  forceFallback: true,
-  fallbackClass: 'cv-message-row-fallback',
-  fallbackOnBody: true,
-  delayOnTouchOnly: true,
+  forceFallback: false,        // 禁用粗跟随幽灵元素
+  fallbackOnBody: false,       // 禁用粗跟随幽灵元素
+  delayOnTouchOnly: true,      // 手机端仍可用
   delay: 120,
   touchStartThreshold: 5,
   bubbleScroll: true,
@@ -129,11 +128,17 @@ defineExpose({ scrollToEnd });
 
 .cv-message-row-fallback {
   z-index: 10000;
-  opacity: 0.95 !important;
+  opacity: 1 !important;
+  border-style: dashed !important;
   border-color: var(--cvp-primary-color) !important;
-  background: var(--cv-surface-container) !important;
+  background: color-mix(in srgb, var(--cvp-primary-color) 12%, transparent) !important;
   box-shadow: 0 8px 24px color-mix(in srgb, var(--cv-on-surface) 24%, transparent) !important;
   pointer-events: none;
   cursor: grabbing !important;
+}
+
+/* 只保留整行虚线框轮廓，隐藏手柄与正文，避免 fallback 在 body 上布局错乱 */
+.cv-message-row-fallback > * {
+  opacity: 0;
 }
 </style>

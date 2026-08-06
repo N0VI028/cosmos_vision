@@ -896,7 +896,6 @@ body.dark .cv-inline-toolbar {
 
 .cv-inline-generation-accordion {
   margin-top: 0.5em;
-  border: 1px solid var(--cvp-surface-0) !important;
   border-radius: var(--cv-radius-sm, 4px);
   overflow: hidden;
   width: 100%;
