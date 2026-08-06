@@ -29,6 +29,7 @@ import {
   type TavernHelperGenerateRawConfig,
   type TavernHelperRolePrompt,
 } from '@/services/tavern-helper/prompt-llm';
+import { createExtractionError, detectExtractionFailureType } from '@/services/prompt-llm/errors';
 
 /** Prompt LLM 运行时生成选项 */
 export interface PromptLlmGenerateOptions {
@@ -245,9 +246,22 @@ export async function generatePromptFromRuntimeContext(
     schemaFields,
     options,
   );
+
+  // 检查空输出
+  if (!rawText || !rawText.trim()) {
+    throw createExtractionError('empty_output', rawText || '');
+  }
+
   const output = readPromptLlmOutputWithRules(rawText, settings, schemaFields);
   if (!output) {
-    throw new Error(`LLM返回值无法提取正负提示词，原始输出：${rawText}`);
+    const errorType = detectExtractionFailureType(rawText, settings, schemaFields);
+    throw createExtractionError(errorType, rawText);
   }
+
+  // 验证正面提示词提取成功（null/undefined/空字符串均视为提取失败）
+  if (!output.positivePrompt?.trim()) {
+    throw createExtractionError('invalid_format', rawText);
+  }
+
   return output;
 }

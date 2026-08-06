@@ -876,6 +876,51 @@ body.dark .cv-inline-toolbar {
   min-width: 0;
 }
 
+.cv-inline-generation-error-row .cv-inline-button-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.cv-inline-generation-error-row-container .cv-inline-generation-accordion {
+  margin-bottom: 0.75em;
+  margin-top: 0.25em;
+  width: 100%;
+}
+
+.cv-inline-generation-accordion {
+  margin-top: 0.5em;
+  border-radius: var(--cv-radius-sm, 4px);
+  overflow: hidden;
+  width: 100%;
+}
+
+.cv-inline-generation-accordion .p-accordionheader {
+  width: 100%;
+  padding: 0.5em 1em;
+  border: none !important;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+
+.cv-inline-generation-accordion .p-accordioncontent {
+  padding: 1em;
+  background: transparent !important;
+  border: none !important;
+}
+
+.cv-inline-generation-raw-output {
+  margin: 0;
+  padding: 0.5em;
+  font-size: 0.85em;
+  font-family: var(--cv-font-mono, monospace);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+  width: 100%;
+}
+
 /* 生图模式提示蒙版与文字 */
 .cv-mode-indicator-bar {
   position: fixed;

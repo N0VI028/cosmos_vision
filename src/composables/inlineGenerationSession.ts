@@ -1,8 +1,13 @@
 import { DARK_CLASS } from '@/constants/default-settings';
 import { preventInlineEventBubbling } from '@/composables/inlineImageDom';
 import { stopTavernHelperGeneration } from '@/services/tavern-helper/generation-control';
+import type { PromptLlmExtractionError } from '@/services/prompt-llm/errors';
 import Message from 'primevue/message';
 import ProgressSpinner from 'primevue/progressspinner';
+import Accordion from 'primevue/accordion';
+import AccordionPanel from 'primevue/accordionpanel';
+import AccordionHeader from 'primevue/accordionheader';
+import AccordionContent from 'primevue/accordioncontent';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import type { AppContext } from 'vue';
 import { h, render } from 'vue';
@@ -12,7 +17,7 @@ export type InlineGenerationStatusMode = 'running' | 'error';
 /** 段落内生成状态句柄 */
 export interface InlineGenerationStatusHandle {
   host: HTMLElement;
-  setStatus: (text: string, mode?: InlineGenerationStatusMode, onRetry?: () => void) => void;
+  setStatus: (text: string, mode?: InlineGenerationStatusMode, onRetry?: () => void, rawOutput?: string) => void;
   remove: () => void;
 }
 
@@ -50,6 +55,8 @@ interface InlineGenerationStatusState {
   text: string;
   mode: InlineGenerationStatusMode;
   onRetry?: () => void;
+  /** LLM 提取错误的完整原始输出（用于 Accordion 展示） */
+  rawOutput?: string;
 }
 
 type InlineGenerationStatusPlacement = 'after' | 'overlay';
@@ -192,6 +199,30 @@ function ensureSessionActive(
 }
 
 /**
+ * 判断是否为 LLM 提取错误
+ * @param error 异常对象
+ * @returns 是否为提取错误
+ */
+function isPromptLlmExtractionError(error: unknown): error is PromptLlmExtractionError {
+  return error instanceof Error && 'type' in error && 'preview' in error;
+}
+
+/**
+ * 格式化提取错误消息（简化版，不包含预览）
+ * @param error 提取错误对象
+ * @returns 格式化后的错误消息
+ */
+function formatExtractionError(error: PromptLlmExtractionError): string {
+  const parts = [`生成失败: ${error.message}`];
+
+  if (error.suggestion) {
+    parts.push(`\n建议: ${error.suggestion}`);
+  }
+
+  return parts.join('');
+}
+
+/**
  * 处理生成失败或取消状态
  * 仅作用于传入会话对应的那一次请求
  * @param activeSessions 活动会话映射
@@ -209,10 +240,24 @@ function handleSessionFailure(
     session.status.remove();
     return;
   }
-  const message = error instanceof Error ? error.message : '图片生成失败';
-  session.status.setStatus(`生成失败: ${message}`, 'error', onRetry);
+
+  if (isPromptLlmExtractionError(error)) {
+    const message = formatExtractionError(error);
+    session.status.setStatus(message, 'error', onRetry, error.rawOutput);
+  } else {
+    const message = error instanceof Error ? error.message : '图片生成失败';
+    session.status.setStatus(`生成失败: ${message}`, 'error', onRetry);
+  }
+
   if (!onRetry) scheduleStatusRemoval(session.status, ERROR_REMOVE_DELAY_MS);
   console.error('[InlineImageGeneration]', error);
+
+  // 如果是提取错误，额外输出完整的原始内容
+  if (isPromptLlmExtractionError(error)) {
+    console.group('[LLM 原始输出]');
+    console.log(error.rawOutput);
+    console.groupEnd();
+  }
 }
 
 /**
@@ -326,8 +371,13 @@ function createInlineGenerationStatus(options: InlineGenerationStatusOptions): I
     host.remove();
   }
 
-  function setStatus(text: string, mode: InlineGenerationStatusMode = 'running', onRetry?: () => void): void {
-    state = { text, mode, onRetry };
+  function setStatus(
+    text: string,
+    mode: InlineGenerationStatusMode = 'running',
+    onRetry?: () => void,
+    rawOutput?: string,
+  ): void {
+    state = { text, mode, onRetry, rawOutput };
     renderStatus(host, state, options, remove);
   }
 
@@ -393,9 +443,25 @@ function buildStatusSlots(
 
   const slots: InlineGenerationStatusSlots = {
     default: () => {
-      const children: any[] = [
-        h('span', { class: 'cv-inline-generation-text' }, state.text),
-      ];
+      const children: any[] = [];
+
+      // 如果有原始输出，添加可折叠的原文展示（单独成一行）
+      if (state.rawOutput) {
+        children.push(
+          h(
+            Accordion,
+            { class: 'cv-inline-generation-accordion' },
+            () => h(
+              AccordionPanel,
+              { value: '0' },
+              () => [
+                h(AccordionHeader, () => 'LLM 原始输出'),
+                h(AccordionContent, () => h('pre', { class: 'cv-inline-generation-raw-output' }, state.rawOutput)),
+              ],
+            ),
+          ),
+        );
+      }
 
       const buttons: any[] = [];
 
@@ -426,9 +492,15 @@ function buildStatusSlots(
         )
       );
 
-      children.push(h('span', { class: 'cv-inline-button-row' }, buttons));
+      const contentContainer = h('div', { class: 'cv-inline-generation-error-row' }, [
+        h('span', { class: 'cv-inline-generation-text' }, state.text),
+        h('span', { class: 'cv-inline-button-row' }, buttons)
+      ]);
 
-      return h('span', { class: 'cv-inline-generation-error-row' }, children);
+      return h('div', { class: 'cv-inline-generation-error-row-container' }, [
+        contentContainer,
+        ...(children.length > 0 ? children : [])
+      ]);
     },
   };
 

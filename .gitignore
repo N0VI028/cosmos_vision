@@ -17,10 +17,12 @@ pnpm-debug.log*
 auto-imports.d.ts
 components.d.ts
 
+/.agent
 /.agents
 /.claude
 /.codex
 /.trellis
 /.gemini
+/.grok
 .ace-tool/
 AGENTS.md
