@@ -36,7 +36,7 @@
 }
 
 .cv-speed-dial-menu > button {
-  @apply inline-flex cursor-pointer items-center justify-center p-0;
+  @apply relative inline-flex cursor-pointer items-center justify-center p-0;
   width: 2.6em;
   height: 2.6em;
   border: none;
@@ -57,6 +57,12 @@
 
 .cv-speed-dial-menu > button > i {
   font-size: 1.1em;
+}
+
+.cv-update-badge {
+  position: absolute;
+  top: -0.35em;
+  right: -0.35em;
 }
 
 /* 主悬浮按钮 */

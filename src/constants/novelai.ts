@@ -73,7 +73,7 @@ export const NOVELAI_DEFAULT_ACCOUNT_ID = 'novelai-account-1';
 
 /** NovelAI 路由模式固定列表 */
 export const NOVELAI_ROUTING_MODES = [
-  { value: 'sequential', label: '顺序使用' },
+  { value: 'sequential', label: '故障转移' },
   { value: 'load_balance', label: '负载均衡' },
 ] as const;
 

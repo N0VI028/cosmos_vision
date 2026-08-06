@@ -89,6 +89,10 @@
             @click="handleSettingsClick"
           >
             <i class="fa-solid fa-gear" />
+            <!-- 更新角标：有新版本时显示 -->
+            <Badge v-if="hasUpdate" class="cv-update-badge" severity="danger" size="small">
+              <i class="fa-solid fa-arrow-up" />
+            </Badge>
           </button>
         </div>
       </Transition>
@@ -154,6 +158,11 @@ import {
   type InlineImageDownloadOptions,
 } from '@/services/inline-image/download-options';
 import { ensurePromptStripRegex } from '@/services/inline-image/prompt-strip-regex';
+import {
+  checkExtensionUpdate,
+  hasUpdate,
+  updateDetected,
+} from '@/services/version-check/st-update';
 import type { TextInputCharacterDraft } from '@/panel/components/TextInputDialog.vue';
 
 interface TextInputDialogSubmitValue {
@@ -330,8 +339,14 @@ const fabStyle = computed(() => ({
   transition: isDragging.value ? 'none' : undefined,
 }));
 
-/** 点击设置按钮 */
+/**
+ * 点击设置按钮
+ * 有更新角标时先隐藏角标
+ */
 function handleSettingsClick(): void {
+  if (hasUpdate.value) {
+    hasUpdate.value = false;
+  }
   openSettings();
 }
 
@@ -484,6 +499,15 @@ function handleImageDownloadDialog(value: InlineImageDownloadOptions | null): vo
 
 // 段落短码 prompt 剥离正则：load 注册；关插件保持开启
 void ensurePromptStripRegex();
+
+// 载入时检测一次扩展更新，失败静默
+onMounted(async () => {
+  const result = await checkExtensionUpdate();
+  if (result && !result.isUpToDate) {
+    updateDetected.value = true;
+    hasUpdate.value = true;
+  }
+});
 
 watch(
   () => savedSettings.enabled,

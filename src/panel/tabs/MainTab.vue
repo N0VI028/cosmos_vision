@@ -57,6 +57,11 @@
           </div>
         </div>
       </div>
+
+      <!-- 新版本提示：有更新时常驻显示在"关于插件"区域下方 -->
+      <Message v-if="updateDetected" severity="warn" size="small" class="mt-(--cv-space-md)">
+        有新版本可用，请前往扩展页面更新
+      </Message>
     </template>
 
     <!-- 数据子 tab -->
@@ -133,6 +138,7 @@ import { downloadAllNovelAIVibes, downloadNovelAIVibe } from '@/services/novelai
 import type { NovelAIVibeCacheListItem } from '@/services/novelai/vibe-types';
 import { useGalleryRuntimesStore } from '@/store/gallery-runtimes';
 import { useSettingsStore } from '@/store/settings';
+import { updateDetected } from '@/services/version-check/st-update';
 import manifest from '../../../manifest.json';
 
 const props = defineProps<{ subTab: 'general' | 'data' | 'portability' }>();
