@@ -38,7 +38,7 @@
           <div
             class="rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-green-500)_12%,transparent)] p-(--cv-space-xl) text-(length:--cv-font-size-base) font-semibold text-(--cvp-green-500) whitespace-normal"
           >
-            <i class="fa-solid fa-circle-check mr-2"></i>测试成功！接口响应正常
+            <i class="fa-solid fa-circle-check mr-2"></i>测试成功！接口响应正常{{ routedAccountNote }}
           </div>
           <div
             class="mb-(--cv-space-md) text-(length:--cv-font-size-base) font-semibold text-(--cv-on-surface-variant)"
@@ -143,6 +143,9 @@ const testError = ref('');
 /** 发送前记录的提示词快照 */
 const sentPromptText = ref('');
 
+/** 本次测试实际成功的账号名（负载均衡等路由模式下非首个账号时用于提示） */
+const testResponseAccount = ref('');
+
 /** 是否正在运行测试 */
 const isRunning = computed(() => testStatus.value === 'running');
 
@@ -159,6 +162,11 @@ const {
 
 /** LLM 参数配置展示行 */
 const logParamRows = computed(() => buildPromptLlmParamRows(buildPromptLlmLogParams(settings.promptLlm)));
+
+/** 多账号路由时展示实际成功的账号 */
+const routedAccountNote = computed(() =>
+  testResponseAccount.value ? `（成功账号：${testResponseAccount.value}）` : '',
+);
 
 /**
  * 主操作按钮点击：运行中终止，否则启动测试
@@ -185,21 +193,29 @@ async function runTest(): Promise<void> {
   await requestSession.run(
     async session => {
       const context = buildTestContext();
-      const request = await buildPromptLlmRuntimeRequestFromContext(
-        context,
+      const triggerContext = buildPromptLlmTriggerContext(settings);
+      const result = await requestPromptLlmRaw(
         settings.promptLlm,
-        settings.promptLlmMessagePresets,
-        settings.promptProfiles,
-        buildPromptLlmSchemaFields(settings.promptLlm),
-        buildPromptLlmTriggerContext(settings),
+        async account => {
+          const request = await buildPromptLlmRuntimeRequestFromContext(
+            context,
+            settings.promptLlm,
+            settings.promptLlmMessagePresets,
+            settings.promptProfiles,
+            buildPromptLlmSchemaFields(settings.promptLlm),
+            triggerContext,
+            account,
+          );
+          if (requestSession.isCurrent(session)) sentPromptText.value = formatPromptLlmRequestLog(request);
+          return request;
+        },
+        {
+          generationId: session.generationId,
+          timeoutSeconds: settings.promptLlm.timeout,
+        },
       );
       if (!requestSession.isCurrent(session)) return;
-      sentPromptText.value = formatPromptLlmRequestLog(request);
-      applyTestResponse(await requestPromptLlmRaw(request, {
-        generationId: session.generationId,
-        timeoutSeconds: settings.promptLlm.timeout,
-      }));
-      if (!requestSession.isCurrent(session)) return;
+      applyTestResponse(result.rawText, result.accountName);
       testStatus.value = 'success';
       toastr.success('LLM 连接测试成功');
     },
@@ -240,6 +256,7 @@ function handleRequestError(error: unknown): void {
 function resetTestLog(): void {
   testStatus.value = 'idle';
   testResponseRaw.value = '';
+  testResponseAccount.value = '';
   testError.value = '';
   sentPromptText.value = '';
 }
@@ -262,8 +279,10 @@ function failTest(message: string, warning = false): void {
 /**
  * 写入测试响应
  * @param rawResult generateRaw 原始返回文本
+ * @param accountName 实际成功的账号名；空串表示无需提示
  */
-function applyTestResponse(rawResult: string): void {
+function applyTestResponse(rawResult: string, accountName: string): void {
   testResponseRaw.value = rawResult;
+  testResponseAccount.value = accountName;
 }
 </script>

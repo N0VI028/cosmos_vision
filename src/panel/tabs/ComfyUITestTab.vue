@@ -185,7 +185,8 @@
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { useFocusedParagraphInput } from '@/composables/useFocusedParagraphInput';
 import { useTestActionButton } from '@/composables/useTestActionButton';
-import { useTestRequestSession } from '@/composables/useTestRequestSession';
+import { useTestRequestSession, type TestRequestSession } from '@/composables/useTestRequestSession';
+import type { PromptLlmAccount } from '@/constants/prompt-llm';
 import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue';
 import TestImageGallery from '@/panel/components/TestImageGallery.vue';
 
@@ -201,7 +202,11 @@ import {
   buildPromptLlmSchemaFields,
   getPromptLlmRequestError,
 } from '@/services/tavern-helper/prompt-llm';
-import { extractPromptLlmResult } from '@/services/prompt-llm/runtime-request';
+import {
+  buildPromptLlmRuntimeRequestFromContext,
+  buildPromptLlmTriggerContext,
+  extractPromptLlmResult,
+} from '@/services/prompt-llm/runtime-request';
 import {
   buildPromptLlmLogParams,
   buildPromptLlmParamRows,
@@ -209,10 +214,6 @@ import {
   requestPromptLlmRaw,
   type PromptLlmLogParams,
 } from '@/services/tavern-helper/prompt-llm-test';
-import {
-  buildPromptLlmRuntimeRequestFromContext,
-  buildPromptLlmTriggerContext,
-} from '@/services/prompt-llm/runtime-request';
 
 type TestMode = 'direct' | 'llm';
 type TestStatus = 'idle' | 'running' | 'success' | 'error';
@@ -359,7 +360,7 @@ async function runTest(): Promise<void> {
 
   await requestSession.run(
     async session => {
-      const request = currentMode.value === 'llm' ? await runLlmModeTest(session.generationId) : runDirectModeTest();
+      const request = currentMode.value === 'llm' ? await runLlmModeTest(session) : runDirectModeTest();
       if (!requestSession.isCurrent(session)) return;
       requestSnapshot.value = request.snapshot;
       const blobs = await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request, {
@@ -406,32 +407,41 @@ function runDirectModeTest(): ComfyUIResolvedRequest {
 
 /**
  * 执行 LLM 联动测试
- * @param generationId TavernHelper 生成请求 ID
+ * @param session 当前测试会话
  * @returns 已解析的 ComfyUI 请求
  */
-async function runLlmModeTest(generationId: string): Promise<ComfyUIResolvedRequest> {
+async function runLlmModeTest(session: TestRequestSession): Promise<ComfyUIResolvedRequest> {
   llmLogParams.value = buildPromptLlmLogParams(settings.promptLlm);
   const requestError = getPromptLlmRequestError(settings.promptLlm);
   if (requestError) throw new Error(requestError);
 
   const schemaFields = buildPromptLlmSchemaFields(settings.promptLlm);
-  const request = await buildLlmModeRequest(schemaFields);
-  llmSentPromptLog.value = formatPromptLlmRequestLog(request);
-  llmRawResponse.value = await requestPromptLlmRaw(request, {
-    generationId,
-    timeoutSeconds: settings.promptLlm.timeout,
-  });
+  const result = await requestPromptLlmRaw(
+    settings.promptLlm,
+    async account => {
+      const request = await buildLlmModeRequest(schemaFields, account);
+      if (requestSession.isCurrent(session)) llmSentPromptLog.value = formatPromptLlmRequestLog(request);
+      return request;
+    },
+    {
+      generationId: session.generationId,
+      timeoutSeconds: settings.promptLlm.timeout,
+    },
+  );
+  if (!requestSession.isCurrent(session)) throw new Error('已取消生成');
 
-  const { output } = extractPromptLlmResult(llmRawResponse.value, settings.promptLlm, schemaFields);
+  llmRawResponse.value = result.rawText;
+  const { output } = extractPromptLlmResult(result.rawText, settings.promptLlm, schemaFields);
   return buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, output);
 }
 
 /**
  * 构建联动测试请求
  * @param schemaFields JSON Schema 字段配置
+ * @param account 本次尝试的 LLM 账号；缺省时取首个可用账号
  * @returns generateRaw 请求体
  */
-function buildLlmModeRequest(schemaFields: ReturnType<typeof buildPromptLlmSchemaFields>) {
+function buildLlmModeRequest(schemaFields: ReturnType<typeof buildPromptLlmSchemaFields>, account?: PromptLlmAccount) {
   const context = buildTestContext();
   return buildPromptLlmRuntimeRequestFromContext(
     context,
@@ -440,6 +450,7 @@ function buildLlmModeRequest(schemaFields: ReturnType<typeof buildPromptLlmSchem
     settings.promptProfiles,
     schemaFields,
     buildPromptLlmTriggerContext(settings, 'comfyui'),
+    account,
   );
 }
 

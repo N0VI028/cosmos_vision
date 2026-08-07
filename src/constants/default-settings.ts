@@ -33,6 +33,7 @@ import {
   type PromptLlmMessageTriggerMatchMode,
   type PromptLlmOutputFields,
 } from '@/constants/novelai';
+import { createPromptLlmAccount, PROMPT_LLM_DEFAULT_ACCOUNT_ID } from '@/constants/prompt-llm';
 
 const defaultPromptLlmPreset = defaultPromptLlmPresetSettings.presets[0];
 
@@ -156,12 +157,9 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     negativePromptPresetId: DEFAULT_NEGATIVE_PROMPT_PRESET_ID,
   },
   promptLlm: {
-    proxyPreset: '',
-    apiUrl: '',
-    apiKey: '',
-    model: '',
+    accounts: [createPromptLlmAccount(PROMPT_LLM_DEFAULT_ACCOUNT_ID)],
+    routingMode: 'sequential',
     timeout: 60,
-    source: 'openai',
     temperature: 0.7,
     maxTokens: 32000,
     topP: 1.0,
@@ -184,9 +182,6 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     characterNegativePromptExtractPattern: DEFAULT_CHARACTER_NEGATIVE_PROMPT_EXTRACT_PATTERN,
     characterPositionXExtractPattern: DEFAULT_CHARACTER_POSITION_X_EXTRACT_PATTERN,
     characterPositionYExtractPattern: DEFAULT_CHARACTER_POSITION_Y_EXTRACT_PATTERN,
-    customIncludeBody: '',
-    customExcludeBody: '',
-    customIncludeHeaders: '',
   },
   promptLlmMessagePresets: defaultPromptLlmPresetSettings,
   promptProfiles: {

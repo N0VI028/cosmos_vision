@@ -21,7 +21,7 @@
               />
             </div>
             <div class="cv-field-hint">
-              确保 Comfyui 设置了启动参数，否则可能无法连接：--listen --enable-cors-header *
+              需要 Comfyui 设置启动参数：--listen --enable-cors-header *
             </div>
           </div>
         </label>

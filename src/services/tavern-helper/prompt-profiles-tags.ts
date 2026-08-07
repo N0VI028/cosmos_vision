@@ -1,10 +1,9 @@
 import { DEFAULT_PROMPT_LLM_OUTPUT_FIELDS } from '@/constants/default-settings';
 import type { PromptLlmMessagePresetSettings, PromptLlmSettings, PromptPerson } from '@/constants/novelai';
 import type { PromptLlmRuntimeContent } from '@/services/prompt-llm/message-preset';
-import { buildPromptLlmRuntimeRequest } from '@/services/prompt-llm/runtime-request';
+import { buildPromptLlmRuntimeRequest, requestPromptLlmWithAccounts } from '@/services/prompt-llm/runtime-request';
 import { renderPromptPersonTemplate } from '@/services/prompt-profiles/runtime';
 import { getTavernHelper } from '@/services/tavern-helper/availability';
-import { requestTavernHelperGenerateRaw } from '@/services/tavern-helper/generate-raw';
 import { readCharacterPrompts } from '@/services/prompt-llm/character-prompt';
 import { parsePromptLlmOutput } from '@/services/tavern-helper/prompt-llm';
 
@@ -65,11 +64,11 @@ async function requestPromptPersonTags(
 ): Promise<string> {
   const tavernHelper = getTavernHelper({ silent: false });
   if (!tavernHelper) throw new Error('TavernHelper 不可用，无法解析人物 tag');
-  const request = await buildPromptLlmRuntimeRequest(settings, presetSettings, buildPromptPersonRuntimeContent(contextText));
   try {
-    return requestTavernHelperGenerateRaw(tavernHelper, { ...request, should_silence: true }, {
-      timeoutSeconds: settings.timeout,
-    });
+    const result = await requestPromptLlmWithAccounts(tavernHelper, settings, {}, account =>
+      buildPromptLlmRuntimeRequest(settings, presetSettings, buildPromptPersonRuntimeContent(contextText), null, undefined, account),
+    );
+    return result.rawText;
   } catch (error) {
     throw new Error(`提示词生成失败: ${(error as Error).message}`);
   }

@@ -2,20 +2,86 @@
  * 提示词 LLM 相关的常量与类型定义
  */
 
-/** 提示词 LLM 子设置(用于段落生图时生成正负提示词) */
-export interface PromptLlmSettings {
-  /** 代理预设名(可选,与手填字段互斥) */
+/** 提示词 LLM 默认账号 id */
+export const PROMPT_LLM_DEFAULT_ACCOUNT_ID = 'prompt-llm-account-1';
+
+/** 提示词 LLM 账号默认来源标识 */
+export const PROMPT_LLM_DEFAULT_ACCOUNT_SOURCE = 'openai';
+
+/** 提示词 LLM 路由模式固定列表 */
+export const PROMPT_LLM_ROUTING_MODES = [
+  { value: 'sequential', label: '故障转移' },
+  { value: 'load_balance', label: '负载均衡' },
+] as const;
+
+/** 提示词 LLM 路由模式 value 联合类型 */
+export type PromptLlmRoutingMode = (typeof PROMPT_LLM_ROUTING_MODES)[number]['value'];
+
+/** 提示词 LLM 账号条目 */
+export interface PromptLlmAccount {
+  id: string;
+  name: string;
+  /** 酒馆代理预设名；非空时该账号走预设，忽略 apiUrl/apiKey */
   proxyPreset: string;
-  /** API URL */
   apiUrl: string;
-  /** API Key */
   apiKey: string;
-  /** 模型名 */
-  model: string;
-  /** 超时时间 */
-  timeout: number;
   /** 来源标识(如 openai/anthropic/custom) */
   source: string;
+  /** 模型名 */
+  model: string;
+  /** 自定义源附加请求体参数(YAML 文本,仅 source 为 custom 时生效) */
+  customIncludeBody: string;
+  /** 自定义源排除请求体参数(YAML 文本) */
+  customExcludeBody: string;
+  /** 自定义源附加请求头(YAML 文本) */
+  customIncludeHeaders: string;
+  enabled: boolean;
+}
+
+/**
+ * 创建提示词 LLM 账号条目
+ * @param id 账号 id
+ * @param apiUrl API URL
+ * @param apiKey API Key
+ * @param name 账号名称
+ * @returns 账号条目
+ */
+export function createPromptLlmAccount(id: string, apiUrl = '', apiKey = '', name = ''): PromptLlmAccount {
+  return {
+    id,
+    name,
+    proxyPreset: '',
+    apiUrl,
+    apiKey,
+    source: PROMPT_LLM_DEFAULT_ACCOUNT_SOURCE,
+    model: '',
+    customIncludeBody: '',
+    customExcludeBody: '',
+    customIncludeHeaders: '',
+    enabled: true,
+  };
+}
+
+/**
+ * 获取 LLM 账号在账号列表 Header 上显示的展示名称
+ * 始终使用用户设置的账号名，未设置时统一回退为“未命名账号”，
+ * 避免在测试页等场景暴露账号 id 或索引顺序
+ * @param account 账号对象；可缺省
+ * @returns 展示名称
+ */
+export function getPromptLlmAccountDisplayName(account?: Pick<PromptLlmAccount, 'name'>): string {
+  const name = account?.name?.trim();
+  return name || '未命名账号';
+}
+
+/** 提示词 LLM 子设置(用于段落生图时生成正负提示词) */
+export interface PromptLlmSettings {
+  /** LLM 账号列表 */
+  accounts: PromptLlmAccount[];
+  /** 路由模式 */
+  routingMode: PromptLlmRoutingMode;
+  /** 超时时间 */
+  timeout: number;
   /** 温度(可选) */
   temperature: number;
   /** 最大 token(可选) */
@@ -60,12 +126,6 @@ export interface PromptLlmSettings {
   characterPositionXExtractPattern: string;
   /** 角色 Y 坐标正则 */
   characterPositionYExtractPattern: string;
-  /** 自定义源附加请求体参数(YAML 文本) */
-  customIncludeBody: string;
-  /** 自定义源排除请求体参数(YAML 文本) */
-  customExcludeBody: string;
-  /** 自定义源附加请求头(YAML 文本) */
-  customIncludeHeaders: string;
 }
 
 /** 提示词 LLM 运行时上下文 */
