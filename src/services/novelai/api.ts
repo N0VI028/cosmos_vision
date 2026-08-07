@@ -8,7 +8,6 @@ import type {
   NovelAISampler,
   NovelAISettings,
   NovelAIUcPreset,
-  PromptLlmSettings,
 } from '@/constants/novelai';
 import {
   NOVELAI_MAX_SEED,
@@ -24,8 +23,7 @@ import {
   getUcPresetValue,
   type NovelAIPromptMode,
 } from '@/services/novelai/prompt-presets';
-import { readPreferredPromptLlmOutput, type PromptLlmExtractSettings } from '@/services/tavern-helper/prompt-llm';
-import { readCharacterPrompts } from '@/services/prompt-llm/character-prompt';
+import type { PromptLlmExtractSettings, PromptLlmOutput } from '@/services/tavern-helper/prompt-llm';
 import { extractNovelAIJsonImages } from '@/services/novelai/response-images';
 import { extractImages } from '@/services/novelai/zip';
 import { getNovelAIRequestAccounts } from '@/services/novelai/router';
@@ -251,19 +249,22 @@ export function buildNovelAIResolvedRequest(
 }
 
 /**
- * 将 LLM 原始返回转换为 NovelAI 提示词覆写
- * @param settings 提示词 LLM 配置(公共:JSON Schema 优先 + 正则回退)
- * @param rawResponse LLM 原始返回
+ * 将 LLM 提取结果转换为 NovelAI 提示词覆写
+ * @param prompts 已通过统一校验的正负提示词
+ * @param characterPrompts LLM 提取的角色提示词
  * @returns NovelAI 提示词覆写
  */
-export function buildNovelAILlmPromptOverrides(
-  settings: PromptLlmSettings,
-  rawResponse: string,
+export function buildNovelAIPromptOverrides(
+  prompts: PromptLlmOutput,
+  characterPrompts: CharacterPromptItem[] = [],
 ): NovelAIPromptOverrides {
-  const output = readPreferredPromptLlmOutput(rawResponse, settings);
-  const characterPrompts = readCharacterPrompts(rawResponse, settings);
-  if (output) return buildDirectPromptOverrides(output.positivePrompt, output.negativePrompt, characterPrompts);
-  return { ...buildExtractPromptOverrides(rawResponse), characterPrompts };
+  return {
+    positiveLLMPrompt: prompts.positivePrompt,
+    negativeLLMPrompt: prompts.negativePrompt,
+    positivePromptMode: 'direct',
+    negativePromptMode: 'direct',
+    characterPrompts,
+  };
 }
 
 /**
@@ -305,38 +306,6 @@ function buildRequestSnapshot(
     addQualityTags: settings.addQualityTags,
     imageCount,
     vibes: buildVibeSnapshot(prompts),
-  };
-}
-
-/**
- * 构建走提取规则的提示词覆写
- * @param rawResponse LLM 原始返回
- * @returns 提示词覆写
- */
-function buildExtractPromptOverrides(rawResponse: string): NovelAIPromptOverrides {
-  return {
-    positiveLLMPrompt: rawResponse,
-    negativeLLMPrompt: rawResponse,
-  };
-}
-
-/**
- * 构建直接使用提示词的覆写
- * @param positivePrompt 正面提示词
- * @param negativePrompt 负面提示词
- * @returns 提示词覆写
- */
-function buildDirectPromptOverrides(
-  positivePrompt: string,
-  negativePrompt: string,
-  characterPrompts: CharacterPromptItem[],
-): NovelAIPromptOverrides {
-  return {
-    positiveLLMPrompt: positivePrompt,
-    negativeLLMPrompt: negativePrompt,
-    positivePromptMode: 'direct',
-    negativePromptMode: 'direct',
-    characterPrompts,
   };
 }
 

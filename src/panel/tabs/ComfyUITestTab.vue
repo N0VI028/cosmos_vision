@@ -200,8 +200,8 @@ import { useSettingsStore } from '@/store/settings';
 import {
   buildPromptLlmSchemaFields,
   getPromptLlmRequestError,
-  readPromptLlmOutputWithRules,
 } from '@/services/tavern-helper/prompt-llm';
+import { extractPromptLlmResult } from '@/services/prompt-llm/runtime-request';
 import {
   buildPromptLlmLogParams,
   buildPromptLlmParamRows,
@@ -422,10 +422,8 @@ async function runLlmModeTest(generationId: string): Promise<ComfyUIResolvedRequ
     timeoutSeconds: settings.promptLlm.timeout,
   });
 
-  const prompts = readPromptLlmOutputWithRules(llmRawResponse.value, settings.promptLlm, schemaFields);
-  if (!prompts) throw new Error('LLM 返回值无法提取正负提示词');
-
-  return buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, prompts);
+  const { output } = extractPromptLlmResult(llmRawResponse.value, settings.promptLlm, schemaFields);
+  return buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, output);
 }
 
 /**

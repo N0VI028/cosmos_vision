@@ -292,7 +292,7 @@ import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue'
 import TestImageGallery from '@/panel/components/TestImageGallery.vue';
 
 import {
-  buildNovelAILlmPromptOverrides,
+  buildNovelAIPromptOverrides,
   buildNovelAIResolvedRequest,
   generateNovelAIImagesFromResolvedRequest,
   type NovelAIPromptOverrides,
@@ -300,6 +300,7 @@ import {
 } from '@/services/novelai/api';
 import { useSettingsStore } from '@/store/settings';
 import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
+import { extractPromptLlmResult } from '@/services/prompt-llm/runtime-request';
 import {
   buildPromptLlmLogParams,
   buildPromptLlmParamRows,
@@ -507,13 +508,15 @@ async function runLlmModeTest(session: TestRequestSession): Promise<void> {
   const request = await buildLlmModeRequest();
   if (!requestSession.isCurrent(session)) return;
   llmSentPromptLog.value = formatPromptLlmRequestLog(request);
-  llmRawResponse.value = await requestPromptLlmRaw(request, {
+  const rawResponse = await requestPromptLlmRaw(request, {
     generationId: session.generationId,
     timeoutSeconds: settings.promptLlm.timeout,
   });
   if (!requestSession.isCurrent(session)) return;
 
-  await runNovelAIWithOverrides(buildNovelAILlmPromptOverrides(settings.promptLlm, llmRawResponse.value), session);
+  llmRawResponse.value = rawResponse;
+  const { output, characterPrompts } = extractPromptLlmResult(rawResponse, settings.promptLlm, buildPromptLlmSchemaFields(settings.promptLlm));
+  await runNovelAIWithOverrides(buildNovelAIPromptOverrides(output, characterPrompts), session);
 }
 
 /**

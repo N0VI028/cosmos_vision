@@ -22,7 +22,7 @@ import { buildComfyUIResolvedRequest, getComfyUIRequestError } from '@/services/
 import type { ComfyUIRequestSnapshot } from '@/services/comfyui/types';
 import {
   buildNovelAIResolvedRequest,
-  buildNovelAILlmPromptOverrides,
+  buildNovelAIPromptOverrides,
   type NovelAIFinalPrompts,
   generateNovelAIImageFromPrompts,
   generateNovelAIImagesFromResolvedRequest,
@@ -37,7 +37,6 @@ import {
 import {
   buildPromptLlmTriggerContext,
   generatePromptFromRuntimeContext,
-  generatePromptTextFromRuntimeContext,
 } from '@/services/prompt-llm/runtime-request';
 import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
 import type { ImagePromptVibeRef } from '@/constants/novelai-vibe';
@@ -613,8 +612,8 @@ export function useInlineImageGeneration(
     session: InlineGenerationSession,
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
   ): Promise<InlineGenerationBatchResult> {
-    const rawResponse = await runPromptLlmStep(session, schemaFields =>
-      generatePromptTextFromRuntimeContext(
+    const { output, characterPrompts } = await runPromptLlmStep(session, schemaFields =>
+      generatePromptFromRuntimeContext(
         context,
         settings.promptLlm,
         settings.promptLlmMessagePresets,
@@ -627,7 +626,7 @@ export function useInlineImageGeneration(
       ),
     );
 
-    const overrides = buildNovelAILlmPromptOverrides(settings.promptLlm, rawResponse);
+    const overrides = buildNovelAIPromptOverrides(output, characterPrompts);
     const request = buildNovelAIResolvedRequest(
       settings.novelai,
       settings.imagePromptPresets,
@@ -688,7 +687,7 @@ export function useInlineImageGeneration(
     session: InlineGenerationSession,
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
   ): Promise<InlineGenerationBatchResult> {
-    const prompts = await runPromptLlmStep(session, schemaFields =>
+    const { output } = await runPromptLlmStep(session, schemaFields =>
       generatePromptFromRuntimeContext(
         context,
         settings.promptLlm,
@@ -701,8 +700,7 @@ export function useInlineImageGeneration(
         },
       ),
     );
-
-    const request = buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, prompts);
+    const request = buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, output);
     return runImageStep(
       session,
       createComfyUISnapshot(request.snapshot),

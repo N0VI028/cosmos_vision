@@ -1,5 +1,5 @@
 import { DEFAULT_PROMPT_LLM_OUTPUT_FIELDS } from '@/constants/default-settings';
-import type { PromptLlmOutputFields, PromptLlmSettings } from '@/constants/novelai';
+import type { CharacterPromptItem, PromptLlmOutputFields, PromptLlmSettings } from '@/constants/novelai';
 import { findProxyPreset } from '@/services/sillytavern/openai-config';
 import yaml from 'yaml';
 import { z } from 'zod';
@@ -13,6 +13,12 @@ export type { PromptLlmOutputFields } from '@/constants/novelai';
 export interface PromptLlmOutput {
   positivePrompt: string;
   negativePrompt: string;
+}
+
+/** Prompt LLM 完整提取结果(全局正负提示词 + 角色提示词) */
+export interface PromptLlmExtractionResult {
+  output: PromptLlmOutput;
+  characterPrompts: CharacterPromptItem[];
 }
 
 /** Prompt LLM 正则提取配置 */
@@ -479,23 +485,6 @@ function readPromptLlmOutputFields(settings: PromptLlmSettings): PromptLlmOutput
     characterPositionX: settings.characterPositionXJsonField.trim() || 'x',
     characterPositionY: settings.characterPositionYJsonField.trim() || 'y',
   };
-}
-
-/**
- * 按公共 LLM 设置读取优先 JSON 输出,失败回退到用户正则
- * 所有生图渠道共享的优先 JSON Schema 提取入口
- * @param rawText LLM 原始返回
- * @param settings 提示词 LLM 配置
- * @returns 正负提示词或 null
- */
-export function readPreferredPromptLlmOutput(rawText: string, settings: PromptLlmSettings): PromptLlmOutput | null {
-  const cleanText = extractOutputBlock(rawText);
-  const fields = settings.preferJsonSchemaExtraction ? readPromptLlmOutputFields(settings) : null;
-  if (fields) {
-    const jsonOutput = readPromptLlmJsonOutput(cleanText, fields);
-    if (jsonOutput) return jsonOutput;
-  }
-  return readPromptLlmOutputByRules(rawText, settings);
 }
 
 /**

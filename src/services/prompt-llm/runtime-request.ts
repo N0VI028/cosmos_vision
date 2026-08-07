@@ -25,11 +25,12 @@ import {
   buildGenerateRawMessagesRequest,
   buildJsonSchema,
   readPromptLlmOutputWithRules,
-  type PromptLlmOutput,
+  type PromptLlmExtractionResult,
   type TavernHelperGenerateRawConfig,
   type TavernHelperRolePrompt,
 } from '@/services/tavern-helper/prompt-llm';
 import { createExtractionError, detectExtractionFailureType } from '@/services/prompt-llm/errors';
+import { readCharacterPrompts } from '@/services/prompt-llm/character-prompt';
 
 /** Prompt LLM 运行时生成选项 */
 export interface PromptLlmGenerateOptions {
@@ -178,7 +179,7 @@ function canSendPromptLlmMessage(
  * @param schemaFields JSON Schema 字段配置
  * @returns LLM 原始响应文本
  */
-export async function generatePromptTextFromRuntimeContext(
+async function generatePromptTextFromRuntimeContext(
   context: PromptLlmContext,
   settings: PromptLlmSettings,
   presetSettings: PromptLlmMessagePresetSettings,
@@ -221,6 +222,36 @@ function buildSilentGenerateRawRequest(
 }
 
 /**
+ * 从 LLM 原始文本提取并校验提示词,所有生图渠道共用的统一入口
+ * 空输出、无法解析、正向提示词为空时均抛出结构化提取错误
+ * @param rawText LLM 原始响应文本
+ * @param settings LLM 配置
+ * @param schemaFields JSON Schema 字段配置
+ * @returns 正负提示词与角色提示词
+ */
+export function extractPromptLlmResult(
+  rawText: string,
+  settings: PromptLlmSettings,
+  schemaFields: PromptLlmOutputFields | null = DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
+): PromptLlmExtractionResult {
+  if (!rawText.trim()) {
+    throw createExtractionError('empty_output', rawText);
+  }
+
+  const output = readPromptLlmOutputWithRules(rawText, settings, schemaFields);
+  if (!output) {
+    throw createExtractionError(detectExtractionFailureType(rawText, settings, schemaFields), rawText);
+  }
+
+  // 验证正面提示词提取成功（null/undefined/空字符串均视为提取失败）
+  if (!output.positivePrompt?.trim()) {
+    throw createExtractionError('invalid_format', rawText);
+  }
+
+  return { output, characterPrompts: readCharacterPrompts(rawText, settings) };
+}
+
+/**
  * 基于上下文发送 LLM 请求并解析正负提示词。主要用于添加段落生图流程。
  * 如果 LLM 返回值无法解析，则直接将 LLM 原始响应内容抛出。
  * @param context Prompt LLM 运行时上下文
@@ -228,7 +259,7 @@ function buildSilentGenerateRawRequest(
  * @param presetSettings 消息预设集合
  * @param promptProfiles 提示词Profile设置
  * @param schemaFields JSON Schema 字段配置
- * @returns 正负提示词
+ * @returns 正负提示词与角色提示词
  */
 export async function generatePromptFromRuntimeContext(
   context: PromptLlmContext,
@@ -237,7 +268,7 @@ export async function generatePromptFromRuntimeContext(
   promptProfiles: PromptProfilesSettings,
   schemaFields: PromptLlmOutputFields | null = DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
   options: PromptLlmGenerateOptions = {},
-): Promise<PromptLlmOutput> {
+): Promise<PromptLlmExtractionResult> {
   const rawText = await generatePromptTextFromRuntimeContext(
     context,
     settings,
@@ -246,22 +277,5 @@ export async function generatePromptFromRuntimeContext(
     schemaFields,
     options,
   );
-
-  // 检查空输出
-  if (!rawText || !rawText.trim()) {
-    throw createExtractionError('empty_output', rawText || '');
-  }
-
-  const output = readPromptLlmOutputWithRules(rawText, settings, schemaFields);
-  if (!output) {
-    const errorType = detectExtractionFailureType(rawText, settings, schemaFields);
-    throw createExtractionError(errorType, rawText);
-  }
-
-  // 验证正面提示词提取成功（null/undefined/空字符串均视为提取失败）
-  if (!output.positivePrompt?.trim()) {
-    throw createExtractionError('invalid_format', rawText);
-  }
-
-  return output;
+  return extractPromptLlmResult(rawText, settings, schemaFields);
 }
