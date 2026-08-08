@@ -102,6 +102,31 @@ export function recoverPromptLlmSettings(value: unknown): PromptLlmSettings {
   };
 }
 
+/** 旧版单账号的顶层连接字段名 */
+const PROMPT_LLM_LEGACY_CONNECTION_KEYS = [
+  'proxyPreset',
+  'apiUrl',
+  'apiKey',
+  'source',
+  'model',
+  'customIncludeBody',
+  'customExcludeBody',
+  'customIncludeHeaders',
+] as const;
+
+/**
+ * 将旧版单账号连接字段归一化为账号列表
+ * 在 schema 校验前调用：存在旧顶层连接字段且缺少 accounts 时，把旧字段迁移为单账号写入 record
+ * @param record 提示词 LLM 原始设置记录
+ * @returns 是否发生了迁移写入
+ */
+export function normalizeLegacyPromptLlmAccounts(record: PlainRecord): boolean {
+  if (Array.isArray(record.accounts)) return false;
+  if (!PROMPT_LLM_LEGACY_CONNECTION_KEYS.some(key => typeof record[key] === 'string')) return false;
+  record.accounts = recoverPromptLlmAccounts(record);
+  return true;
+}
+
 /** 旧版全局连接字段，迁移时写入首个账号的缺省字段 */
 interface LegacyConnectionFields {
   proxyPreset: string;

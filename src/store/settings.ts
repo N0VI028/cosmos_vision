@@ -46,7 +46,11 @@ import {
   normalizePromptLlmMessageKeywordGroups,
   normalizePromptLlmMessageModels,
 } from '@/services/prompt-llm/message-trigger';
-import { promptLlmSettingsSchema, recoverPromptLlmSettings } from '@/store/prompt-llm-settings';
+import {
+  normalizeLegacyPromptLlmAccounts,
+  promptLlmSettingsSchema,
+  recoverPromptLlmSettings,
+} from '@/store/prompt-llm-settings';
 /** ST extension_settings 中本扩展的 key */
 const SETTINGS_KEY = 'cosmos_vision';
 const DARK_MODE_STORAGE_KEY = 'cosmos-vision-dark-mode';
@@ -276,7 +280,21 @@ function parseSettings(value: unknown): CosmosVisionSettings {
 function normalizeSettings(value: unknown): PlainRecord {
   const record = _.cloneDeep(toPlainRecord(value)) as PlainRecord;
   normalizeLegacyNovelAIGuidance(record);
+  normalizeLegacyPromptLlmConnection(record);
   return _.defaultsDeep({}, record, DEFAULT_SETTINGS);
+}
+
+/**
+ * 兼容旧版提示词 LLM 单账号字段
+ * 旧字段只用于迁移，迁移必须在 defaultsDeep 补默认账号之前完成，
+ * 否则 schema 会带着默认空账号直接通过，旧连接信息被静默剥离
+ * @param settings 原始设置记录
+ */
+function normalizeLegacyPromptLlmConnection(settings: PlainRecord): void {
+  const promptLlm = toPlainRecord(settings.promptLlm);
+  if (normalizeLegacyPromptLlmAccounts(promptLlm)) {
+    settings.promptLlm = promptLlm;
+  }
 }
 
 /**
