@@ -896,7 +896,6 @@ body.dark .cv-inline-toolbar {
 }
 
 .cv-inline-generation-accordion .p-accordionheader {
-  width: 100%;
   padding: 0.5em 1em;
   border: none !important;
   border-radius: 0 !important;
