@@ -551,8 +551,8 @@ async function runNovelAIWithOverrides(overrides: NovelAIPromptOverrides, sessio
  * @param account 本次尝试的 LLM 账号；缺省时取首个可用账号
  * @returns generateRaw 请求体
  */
-function buildLlmModeRequest(account?: PromptLlmAccount) {
-  const context = buildTestContext();
+async function buildLlmModeRequest(account?: PromptLlmAccount) {
+  const context = await buildTestContext();
   const schemaFields = buildPromptLlmSchemaFields(settings.promptLlm);
   return buildPromptLlmRuntimeRequestFromContext(
     context,

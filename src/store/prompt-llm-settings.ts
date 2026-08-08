@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { DEFAULT_SETTINGS } from '@/constants/default-settings';
+import { MAX_HISTORY_FLOOR_COUNT } from '@/constants/limits';
 import type { PromptLlmAccount, PromptLlmSettings } from '@/constants/prompt-llm';
 import { createPromptLlmAccount, PROMPT_LLM_DEFAULT_ACCOUNT_SOURCE, PROMPT_LLM_ROUTING_MODES } from '@/constants/prompt-llm';
 
@@ -44,7 +45,7 @@ export const promptLlmSettingsSchema = z.object({
   topP: z.number(),
   topK: z.number(),
   shouldStream: z.boolean(),
-  historyFloorCount: z.number().int().min(0),
+  historyFloorCount: z.number().int().min(0).max(MAX_HISTORY_FLOOR_COUNT),
   ignoreUserMessagesInHistory: z.boolean(),
   preferJsonSchemaExtraction: z.boolean(),
   positivePromptJsonField: z.string(),
@@ -81,7 +82,7 @@ export function recoverPromptLlmSettings(value: unknown): PromptLlmSettings {
     topP: read('topP', z.number()),
     topK: read('topK', z.number()),
     shouldStream: read('shouldStream', z.boolean()),
-    historyFloorCount: read('historyFloorCount', z.number().int().min(0)),
+    historyFloorCount: read('historyFloorCount', z.number().int().min(0).max(MAX_HISTORY_FLOOR_COUNT)),
     ignoreUserMessagesInHistory: read('ignoreUserMessagesInHistory', z.boolean()),
     preferJsonSchemaExtraction: read('preferJsonSchemaExtraction', z.boolean()),
     positivePromptJsonField: read('positivePromptJsonField', z.string()),

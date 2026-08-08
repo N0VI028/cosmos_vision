@@ -10,6 +10,7 @@
               <InputNumber
                 v-model="settings.promptLlm.historyFloorCount"
                 :min="0"
+                :max="100"
                 :step="1"
                 :use-grouping="false"
                 show-buttons

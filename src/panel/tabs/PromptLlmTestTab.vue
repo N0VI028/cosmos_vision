@@ -192,7 +192,7 @@ async function runTest(): Promise<void> {
 
   await requestSession.run(
     async session => {
-      const context = buildTestContext();
+      const context = await buildTestContext();
       const triggerContext = buildPromptLlmTriggerContext(settings);
       const result = await requestPromptLlmRaw(
         settings.promptLlm,

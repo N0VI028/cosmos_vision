@@ -74,7 +74,7 @@
           />
         </template>
 
-        <div class="grid grid-cols-1 gap-(--cv-space-4xl) p-(--cv-space-2xl) md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-(--cv-space-4xl) md:grid-cols-2">
           <label class="cv-field">
             <span>NovelAI URL</span>
             <InputText v-model="account.url" :placeholder="NOVELAI_DEFAULT_URL" />

@@ -74,8 +74,8 @@
           />
         </template>
 
-        <div class="flex flex-col gap-(--cv-space-4xl) px-(--cv-space-2xl) py-(--cv-space-5xl)">
-          <label class="cv-field">
+        <div class="flex flex-col gap-(--cv-space-4xl)">
+          <label class="cv-field-inline">
             <span>使用酒馆代理预设</span>
             <ToggleSwitch
               :model-value="isProxyAccount(account)"

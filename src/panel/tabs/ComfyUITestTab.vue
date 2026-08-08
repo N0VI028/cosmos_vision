@@ -441,8 +441,8 @@ async function runLlmModeTest(session: TestRequestSession): Promise<ComfyUIResol
  * @param account 本次尝试的 LLM 账号；缺省时取首个可用账号
  * @returns generateRaw 请求体
  */
-function buildLlmModeRequest(schemaFields: ReturnType<typeof buildPromptLlmSchemaFields>, account?: PromptLlmAccount) {
-  const context = buildTestContext();
+async function buildLlmModeRequest(schemaFields: ReturnType<typeof buildPromptLlmSchemaFields>, account?: PromptLlmAccount) {
+  const context = await buildTestContext();
   return buildPromptLlmRuntimeRequestFromContext(
     context,
     settings.promptLlm,

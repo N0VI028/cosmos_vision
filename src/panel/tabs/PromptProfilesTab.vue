@@ -48,7 +48,7 @@
             />
           </template>
 
-          <section class="flex flex-col gap-(--cv-space-5xl) p-(--cv-space-2xl)">
+          <section class="flex flex-col gap-(--cv-space-5xl)">
             <label class="cv-field">
               <span>触发模式</span>
               <Select

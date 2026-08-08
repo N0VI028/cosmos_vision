@@ -31,7 +31,8 @@ interface PromptLlmChatHistoryReader {
 }
 
 /**
- * 读取焦点楼层之前的历史消息原文
+ * 读取焦点楼层之前的历史消息原文（未经 prompt 正则处理）
+ * @deprecated 主流程已改用 buildRegexedHistory 进行 prompt 正则处理，此函数仅用于手动测试场景
  * @param currentMessageId 当前焦点楼层 ID
  * @param options 历史读取选项
  * @returns 按楼层顺序排列的历史消息
