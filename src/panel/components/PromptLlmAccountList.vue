@@ -119,14 +119,17 @@
           <div class="cv-field">
             <span>模型名</span>
             <div class="flex items-center gap-(--cv-space-3xl)">
-              <Select
+              <AutoComplete
                 v-model="account.model"
-                :options="getModelOptions(account)"
+                :suggestions="modelSuggestions"
                 placeholder="选择或输入模型"
-                :loading="loadingModelAccountId === account.id"
                 class="min-w-0 flex-1"
-                editable
+                dropdown
                 fluid
+                input-id="model-input"
+                :pt="autocompletePt"
+                @complete="searchModels($event, account)"
+                @dropdown-click="onModelDropdownClick(account)"
               />
               <Button
                 icon="fa-solid fa-rotate"
@@ -214,6 +217,61 @@ const editingAccountId = ref<string | null>(null);
 /** 编辑草稿：进入编辑时预填入旧账号名，确认时写回 account.name */
 const editingDraft = ref<string>('');
 
+/** AutoComplete 筛选后的模型列表建议 */
+const modelSuggestions = ref<string[]>([]);
+
+/**
+ * AutoComplete PT 配置
+ * 容器样式与 Select 对齐，内部加载图标隐藏，移动端输入优化
+ */
+const autocompletePt = {
+  root: {
+    class: 'cv-prime-autocomplete',
+    style: {
+      background: 'var(--cvp-select-background)',
+      border: '1px solid var(--cvp-select-border-color)',
+      borderRadius: 'var(--cvp-select-border-radius)',
+    },
+  },
+  pcInput: {
+    root: {
+      inputmode: 'text',
+      enterkeyhint: 'done',
+    },
+  },
+  dropdown: {
+    style: {
+      background: 'var(--cvp-select-background)',
+      border: 'none',
+    },
+  },
+  loader: {
+    style: {
+      display: 'none',
+    },
+  },
+} as const;
+
+/**
+ * 为所有 AutoComplete 输入框设置移动端优化属性
+ * 在组件挂载后和 DOM 更新后执行，确保动态渲染的输入框也能被处理
+ */
+function applyMobileInputAttributes(): void {
+  nextTick(() => {
+    const inputs = document.querySelectorAll('.p-autocomplete-input');
+    inputs.forEach((input) => {
+      if (input instanceof HTMLInputElement) {
+        input.setAttribute('inputmode', 'text');
+        input.setAttribute('enterkeyhint', 'done');
+      }
+    });
+  });
+}
+
+onMounted(applyMobileInputAttributes);
+// 监听账号展开，确保新显示的输入框也应用属性
+watch(expandedAccountIds, applyMobileInputAttributes, { deep: true });
+
 /**
  * 获取账号标题
  * @param account 账号对象
@@ -254,6 +312,31 @@ function getModelOptions(account: PromptLlmAccount): string[] {
   const selected = account.model.trim();
   if (selected) values.add(selected);
   return [...values];
+}
+
+/**
+ * AutoComplete 搜索模型建议
+ * @param event AutoComplete complete 事件
+ * @param account 账号对象
+ */
+function searchModels(event: { query: string }, account: PromptLlmAccount): void {
+  const query = event.query.toLowerCase().trim();
+  const allModels = getModelOptions(account);
+
+  if (!query) {
+    modelSuggestions.value = allModels;
+    return;
+  }
+
+  modelSuggestions.value = allModels.filter(model => model.toLowerCase().includes(query));
+}
+
+/**
+ * 点击 AutoComplete 下拉按钮时显示全部模型
+ * @param account 账号对象
+ */
+function onModelDropdownClick(account: PromptLlmAccount): void {
+  modelSuggestions.value = getModelOptions(account);
 }
 
 /**
@@ -305,6 +388,11 @@ function toggleCollapse(accountId: string): void {
     expandedAccountIds.value.delete(accountId);
   } else {
     expandedAccountIds.value.add(accountId);
+    // 展开时触发一次空查询，填充 suggestions 为完整列表
+    const account = accounts.value.find(acc => acc.id === accountId);
+    if (account) {
+      modelSuggestions.value = getModelOptions(account);
+    }
   }
 }
 
