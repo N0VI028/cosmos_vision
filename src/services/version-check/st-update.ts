@@ -9,11 +9,8 @@ export interface UpdateCheckResult {
   remoteUrl: string;
 }
 
-/** 检测到新版本的事实（会话内保持，设置页提示据此常驻显示） */
+/** 检测到新版本的事实（会话内保持，设置页版本号箭头据此显示） */
 export const updateDetected = ref(false);
-
-/** 角标显隐（点击角标后本次会话内隐藏） */
-export const hasUpdate = ref(false);
 
 /**
  * 调用 ST 原生扩展更新检查（基于 git 提交对比）

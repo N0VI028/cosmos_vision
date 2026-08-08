@@ -59,12 +59,6 @@
   font-size: 1.1em;
 }
 
-.cv-update-badge {
-  position: absolute;
-  top: -0.35em;
-  right: -0.35em;
-}
-
 /* 主悬浮按钮 */
 .cv-inline-mode-fab {
   @apply inline-flex cursor-pointer items-center justify-center p-0;

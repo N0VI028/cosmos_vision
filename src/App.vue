@@ -86,13 +86,9 @@
             type="button"
             aria-label="打开设置"
             @pointerdown.stop
-            @click="handleSettingsClick"
+            @click="openSettings"
           >
             <i class="fa-solid fa-gear" />
-            <!-- 更新角标：有新版本时显示 -->
-            <Badge v-if="hasUpdate" class="cv-update-badge" severity="danger" size="small">
-              <i class="fa-solid fa-arrow-up" />
-            </Badge>
           </button>
         </div>
       </Transition>
@@ -158,11 +154,7 @@ import {
   type InlineImageDownloadOptions,
 } from '@/services/inline-image/download-options';
 import { ensurePromptStripRegex } from '@/services/inline-image/prompt-strip-regex';
-import {
-  checkExtensionUpdate,
-  hasUpdate,
-  updateDetected,
-} from '@/services/version-check/st-update';
+import { checkExtensionUpdate, updateDetected } from '@/services/version-check/st-update';
 import type { TextInputCharacterDraft } from '@/panel/components/TextInputDialog.vue';
 
 interface TextInputDialogSubmitValue {
@@ -340,17 +332,6 @@ const fabStyle = computed(() => ({
 }));
 
 /**
- * 点击设置按钮
- * 有更新角标时先隐藏角标
- */
-function handleSettingsClick(): void {
-  if (hasUpdate.value) {
-    hasUpdate.value = false;
-  }
-  openSettings();
-}
-
-/**
  * 打开设置并清理段落生图选择态
  * 设置页只保留打开瞬间捕获的焦点楼层快照
  */
@@ -505,7 +486,6 @@ onMounted(async () => {
   const result = await checkExtensionUpdate();
   if (result && !result.isUpToDate) {
     updateDetected.value = true;
-    hasUpdate.value = true;
   }
 });
 

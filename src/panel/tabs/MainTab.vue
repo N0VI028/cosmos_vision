@@ -29,12 +29,20 @@
 
       <h2 class="cv-section-title flex items-center justify-between">
         <span>关于插件</span>
-        <Tag
-          :value="'v' + manifest.version"
-          severity="primary"
-          rounded
-          class="h-auto! px-(--cv-space-md)! py-(--cv-space-sm)! text-(length:--cv-font-size-xs)! leading-none! font-(--cv-font-headline)!"
-        />
+        <span class="inline-flex items-center gap-(--cv-space-lg)">
+          <!-- 有新版本时版本号左侧显示向上箭头 -->
+          <i
+            v-if="updateDetected"
+            class="fa-solid fa-arrow-up animate-bounce text-(length:--cv-font-size-sm) text-(--cvp-primary-color)"
+            title="有新版本可用，请前往扩展页面更新"
+          />
+          <Tag
+            :value="'v' + manifest.version"
+            severity="primary"
+            rounded
+            class="h-auto! px-(--cv-space-md)! py-(--cv-space-sm)! text-(length:--cv-font-size-xs)! leading-none! font-(--cv-font-headline)!"
+          />
+        </span>
       </h2>
       <div class="cv-section-body">
         <div class="cv-field-inline">
@@ -57,11 +65,6 @@
           </div>
         </div>
       </div>
-
-      <!-- 新版本提示：有更新时常驻显示在"关于插件"区域下方 -->
-      <Message v-if="updateDetected" severity="warn" size="small" class="mt-(--cv-space-md)">
-        有新版本可用，请前往扩展页面更新
-      </Message>
     </template>
 
     <!-- 数据子 tab -->
