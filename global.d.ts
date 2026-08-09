@@ -177,6 +177,37 @@ declare global {
           type: 'global' | 'character' | 'chat' | 'message';
           message_id?: string | number;
         }): Record<string, unknown> | undefined;
+        /**
+         * 获取聊天消息列表
+         * @param range 消息范围，如 '0-10' 或单个楼层号（负数表示倒数）
+         * @param filters 过滤选项 { role, hide_state }
+         * @returns 消息列表（按楼层正序）
+         */
+        getChatMessages(
+          range: string | number,
+          filters?: { role?: 'all' | 'user' | 'assistant' | 'system'; hide_state?: 'all' | 'hidden' | 'unhidden' },
+        ): Array<{
+          message_id: number;
+          name: string;
+          role: 'system' | 'assistant' | 'user';
+          is_hidden: boolean;
+          message: string;
+          [key: string]: unknown;
+        }>;
+        /**
+         * 对文本应用 ST 正则处理（包含 prompt-only 正则和宏展开）
+         * @param text 原始文本
+         * @param source 消息来源
+         * @param destination 目标用途 'prompt' | 'display'
+         * @param options 选项 { depth, character_name }，均可选
+         * @returns 正则处理后的文本
+         */
+        formatAsTavernRegexedString(
+          text: string,
+          source: 'user_input' | 'ai_output' | 'slash_command' | 'world_info' | 'reasoning',
+          destination: 'prompt' | 'display' | 'both',
+          options?: { depth?: number; character_name?: string },
+        ): string;
       }
     | undefined;
 

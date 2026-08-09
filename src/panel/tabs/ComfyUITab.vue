@@ -20,14 +20,16 @@
                 @click="testConnection"
               />
             </div>
-            <div class="cv-field-hint">浏览器直连本地 ComfyUI 时，请确认已允许当前来源的 CORS</div>
+            <div class="cv-field-hint">
+              需要 Comfyui 设置启动参数：--listen --enable-cors-header *
+            </div>
           </div>
         </label>
         <label class="cv-field">
           <span>超时时间</span>
           <div class="cv-field-control">
             <InputNumber v-model="settings.comfyui.timeout" :min="1" :max="3600" show-buttons />
-            <div class="cv-field-hint">请求超时截断时间,单位为秒</div>
+            <div class="cv-field-hint">请求超时截断时间，单位为秒</div>
           </div>
         </label>
       </div>
@@ -110,7 +112,7 @@ import {
 } from '@/constants/comfyui';
 import { fetchComfyUILoraNames } from '@/services/comfyui/api';
 import { fetchComfyUIObjectInfo } from '@/services/comfyui/object-info';
-import { getActiveComfyUILoras } from '@/services/comfyui/lora-presets';
+import { applyActiveLoraPresetToWorkflowJson, getActiveComfyUILoras } from '@/services/comfyui/lora-presets';
 import { getComfyUIWorkflowValidationError } from '@/services/comfyui/parse';
 import { findComfyUIWorkflowPreset, importComfyUIWorkflowPreset } from '@/services/comfyui/workflow-presets';
 import ComfyUIWorkflowEditor from '@/panel/components/comfyui/ComfyUIWorkflowEditor.vue';
@@ -345,7 +347,11 @@ async function resetDefaultWorkflow(): Promise<void> {
       })
     : confirm(message);
   if (!confirmed || !activeWorkflow.value) return;
-  activeWorkflow.value.workflowJson = DEFAULT_COMFYUI_WORKFLOW_JSON;
+  // 重置后同步写入当前激活 LoRA 预设，避免默认工作流的空 LoRA 节点直接生图
+  activeWorkflow.value.workflowJson = applyActiveLoraPresetToWorkflowJson(
+    DEFAULT_COMFYUI_WORKFLOW_JSON,
+    settings.comfyui.loraPresets,
+  );
   toastr.success('默认工作流已重置');
 }
 

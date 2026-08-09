@@ -179,12 +179,12 @@
 }
 
 /**
- * 复合组件内嵌 input 标签反压 (InputTags, Select editable 等)
+ * 复合组件内嵌 input 标签反压 (InputTags, Select editable, AutoComplete 等)
  *
- * 容器（.p-select / .p-inputtags）已统一承载背景与边框，
+ * 容器（.p-select / .p-inputtags / .p-autocomplete）已统一承载背景与边框，
  * 内嵌原生 input 标签必须保持透明、无边框、无额外阴影与轮廓。
  */
-:is(#cosmos_vision, .cosmos-vision-root) :is(input.cv-prime-inputtags-input-field, input.cv-prime-select-label) {
+:is(#cosmos_vision, .cosmos-vision-root) :is(input.cv-prime-inputtags-input-field, input.cv-prime-select-label, input.cv-prime-autocomplete-input) {
   background: transparent !important;
   border: 0 !important;
   box-shadow: none !important;
@@ -192,13 +192,13 @@
 }
 
 :is(#cosmos_vision, .cosmos-vision-root)
-  :is(input.cv-prime-inputtags-input-field, input.cv-prime-select-label):is(:focus, :focus-visible) {
+  :is(input.cv-prime-inputtags-input-field, input.cv-prime-select-label, input.cv-prime-autocomplete-input):is(:focus, :focus-visible) {
   outline: none !important;
   box-shadow: none !important;
 }
 
 :is(#cosmos_vision, .cosmos-vision-root)
-  :is(input.cv-prime-inputtags-input-field, input.cv-prime-select-label)::placeholder {
+  :is(input.cv-prime-inputtags-input-field, input.cv-prime-select-label, input.cv-prime-autocomplete-input)::placeholder {
   color: var(
     --cvp-select-placeholder-color,
     var(--cvp-inputtext-placeholder-color, var(--cv-on-surface-variant))

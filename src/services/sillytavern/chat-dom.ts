@@ -2,6 +2,7 @@ import type { PromptLlmContext, PromptLlmSettings } from '@/constants/novelai';
 import { chat } from '@sillytavern/script';
 import { stripSlotShortcodes } from '@/services/inline-image/slot-shortcode';
 import { readPromptLlmHistoryMessages } from '@/services/tavern-helper/chat-history';
+import { buildRegexedHistory } from '@/services/tavern-helper/history-builder';
 
 const MESSAGE_TEXT_BLOCK_SELECTOR = 'p, li, blockquote, pre, h1, h2, h3, h4, h5, h6';
 
@@ -207,7 +208,7 @@ function normalizeMessageTextBlock(text: string): string {
 
 /**
  * 构建 Prompt LLM 所需的整层历史与焦点段落上下文
- * 当前焦点楼层走 DOM，向前追溯的楼层走 TavernHelper 原始消息
+ * 当前焦点楼层走 DOM，向前追溯的楼层走 TavernHelper 正则处理后消息
  * @param targetP 当前焦点段落
  * @param settings Prompt LLM 历史楼层设置
  * @returns Prompt LLM 运行时上下文
@@ -215,7 +216,7 @@ function normalizeMessageTextBlock(text: string): string {
 export function buildPromptLlmContextFromParagraph(
   targetP: HTMLElement,
   settings: Pick<PromptLlmSettings, 'historyFloorCount' | 'ignoreUserMessagesInHistory'>,
-): PromptLlmContext {
+): Promise<PromptLlmContext> {
   return buildPromptLlmContextFromParagraphs([targetP], settings);
 }
 
@@ -231,20 +232,21 @@ export function mergeFocusParagraphText(paragraphs: HTMLElement[]): string {
 /**
  * 从连续选区构建 Prompt LLM 上下文
  * 历史以锚点末段所在楼层为准，焦点为合并后的多段正文
+ * 使用 ST 正则处理后的历史消息
  * @param paragraphs 同一消息内连续段落（DOM 序）
  * @param settings Prompt LLM 历史楼层设置
  * @returns Prompt LLM 运行时上下文
  */
-export function buildPromptLlmContextFromParagraphs(
+export async function buildPromptLlmContextFromParagraphs(
   paragraphs: HTMLElement[],
   settings: Pick<PromptLlmSettings, 'historyFloorCount' | 'ignoreUserMessagesInHistory'>,
-): PromptLlmContext {
+): Promise<PromptLlmContext> {
   const focusParagraph = mergeFocusParagraphText(paragraphs);
   if (!focusParagraph) throw new Error('未找到目标段落文本');
   const anchor = paragraphs.at(-1);
   if (!anchor) throw new Error('未找到目标段落文本');
   return {
-    historyParagraphs: buildPromptLlmHistoryParagraphs(anchor, settings),
+    historyParagraphs: await buildPromptLlmHistoryParagraphsWithRegex(anchor, settings),
     focusParagraph,
     specialRequest: '',
   };
@@ -321,8 +323,51 @@ export function getFocusedChatParagraphs(): HTMLElement[] {
 }
 
 /**
- * 构建 Prompt LLM 历史消息数组
+ * 使用 ST 正则处理构建历史消息段落
  * 焦点楼层仅保留至焦点段落，避免将后续剧情作为既有历史发送
+ * 历史楼层经过 prompt-only 正则处理，每条正则后消息作为独立段落，保留消息边界
+ * @param targetP 当前焦点段落
+ * @param settings Prompt LLM 历史楼层设置
+ * @returns 按时间顺序拼接的历史消息
+ */
+async function buildPromptLlmHistoryParagraphsWithRegex(
+  targetP: HTMLElement,
+  settings: Pick<PromptLlmSettings, 'historyFloorCount' | 'ignoreUserMessagesInHistory'>,
+): Promise<string[]> {
+  const currentParagraphs = extractMessageParagraphsUntil(targetP);
+  const messageIndex = findMessageId(targetP);
+
+  // 解析消息索引，无效时降级为旧逻辑
+  const parsedIndex = messageIndex ? parseInt(messageIndex, 10) : NaN;
+  if (!Number.isInteger(parsedIndex) || parsedIndex < 0) {
+    console.warn('[chat-dom] Failed to parse messageId:', messageIndex);
+    return buildPromptLlmHistoryParagraphs(targetP, settings);
+  }
+
+  // 历史范围排除焦点楼层本身，焦点楼层走 DOM 段落截取
+  const result = await buildRegexedHistory({
+    currentMessageIndex: parsedIndex - 1,
+    depthBaseline: chat.length - 1,
+    historyFloorCount: settings.historyFloorCount,
+    ignoreUserMessages: settings.ignoreUserMessagesInHistory,
+    reverseOrder: false, // 历史按时间正序
+  });
+
+  if (!result.success) {
+    console.warn('[chat-dom] Regex history build failed, falling back to legacy:', result.error);
+    return buildPromptLlmHistoryParagraphs(targetP, settings);
+  }
+
+  // 每条正则后的消息作为独立段落，不用 split('\n') 拆分，保留消息边界
+  const regexedParagraphs = result.messages.map(msg => msg.text).filter(Boolean);
+  return [...regexedParagraphs, ...currentParagraphs];
+}
+
+/**
+ * 构建 Prompt LLM 历史消息数组（旧版，未使用 prompt 正则）
+ * 焦点楼层仅保留至焦点段落，避免将后续剧情作为既有历史发送
+ * 使用 TavernHelper 原始消息（未经 prompt 正则）
+ * @deprecated 已废弃，请使用 buildPromptLlmHistoryParagraphsWithRegex
  * @param targetP 当前焦点段落
  * @param settings Prompt LLM 历史楼层设置
  * @returns 按时间顺序拼接的历史消息

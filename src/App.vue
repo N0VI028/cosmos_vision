@@ -86,7 +86,7 @@
             type="button"
             aria-label="打开设置"
             @pointerdown.stop
-            @click="handleSettingsClick"
+            @click="openSettings"
           >
             <i class="fa-solid fa-gear" />
           </button>
@@ -154,6 +154,7 @@ import {
   type InlineImageDownloadOptions,
 } from '@/services/inline-image/download-options';
 import { ensurePromptStripRegex } from '@/services/inline-image/prompt-strip-regex';
+import { checkExtensionUpdate, updateDetected } from '@/services/version-check/st-update';
 import type { TextInputCharacterDraft } from '@/panel/components/TextInputDialog.vue';
 
 interface TextInputDialogSubmitValue {
@@ -330,11 +331,6 @@ const fabStyle = computed(() => ({
   transition: isDragging.value ? 'none' : undefined,
 }));
 
-/** 点击设置按钮 */
-function handleSettingsClick(): void {
-  openSettings();
-}
-
 /**
  * 打开设置并清理段落生图选择态
  * 设置页只保留打开瞬间捕获的焦点楼层快照
@@ -484,6 +480,14 @@ function handleImageDownloadDialog(value: InlineImageDownloadOptions | null): vo
 
 // 段落短码 prompt 剥离正则：load 注册；关插件保持开启
 void ensurePromptStripRegex();
+
+// 载入时检测一次扩展更新，失败静默
+onMounted(async () => {
+  const result = await checkExtensionUpdate();
+  if (result && !result.isUpToDate) {
+    updateDetected.value = true;
+  }
+});
 
 watch(
   () => savedSettings.enabled,

@@ -1,13 +1,16 @@
 import { DEFAULT_PROMPT_LLM_OUTPUT_FIELDS } from '@/constants/default-settings';
 import type { CosmosVisionSettings } from '@/constants/novelai';
-import type {
-  PromptLlmContext,
-  PromptLlmMessagePresetSettings,
-  PromptLlmOutputFields,
-  PromptLlmSettings,
-  PromptProfilesSettings,
+import {
+  getPromptLlmAccountDisplayName,
+  type PromptLlmAccount,
+  type PromptLlmContext,
+  type PromptLlmMessagePresetSettings,
+  type PromptLlmOutputFields,
+  type PromptLlmSettings,
+  type PromptProfilesSettings,
 } from '@/constants/prompt-llm';
 import type { ImageSource } from '@/constants/comfyui';
+import { getAvailablePromptLlmAccounts, getPromptLlmRequestAccounts } from '@/services/prompt-llm/router';
 import {
   getActivePromptLlmPreset,
   resolvePromptLlmMessageContent,
@@ -25,10 +28,12 @@ import {
   buildGenerateRawMessagesRequest,
   buildJsonSchema,
   readPromptLlmOutputWithRules,
-  type PromptLlmOutput,
+  type PromptLlmExtractionResult,
   type TavernHelperGenerateRawConfig,
   type TavernHelperRolePrompt,
 } from '@/services/tavern-helper/prompt-llm';
+import { createExtractionError, detectExtractionFailureType } from '@/services/prompt-llm/errors';
+import { readCharacterPrompts } from '@/services/prompt-llm/character-prompt';
 
 /** Prompt LLM 运行时生成选项 */
 export interface PromptLlmGenerateOptions {
@@ -93,6 +98,7 @@ function readPromptLlmTriggerModelId(
  * @param promptProfiles 提示词Profile设置
  * @param schemaFields JSON Schema 字段配置
  * @param triggerContext 显式触发上下文
+ * @param account 指定本次请求的账号；缺省时取首个可用账号（不推进负载均衡轮询，供测试页构建快照）
  * @returns generateRaw 请求体
  */
 export async function buildPromptLlmRuntimeRequestFromContext(
@@ -102,9 +108,10 @@ export async function buildPromptLlmRuntimeRequestFromContext(
   promptProfiles: PromptProfilesSettings,
   schemaFields: PromptLlmOutputFields | null = DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
   triggerContext?: PromptLlmTriggerContext,
+  account?: PromptLlmAccount,
 ): Promise<TavernHelperGenerateRawConfig> {
   const runtimeContent = await buildPromptLlmRuntimeContent(context, promptProfiles);
-  return buildPromptLlmRuntimeRequest(settings, presetSettings, runtimeContent, schemaFields, triggerContext);
+  return buildPromptLlmRuntimeRequest(settings, presetSettings, runtimeContent, schemaFields, triggerContext, account);
 }
 
 /**
@@ -114,6 +121,7 @@ export async function buildPromptLlmRuntimeRequestFromContext(
  * @param runtimeContent 运行时替换内容
  * @param schemaFields JSON Schema 字段配置
  * @param triggerContext 显式触发上下文
+ * @param account 指定本次请求的账号；缺省时取首个可用账号（不推进负载均衡轮询，供测试页构建快照）
  * @returns generateRaw 请求体
  */
 export async function buildPromptLlmRuntimeRequest(
@@ -122,10 +130,12 @@ export async function buildPromptLlmRuntimeRequest(
   runtimeContent: PromptLlmRuntimeContent,
   schemaFields: PromptLlmOutputFields | null = DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
   triggerContext?: PromptLlmTriggerContext,
+  account?: PromptLlmAccount,
 ): Promise<TavernHelperGenerateRawConfig> {
   const orderedPrompts = await buildPromptLlmOrderedPrompts(presetSettings, runtimeContent, triggerContext);
   const schema = schemaFields ? buildJsonSchema(schemaFields) : undefined;
-  return buildGenerateRawMessagesRequest(orderedPrompts, buildCustomApi(settings), schema, settings.shouldStream);
+  const requestAccount = account ?? getAvailablePromptLlmAccounts(settings)[0];
+  return buildGenerateRawMessagesRequest(orderedPrompts, buildCustomApi(settings, requestAccount), schema, settings.shouldStream);
 }
 
 /**
@@ -177,7 +187,7 @@ function canSendPromptLlmMessage(
  * @param schemaFields JSON Schema 字段配置
  * @returns LLM 原始响应文本
  */
-export async function generatePromptTextFromRuntimeContext(
+async function generatePromptTextFromRuntimeContext(
   context: PromptLlmContext,
   settings: PromptLlmSettings,
   presetSettings: PromptLlmMessagePresetSettings,
@@ -189,21 +199,88 @@ export async function generatePromptTextFromRuntimeContext(
   if (!tavernHelper) {
     throw new Error('TavernHelper 不可用,无法生成提示词');
   }
-  const request = await buildPromptLlmRuntimeRequestFromContext(
-    context,
-    settings,
-    presetSettings,
-    promptProfiles,
-    schemaFields,
-    options.triggerContext,
-  );
   try {
-    return requestTavernHelperGenerateRaw(tavernHelper, buildSilentGenerateRawRequest(request, options), {
-      timeoutSeconds: settings.timeout,
-    });
+    const result = await requestPromptLlmWithAccounts(
+      tavernHelper,
+      settings,
+      options,
+      account =>
+        buildPromptLlmRuntimeRequestFromContext(
+          context,
+          settings,
+          presetSettings,
+          promptProfiles,
+          schemaFields,
+          options.triggerContext,
+          account,
+        ),
+    );
+    return result.rawText;
   } catch (error) {
     throw new Error(`提示词生成失败: ${(error as Error).message}`);
   }
+}
+
+/** 提示词 LLM 多账号请求上下文 */
+export interface PromptLlmAccountsRequestContext {
+  generationId?: string;
+  timeoutSeconds?: number;
+}
+
+/** 提示词 LLM 多账号请求结果 */
+export interface PromptLlmRawRequestResult {
+  rawText: string;
+  accountName: string;
+}
+
+/**
+ * 按路由顺序逐账号发送请求，失败自动切换下一个（故障转移）
+ * 每个账号独立决定走酒馆代理预设还是自填地址密钥
+ * @param tavernHelper 酒馆助手实例
+ * @param settings LLM 配置
+ * @param context 请求控制选项
+ * @param buildRequest 按候选账号构建 generateRaw 请求体
+ * @returns LLM 原始响应文本与实际成功的账号名
+ */
+export async function requestPromptLlmWithAccounts(
+  tavernHelper: NonNullable<typeof TavernHelper>,
+  settings: PromptLlmSettings,
+  context: PromptLlmAccountsRequestContext,
+  buildRequest: (account?: PromptLlmAccount) => Promise<TavernHelperGenerateRawConfig>,
+): Promise<PromptLlmRawRequestResult> {
+  const accounts = getPromptLlmRequestAccounts(settings);
+  if (!accounts.length) {
+    throw new Error('没有可用的 LLM 账号，请先启用至少一组填写完整接口信息的账号');
+  }
+  const errors: string[] = [];
+  for (const [index, account] of accounts.entries()) {
+    try {
+      const request = await buildRequest(account);
+      const rawText = await requestTavernHelperGenerateRaw(tavernHelper, buildSilentGenerateRawRequest(request, context), {
+        timeoutSeconds: context.timeoutSeconds ?? settings.timeout,
+      });
+      return { rawText, accountName: getPromptLlmAccountDisplayName(account) };
+    } catch (error) {
+      errors.push(formatPromptLlmAccountError(account, error));
+      if (index < accounts.length - 1) {
+        console.warn(`[PromptLlm] ${getPromptLlmAccountDisplayName(account)} 请求失败，尝试下一个账号`, error);
+      }
+    }
+  }
+  throw new Error(`已尝试多组账号但均失败: ${errors.join('； ')}`);
+}
+
+/**
+ * 组装单个账号的失败摘要
+ * @param account 本次尝试账号
+ * @param error 失败原因
+ * @returns 用户可见的单账号错误行
+ */
+function formatPromptLlmAccountError(account: PromptLlmAccount, error: unknown): string {
+  const reason = error instanceof Error ? error.message : '未知错误';
+  const name = getPromptLlmAccountDisplayName(account);
+  const endpoint = account.proxyPreset.trim() ? `预设 ${account.proxyPreset.trim()}` : account.apiUrl.trim();
+  return `${name} (${endpoint}) 失败: ${reason}`;
 }
 
 /**
@@ -214,9 +291,39 @@ export async function generatePromptTextFromRuntimeContext(
  */
 function buildSilentGenerateRawRequest(
   request: TavernHelperGenerateRawConfig,
-  options: PromptLlmGenerateOptions,
+  options: PromptLlmAccountsRequestContext,
 ): TavernHelperGenerateRawConfig {
   return { ...request, should_silence: true, generation_id: options.generationId };
+}
+
+/**
+ * 从 LLM 原始文本提取并校验提示词,所有生图渠道共用的统一入口
+ * 空输出、无法解析、正向提示词为空时均抛出结构化提取错误
+ * @param rawText LLM 原始响应文本
+ * @param settings LLM 配置
+ * @param schemaFields JSON Schema 字段配置
+ * @returns 正负提示词与角色提示词
+ */
+export function extractPromptLlmResult(
+  rawText: string,
+  settings: PromptLlmSettings,
+  schemaFields: PromptLlmOutputFields | null = DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
+): PromptLlmExtractionResult {
+  if (!rawText.trim()) {
+    throw createExtractionError('empty_output', rawText);
+  }
+
+  const output = readPromptLlmOutputWithRules(rawText, settings, schemaFields);
+  if (!output) {
+    throw createExtractionError(detectExtractionFailureType(rawText, settings, schemaFields), rawText);
+  }
+
+  // 验证正面提示词提取成功（null/undefined/空字符串均视为提取失败）
+  if (!output.positivePrompt?.trim()) {
+    throw createExtractionError('invalid_format', rawText);
+  }
+
+  return { output, characterPrompts: readCharacterPrompts(rawText, settings) };
 }
 
 /**
@@ -227,7 +334,7 @@ function buildSilentGenerateRawRequest(
  * @param presetSettings 消息预设集合
  * @param promptProfiles 提示词Profile设置
  * @param schemaFields JSON Schema 字段配置
- * @returns 正负提示词
+ * @returns 正负提示词与角色提示词
  */
 export async function generatePromptFromRuntimeContext(
   context: PromptLlmContext,
@@ -236,7 +343,7 @@ export async function generatePromptFromRuntimeContext(
   promptProfiles: PromptProfilesSettings,
   schemaFields: PromptLlmOutputFields | null = DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
   options: PromptLlmGenerateOptions = {},
-): Promise<PromptLlmOutput> {
+): Promise<PromptLlmExtractionResult> {
   const rawText = await generatePromptTextFromRuntimeContext(
     context,
     settings,
@@ -245,9 +352,5 @@ export async function generatePromptFromRuntimeContext(
     schemaFields,
     options,
   );
-  const output = readPromptLlmOutputWithRules(rawText, settings, schemaFields);
-  if (!output) {
-    throw new Error(`LLM返回值无法提取正负提示词，原始输出：${rawText}`);
-  }
-  return output;
+  return extractPromptLlmResult(rawText, settings, schemaFields);
 }

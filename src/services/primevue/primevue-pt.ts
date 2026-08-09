@@ -104,6 +104,17 @@ export const cosmosPrimePt = {
   },
   // Popover：root 必须 cosmos-vision-root（Teleport 到 body）
   popover: { root: overlay },
+  // AutoComplete：容器承载背景/边框（cv-prime-field），内嵌 input 透明化，dropdown/overlay 与 Select 对齐
+  autocomplete: {
+    root: { class: 'cv-prime-field cv-prime-autocomplete' },
+    pcInputText: { root: { class: 'cv-prime-autocomplete-input' } },
+    dropdown: { class: 'cv-prime-select-dropdown cv-prime-autocomplete-dropdown' },
+    dropdownIcon: icon,
+    clearIcon: icon,
+    loader: { class: 'cv-prime-icon cv-prime-autocomplete-loader' },
+    overlay,
+    option,
+  },
   password: {
     pcInputText: { root: fieldRoot },
     maskIcon: icon,

@@ -44,7 +44,9 @@
         </div>
       </AccordionHeader>
       <AccordionContent :pt="contentPt">
-        <slot />
+        <div class="py-(--cv-space-5xl) px-(--cv-space-2xl) m-0">
+          <slot />
+        </div>
       </AccordionContent>
     </AccordionPanel>
   </Accordion>

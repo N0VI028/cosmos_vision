@@ -4,6 +4,7 @@ import {
   readLoraSnapshotsFromWorkflow,
   writeLoraPresetToNode,
 } from '@/services/comfyui/lora-adapter';
+import { applyActiveLoraPresetToWorkflowJson } from '@/services/comfyui/lora-presets';
 
 describe('comfyui lora-adapter', () => {
   const sampleWorkflow = {
@@ -44,5 +45,34 @@ describe('comfyui lora-adapter', () => {
     writeLoraPresetToNode(node, preset);
 
     expect(node.inputs.text).toContain('<lora:new_lora_a:0.8>');
+  });
+
+  it('applies active lora preset to workflow json', () => {
+    const workflowJson = JSON.stringify({
+      '10': {
+        class_type: 'Lora Loader (LoraManager)',
+        inputs: { text: '', loras: { __value__: [] } },
+      },
+    });
+    const loraSettings = {
+      activePresetId: 'p1',
+      presets: [
+        {
+          id: 'p1',
+          name: 'Preset 1',
+          loras: [{ id: 'l1', name: 'my_lora.safetensors', strength: 0.7, enabled: true as const }],
+        },
+      ],
+    };
+    const result = applyActiveLoraPresetToWorkflowJson(workflowJson, loraSettings);
+    expect(result).toContain('<lora:my_lora:0.7>');
+    expect(result).toContain('my_lora');
+  });
+
+  it('returns original json when no lora node or parse fails', () => {
+    const noLoraJson = JSON.stringify({ '1': { class_type: 'KSampler', inputs: {} } });
+    const loraSettings = { activePresetId: 'p1', presets: [] };
+    expect(applyActiveLoraPresetToWorkflowJson(noLoraJson, loraSettings)).toBe(noLoraJson);
+    expect(applyActiveLoraPresetToWorkflowJson('not-json', loraSettings)).toBe('not-json');
   });
 });

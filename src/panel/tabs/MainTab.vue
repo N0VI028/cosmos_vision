@@ -29,12 +29,20 @@
 
       <h2 class="cv-section-title flex items-center justify-between">
         <span>关于插件</span>
-        <Tag
-          :value="'v' + manifest.version"
-          severity="primary"
-          rounded
-          class="h-auto! px-(--cv-space-md)! py-(--cv-space-sm)! text-(length:--cv-font-size-xs)! leading-none! font-(--cv-font-headline)!"
-        />
+        <span class="inline-flex items-center gap-(--cv-space-lg)">
+          <!-- 有新版本时版本号左侧显示向上箭头 -->
+          <i
+            v-if="updateDetected"
+            class="fa-solid fa-arrow-up animate-bounce text-(length:--cv-font-size-sm) text-(--cvp-primary-color)"
+            title="有新版本可用，请前往扩展页面更新"
+          />
+          <Tag
+            :value="'v' + manifest.version"
+            severity="primary"
+            rounded
+            class="h-auto! px-(--cv-space-md)! py-(--cv-space-sm)! text-(length:--cv-font-size-xs)! leading-none! font-(--cv-font-headline)!"
+          />
+        </span>
       </h2>
       <div class="cv-section-body">
         <div class="cv-field-inline">
@@ -133,6 +141,7 @@ import { downloadAllNovelAIVibes, downloadNovelAIVibe } from '@/services/novelai
 import type { NovelAIVibeCacheListItem } from '@/services/novelai/vibe-types';
 import { useGalleryRuntimesStore } from '@/store/gallery-runtimes';
 import { useSettingsStore } from '@/store/settings';
+import { updateDetected } from '@/services/version-check/st-update';
 import manifest from '../../../manifest.json';
 
 const props = defineProps<{ subTab: 'general' | 'data' | 'portability' }>();
@@ -453,10 +462,10 @@ async function deleteManagedItems(keys: string[]): Promise<void> {
  * @param buckets 分桶结果
  */
 async function executeManagedDelete(buckets: ManagedKeyBuckets): Promise<void> {
-  const errors = await deleteManagedBuckets(buckets);
-  await refreshManagedImages();
-  if (errors.length) {
-    toastManagedErrors('删除', errors);
+  const result = await deleteManagedBuckets(buckets);
+  applyManagedDeleteLocalPatch(result);
+  if (result.errors.length) {
+    toastManagedErrors('删除', result.errors);
     return;
   }
   toastr.success(`已删除 ${buckets.favoriteIds.length + buckets.temporaryIds.length} 张图片`);
@@ -466,41 +475,59 @@ async function executeManagedDelete(buckets: ManagedKeyBuckets): Promise<void> {
  * 按类型分桶删除，失败标签汇总
  * @param buckets 分桶结果
  */
-async function deleteManagedBuckets(buckets: ManagedKeyBuckets): Promise<string[]> {
-  const errors: string[] = [];
-  await pushManagedStepError(errors, '收藏', '删除选中收藏图片失败', buckets.favoriteIds.length, () =>
-    Promise.all(buckets.favoriteIds.map(id => deleteInlineImageFavorite(id))),
-  );
-  await pushManagedStepError(errors, '临时', '删除选中临时图片失败', buckets.temporaryIds.length, () =>
+async function deleteManagedBuckets(buckets: ManagedKeyBuckets): Promise<ManagedDeleteResult> {
+  const [favorites, temporaries] = await Promise.all([
+    deleteManagedFavoriteIds(buckets.favoriteIds),
     deleteManagedTemporaryIds(buckets.temporaryIds),
-  );
-  return errors;
+  ]);
+  return {
+    favoriteIds: favorites.deletedIds,
+    temporaryIds: temporaries.deletedIds,
+    errors: [favorites, temporaries].filter(result => result.failed).map(result => result.label),
+  };
+}
+
+/** 删除收藏图片并保留失败项 */
+async function deleteManagedFavoriteIds(ids: number[]): Promise<ManagedDeleteStepResult<number>> {
+  const results = await Promise.allSettled(ids.map(id => deleteInlineImageFavorite(id)));
+  return collectManagedDeleteStepResult('收藏', ids, results);
 }
 
 /**
  * 删除临时图：IDB + 内存会话同步 + 内嵌画廊刷新
  * @param ids 临时图 ID
  */
-async function deleteManagedTemporaryIds(ids: string[]): Promise<void> {
-  if (!ids.length) return;
+async function deleteManagedTemporaryIds(ids: string[]): Promise<ManagedDeleteStepResult<string>> {
   const results = await Promise.allSettled(ids.map(id => deleteTemporaryImage(id)));
-  const deletedIds = collectDeletedTemporaryIds(ids, results);
+  const result = collectManagedDeleteStepResult('临时', ids, results);
+  const { deletedIds } = result;
   if (deletedIds.length) {
     removeSessionItemsByIds(deletedIds);
     await useGalleryRuntimesStore().restoreAll();
   }
-  const failedCount = ids.length - deletedIds.length;
-  if (failedCount) throw new Error(`${failedCount} 张临时图片删除失败`);
+  return result;
 }
 
 /**
- * 收集实际删除成功的临时图片 ID
+ * 收集单类图片删除结果
+ * @param label 图片类型标签
  * @param ids 待删除 ID
  * @param results 删除结果
- * @returns 删除成功的 ID
+ * @returns 成功 ID 与失败状态
  */
-function collectDeletedTemporaryIds(ids: string[], results: PromiseSettledResult<void>[]): string[] {
-  return ids.filter((_, index) => results[index]?.status === 'fulfilled');
+function collectManagedDeleteStepResult<T>(
+  label: string,
+  ids: T[],
+  results: PromiseSettledResult<void>[],
+): ManagedDeleteStepResult<T> {
+  const deletedIds = ids.filter((_, index) => results[index]?.status === 'fulfilled');
+  return { label, deletedIds, failed: deletedIds.length !== ids.length };
+}
+
+/** 将成功删除的图片从当前管理列表就地移除 */
+function applyManagedDeleteLocalPatch(result: ManagedDeleteResult): void {
+  favoriteGroups.value = result.favoriteIds.reduce(removeManagedFavoriteId, favoriteGroups.value);
+  temporaryRecords.value = temporaryRecords.value.filter(record => !result.temporaryIds.includes(record.id));
 }
 
 /**
@@ -554,6 +581,18 @@ interface ManagedKeyBuckets {
   favoriteIds: number[];
   temporaryIds: string[];
   temporaryItems: ManagedImageItem[];
+}
+
+interface ManagedDeleteStepResult<T> {
+  label: string;
+  deletedIds: T[];
+  failed: boolean;
+}
+
+interface ManagedDeleteResult {
+  favoriteIds: number[];
+  temporaryIds: string[];
+  errors: string[];
 }
 
 /**

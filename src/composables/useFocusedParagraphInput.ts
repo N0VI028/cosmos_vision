@@ -14,7 +14,7 @@ import { readPromptLlmHistoryMessages } from '@/services/tavern-helper/chat-hist
 interface FocusedParagraphInputState {
   paragraphText: Ref<string>;
   hasFocusedParagraph: ComputedRef<boolean>;
-  buildTestContext: () => PromptLlmContext;
+  buildTestContext: () => Promise<PromptLlmContext>;
 }
 
 export const FOCUSED_PARAGRAPH_TEXT_KEY = Symbol('focused-paragraph-text');
@@ -37,6 +37,34 @@ export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInp
   const messageParagraphs = ref<string[]>([...(initialMessageParagraphs?.value ?? [])]);
   const hasFocusedChatParagraph = ref(false);
   const hasFocusedParagraph = computed(() => hasFocusedChatParagraph.value || Boolean(paragraphText.value.trim()));
+
+  /**
+   * 获取当前焦点段落（优先从 DOM，降级从快照恢复）
+   * 解决进入测试页后 DOM 选择状态丢失的竞态问题
+   * @returns 焦点段落数组，无焦点时返回空数组
+   */
+  function getFocusedParagraphsWithFallback(): HTMLElement[] {
+    // 优先从 DOM 读取当前选中的段落
+    const domParagraphs = getFocusedChatParagraphs();
+    if (domParagraphs.length) {
+      return domParagraphs;
+    }
+
+    // 降级：从快照恢复（通过 messageId 查找对应消息的段落）
+    if (!messageId.value) {
+      return [];
+    }
+
+    const mesBlock = document.querySelector(`[mesid="${messageId.value}"]`);
+    if (!mesBlock) {
+      return [];
+    }
+
+    const paragraphs = Array.from(mesBlock.querySelectorAll('.mes_text p')).filter(
+      (el): el is HTMLElement => el instanceof HTMLElement,
+    );
+    return paragraphs;
+  }
 
   onMounted(() => {
     syncFocusedParagraph();
@@ -61,24 +89,26 @@ export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInp
    * 构建当前测试所需的 Prompt LLM 上下文
    * @returns 可发送给 LLM 的上下文对象
    */
-  function buildTestContext(): PromptLlmContext {
-    const focusedParagraphs = getFocusedChatParagraphs();
-    if (!focusedParagraphs.length) {
-      return buildManualPromptLlmContext(
-        paragraphText.value,
-        messageId.value,
-        messageParagraphs.value,
-        settings.promptLlm,
-      );
+  async function buildTestContext(): Promise<PromptLlmContext> {
+    const focusedParagraphs = getFocusedParagraphsWithFallback();
+
+    if (focusedParagraphs.length) {
+      return await buildPromptLlmContextFromParagraphs(focusedParagraphs, settings.promptLlm);
     }
-    return buildPromptLlmContextFromParagraphs(focusedParagraphs, settings.promptLlm);
+
+    return buildManualPromptLlmContext(
+      paragraphText.value,
+      messageId.value,
+      messageParagraphs.value,
+      settings.promptLlm,
+    );
   }
 
   /**
    * 同步当前焦点段落文本与楼层快照
    */
   function syncFocusedParagraph(): void {
-    const focusedParagraphs = getFocusedChatParagraphs();
+    const focusedParagraphs = getFocusedParagraphsWithFallback();
     hasFocusedChatParagraph.value = focusedParagraphs.length > 0;
     if (!focusedParagraphs.length) {
       syncInitialFocusedParagraph();
@@ -92,6 +122,7 @@ export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInp
 
   /**
    * 同步打开设置时捕获的焦点楼层快照
+   * 从快照恢复时也应标记为有焦点段落，因为用户确实选择了段落
    */
   function syncInitialFocusedParagraph(): void {
     if (!paragraphText.value && initialParagraphText?.value) {
@@ -100,6 +131,10 @@ export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInp
     messageId.value ??= initialMessageId?.value ?? null;
     if (!messageParagraphs.value.length) {
       messageParagraphs.value = [...(initialMessageParagraphs?.value ?? [])];
+    }
+    // 如果快照有 messageId，说明用户确实选择了段落，应该标记为有焦点
+    if (messageId.value) {
+      hasFocusedChatParagraph.value = true;
     }
   }
 

@@ -36,7 +36,7 @@
 }
 
 .cv-speed-dial-menu > button {
-  @apply inline-flex cursor-pointer items-center justify-center p-0;
+  @apply relative inline-flex cursor-pointer items-center justify-center p-0;
   width: 2.6em;
   height: 2.6em;
   border: none;
@@ -874,6 +874,63 @@ body.dark .cv-inline-toolbar {
 .cv-inline-generation-error-row .cv-inline-generation-text {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.cv-inline-generation-error-row .cv-inline-button-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.cv-inline-generation-error-row-container .cv-inline-generation-accordion {
+  margin-bottom: 0.75em;
+  margin-top: 0.25em;
+  width: 100%;
+}
+
+.cv-inline-generation-accordion {
+  margin-top: 0.5em;
+  border-radius: var(--cv-radius-sm, 4px);
+  overflow: hidden;
+  width: 100%;
+}
+
+.cv-inline-generation-accordion .p-accordionheader {
+  padding: 0.5em 1em;
+  border: none !important;
+  border-radius: 0 !important;
+  font-size: 0.9em;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--cv-on-surface) 14%, transparent) !important;
+  color: var(--cv-on-surface) !important;
+  transition: background 0.2s ease;
+}
+
+.cv-inline-generation-accordion .p-accordionheader:hover {
+  background: color-mix(in srgb, var(--cv-on-surface) 20%, transparent) !important;
+}
+
+.cv-inline-generation-accordion .p-accordioncontent {
+  padding: 0 !important;
+  border: none !important;
+}
+
+.cv-inline-generation-accordion .p-accordioncontent-content {
+  background: color-mix(in srgb, var(--cv-on-surface) 7%, transparent) !important;
+  border: none !important;
+}
+
+.cv-inline-generation-raw-output {
+  margin: 0;
+  padding: 0.75em;
+  font-size: 0.85em;
+  font-family: var(--cv-font-mono, monospace);
+  color: var(--cv-on-surface-variant);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+  width: 100%;
 }
 
 /* 生图模式提示蒙版与文字 */

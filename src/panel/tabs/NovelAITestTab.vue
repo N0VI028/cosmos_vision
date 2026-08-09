@@ -285,6 +285,7 @@ import { useFocusedParagraphInput } from '@/composables/useFocusedParagraphInput
 import { useTestActionButton } from '@/composables/useTestActionButton';
 import { useTestRequestSession, type TestRequestSession } from '@/composables/useTestRequestSession';
 import type { CharacterPromptItem } from '@/constants/novelai';
+import type { PromptLlmAccount } from '@/constants/prompt-llm';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
@@ -292,7 +293,7 @@ import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue'
 import TestImageGallery from '@/panel/components/TestImageGallery.vue';
 
 import {
-  buildNovelAILlmPromptOverrides,
+  buildNovelAIPromptOverrides,
   buildNovelAIResolvedRequest,
   generateNovelAIImagesFromResolvedRequest,
   type NovelAIPromptOverrides,
@@ -301,16 +302,17 @@ import {
 import { useSettingsStore } from '@/store/settings';
 import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
 import {
+  buildPromptLlmRuntimeRequestFromContext,
+  buildPromptLlmTriggerContext,
+  extractPromptLlmResult,
+} from '@/services/prompt-llm/runtime-request';
+import {
   buildPromptLlmLogParams,
   buildPromptLlmParamRows,
   formatPromptLlmRequestLog,
   requestPromptLlmRaw,
   type PromptLlmLogParams,
 } from '@/services/tavern-helper/prompt-llm-test';
-import {
-  buildPromptLlmRuntimeRequestFromContext,
-  buildPromptLlmTriggerContext,
-} from '@/services/prompt-llm/runtime-request';
 
 type NovelAITestMode = 'direct' | 'llm';
 type TestStatus = 'idle' | 'running' | 'success' | 'error';
@@ -504,16 +506,23 @@ async function runLlmModeTest(session: TestRequestSession): Promise<void> {
   const requestError = getPromptLlmRequestError(settings.promptLlm);
   if (requestError) throw new Error(requestError);
 
-  const request = await buildLlmModeRequest();
-  if (!requestSession.isCurrent(session)) return;
-  llmSentPromptLog.value = formatPromptLlmRequestLog(request);
-  llmRawResponse.value = await requestPromptLlmRaw(request, {
-    generationId: session.generationId,
-    timeoutSeconds: settings.promptLlm.timeout,
-  });
+  const result = await requestPromptLlmRaw(
+    settings.promptLlm,
+    async account => {
+      const request = await buildLlmModeRequest(account);
+      if (requestSession.isCurrent(session)) llmSentPromptLog.value = formatPromptLlmRequestLog(request);
+      return request;
+    },
+    {
+      generationId: session.generationId,
+      timeoutSeconds: settings.promptLlm.timeout,
+    },
+  );
   if (!requestSession.isCurrent(session)) return;
 
-  await runNovelAIWithOverrides(buildNovelAILlmPromptOverrides(settings.promptLlm, llmRawResponse.value), session);
+  llmRawResponse.value = result.rawText;
+  const { output, characterPrompts } = extractPromptLlmResult(result.rawText, settings.promptLlm, buildPromptLlmSchemaFields(settings.promptLlm));
+  await runNovelAIWithOverrides(buildNovelAIPromptOverrides(output, characterPrompts), session);
 }
 
 /**
@@ -539,10 +548,11 @@ async function runNovelAIWithOverrides(overrides: NovelAIPromptOverrides, sessio
 
 /**
  * 构建联动测试请求
+ * @param account 本次尝试的 LLM 账号；缺省时取首个可用账号
  * @returns generateRaw 请求体
  */
-function buildLlmModeRequest() {
-  const context = buildTestContext();
+async function buildLlmModeRequest(account?: PromptLlmAccount) {
+  const context = await buildTestContext();
   const schemaFields = buildPromptLlmSchemaFields(settings.promptLlm);
   return buildPromptLlmRuntimeRequestFromContext(
     context,
@@ -551,6 +561,7 @@ function buildLlmModeRequest() {
     settings.promptProfiles,
     schemaFields,
     buildPromptLlmTriggerContext(settings, 'novelai'),
+    account,
   );
 }
 

@@ -21,7 +21,7 @@
           <span>超时时间</span>
           <div class="cv-field-control">
             <InputNumber v-model="settings.novelai.timeout" :min="1" :max="3600" show-buttons />
-            <div class="cv-field-hint">请求超时截断时间,单位为秒</div>
+            <div class="cv-field-hint">请求超时截断时间，单位为秒</div>
           </div>
         </label>
         <NovelAIAccountList v-model="settings.novelai.accounts" />
@@ -316,6 +316,7 @@ import ImagePromptPresetPanel from '@/panel/components/ImagePromptPresetPanel.vu
 import NovelAIVibePresetPanel from '@/panel/components/NovelAIVibePresetPanel.vue';
 import SubscriptionCard from '@/panel/components/SubscriptionCard.vue';
 import { buildProxiedUrl } from '@/services/novelai/subscription';
+import { getRoutingModeHint } from '@/constants/routing';
 import { useSettingsStore } from '@/store/settings';
 import NovelAIAccountList from '@/panel/components/NovelAIAccountList.vue';
 import NovelAITestTab from './NovelAITestTab.vue';
@@ -403,11 +404,7 @@ function normalizeModelScopedOptions(): void {
   if (!isV4OnlyModel.value) settings.novelai.legacyPromptMode = false;
 }
 
-const routingModeHint = computed(() => {
-  return settings.novelai.routingMode === 'load_balance'
-    ? '每次请求都会轮换首选账号，失败后继续尝试其它账号'
-    : '每次都从列表第一组账号开始，失败后按顺序继续尝试';
-});
+const routingModeHint = computed(() => getRoutingModeHint(settings.novelai.routingMode));
 
 const proxyPreview = computed(() => {
   const trimmed = settings.novelai.corsProxy.trim();

@@ -1,7 +1,9 @@
-import { type PromptLlmSettings } from '@/constants/novelai';
+import { getPromptLlmAccountDisplayName, type PromptLlmAccount, type PromptLlmSettings } from '@/constants/prompt-llm';
+import { getPromptLlmRequestAccounts } from '@/services/prompt-llm/router';
+import { requestPromptLlmWithAccounts, type PromptLlmRawRequestResult } from '@/services/prompt-llm/runtime-request';
 import { findProxyPreset } from '@/services/sillytavern/openai-config';
 import { getTavernHelper } from '@/services/tavern-helper/availability';
-import { buildGenerateRawRequestPreview, requestTavernHelperGenerateRaw } from '@/services/tavern-helper/generate-raw';
+import { buildGenerateRawRequestPreview } from '@/services/tavern-helper/generate-raw';
 import { type TavernHelperGenerateRawConfig } from '@/services/tavern-helper/prompt-llm';
 
 export interface PromptLlmLogParams {
@@ -29,44 +31,55 @@ export interface PromptLlmRawRequestOptions {
   timeoutSeconds?: number;
 }
 
+/** Prompt LLM 测试请求结果 */
+export type PromptLlmRawTestResult = PromptLlmRawRequestResult;
+
+/** 按账号构建测试请求体回调 */
+export type PromptLlmTestRequestBuilder = (account?: PromptLlmAccount) => Promise<TavernHelperGenerateRawConfig>;
+
 /**
- * 调用 TavernHelper 发送测试请求
- * @param request generateRaw 请求体
+ * 按路由规则发送测试请求
+ * 走路由轮换，失败自动切换下一个账号，与实际生图流程一致
+ * @param settings LLM 配置
+ * @param buildRequest 按候选账号构建 generateRaw 请求体
  * @param options 请求控制选项
- * @returns 格式化后的原始响应文本
+ * @returns 原始响应文本与实际成功的账号名
  */
 export async function requestPromptLlmRaw(
-  request: TavernHelperGenerateRawConfig,
+  settings: PromptLlmSettings,
+  buildRequest: PromptLlmTestRequestBuilder,
   options: PromptLlmRawRequestOptions = {},
-): Promise<string> {
+): Promise<PromptLlmRawRequestResult> {
   const tavernHelper = getTavernHelper({ silent: false });
   if (!tavernHelper) {
     throw new Error('TavernHelper 不可用，请确保酒馆环境正常加载');
   }
-
-  return requestTavernHelperGenerateRaw(
-    tavernHelper,
-    { ...request, should_silence: true, generation_id: options.generationId ?? request.generation_id },
-    { timeoutSeconds: options.timeoutSeconds },
-  );
+  return requestPromptLlmWithAccounts(tavernHelper, settings, options, buildRequest);
 }
 
 /**
  * 构建当前 LLM 参数日志
+ * 连接信息展示路由后首个可用账号（测试请求与实际首试账号一致）
  * @param settings LLM 配置
  * @returns 日志字段
  */
 export function buildPromptLlmLogParams(settings: PromptLlmSettings): PromptLlmLogParams {
-  const proxyPreset = findProxyPreset(settings.proxyPreset);
-  const apiUrl = proxyPreset?.url ?? settings.apiUrl;
-  const apiKey = proxyPreset?.password ?? settings.apiKey;
+  const firstAccount = getPromptLlmRequestAccounts(settings)[0];
+  const proxyPreset = findProxyPreset(firstAccount?.proxyPreset ?? '');
+  const apiUrl = proxyPreset?.url ?? firstAccount?.apiUrl ?? '';
+  const apiKey = proxyPreset?.password ?? firstAccount?.apiKey ?? '';
+  const accountName = getPromptLlmAccountDisplayName(firstAccount);
 
   return {
-    connectionType: proxyPreset ? `酒馆代理预设 (${proxyPreset.name})` : '手动填写配置',
+    connectionType: firstAccount
+      ? proxyPreset
+        ? `${accountName}（酒馆代理预设 ${proxyPreset.name}）`
+        : `${accountName}（自定义接口）`
+      : '无可用账号',
     apiUrl: apiUrl.trim() || '(未填写)',
     apiKey: maskApiKey(apiKey),
-    source: settings.source || '(未填写)',
-    model: settings.model || '(未选择/未填写)',
+    source: firstAccount?.source.trim() || '(未填写)',
+    model: firstAccount?.model.trim() || '(未选择/未填写)',
     temperature: settings.temperature,
     maxTokens: settings.maxTokens,
     topP: settings.topP,

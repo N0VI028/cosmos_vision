@@ -10,6 +10,7 @@ import {
   readPromptLlmOutput,
 } from '@/services/tavern-helper/prompt-llm';
 import { DEFAULT_SETTINGS } from '@/constants/default-settings';
+import { createPromptLlmAccount } from '@/constants/prompt-llm';
 
 describe('tavern-helper prompt-llm helper', () => {
   it('extracts output block from XML or code block', () => {
@@ -31,16 +32,15 @@ describe('tavern-helper prompt-llm helper', () => {
   });
 
   it('validates prompt llm request settings and builds custom api & json schema', () => {
-    const settings = {
-      ...DEFAULT_SETTINGS.promptLlm,
-      model: 'gpt-4o',
-      apiUrl: 'http://localhost:8000/v1',
-      apiKey: 'sk-test',
-    };
+    const account = createPromptLlmAccount('acc-1', 'http://localhost:8000/v1', 'sk-test');
+    account.model = 'gpt-4o';
+    const settings = { ...DEFAULT_SETTINGS.promptLlm, accounts: [account] };
     expect(getPromptLlmRequestError(settings)).toBeNull();
 
-    const customApi = buildCustomApi(settings);
-    expect(customApi.model).toBe(settings.model);
+    const customApi = buildCustomApi(settings, settings.accounts[0]);
+    expect(customApi.model).toBe('gpt-4o');
+    expect(customApi.apiurl).toBe('http://localhost:8000/v1');
+    expect(customApi.key).toBe('sk-test');
 
     const schema = buildJsonSchema();
     expect(schema.name).toBe('cosmos_vision_prompt_output');

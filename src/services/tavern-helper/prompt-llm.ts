@@ -1,5 +1,7 @@
 import { DEFAULT_PROMPT_LLM_OUTPUT_FIELDS } from '@/constants/default-settings';
-import type { PromptLlmOutputFields, PromptLlmSettings } from '@/constants/novelai';
+import type { CharacterPromptItem, PromptLlmOutputFields, PromptLlmSettings } from '@/constants/novelai';
+import type { PromptLlmAccount } from '@/constants/prompt-llm';
+import { getAvailablePromptLlmAccounts } from '@/services/prompt-llm/router';
 import { findProxyPreset } from '@/services/sillytavern/openai-config';
 import yaml from 'yaml';
 import { z } from 'zod';
@@ -13,6 +15,12 @@ export type { PromptLlmOutputFields } from '@/constants/novelai';
 export interface PromptLlmOutput {
   positivePrompt: string;
   negativePrompt: string;
+}
+
+/** Prompt LLM 完整提取结果(全局正负提示词 + 角色提示词) */
+export interface PromptLlmExtractionResult {
+  output: PromptLlmOutput;
+  characterPrompts: CharacterPromptItem[];
 }
 
 /** Prompt LLM 正则提取配置 */
@@ -79,21 +87,15 @@ export interface TavernHelperJsonSchema {
   strict?: boolean;
 }
 
-const promptLlmRequestBaseSchema = z.object({
-  proxyPreset: z.string().trim(),
-  apiUrl: z.string().trim(),
-  apiKey: z.string().trim(),
-  model: z.string().trim().min(1, '请先选择或填写模型'),
-  source: z.string().trim().min(1, '请先选择来源标识'),
+const promptLlmRequestSchema = z.object({
   temperature: z.number(),
   maxTokens: z.number(),
   topP: z.number(),
   topK: z.number(),
 });
 
-type PromptLlmRequestSettings = z.infer<typeof promptLlmRequestBaseSchema>;
-
-const promptLlmRequestSchema = promptLlmRequestBaseSchema.superRefine(addConnectionIssues);
+/** 提示词 LLM 请求所需的生成参数（来源与模型由账号承载） */
+type PromptLlmRequestSettings = z.infer<typeof promptLlmRequestSchema>;
 const PROMPT_LLM_JSON_SCHEMA_NAME = 'cosmos_vision_prompt_output';
 const PROMPT_LLM_JSON_SCHEMA_DESCRIPTION = '文生图正负提示词输出';
 const PROMPT_OUTPUT_LABELS = {
@@ -208,21 +210,26 @@ function buildPromptOutputProperty(name: string, fields: PromptLlmOutputFields):
  */
 export function getPromptLlmRequestError(settings: PromptLlmSettings): string | null {
   const result = promptLlmRequestSchema.safeParse(settings);
-  return result.success ? null : getFirstIssueMessage(result.error);
+  if (!result.success) return getFirstIssueMessage(result.error);
+  return getAvailablePromptLlmAccounts(settings).length
+    ? null
+    : '没有可用的 LLM 账号，请先启用至少一组填写完整来源、模型与接口信息的账号';
 }
 
 /**
  * 构建 custom_api 配置对象
+ * 来源与模型取自账号；账号配置了酒馆代理预设时走预设，否则用账号的地址与密钥
  * @param settings 提示词 LLM 配置
+ * @param account 本次尝试的账号
  * @returns TavernHelper custom_api 配置
  */
-export function buildCustomApi(settings: PromptLlmSettings): TavernHelperCustomApiConfig {
+export function buildCustomApi(settings: PromptLlmSettings, account?: PromptLlmAccount): TavernHelperCustomApiConfig {
   const parsedSettings = parsePromptLlmRequestSettings(settings);
 
-  const proxyPreset = findProxyPreset(parsedSettings.proxyPreset);
+  const proxyPreset = findProxyPreset(account?.proxyPreset ?? '');
   const api: TavernHelperCustomApiConfig = {
-    model: parsedSettings.model,
-    source: parsedSettings.source,
+    model: account?.model.trim() ?? '',
+    source: account?.source.trim() ?? '',
     temperature: parsedSettings.temperature,
     max_tokens: parsedSettings.maxTokens,
     top_p: parsedSettings.topP,
@@ -232,12 +239,12 @@ export function buildCustomApi(settings: PromptLlmSettings): TavernHelperCustomA
   if (proxyPreset) {
     api.proxy_preset = proxyPreset.name;
   } else {
-    api.apiurl = parsedSettings.apiUrl;
-    api.key = parsedSettings.apiKey;
+    api.apiurl = account?.apiUrl.trim() ?? '';
+    api.key = account?.apiKey.trim() ?? '';
   }
 
-  if (parsedSettings.source === 'custom') {
-    applyCustomSourceFields(api, settings);
+  if (account?.source.trim() === 'custom') {
+    applyCustomSourceFields(api, account);
   }
 
   return api;
@@ -246,16 +253,16 @@ export function buildCustomApi(settings: PromptLlmSettings): TavernHelperCustomA
 /**
  * 为自定义源解析并附加自定义请求体/请求头字段
  * @param api 待填充的 custom_api 配置
- * @param settings 提示词 LLM 配置
+ * @param account 本次尝试的账号
  */
-function applyCustomSourceFields(api: TavernHelperCustomApiConfig, settings: PromptLlmSettings): void {
-  const includeBody = parseCustomYamlObject(settings.customIncludeBody, '包含请求体参数');
+function applyCustomSourceFields(api: TavernHelperCustomApiConfig, account: PromptLlmAccount): void {
+  const includeBody = parseCustomYamlObject(account.customIncludeBody, '包含请求体参数');
   if (includeBody) api.custom_include_body = includeBody;
 
-  const excludeBody = parseCustomYamlStringArray(settings.customExcludeBody, '排除请求体参数');
+  const excludeBody = parseCustomYamlStringArray(account.customExcludeBody, '排除请求体参数');
   if (excludeBody) api.custom_exclude_body = excludeBody;
 
-  const includeHeaders = parseCustomYamlObject(settings.customIncludeHeaders, '包含请求头');
+  const includeHeaders = parseCustomYamlObject(account.customIncludeHeaders, '包含请求头');
   if (includeHeaders) api.custom_include_headers = includeHeaders;
 }
 
@@ -318,50 +325,6 @@ function parsePromptLlmRequestSettings(settings: PromptLlmSettings): PromptLlmRe
   const result = promptLlmRequestSchema.safeParse(settings);
   if (result.success) return result.data;
   throw new Error(getFirstIssueMessage(result.error));
-}
-
-/**
- * 添加连接方式校验问题
- * @param settings 已基础校验的请求配置
- * @param ctx Zod 校验上下文
- */
-function addConnectionIssues(settings: PromptLlmRequestSettings, ctx: z.RefinementCtx): void {
-  if (settings.proxyPreset && settings.proxyPreset !== 'None') {
-    addProxyPresetIssue(settings.proxyPreset, ctx);
-    return;
-  }
-
-  addManualConnectionIssues(settings, ctx);
-}
-
-/**
- * 添加代理预设校验问题
- * @param presetName 代理预设名称
- * @param ctx Zod 校验上下文
- */
-function addProxyPresetIssue(presetName: string, ctx: z.RefinementCtx): void {
-  const preset = findProxyPreset(presetName);
-  if (!preset) return addCustomIssue(ctx, '所选代理预设不存在，请重新选择');
-  if (!preset.url.trim()) addCustomIssue(ctx, '所选代理预设未配置接口地址');
-}
-
-/**
- * 添加手填接口校验问题
- * @param settings 已基础校验的请求配置
- * @param ctx Zod 校验上下文
- */
-function addManualConnectionIssues(settings: PromptLlmRequestSettings, ctx: z.RefinementCtx): void {
-  if (!settings.apiUrl) addCustomIssue(ctx, '请先填写接口地址');
-  if (!settings.apiKey) addCustomIssue(ctx, '请先填写接口密钥');
-}
-
-/**
- * 添加自定义校验问题
- * @param ctx Zod 校验上下文
- * @param message 提示文案
- */
-function addCustomIssue(ctx: z.RefinementCtx, message: string): void {
-  ctx.addIssue({ code: 'custom', message });
 }
 
 /**
@@ -479,23 +442,6 @@ function readPromptLlmOutputFields(settings: PromptLlmSettings): PromptLlmOutput
     characterPositionX: settings.characterPositionXJsonField.trim() || 'x',
     characterPositionY: settings.characterPositionYJsonField.trim() || 'y',
   };
-}
-
-/**
- * 按公共 LLM 设置读取优先 JSON 输出,失败回退到用户正则
- * 所有生图渠道共享的优先 JSON Schema 提取入口
- * @param rawText LLM 原始返回
- * @param settings 提示词 LLM 配置
- * @returns 正负提示词或 null
- */
-export function readPreferredPromptLlmOutput(rawText: string, settings: PromptLlmSettings): PromptLlmOutput | null {
-  const cleanText = extractOutputBlock(rawText);
-  const fields = settings.preferJsonSchemaExtraction ? readPromptLlmOutputFields(settings) : null;
-  if (fields) {
-    const jsonOutput = readPromptLlmJsonOutput(cleanText, fields);
-    if (jsonOutput) return jsonOutput;
-  }
-  return readPromptLlmOutputByRules(rawText, settings);
 }
 
 /**

@@ -85,7 +85,8 @@ const COMFYUI_STEPS: readonly TutorialStep[] = [
   {
     id: 'comfyui-connection',
     title: '连接 ComfyUI',
-    description: '填写 ComfyUI 服务地址并测试连接，浏览器直连时还需确认 CORS 配置。',
+    description:
+      '填写 ComfyUI 服务地址并测试连接，需要确保 Comfyui 监听端口并且启用 CORS 头，设置为 * 允许所有域，或填写具体域名。',
     scene: { kind: 'settings', tab: 'comfyui', subTab: 'api' },
     target: {
       selectors: ['[data-cv-tutorial="comfyui-connection"]'],
@@ -154,8 +155,7 @@ const COMFYUI_STEPS: readonly TutorialStep[] = [
   {
     id: 'comfyui-lora-binding',
     title: '配置 LoRA 组节点',
-    description:
-      '插件已经兼容 ComfyUI-Lora-Manager 的 Lora 组节点用于设置 Lora 组。',
+    description: '插件已经兼容 ComfyUI-Lora-Manager 的 Lora 组节点用于设置 Lora 组。',
     tip: '若提示节点丢失，需要先在 ComfyUI 中下载并安装 [ComfyUI-Lora-Manager](https://github.com/willmiao/ComfyUI-Lora-Manager) 自定义节点插件。',
     scene: { kind: 'settings', tab: 'comfyui', subTab: 'config' },
     target: {

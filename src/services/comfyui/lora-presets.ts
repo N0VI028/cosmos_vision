@@ -4,6 +4,8 @@ import {
   type ComfyUILoraPresetSettings,
   type ComfyUILoraSetting,
 } from '@/constants/comfyui';
+import { writeLoraPresetToNode, isSupportedLoraNode } from '@/services/comfyui/lora-adapter';
+import { parseComfyUIWorkflow, serializeComfyUIWorkflow } from '@/services/comfyui/parse';
 
 /**
  * 查找指定 ID 的 ComfyUI LoRA 预设组
@@ -34,6 +36,28 @@ export function getActiveComfyUILoraPreset(settings: ComfyUILoraPresetSettings):
  */
 export function getActiveComfyUILoras(settings: ComfyUILoraPresetSettings): ComfyUILoraSetting[] {
   return getActiveComfyUILoraPreset(settings).loras;
+}
+
+/**
+ * 将当前激活 LoRA 预设组写入工作流 JSON 中的兼容节点
+ * 用于工作流整体被替换（重置默认/导入）后保持 LoRA 节点与激活预设一致
+ * @param workflowJson 工作流 JSON 文本
+ * @param settings LoRA 预设组集合
+ * @returns 写入后的工作流 JSON；无兼容节点或解析失败时返回原文
+ */
+export function applyActiveLoraPresetToWorkflowJson(
+  workflowJson: string,
+  settings: ComfyUILoraPresetSettings,
+): string {
+  try {
+    const workflow = parseComfyUIWorkflow(workflowJson);
+    const node = Object.values(workflow).find(isSupportedLoraNode);
+    if (!node) return workflowJson;
+    writeLoraPresetToNode(node, getActiveComfyUILoraPreset(settings));
+    return serializeComfyUIWorkflow(workflow);
+  } catch {
+    return workflowJson;
+  }
 }
 
 /**
