@@ -1,0 +1,9 @@
+/*
+ * 移动端卡片菜单项（Popover 内）
+ * CvMiniButton 根类自带 w-max!，需 !important 才能压成整行菜单项（同 .cv-macro-option-button）；
+ * 容器 w-max + 整行按钮 → 列宽跟随最长文字自适应
+ */
+.cv-card-menu-action {
+  width: 100% !important;
+  justify-content: flex-start !important;
+}

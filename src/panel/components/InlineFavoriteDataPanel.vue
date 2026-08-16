@@ -11,7 +11,7 @@
 
     <div
       v-if="loading"
-      class="grid max-h-(--cv-favorite-grid-max-h,36rem) grid-cols-3 gap-(--cv-space-4xl) overflow-y-auto max-[56rem]:grid-cols-2 max-[38rem]:grid-cols-1"
+      class="grid max-h-(--cv-favorite-grid-max-h,36rem) grid-cols-3 gap-(--cv-space-4xl) overflow-y-auto max-[56rem]:grid-cols-2"
     >
       <CvDataCard v-for="index in 4" :key="index">
         <div class="relative flex min-w-0 flex-col">
@@ -70,86 +70,139 @@
         </div>
       </div>
 
-      <div
-        v-if="visibleItems.length"
-        class="grid max-h-(--cv-favorite-grid-max-h,36rem) grid-cols-3 gap-(--cv-space-4xl) overflow-y-auto max-[56rem]:grid-cols-2 max-[38rem]:grid-cols-1"
-      >
-        <CvDataCard
-          v-for="item in visibleItems"
-          :key="getPreviewUrl(item.key)"
-          :selected="isItemSelected(item.key)"
-          :selecting="isSelecting"
-          :disabled="busy && isSelecting"
-          @toggle="toggleItem(item.key)"
-        >
-          <div class="relative flex min-w-0 flex-col">
-            <div v-if="isSelecting" class="absolute top-(--cv-space-lg) left-(--cv-space-lg) z-1" @click.stop>
-              <Checkbox
-                binary
-                :model-value="isItemSelected(item.key)"
-                :disabled="busy"
-                @update:model-value="toggleItem(item.key)"
-              />
-            </div>
-
-            <div
-              class="relative aspect-square overflow-hidden border-(length:--cv-border-width) border-b border-solid border-[color-mix(in_srgb,var(--cv-surface-variant)_72%,transparent)] bg-(--cv-surface-container-high)"
+      <div v-if="visibleItems.length" v-bind="containerProps" class="max-h-(--cv-favorite-grid-max-h,36rem)">
+        <div v-bind="wrapperProps">
+          <div
+            v-for="row in visibleRows"
+            :key="row.rowIndex"
+            :ref="rowRef(row.rowIndex)"
+            class="grid grid-cols-3 gap-x-(--cv-space-4xl) pb-(--cv-space-4xl) max-[56rem]:grid-cols-2"
+          >
+            <CvDataCard
+              v-for="item in row.items"
+              :key="getPreviewUrl(item.key)"
+              :selected="isItemSelected(item.key)"
+              :selecting="isSelecting"
+              :disabled="busy && isSelecting"
+              @toggle="toggleItem(item.key)"
             >
-              <span
-                class="pointer-events-none absolute top-(--cv-space-md) right-(--cv-space-md) z-1 rounded-(--cv-radius-sm) px-[0.35rem] py-[0.1rem] text-(length:--cv-font-size-xs) leading-[1.2] font-semibold"
-                :class="kindBadgeClass(item.kind)"
-                >{{ kindLabel(item.kind) }}</span
-              >
-              <LightboxImage
-                :src="getPreviewUrl(item.key)"
-                :snapshot="item.promptSnapshot"
-                :download-action="() => $emit('download-items', [item.key])"
-                :disabled="isSelecting"
-                alt="图片预览"
-                class="block size-full object-cover"
-              />
-            </div>
+              <div class="relative flex min-w-0 flex-col">
+                <!-- 选择模式勾选框放右上角：左上角已让位给类型徽章 -->
+                <div v-if="isSelecting" class="absolute top-(--cv-space-lg) right-(--cv-space-lg) z-1" @click.stop>
+                  <Checkbox
+                    binary
+                    :model-value="isItemSelected(item.key)"
+                    :disabled="busy"
+                    @update:model-value="toggleItem(item.key)"
+                  />
+                </div>
 
-            <div class="flex min-w-0 flex-col gap-(--cv-space-sm) p-(--cv-space-4xl)">
-              <div class="text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)">
-                {{ formatImageLabel(item.createdAt) }}
-              </div>
-              <div
-                class="overflow-hidden text-(length:--cv-font-size-xs) text-ellipsis whitespace-nowrap text-(--cv-on-surface-variant)"
-              >
-                {{ stripPngExtension(item.characterKey) }} · {{ stripPngExtension(item.chatId) }}
-              </div>
-            </div>
+                <div
+                  class="relative aspect-square overflow-hidden border-(length:--cv-border-width) border-b border-solid border-[color-mix(in_srgb,var(--cv-surface-variant)_72%,transparent)] bg-(--cv-surface-container-high)"
+                >
+                  <span
+                    class="pointer-events-none absolute top-(--cv-space-md) left-(--cv-space-md) z-1 rounded-(--cv-radius-sm) px-[0.35rem] py-[0.1rem] text-(length:--cv-font-size-xs) leading-[1.2] font-semibold"
+                    :class="kindBadgeClass(item.kind)"
+                    >{{ kindLabel(item.kind) }}</span
+                  >
+                  <LightboxImage
+                    :src="getPreviewUrl(item.key)"
+                    :snapshot="item.promptSnapshot"
+                    :download-action="() => $emit('download-items', [item.key])"
+                    :disabled="isSelecting"
+                    alt="图片预览"
+                    class="block size-full object-cover"
+                  />
 
-            <div
-              v-if="!isSelecting"
-              class="flex items-center justify-end gap-(--cv-space-md) px-(--cv-space-4xl) pb-(--cv-space-4xl)"
-              @click.stop
-            >
-              <CvMiniButton
-                class="relative text-(--cv-on-surface-variant)"
-                :icon="item.kind === 'favorite' ? 'fa-regular fa-star-half-alt' : 'fa-regular fa-star'"
-                :aria-label="kindToggleLabel(item.kind)"
-                :title="kindToggleLabel(item.kind)"
-                :disabled="busy"
-                @click="$emit('toggle-kind', item.key)"
-              />
-              <CvMiniButton
-                icon="fa-regular fa-download"
-                aria-label="下载"
-                :disabled="busy"
-                @click="$emit('download-items', [item.key])"
-              />
-              <CvMiniButton
-                icon="fa-regular fa-trash"
-                tone="error"
-                aria-label="删除"
-                :disabled="busy"
-                @click="$emit('delete-items', [item.key])"
-              />
-            </div>
+                  <!-- 移动端窄卡片：缩略图右下角三点按钮呼出箭头气泡菜单（半透明方形底增强辨识度） -->
+                  <!-- 底色放在容器上：按钮自带 bg-transparent 工具类会压掉同属性的背景类 -->
+                  <div
+                    v-if="!isSelecting"
+                    class="absolute right-(--cv-space-md) bottom-(--cv-space-md) z-1 hidden rounded-(--cv-radius-sm) bg-[color-mix(in_srgb,var(--cv-surface)_82%,transparent)] max-[56rem]:flex"
+                    @click.stop
+                  >
+                    <CvMiniButton
+                      class="text-(--cv-on-surface-variant)"
+                      icon="fa-solid fa-ellipsis-vertical"
+                      aria-label="更多操作"
+                      title="更多操作"
+                      :disabled="busy"
+                      @click="toggleCardMenu($event, item.key)"
+                    />
+                    <Popover
+                      :ref="el => setCardMenuPopover(item.key, el)"
+                      :base-z-index="CARD_MENU_BASE_Z_INDEX"
+                    >
+                      <div class="flex w-max flex-col items-stretch gap-(--cv-space-xs)">
+                        <CvMiniButton
+                          class="cv-card-menu-action"
+                          :icon="item.kind === 'favorite' ? 'fa-regular fa-star-half-alt' : 'fa-regular fa-star'"
+                          :label="kindToggleLabel(item.kind)"
+                          :disabled="busy"
+                          @click="invokeCardMenu(item.key, () => $emit('toggle-kind', item.key))"
+                        />
+                        <CvMiniButton
+                          class="cv-card-menu-action"
+                          icon="fa-regular fa-download"
+                          label="下载"
+                          :disabled="busy"
+                          @click="invokeCardMenu(item.key, () => $emit('download-items', [item.key]))"
+                        />
+                        <CvMiniButton
+                          class="cv-card-menu-action"
+                          icon="fa-regular fa-trash"
+                          tone="error"
+                          label="删除"
+                          :disabled="busy"
+                          @click="invokeCardMenu(item.key, () => $emit('delete-items', [item.key]))"
+                        />
+                      </div>
+                    </Popover>
+                  </div>
+                </div>
+
+                <div class="flex min-w-0 flex-col gap-(--cv-space-sm) p-(--cv-space-4xl)">
+                  <div class="overflow-hidden text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface) text-ellipsis whitespace-nowrap">
+                    {{ formatImageLabel(item.createdAt) }}
+                  </div>
+                  <div
+                    class="overflow-hidden text-(length:--cv-font-size-xs) text-ellipsis whitespace-nowrap text-(--cv-on-surface-variant)"
+                  >
+                    {{ stripPngExtension(item.characterKey) }} · {{ stripPngExtension(item.chatId) }}
+                  </div>
+                </div>
+
+                <div
+                  v-if="!isSelecting"
+                  class="flex flex-wrap items-center justify-end gap-(--cv-space-sm) px-(--cv-space-4xl) pb-(--cv-space-4xl) max-[56rem]:hidden"
+                  @click.stop
+                >
+                  <CvMiniButton
+                    class="relative text-(--cv-on-surface-variant)"
+                    :icon="item.kind === 'favorite' ? 'fa-regular fa-star-half-alt' : 'fa-regular fa-star'"
+                    :aria-label="kindToggleLabel(item.kind)"
+                    :title="kindToggleLabel(item.kind)"
+                    :disabled="busy"
+                    @click="$emit('toggle-kind', item.key)"
+                  />
+                  <CvMiniButton
+                    icon="fa-regular fa-download"
+                    aria-label="下载"
+                    :disabled="busy"
+                    @click="$emit('download-items', [item.key])"
+                  />
+                  <CvMiniButton
+                    icon="fa-regular fa-trash"
+                    tone="error"
+                    aria-label="删除"
+                    :disabled="busy"
+                    @click="$emit('delete-items', [item.key])"
+                  />
+                </div>
+              </div>
+            </CvDataCard>
           </div>
-        </CvDataCard>
+        </div>
       </div>
       <div
         v-else
@@ -180,9 +233,11 @@
 
 <script setup lang="ts">
 import Checkbox from 'primevue/checkbox';
+import Popover from 'primevue/popover';
 import Select from 'primevue/select';
 import Skeleton from 'primevue/skeleton';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { useVirtualCardGrid } from '@/composables/useVirtualCardGrid';
 import CvDataCard from '@/panel/components/CvDataCard.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import LightboxImage from '@/panel/components/LightboxImage.vue';
@@ -192,6 +247,7 @@ import {
   type ManagedImageItem,
   type ManagedImageKind,
 } from '@/services/inline-image/managed-images';
+import './inline-favorite-card-menu.css';
 
 interface FilterOption {
   label: string;
@@ -202,6 +258,14 @@ type ManagedTypeFilter = 'all' | ManagedImageKind;
 
 const ALL_CHARACTER_KEY = '__all_character__';
 const ALL_CHAT_KEY = '__all_chat__';
+
+/** 卡片菜单浮层层级（与宏弹出层同级，压过面板内嵌套浮层） */
+const CARD_MENU_BASE_Z_INDEX = 3200;
+
+interface CardMenuPopoverInstance {
+  hide: () => void;
+  toggle: (event: Event) => void;
+}
 
 const typeOptions: FilterOption[] = [
   { label: '全部', value: 'all' },
@@ -228,6 +292,8 @@ const isSelecting = ref(false);
 const selectedKeys = ref<string[]>([]);
 const previewUrlMap = ref<Record<string, string>>({});
 const objectUrls = new Set<string>();
+// 每张卡片一个浮层实例；虚拟滚动行卸载时由函数 ref 自动移除，无需响应式
+const cardMenuPopovers = new Map<string, CardMenuPopoverInstance>();
 
 const typedItems = computed(() => filterItemsByType(props.items, selectedType.value));
 const characterOptions = computed(() => buildCharacterOptions(typedItems.value));
@@ -239,6 +305,15 @@ const isAllSelected = computed(
   () => visibleItems.value.length > 0 && selectedCount.value === visibleItems.value.length,
 );
 const isSelectionToggleDisabled = computed(() => props.loading || props.busy || !visibleItems.value.length);
+// 顶层解构以获得模板自动解包（嵌套在普通对象里的 ref 不会解包）
+const { containerProps, wrapperProps, visibleRows, rowRef, scrollToRow } = useVirtualCardGrid<ManagedImageItem>(
+  () => visibleItems.value,
+);
+
+// 筛选变化时回到列表顶部；删除/刷新等数据变化保持原滚动位置
+watch([selectedType, selectedCharacterKey, selectedChatId], () => {
+  scrollToRow(0);
+});
 
 watch(
   () => props.items,
@@ -333,6 +408,35 @@ function downloadSelected(): void {
 function deleteSelected(): void {
   if (!selectedCount.value || props.busy) return;
   emit('delete-items', selectedKeys.value);
+}
+
+/**
+ * 切换移动端卡片菜单浮层
+ * @param event 触发事件
+ * @param key 复合 key
+ */
+function toggleCardMenu(event: Event, key: string): void {
+  cardMenuPopovers.get(key)?.toggle(event);
+}
+
+/**
+ * 执行菜单项动作并收起浮层
+ * @param key 复合 key
+ * @param action 菜单动作
+ */
+function invokeCardMenu(key: string, action: () => void): void {
+  cardMenuPopovers.get(key)?.hide();
+  action();
+}
+
+/**
+ * 登记卡片菜单浮层实例（行卸载时以 null 回调移除）
+ * @param key 复合 key
+ * @param el 浮层组件实例
+ */
+function setCardMenuPopover(key: string, el: unknown): void {
+  if (el) cardMenuPopovers.set(key, el as CardMenuPopoverInstance);
+  else cardMenuPopovers.delete(key);
 }
 
 /**

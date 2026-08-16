@@ -277,3 +277,16 @@
   appearance: none;
   -webkit-appearance: none;
 }
+
+/**
+ * 反压 ST `.hidden` 类名污染
+ *
+ * ST style.css 定义 `.hidden { visibility: hidden !important }`，与 Tailwind 的
+ * `.hidden`（display: none）同名。扩展内做 `hidden` ↔ `max-[56rem]:flex` 这类
+ * 响应式显隐切换时，display 已切回但 visibility 仍被宿主压住：元素占位、
+ * 不可见、不可点。扩展作用域内恢复 visibility，显隐完全交给 Tailwind 的
+ * display 工具类控制。
+ */
+:is(#cosmos_vision, .cosmos-vision-root) .hidden {
+  visibility: visible !important;
+}
