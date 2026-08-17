@@ -131,7 +131,7 @@
                     />
                     <Popover
                       :ref="el => setCardMenuPopover(item.key, el)"
-                      :base-z-index="CARD_MENU_BASE_Z_INDEX"
+                      :base-z-index="MACRO_POPOVER_BASE_Z_INDEX"
                     >
                       <div class="flex w-max flex-col items-stretch gap-(--cv-space-xs)">
                         <CvMiniButton
@@ -241,6 +241,10 @@ import { useVirtualCardGrid } from '@/composables/useVirtualCardGrid';
 import CvDataCard from '@/panel/components/CvDataCard.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import LightboxImage from '@/panel/components/LightboxImage.vue';
+import {
+  MACRO_POPOVER_BASE_Z_INDEX,
+  type MacroPopoverInstance,
+} from '@/panel/components/prompt-llm-macro-popover';
 import StaticPanel from '@/panel/components/StaticPanel.vue';
 import {
   managedChatGroupId,
@@ -258,14 +262,6 @@ type ManagedTypeFilter = 'all' | ManagedImageKind;
 
 const ALL_CHARACTER_KEY = '__all_character__';
 const ALL_CHAT_KEY = '__all_chat__';
-
-/** 卡片菜单浮层层级（与宏弹出层同级，压过面板内嵌套浮层） */
-const CARD_MENU_BASE_Z_INDEX = 3200;
-
-interface CardMenuPopoverInstance {
-  hide: () => void;
-  toggle: (event: Event) => void;
-}
 
 const typeOptions: FilterOption[] = [
   { label: '全部', value: 'all' },
@@ -293,7 +289,7 @@ const selectedKeys = ref<string[]>([]);
 const previewUrlMap = ref<Record<string, string>>({});
 const objectUrls = new Set<string>();
 // 每张卡片一个浮层实例；虚拟滚动行卸载时由函数 ref 自动移除，无需响应式
-const cardMenuPopovers = new Map<string, CardMenuPopoverInstance>();
+const cardMenuPopovers = new Map<string, MacroPopoverInstance>();
 
 const typedItems = computed(() => filterItemsByType(props.items, selectedType.value));
 const characterOptions = computed(() => buildCharacterOptions(typedItems.value));
@@ -435,7 +431,7 @@ function invokeCardMenu(key: string, action: () => void): void {
  * @param el 浮层组件实例
  */
 function setCardMenuPopover(key: string, el: unknown): void {
-  if (el) cardMenuPopovers.set(key, el as CardMenuPopoverInstance);
+  if (el) cardMenuPopovers.set(key, el as MacroPopoverInstance);
   else cardMenuPopovers.delete(key);
 }
 

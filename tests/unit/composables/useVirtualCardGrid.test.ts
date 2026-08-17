@@ -50,10 +50,11 @@ describe('chunkIntoRows', () => {
 describe('useVirtualCardGrid', () => {
   it('renders a bounded window of rows and reacts to source changes', async () => {
     const source = ref(Array.from({ length: 90 }, (_, index) => index));
+    let grid!: ReturnType<typeof useVirtualCardGrid<number>>;
 
     const GridHost = defineComponent({
       setup() {
-        const grid = useVirtualCardGrid<number>(source);
+        grid = useVirtualCardGrid<number>(source);
         return () =>
           h('div', grid.containerProps, [
             h(
@@ -83,6 +84,10 @@ describe('useVirtualCardGrid', () => {
     expect(initialRows.length).toBeGreaterThan(0);
     expect(initialRows.length).toBeLessThan(30);
     expect(initialRows[0]).toEqual([0, 1, 2]);
+
+    // 行 ref 按索引缓存：同索引返回同一引用（否则每次渲染都会解绑/重绑实测监听）
+    expect(grid.rowRef(0)).toBe(grid.rowRef(0));
+    expect(grid.rowRef(0)).not.toBe(grid.rowRef(1));
 
     source.value = source.value.map(item => item + 1000);
     await nextTick();

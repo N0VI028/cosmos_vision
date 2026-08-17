@@ -90,7 +90,7 @@
 
                 <div class="flex min-w-0 flex-col gap-(--cv-space-sm) p-(--cv-space-4xl)">
                   <div
-                    class="overflow-hidden line-clamp-2 text-(length:--cv-font-size-xs) leading-[1.4] font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
+                    class="overflow-hidden text-(length:--cv-font-size-xs) leading-[1.4] font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
                   >
                     {{ getNovelAIVibeDisplayFileName(item) }}
                   </div>

@@ -1,4 +1,4 @@
-import { useElementSize, useMediaQuery, useResizeObserver, useVirtualList } from '@vueuse/core';
+import { useElementSize, useMediaQuery, useVirtualList } from '@vueuse/core';
 import type { ComponentPublicInstance, ComputedRef, Ref } from 'vue';
 
 /** 虚拟卡片网格行 */
@@ -11,7 +11,7 @@ export interface VirtualCardRow<T> {
 export interface VirtualCardGridOptions {
   /** 视口外缓冲行数 */
   overscan?: number;
-  /** 实测前估算行高使用的卡片文字区高度（rem） */
+  /** 未实测行估算行高使用的卡片文字区高度（rem） */
   estimatedTextBlockRem?: number;
 }
 
@@ -22,14 +22,16 @@ export interface VirtualCardGrid<T> {
   wrapperProps: ReturnType<typeof useVirtualList<VirtualCardRow<T>>>['wrapperProps'];
   /** 当前渲染的行（含视口与缓冲区） */
   visibleRows: ComputedRef<VirtualCardRow<T>[]>;
-  /** 模板行元素 ref：`:ref="grid.rowRef(row.rowIndex)"`，用于实测行高 */
-  rowRef: (rowIndex: number) => ((el: Element | ComponentPublicInstance | null) => void) | undefined;
+  /** 行模板 ref：`:ref="grid.rowRef(row.rowIndex)"`，每行绑定，用于逐行实测行高 */
+  rowRef: (rowIndex: number) => (el: Element | ComponentPublicInstance | null) => void;
   /** 滚动到指定行 */
   scrollToRow: (rowIndex: number) => void;
 }
 
 /** 与面板 Tailwind 断点类 grid-cols-3 max-[56rem]:grid-cols-2 保持一致（移动端保持两列） */
 const TWO_COLUMNS_MAX_REM = 56;
+/** 与面板间距 token --cv-space-4xl 保持一致（行模板的列间距 gap-x 与行下边距 pb 同值） */
+const ROW_GAP_EM = 0.9333;
 const REM_FALLBACK_PX = 16;
 const DEFAULT_TEXT_BLOCK_REM = 9;
 const MIN_ROW_HEIGHT_PX = 120;
@@ -62,7 +64,7 @@ export function chunkIntoRows<T>(items: readonly T[], columns: number): T[][] {
 }
 
 /**
- * 虚拟卡片网格：响应式列数 + 按行虚拟滚动 + 行高实测
+ * 虚拟卡片网格：响应式列数 + 按行虚拟滚动 + 逐行实测行高
  *
  * 必须在 setup 顶层解构使用（模板才会自动解包 ref）：
  *   const { containerProps, wrapperProps, visibleRows, rowRef } = useVirtualCardGrid(() => items);
@@ -76,6 +78,9 @@ export function chunkIntoRows<T>(items: readonly T[], columns: number): T[][] {
  *       </div>
  *     </div>
  *   </div>
+ *
+ * 行高按行实测：卡片内可换行内容（如 tag 徽章折行）导致行高不均一，
+ * 已渲染行用实测值、未渲染行用估算值，滚动过的区域数学精确不累计漂移。
  *
  * @param items 扁平卡片列表（响应式）
  * @param options 网格选项
@@ -92,56 +97,73 @@ export function useVirtualCardGrid<T>(
   const columns = computed(() => (matchesTwoColumns.value ? 2 : 3));
 
   const rows = computed(() => chunkIntoRows(toValue(items), columns.value));
-  const measuredRowHeight = ref(0);
 
   const { containerProps, wrapperProps, list, scrollTo } = useVirtualList(rows, {
-    itemHeight: () => effectiveRowHeight.value,
+    itemHeight: (index: number) => rowHeights.get(index) ?? estimatedRowHeight.value,
     overscan,
   });
 
-  const { width: containerWidth } = useElementSize(containerProps.ref as Ref<HTMLElement | null>);
+  const containerRef = containerProps.ref as Ref<HTMLElement | null>;
+  const { width: containerWidth } = useElementSize(containerRef);
 
-  const effectiveRowHeight = computed(() => {
-    if (measuredRowHeight.value > 1) return measuredRowHeight.value;
+  const estimatedRowHeight = computed(() => {
     const width = containerWidth.value;
     if (width <= 0) return MIN_ROW_HEIGHT_PX;
     const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || REM_FALLBACK_PX;
-    // 卡片为 aspect-square 图 + 固定文字区，估算行高 = 卡片宽 + 文字区高度
-    return Math.max(MIN_ROW_HEIGHT_PX, width / columns.value + estimatedTextBlockRem * remPx);
+    const container = containerRef.value;
+    // 间距 token 为 em 基，按滚动容器字号换算；容器未知时退回根字号
+    const fontPx = (container && parseFloat(getComputedStyle(container).fontSize)) || remPx;
+    const gapPx = ROW_GAP_EM * fontPx;
+    // 卡片为 aspect-square 图 + 固定文字区：行高 ≈ 卡片宽(扣除列间距) + 行下边距 + 文字区
+    const cardWidth = (width - (columns.value - 1) * gapPx) / columns.value;
+    return Math.max(MIN_ROW_HEIGHT_PX, cardWidth + gapPx + estimatedTextBlockRem * remPx);
   });
 
-  const rowEl = shallowRef<HTMLElement | null>(null);
-  useResizeObserver(rowEl, () => {
-    const el = rowEl.value;
-    if (!el) return;
-    const height = el.getBoundingClientRect().height;
-    if (height > 1) measuredRowHeight.value = height;
+  // 逐行实测行高（rowIndex → 高度 px）；行卸载后保留实测值供后续滚动使用
+  const rowHeights = reactive(new Map<number, number>());
+  const rowEls = new Map<number, HTMLElement>();
+  const rowRefCache = new Map<number, (el: Element | ComponentPublicInstance | null) => void>();
+  const rowObserver = new ResizeObserver(entries => {
+    for (const entry of entries) {
+      const el = entry.target as HTMLElement;
+      const height = el.getBoundingClientRect().height;
+      if (height > 1) rowHeights.set(Number(el.dataset.rowIndex), height);
+    }
   });
+  onScopeDispose(() => rowObserver.disconnect());
 
   const visibleRows = computed<VirtualCardRow<T>[]>(() =>
     list.value.map(entry => ({ rowIndex: entry.index, items: entry.data })),
   );
 
-  // 行高从估算切换到实测后，容量计算需要重算一次
-  watch(effectiveRowHeight, () => {
+  // 任一行实测高度更新后，可视窗口与总高度需要重算
+  watch(rowHeights, () => {
     void nextTick(() => containerProps.onScroll());
   });
 
   /**
-   * 记录首个渲染行元素（用于实测行高）
-   * @param el 行元素或组件实例
-   */
-  function setRowEl(el: Element | ComponentPublicInstance | null): void {
-    rowEl.value = el instanceof HTMLElement ? el : null;
-  }
-
-  /**
-   * 生成行模板 ref：仅首个渲染行需要绑定实测
+   * 生成行模板 ref：每行绑定实测（回调按索引缓存，引用稳定可避免渲染时反复解绑/重绑）
    * @param rowIndex 行索引
-   * @returns ref 回调或 undefined
+   * @returns 该行的 ref 回调
    */
   function rowRef(rowIndex: number) {
-    return rowIndex === (list.value[0]?.index ?? -1) ? setRowEl : undefined;
+    let bound = rowRefCache.get(rowIndex);
+    if (!bound) {
+      bound = (el: Element | ComponentPublicInstance | null): void => {
+        const prev = rowEls.get(rowIndex);
+        if (prev) {
+          rowObserver.unobserve(prev);
+          rowEls.delete(rowIndex);
+        }
+        if (el instanceof HTMLElement) {
+          el.dataset.rowIndex = String(rowIndex);
+          rowEls.set(rowIndex, el);
+          rowObserver.observe(el);
+        }
+      };
+      rowRefCache.set(rowIndex, bound);
+    }
+    return bound;
   }
 
   return {
