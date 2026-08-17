@@ -1,11 +1,17 @@
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
-import type { InlineImageFavoriteGroup, InlineImageFavoriteListItem } from '@/services/inline-image/favorites-cache';
-import type { TemporaryImageRecord } from '@/services/inline-image/temporary-images';
+import { loadFavoriteImageBlob, type InlineImageFavoriteMeta } from '@/services/inline-image/favorites-cache';
+import { loadTemporaryImageBlob, type TemporaryImageMeta } from '@/services/inline-image/temporary-images';
 
 /** 管理面板图片类型 */
 export type ManagedImageKind = 'favorite' | 'temporary';
 
-/** 管理面板统一列表项（复合 key 避免 number/string 冲突） */
+/** 按需加载 Blob 所需的最小定位信息 */
+export type ManagedImageBlobSource = Pick<ManagedImageItem, 'key' | 'kind' | 'sourceId' | 'filePath'>;
+
+/**
+ * 管理面板统一列表项（复合 key 避免 number/string 冲突）
+ * 仅元数据：图片数据通过 loadImageBlob 按需加载
+ */
 export interface ManagedImageItem {
   /** `favorite:${id}` 或 `temporary:${id}` */
   key: string;
@@ -16,9 +22,20 @@ export interface ManagedImageItem {
   characterKey: string;
   chatId: string;
   createdAt: number;
-  imageBlob: Blob;
+  /** 收藏文件路径（临时图为空串）——按需加载定位用 */
+  filePath: string;
   promptSnapshot: InlinePromptSnapshot;
 }
+
+/** Blob 加载并发上限（可见窗口逐张加载时的同时请求数） */
+const MAX_BLOB_LOAD_CONCURRENCY = 4;
+/** Blob LRU 缓存容量（约两屏卡片量） */
+const BLOB_CACHE_LIMIT = 24;
+
+const blobCache = new Map<string, Blob>();
+const inFlightBlobLoads = new Map<string, Promise<Blob>>();
+let runningBlobLoads = 0;
+const blobLoadWaiters: Array<() => void> = [];
 
 /**
  * 构建收藏图片复合 key
@@ -39,60 +56,40 @@ export function managedTemporaryKey(id: string): string {
 }
 
 /**
- * 解析管理面板复合 key
- * @param key 复合 key
- * @returns 类型与源 ID；非法时返回 null
+ * 将收藏元数据展开为管理项
+ * @param metas 收藏元数据列表
+ * @returns 管理项列表
  */
-export function parseManagedImageKey(
-  key: string,
-): { kind: ManagedImageKind; sourceId: number | string } | null {
-  if (key.startsWith('favorite:')) {
-    const sourceId = Number(key.slice('favorite:'.length));
-    return Number.isFinite(sourceId) ? { kind: 'favorite', sourceId } : null;
-  }
-  if (key.startsWith('temporary:')) {
-    return { kind: 'temporary', sourceId: key.slice('temporary:'.length) };
-  }
-  return null;
+export function toManagedFavoriteItems(metas: InlineImageFavoriteMeta[]): ManagedImageItem[] {
+  return metas.map(meta => ({
+    key: managedFavoriteKey(meta.id),
+    kind: 'favorite' as const,
+    sourceId: meta.id,
+    slotId: meta.slotId,
+    characterKey: meta.characterKey,
+    chatId: meta.chatId,
+    createdAt: meta.createdAt,
+    filePath: meta.filePath,
+    promptSnapshot: meta.promptSnapshot,
+  }));
 }
 
 /**
- * 将收藏分组展开为管理项
- * @param groups 收藏分组
+ * 将临时图元数据转为管理项
+ * @param metas 临时图元数据列表
  * @returns 管理项列表
  */
-export function toManagedFavoriteItems(groups: InlineImageFavoriteGroup[]): ManagedImageItem[] {
-  return groups.flatMap(group =>
-    group.records.map(record => ({
-      key: managedFavoriteKey(record.id),
-      kind: 'favorite' as const,
-      sourceId: record.id,
-      slotId: record.slotId,
-      characterKey: record.characterKey,
-      chatId: record.chatId,
-      createdAt: record.createdAt,
-      imageBlob: record.imageBlob,
-      promptSnapshot: record.promptSnapshot,
-    })),
-  );
-}
-
-/**
- * 将临时图记录转为管理项
- * @param records 临时图记录
- * @returns 管理项列表
- */
-export function toManagedTemporaryItems(records: TemporaryImageRecord[]): ManagedImageItem[] {
-  return records.map(record => ({
-    key: managedTemporaryKey(record.id),
+export function toManagedTemporaryItems(metas: TemporaryImageMeta[]): ManagedImageItem[] {
+  return metas.map(meta => ({
+    key: managedTemporaryKey(meta.id),
     kind: 'temporary' as const,
-    sourceId: record.id,
-    slotId: record.slotId,
-    characterKey: record.characterKey,
-    chatId: record.chatId,
-    createdAt: record.createdAt,
-    imageBlob: record.imageBlob,
-    promptSnapshot: record.promptSnapshot,
+    sourceId: meta.id,
+    slotId: meta.slotId,
+    characterKey: meta.characterKey,
+    chatId: meta.chatId,
+    createdAt: meta.createdAt,
+    filePath: '',
+    promptSnapshot: meta.promptSnapshot,
   }));
 }
 
@@ -119,56 +116,22 @@ export function managedChatGroupId(item: Pick<ManagedImageItem, 'characterKey' |
 }
 
 /**
- * 把管理项写入收藏分组（同 scope 合并；无则新建）
- * @param groups 现有分组
- * @param item 源管理项（blob/scope 复用）
+ * 管理项 → 收藏元数据（类型互换后就地补丁用）
+ * @param item 源管理项
  * @param favoriteId 新收藏 ID
  * @param filePath 收藏文件路径
- * @returns 新分组数组
+ * @returns 收藏元数据
  */
-export function upsertManagedFavoriteGroup(
-  groups: InlineImageFavoriteGroup[],
+export function toFavoriteMetaFromItem(
   item: ManagedImageItem,
   favoriteId: number,
   filePath: string,
-): InlineImageFavoriteGroup[] {
-  const record = toManagedFavoriteRecord(item, favoriteId, filePath);
-  const groupId = managedChatGroupId(item);
-  const existing = groups.find(group => group.id === groupId);
-  if (!existing) {
-    return [
-      ...groups,
-      {
-        id: groupId,
-        characterKey: item.characterKey,
-        chatId: item.chatId,
-        count: 1,
-        updatedAt: record.createdAt,
-        records: [record],
-      },
-    ];
-  }
-  return groups.map(group => group.id === groupId ? prependFavoriteRecord(group, record) : group);
-}
-
-/**
- * 管理项 → 收藏记录
- * @param item 管理项
- * @param favoriteId 收藏 ID
- * @param filePath 收藏文件路径
- * @returns 收藏记录
- */
-function toManagedFavoriteRecord(
-  item: ManagedImageItem,
-  favoriteId: number,
-  filePath: string,
-): InlineImageFavoriteListItem {
+): InlineImageFavoriteMeta {
   return {
     id: favoriteId,
     characterKey: item.characterKey,
     chatId: item.chatId,
     slotId: item.slotId,
-    imageBlob: item.imageBlob,
     promptSnapshot: item.promptSnapshot,
     createdAt: item.createdAt,
     filePath,
@@ -176,64 +139,113 @@ function toManagedFavoriteRecord(
 }
 
 /**
- * 向收藏分组头部写入记录
- * @param group 收藏分组
- * @param record 收藏记录
- * @returns 更新后的分组
- */
-function prependFavoriteRecord(
-  group: InlineImageFavoriteGroup,
-  record: InlineImageFavoriteListItem,
-): InlineImageFavoriteGroup {
-  const records = [record, ...group.records.filter(entry => entry.id !== record.id)]
-    .sort((left, right) => right.createdAt - left.createdAt);
-  return { ...group, count: records.length, updatedAt: records[0].createdAt, records };
-}
-
-/**
- * 从收藏分组移除指定 ID
- * @param groups 现有分组
- * @param favoriteId 收藏 ID
- * @returns 新分组数组
- */
-export function removeManagedFavoriteId(
-  groups: InlineImageFavoriteGroup[],
-  favoriteId: number,
-): InlineImageFavoriteGroup[] {
-  return groups
-    .map(group => {
-      const records = group.records.filter(record => record.id !== favoriteId);
-      if (records.length === group.records.length) return group;
-      if (!records.length) return null;
-      return {
-        ...group,
-        count: records.length,
-        updatedAt: Math.max(...records.map(record => record.createdAt)),
-        records,
-      };
-    })
-    .filter((group): group is InlineImageFavoriteGroup => Boolean(group));
-}
-
-/**
- * 管理项 → 临时记录
- * @param item 管理项
+ * 管理项 → 临时元数据（类型互换后就地补丁用）
+ * @param item 源管理项
  * @param temporaryId 临时 ID
  * @param createdAt 写入时间
- * @returns 临时记录
+ * @returns 临时元数据
  */
-export function toTemporaryRecordFromManaged(
+export function toTemporaryMetaFromItem(
   item: ManagedImageItem,
   temporaryId: string,
   createdAt: number,
-): TemporaryImageRecord {
+): TemporaryImageMeta {
   return {
     id: temporaryId,
     characterKey: item.characterKey,
     chatId: item.chatId,
     slotId: item.slotId,
-    imageBlob: item.imageBlob,
     promptSnapshot: item.promptSnapshot,
     createdAt,
   };
+}
+
+/**
+ * 按需加载管理图片 Blob：收藏走 ST 文件接口、临时走 IndexedDB；
+ * 带缓存命中（LRU）、并发上限与去重（同图并发只发一次）
+ * @param source 定位信息（管理项或其子集）
+ * @returns 图片 Blob；文件缺失时抛错
+ */
+export function loadImageBlob(source: ManagedImageBlobSource): Promise<Blob> {
+  const cacheKey = resolveBlobCacheKey(source);
+  const cached = readCachedBlob(cacheKey);
+  if (cached) return Promise.resolve(cached);
+  const pending = inFlightBlobLoads.get(cacheKey);
+  if (pending) return pending;
+  const load = runBlobLoad(() => resolveManagedImageBlob(source, cacheKey)).finally(() => {
+    inFlightBlobLoads.delete(cacheKey);
+  });
+  inFlightBlobLoads.set(cacheKey, load);
+  return load;
+}
+
+/**
+ * 解析缓存/去重用定位键：收藏 ID 会因删除最大 ID 而复用（串图风险），
+ * 故收藏用每次保存唯一的 filePath、临时图用永不复用的 uuid ID
+ * @param source 定位信息
+ * @returns 不可复用的缓存键
+ */
+function resolveBlobCacheKey(source: ManagedImageBlobSource): string {
+  return source.kind === 'favorite' ? `favorite-file:${source.filePath}` : `temporary:${source.sourceId}`;
+}
+
+/**
+ * 分流加载单张图片
+ * @param source 定位信息
+ * @param cacheKey 缓存键
+ * @returns 图片 Blob
+ */
+async function resolveManagedImageBlob(source: ManagedImageBlobSource, cacheKey: string): Promise<Blob> {
+  const blob =
+    source.kind === 'favorite'
+      ? await loadFavoriteImageBlob(source.filePath)
+      : await loadTemporaryImageBlob(String(source.sourceId));
+  if (!blob) throw new Error(`图片文件不存在或已删除：${source.key}`);
+  cacheBlob(cacheKey, blob);
+  return blob;
+}
+
+/**
+ * 读取缓存 Blob 并刷新 LRU 新鲜度
+ * @param cacheKey 缓存键
+ * @returns 缓存的 Blob；未命中返回 undefined
+ */
+function readCachedBlob(cacheKey: string): Blob | undefined {
+  const cached = blobCache.get(cacheKey);
+  if (!cached) return undefined;
+  blobCache.delete(cacheKey);
+  blobCache.set(cacheKey, cached);
+  return cached;
+}
+
+/**
+ * 写入缓存并按容量淘汰最旧条目
+ * @param cacheKey 缓存键
+ * @param blob 图片 Blob
+ */
+function cacheBlob(cacheKey: string, blob: Blob): void {
+  blobCache.set(cacheKey, blob);
+  while (blobCache.size > BLOB_CACHE_LIMIT) {
+    const oldest = blobCache.keys().next().value;
+    if (oldest === undefined) break;
+    blobCache.delete(oldest);
+  }
+}
+
+/**
+ * 以并发上限执行加载任务（超限任务排队等待）
+ * @param task 加载任务
+ * @returns 任务结果
+ */
+async function runBlobLoad<T>(task: () => Promise<T>): Promise<T> {
+  while (runningBlobLoads >= MAX_BLOB_LOAD_CONCURRENCY) {
+    await new Promise<void>(resolve => blobLoadWaiters.push(resolve));
+  }
+  runningBlobLoads += 1;
+  try {
+    return await task();
+  } finally {
+    runningBlobLoads -= 1;
+    blobLoadWaiters.shift()?.();
+  }
 }

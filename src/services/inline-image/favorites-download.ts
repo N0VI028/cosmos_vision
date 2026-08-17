@@ -7,10 +7,7 @@ import {
   transformInlineImageForDownload,
   triggerBrowserDownload,
 } from '@/services/inline-image/image-download-transform';
-import type {
-  InlineImageFavoriteGroup,
-  InlineImageFavoriteListItem,
-} from '@/services/inline-image/favorites-cache';
+import type { InlineImageFavoriteGroup, InlineImageFavoriteListItem } from '@/services/inline-image/favorites-cache';
 
 interface DownloadZipArchive {
   file(name: string, data: BlobPart): void;
@@ -21,7 +18,8 @@ interface DownloadZipConstructor {
   new (): DownloadZipArchive;
 }
 
-interface FavoriteDownloadAppendResult {
+/** 下载成功/失败计数（部分失败跳过时供调用方提示用户） */
+export interface DownloadCountResult {
   succeededCount: number;
   failedCount: number;
 }
@@ -100,6 +98,14 @@ export interface DownloadableImageBlobItem {
   chatId?: string;
 }
 
+/** 下载时才加载图片数据的流式下载项（按需水合配套） */
+export interface DownloadableImageStreamItem {
+  loadBlob: () => Promise<Blob>;
+  createdAt: number;
+  characterKey?: string;
+  chatId?: string;
+}
+
 /**
  * 批量下载任意 Blob 图片列表（临时图等复用）
  * @param items 图片 Blob 列表
@@ -111,44 +117,63 @@ export async function downloadInlineImageBlobItems(
   options: InlineImageDownloadOptions,
   archiveName = 'cosmos-vision-selected-images.zip',
 ): Promise<void> {
-  if (!items.length) return;
-  if (items.length === 1) {
-    const item = items[0];
-    await downloadInlineImageBlob(item.imageBlob, buildBlobDownloadBaseName(item), options);
-    return;
-  }
-  await downloadBlobItemsAsZip(items, options, archiveName);
+  await downloadInlineImageStreamItems(
+    items.map(item => ({ ...item, loadBlob: () => Promise.resolve(item.imageBlob) })),
+    options,
+    archiveName,
+  );
 }
 
 /**
- * 将 Blob 图片列表导出为 ZIP
- * @param items 图片列表
+ * 批量下载流式图片列表（逐张按需加载，单张失败跳过并计数）
+ * @param items 流式下载项列表
+ * @param options 下载配置
+ * @param archiveName 多图时的 ZIP 文件名
+ * @returns 成功/失败计数（部分失败已跳过，全失败抛错）
+ */
+export async function downloadInlineImageStreamItems(
+  items: DownloadableImageStreamItem[],
+  options: InlineImageDownloadOptions,
+  archiveName = 'cosmos-vision-selected-images.zip',
+): Promise<DownloadCountResult> {
+  if (!items.length) return { succeededCount: 0, failedCount: 0 };
+  if (items.length === 1) {
+    const item = items[0];
+    await downloadInlineImageBlob(await item.loadBlob(), buildBlobDownloadBaseName(item), options);
+    return { succeededCount: 1, failedCount: 0 };
+  }
+  return downloadStreamItemsAsZip(items, options, archiveName);
+}
+
+/**
+ * 将流式图片列表导出为 ZIP（逐张按需加载）
+ * @param items 流式下载项列表
  * @param options 下载配置
  * @param archiveName 压缩包文件名
  */
-async function downloadBlobItemsAsZip(
-  items: DownloadableImageBlobItem[],
+async function downloadStreamItemsAsZip(
+  items: DownloadableImageStreamItem[],
   options: InlineImageDownloadOptions,
   archiveName: string,
-): Promise<void> {
+): Promise<DownloadCountResult> {
   const zip = new DownloadJSZip();
   const usedPaths = new Set<string>();
-  let succeededCount = 0;
-  let failedCount = 0;
+  const result: DownloadCountResult = { succeededCount: 0, failedCount: 0 };
   for (const [index, item] of items.entries()) {
     try {
-      const payload = await transformInlineImageForDownload(item.imageBlob, options);
+      const payload = await transformInlineImageForDownload(await item.loadBlob(), options);
       const path = getUniquePath(buildBlobZipEntryName(item, index, payload.extension), usedPaths);
       zip.file(path, payload.blob);
-      succeededCount += 1;
+      result.succeededCount += 1;
     } catch (error) {
-      failedCount += 1;
+      result.failedCount += 1;
       console.warn(`[CosmosVision] 图片转换失败，已跳过第 ${index + 1} 项`, error);
     }
   }
-  if (!succeededCount) throw new Error('没有可成功导出的图片');
-  logFavoriteDownloadSkipSummary(failedCount);
+  if (!result.succeededCount) throw new Error('没有可成功导出的图片');
+  logFavoriteDownloadSkipSummary(result.failedCount);
   triggerBrowserDownload(await zip.generateAsync({ type: 'blob' }), archiveName);
+  return result;
 }
 
 /**
@@ -156,7 +181,7 @@ async function downloadBlobItemsAsZip(
  * @param item 图片记录
  * @returns 不含扩展名的文件名
  */
-function buildBlobDownloadBaseName(item: DownloadableImageBlobItem): string {
+function buildBlobDownloadBaseName(item: DownloadableImageStreamItem): string {
   if (item.characterKey && item.chatId) {
     return `${buildGroupFolderName({ characterKey: item.characterKey, chatId: item.chatId })}-${formatFavoriteTimestamp(item.createdAt)}`;
   }
@@ -170,7 +195,7 @@ function buildBlobDownloadBaseName(item: DownloadableImageBlobItem): string {
  * @param extension 目标扩展名
  * @returns 文件名
  */
-function buildBlobZipEntryName(item: DownloadableImageBlobItem, index: number, extension: string): string {
+function buildBlobZipEntryName(item: DownloadableImageStreamItem, index: number, extension: string): string {
   return `${String(index + 1).padStart(3, '0')}-${formatFavoriteTimestamp(item.createdAt)}.${extension}`;
 }
 
@@ -219,7 +244,7 @@ async function appendInlineImageFavoriteGroup(
   group: InlineImageFavoriteGroup,
   options: InlineImageDownloadOptions,
   folderPath: string,
-): Promise<FavoriteDownloadAppendResult> {
+): Promise<DownloadCountResult> {
   return appendInlineImageFavoriteRecords(zip, group.records, options, `${folderPath}/`);
 }
 
@@ -235,9 +260,9 @@ async function appendInlineImageFavoriteRecords(
   records: InlineImageFavoriteListItem[],
   options: InlineImageDownloadOptions,
   prefix = '',
-): Promise<FavoriteDownloadAppendResult> {
+): Promise<DownloadCountResult> {
   const usedPaths = new Set<string>();
-  const result: FavoriteDownloadAppendResult = { succeededCount: 0, failedCount: 0 };
+  const result: DownloadCountResult = { succeededCount: 0, failedCount: 0 };
   for (const [index, record] of records.entries()) {
     try {
       const payload = await transformInlineImageForDownload(record.imageBlob, options);
@@ -269,11 +294,7 @@ function buildDirectDownloadBaseName(group: InlineImageFavoriteGroup, record: In
  * @param extension 目标扩展名
  * @returns 文件名
  */
-function buildZipEntryName(
-  record: InlineImageFavoriteListItem,
-  index: number,
-  extension: string,
-): string {
+function buildZipEntryName(record: InlineImageFavoriteListItem, index: number, extension: string): string {
   return `${String(index + 1).padStart(3, '0')}-${formatFavoriteTimestamp(record.createdAt)}.${extension}`;
 }
 
@@ -309,7 +330,10 @@ function logFavoriteDownloadSkipSummary(failedCount: number): void {
  * @returns 文件名安全片段
  */
 function sanitizeFileSegment(value: string): string {
-  const normalized = value.trim().replace(/[<>:"/\\|?*]+/g, '-').replace(/\s+/g, ' ');
+  const normalized = value
+    .trim()
+    .replace(/[<>:"/\\|?*]+/g, '-')
+    .replace(/\s+/g, ' ');
   return normalized.replace(/[. ]+$/g, '') || 'unknown';
 }
 

@@ -29,6 +29,9 @@ export interface InlineImageFavoriteRecord extends InlineImageFavoriteScope {
 
 export type InlineImageFavoriteListItem = InlineImageFavoriteRecord & { id: number; filePath: string };
 
+/** 收藏图片元数据（清单原样，无 Blob）——按需水合用 */
+export type InlineImageFavoriteMeta = FavoriteManifestEntry;
+
 export interface InlineImageFavoriteGroup extends InlineImageFavoriteScope {
   id: string;
   count: number;
@@ -102,6 +105,25 @@ export async function listInlineImageFavorites(
  */
 export async function listInlineImageFavoriteGroups(): Promise<InlineImageFavoriteGroup[]> {
   return buildInlineImageFavoriteGroups(await exportInlineImageFavoriteRecords());
+}
+
+/**
+ * 仅读取收藏清单元数据（不发起任何图片文件请求）
+ * @returns 按创建时间倒序的元数据列表
+ */
+export async function listInlineImageFavoriteMeta(): Promise<InlineImageFavoriteMeta[]> {
+  // 等待进行中的清单写入完成，避免读到中间态
+  await manifestWriteQueue;
+  return sortFavoriteEntries((await readFavoriteManifest()).records);
+}
+
+/**
+ * 按需读取单张收藏图片
+ * @param filePath 清单中的文件路径
+ * @returns 图片 Blob；文件不存在时返回 null
+ */
+export function loadFavoriteImageBlob(filePath: string): Promise<Blob | null> {
+  return readSillyTavernFileBlobOrNull(filePath);
 }
 
 /**

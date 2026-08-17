@@ -109,28 +109,27 @@ import {
 } from '@/services/inline-image/download-options';
 import {
   deleteInlineImageFavorite,
-  listInlineImageFavoriteGroups,
-  type InlineImageFavoriteGroup,
+  listInlineImageFavoriteMeta,
+  type InlineImageFavoriteMeta,
 } from '@/services/inline-image/favorites-cache';
 import {
-  downloadInlineImageBlobItems,
-  downloadInlineImageFavoriteItems,
+  downloadInlineImageStreamItems,
+  type DownloadableImageStreamItem,
 } from '@/services/inline-image/favorites-download';
 import { convertManagedImageKind, type ConvertImageKindResult } from '@/services/inline-image/managed-kind-toggle';
 import {
+  loadImageBlob,
   mergeManagedImageItems,
-  parseManagedImageKey,
-  removeManagedFavoriteId,
+  toFavoriteMetaFromItem,
   toManagedFavoriteItems,
   toManagedTemporaryItems,
-  toTemporaryRecordFromManaged,
-  upsertManagedFavoriteGroup,
+  toTemporaryMetaFromItem,
   type ManagedImageItem,
 } from '@/services/inline-image/managed-images';
 import {
   deleteTemporaryImage,
-  listAllTemporaryImages,
-  type TemporaryImageRecord,
+  listAllTemporaryImageMeta,
+  type TemporaryImageMeta,
 } from '@/services/inline-image/temporary-images';
 import {
   deleteNovelAIVibeSource,
@@ -172,12 +171,13 @@ const relatedLinks: RelatedLink[] = [
 const vibeRows = ref<NovelAIVibeCacheListItem[]>([]);
 const isVibeRowsLoading = ref(false);
 const isVibeActionBusy = ref(false);
-const favoriteGroups = ref<InlineImageFavoriteGroup[]>([]);
-const temporaryRecords = ref<TemporaryImageRecord[]>([]);
+// 管理图片仅持有元数据，缩略图/下载/互换时再按需水合 Blob
+const favoriteMetas = ref<InlineImageFavoriteMeta[]>([]);
+const temporaryMetas = ref<TemporaryImageMeta[]>([]);
 const isManagedImagesLoading = ref(false);
 const isManagedImagesBusy = ref(false);
 const managedImageItems = computed(() =>
-  mergeManagedImageItems(toManagedFavoriteItems(favoriteGroups.value), toManagedTemporaryItems(temporaryRecords.value)),
+  mergeManagedImageItems(toManagedFavoriteItems(favoriteMetas.value), toManagedTemporaryItems(temporaryMetas.value)),
 );
 
 const showConfirm =
@@ -226,38 +226,66 @@ async function refreshVibeRows(): Promise<void> {
   }
 }
 
+// 刷新代次与本地变更版本：丢弃晚于互换/删除就地补丁返回的过期刷新快照
+let managedRefreshGeneration = 0;
+let managedLocalVersion = 0;
+
 /**
  * 并行刷新收藏与临时图片管理数据
  */
 async function refreshManagedImages(): Promise<void> {
   isManagedImagesLoading.value = true;
+  const generation = ++managedRefreshGeneration;
   try {
-    await Promise.all([refreshManagedFavorites(), refreshManagedTemporaries()]);
+    await Promise.all([refreshManagedFavorites(generation), refreshManagedTemporaries(generation)]);
   } finally {
     isManagedImagesLoading.value = false;
   }
 }
 
-/** 独立刷新收藏图片，失败不影响临时图片 */
-async function refreshManagedFavorites(): Promise<void> {
+/**
+ * 独立刷新收藏图片元数据，失败不影响临时图片
+ * @param generation 本次刷新代次
+ */
+async function refreshManagedFavorites(generation: number): Promise<void> {
+  const versionAtStart = managedLocalVersion;
   try {
-    favoriteGroups.value = await listInlineImageFavoriteGroups();
+    const metas = await listInlineImageFavoriteMeta();
+    if (isManagedRefreshStale(generation, versionAtStart)) return;
+    favoriteMetas.value = metas;
   } catch (error) {
-    favoriteGroups.value = [];
+    if (generation !== managedRefreshGeneration) return;
+    favoriteMetas.value = [];
     toastr.error('读取收藏图片数据失败');
     console.error('读取收藏图片数据失败', error);
   }
 }
 
-/** 独立刷新临时图片，失败不影响收藏图片 */
-async function refreshManagedTemporaries(): Promise<void> {
+/**
+ * 独立刷新临时图片元数据，失败不影响收藏图片
+ * @param generation 本次刷新代次
+ */
+async function refreshManagedTemporaries(generation: number): Promise<void> {
+  const versionAtStart = managedLocalVersion;
   try {
-    temporaryRecords.value = await listAllTemporaryImages();
+    const metas = await listAllTemporaryImageMeta();
+    if (isManagedRefreshStale(generation, versionAtStart)) return;
+    temporaryMetas.value = metas;
   } catch (error) {
-    temporaryRecords.value = [];
+    if (generation !== managedRefreshGeneration) return;
+    temporaryMetas.value = [];
     toastr.error('读取临时图片数据失败');
     console.error('读取临时图片数据失败', error);
   }
+}
+
+/**
+ * 判断刷新快照是否已过期（期间发起了更新代次的刷新或本地补丁）
+ * @param generation 本次刷新代次
+ * @param versionAtStart 发起时的本地变更版本
+ */
+function isManagedRefreshStale(generation: number, versionAtStart: number): boolean {
+  return generation !== managedRefreshGeneration || versionAtStart !== managedLocalVersion;
 }
 
 /**
@@ -362,21 +390,19 @@ async function toggleManagedItemKind(key: string): Promise<void> {
 }
 
 /**
- * 用已知 blob 就地更新管理列表（避免并行 refresh 中间态）
+ * 用互换结果就地更新管理列表元数据（避免并行 refresh 中间态）
  * @param item 原管理项
  * @param result 互换结果
  */
 function applyManagedKindLocalPatch(item: ManagedImageItem, result: ConvertImageKindResult): void {
+  managedLocalVersion += 1;
   if (result.from === 'temporary') {
-    temporaryRecords.value = temporaryRecords.value.filter(record => record.id !== result.temporaryId);
-    favoriteGroups.value = upsertManagedFavoriteGroup(favoriteGroups.value, item, result.favoriteId, result.filePath);
+    temporaryMetas.value = temporaryMetas.value.filter(meta => meta.id !== result.temporaryId);
+    favoriteMetas.value = [toFavoriteMetaFromItem(item, result.favoriteId, result.filePath), ...favoriteMetas.value];
     return;
   }
-  favoriteGroups.value = removeManagedFavoriteId(favoriteGroups.value, result.favoriteId);
-  temporaryRecords.value = [
-    toTemporaryRecordFromManaged(item, result.temporaryId, result.createdAt),
-    ...temporaryRecords.value.filter(record => record.id !== result.temporaryId),
-  ];
+  favoriteMetas.value = favoriteMetas.value.filter(meta => meta.id !== result.favoriteId);
+  temporaryMetas.value = [toTemporaryMetaFromItem(item, result.temporaryId, result.createdAt), ...temporaryMetas.value];
 }
 
 /**
@@ -393,7 +419,7 @@ function syncManagedKindSession(item: ManagedImageItem, result: ConvertImageKind
     id: result.temporaryId,
     favoriteId: null,
     slotId: item.slotId,
-    imageBlob: item.imageBlob,
+    imageBlob: result.imageBlob,
     promptSnapshot: item.promptSnapshot,
     createdAt: result.createdAt,
   });
@@ -404,8 +430,8 @@ function syncManagedKindSession(item: ManagedImageItem, result: ConvertImageKind
  * @param keys 复合 key 列表
  */
 async function downloadManagedItems(keys: string[]): Promise<void> {
-  const buckets = partitionManagedKeys(keys, managedImageItems.value);
-  if (!buckets.favoriteIds.length && !buckets.temporaryItems.length) return;
+  const buckets = partitionManagedItems(keys, managedImageItems.value);
+  if (!buckets.favoriteItems.length && !buckets.temporaryItems.length) return;
   const options = await requestInlineImageDownloadOptions();
   if (!options) return;
   await runManagedAction(async () => {
@@ -423,22 +449,41 @@ async function requestInlineImageDownloadOptions(): Promise<InlineImageDownloadO
 }
 
 /**
- * 按类型分桶下载，失败标签汇总
+ * 按类型分桶下载（流式按需加载），失败标签汇总；部分图片加载失败时跳过并提示用户
  * @param buckets 分桶结果
  * @param options 下载配置
  */
 async function downloadManagedBuckets(
-  buckets: ManagedKeyBuckets,
+  buckets: ManagedItemBuckets,
   options: InlineImageDownloadOptions,
 ): Promise<string[]> {
   const errors: string[] = [];
-  await pushManagedStepError(errors, '收藏', '下载选中收藏图片失败', buckets.favoriteIds.length, () =>
-    downloadInlineImageFavoriteItems(buckets.favoriteIds, favoriteGroups.value, options),
+  let skippedCount = 0;
+  const downloadBucket = async (items: ManagedImageItem[], archiveName: string) => {
+    skippedCount += (await downloadInlineImageStreamItems(toStreamDownloadItems(items), options, archiveName))
+      .failedCount;
+  };
+  await pushManagedStepError(errors, '收藏', '下载选中收藏图片失败', buckets.favoriteItems.length, () =>
+    downloadBucket(buckets.favoriteItems, 'cosmos-vision-selected-favorites.zip'),
   );
   await pushManagedStepError(errors, '临时', '下载选中临时图片失败', buckets.temporaryItems.length, () =>
-    downloadInlineImageBlobItems(buckets.temporaryItems, options, 'cosmos-vision-selected-temporary.zip'),
+    downloadBucket(buckets.temporaryItems, 'cosmos-vision-selected-temporary.zip'),
   );
+  if (skippedCount) toastr.warning(`有 ${skippedCount} 张图片加载失败，已跳过导出`);
   return errors;
+}
+
+/**
+ * 管理项 → 流式下载项（下载执行期才按需加载图片数据）
+ * @param items 管理项列表
+ */
+function toStreamDownloadItems(items: ManagedImageItem[]): DownloadableImageStreamItem[] {
+  return items.map(item => ({
+    loadBlob: () => loadImageBlob(item),
+    createdAt: item.createdAt,
+    characterKey: item.characterKey,
+    chatId: item.chatId,
+  }));
 }
 
 /**
@@ -446,39 +491,41 @@ async function downloadManagedBuckets(
  * @param keys 复合 key 列表
  */
 async function deleteManagedItems(keys: string[]): Promise<void> {
-  const buckets = partitionManagedKeys(keys, managedImageItems.value);
-  if (!buckets.favoriteIds.length && !buckets.temporaryIds.length) return;
+  const buckets = partitionManagedItems(keys, managedImageItems.value);
+  const favoriteIds = buckets.favoriteItems.map(item => Number(item.sourceId));
+  const temporaryIds = buckets.temporaryItems.map(item => String(item.sourceId));
+  if (!favoriteIds.length && !temporaryIds.length) return;
   const confirmed = await confirmDangerAction(
     '删除图片',
-    buildManagedDeleteMessage(buckets.favoriteIds.length, buckets.temporaryIds.length),
+    buildManagedDeleteMessage(favoriteIds.length, temporaryIds.length),
     '删除',
   );
   if (!confirmed) return;
-  await runManagedAction(() => executeManagedDelete(buckets), '删除选中图片失败');
+  await runManagedAction(() => executeManagedDelete({ favoriteIds, temporaryIds }), '删除选中图片失败');
 }
 
 /**
  * 执行分桶删除并提示结果
- * @param buckets 分桶结果
+ * @param targets 待删除目标集合
  */
-async function executeManagedDelete(buckets: ManagedKeyBuckets): Promise<void> {
-  const result = await deleteManagedBuckets(buckets);
+async function executeManagedDelete(targets: ManagedDeleteTargets): Promise<void> {
+  const result = await deleteManagedBuckets(targets);
   applyManagedDeleteLocalPatch(result);
   if (result.errors.length) {
     toastManagedErrors('删除', result.errors);
     return;
   }
-  toastr.success(`已删除 ${buckets.favoriteIds.length + buckets.temporaryIds.length} 张图片`);
+  toastr.success(`已删除 ${targets.favoriteIds.length + targets.temporaryIds.length} 张图片`);
 }
 
 /**
  * 按类型分桶删除，失败标签汇总
- * @param buckets 分桶结果
+ * @param targets 待删除目标集合
  */
-async function deleteManagedBuckets(buckets: ManagedKeyBuckets): Promise<ManagedDeleteResult> {
+async function deleteManagedBuckets(targets: ManagedDeleteTargets): Promise<ManagedDeleteResult> {
   const [favorites, temporaries] = await Promise.all([
-    deleteManagedFavoriteIds(buckets.favoriteIds),
-    deleteManagedTemporaryIds(buckets.temporaryIds),
+    deleteManagedFavoriteIds(targets.favoriteIds),
+    deleteManagedTemporaryIds(targets.temporaryIds),
   ]);
   return {
     favoriteIds: favorites.deletedIds,
@@ -524,10 +571,13 @@ function collectManagedDeleteStepResult<T>(
   return { label, deletedIds, failed: deletedIds.length !== ids.length };
 }
 
-/** 将成功删除的图片从当前管理列表就地移除 */
+/** 将成功删除的图片元数据从当前管理列表就地移除 */
 function applyManagedDeleteLocalPatch(result: ManagedDeleteResult): void {
-  favoriteGroups.value = result.favoriteIds.reduce(removeManagedFavoriteId, favoriteGroups.value);
-  temporaryRecords.value = temporaryRecords.value.filter(record => !result.temporaryIds.includes(record.id));
+  managedLocalVersion += 1;
+  const removedFavoriteIds = new Set(result.favoriteIds);
+  const removedTemporaryIds = new Set(result.temporaryIds);
+  favoriteMetas.value = favoriteMetas.value.filter(meta => !removedFavoriteIds.has(meta.id));
+  temporaryMetas.value = temporaryMetas.value.filter(meta => !removedTemporaryIds.has(meta.id));
 }
 
 /**
@@ -577,10 +627,16 @@ function buildManagedDeleteMessage(favoriteCount: number, temporaryCount: number
   return `确定要删除选中的 ${favoriteCount} 张收藏图片吗？`;
 }
 
-interface ManagedKeyBuckets {
+/** 管理项按类型分桶结果 */
+interface ManagedItemBuckets {
+  favoriteItems: ManagedImageItem[];
+  temporaryItems: ManagedImageItem[];
+}
+
+/** 待删除的收藏/临时图片 ID 集合 */
+interface ManagedDeleteTargets {
   favoriteIds: number[];
   temporaryIds: string[];
-  temporaryItems: ManagedImageItem[];
 }
 
 interface ManagedDeleteStepResult<T> {
@@ -596,33 +652,19 @@ interface ManagedDeleteResult {
 }
 
 /**
- * 将复合 key 分桶为收藏 ID 与临时项
+ * 将复合 key 分桶为收藏/临时管理项
  * @param keys 复合 key
- * @param items 当前管理项（用于取临时图 blob）
+ * @param items 当前管理项
  */
-function partitionManagedKeys(keys: string[], items: ManagedImageItem[]): ManagedKeyBuckets {
+function partitionManagedItems(keys: string[], items: ManagedImageItem[]): ManagedItemBuckets {
   const itemMap = new Map(items.map(item => [item.key, item]));
-  const buckets: ManagedKeyBuckets = { favoriteIds: [], temporaryIds: [], temporaryItems: [] };
-  keys.forEach(key => appendPartitionedKey(key, itemMap, buckets));
+  const buckets: ManagedItemBuckets = { favoriteItems: [], temporaryItems: [] };
+  keys.forEach(key => {
+    const item = itemMap.get(key);
+    if (!item) return;
+    (item.kind === 'favorite' ? buckets.favoriteItems : buckets.temporaryItems).push(item);
+  });
   return buckets;
-}
-
-/**
- * 解析单个复合 key 并写入分桶
- * @param key 复合 key
- * @param itemMap 当前管理项索引
- * @param buckets 分桶结果
- */
-function appendPartitionedKey(key: string, itemMap: Map<string, ManagedImageItem>, buckets: ManagedKeyBuckets): void {
-  const parsed = parseManagedImageKey(key);
-  if (!parsed) return;
-  if (parsed.kind === 'favorite') {
-    buckets.favoriteIds.push(Number(parsed.sourceId));
-    return;
-  }
-  buckets.temporaryIds.push(String(parsed.sourceId));
-  const item = itemMap.get(key);
-  if (item) buckets.temporaryItems.push(item);
 }
 
 /**

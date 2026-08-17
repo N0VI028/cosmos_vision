@@ -80,7 +80,7 @@
           >
             <CvDataCard
               v-for="item in row.items"
-              :key="getPreviewUrl(item.key)"
+              :key="item.key"
               :selected="isItemSelected(item.key)"
               :selecting="isSelecting"
               :disabled="busy && isSelecting"
@@ -105,7 +105,9 @@
                     :class="kindBadgeClass(item.kind)"
                     >{{ kindLabel(item.kind) }}</span
                   >
+                  <!-- 缩略图按需加载：就绪后可点击进灯箱；加载中骨架占位；失败降级为图片图标 -->
                   <LightboxImage
+                    v-if="previewStatus(item.key) === 'ready'"
                     :src="getPreviewUrl(item.key)"
                     :snapshot="item.promptSnapshot"
                     :download-action="() => $emit('download-items', [item.key])"
@@ -113,6 +115,14 @@
                     alt="图片预览"
                     class="block size-full object-cover"
                   />
+                  <div
+                    v-else-if="previewStatus(item.key) === 'error'"
+                    class="flex size-full items-center justify-center text-(--cv-on-surface-variant)"
+                    title="缩略图加载失败"
+                  >
+                    <i class="fa-regular fa-image text-(length:--cv-font-size-2xl)" aria-hidden="true" />
+                  </div>
+                  <Skeleton v-else height="100%" class="block size-full" />
 
                   <!-- 移动端窄卡片：缩略图右下角三点按钮呼出箭头气泡菜单（半透明方形底增强辨识度） -->
                   <!-- 底色放在容器上：按钮自带 bg-transparent 工具类会压掉同属性的背景类 -->
@@ -129,10 +139,7 @@
                       :disabled="busy"
                       @click="toggleCardMenu($event, item.key)"
                     />
-                    <Popover
-                      :ref="el => setCardMenuPopover(item.key, el)"
-                      :base-z-index="MACRO_POPOVER_BASE_Z_INDEX"
-                    >
+                    <Popover :ref="el => setCardMenuPopover(item.key, el)" :base-z-index="MACRO_POPOVER_BASE_Z_INDEX">
                       <div class="flex w-max flex-col items-stretch gap-(--cv-space-xs)">
                         <CvMiniButton
                           class="cv-card-menu-action"
@@ -162,7 +169,9 @@
                 </div>
 
                 <div class="flex min-w-0 flex-col gap-(--cv-space-sm) p-(--cv-space-4xl)">
-                  <div class="overflow-hidden text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface) text-ellipsis whitespace-nowrap">
+                  <div
+                    class="overflow-hidden text-(length:--cv-font-size-xs) font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
+                  >
                     {{ formatImageLabel(item.createdAt) }}
                   </div>
                   <div
@@ -236,15 +245,13 @@ import Checkbox from 'primevue/checkbox';
 import Popover from 'primevue/popover';
 import Select from 'primevue/select';
 import Skeleton from 'primevue/skeleton';
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { useManagedImagePreviews } from '@/composables/useManagedImagePreviews';
 import { useVirtualCardGrid } from '@/composables/useVirtualCardGrid';
 import CvDataCard from '@/panel/components/CvDataCard.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import LightboxImage from '@/panel/components/LightboxImage.vue';
-import {
-  MACRO_POPOVER_BASE_Z_INDEX,
-  type MacroPopoverInstance,
-} from '@/panel/components/prompt-llm-macro-popover';
+import { MACRO_POPOVER_BASE_Z_INDEX, type MacroPopoverInstance } from '@/panel/components/prompt-llm-macro-popover';
 import StaticPanel from '@/panel/components/StaticPanel.vue';
 import {
   managedChatGroupId,
@@ -286,8 +293,6 @@ const selectedCharacterKey = ref(ALL_CHARACTER_KEY);
 const selectedChatId = ref(ALL_CHAT_KEY);
 const isSelecting = ref(false);
 const selectedKeys = ref<string[]>([]);
-const previewUrlMap = ref<Record<string, string>>({});
-const objectUrls = new Set<string>();
 // 每张卡片一个浮层实例；虚拟滚动行卸载时由函数 ref 自动移除，无需响应式
 const cardMenuPopovers = new Map<string, MacroPopoverInstance>();
 
@@ -306,6 +311,10 @@ const { containerProps, wrapperProps, visibleRows, rowRef, scrollToRow } = useVi
   () => visibleItems.value,
 );
 
+// 可见窗口 key → 按需加载缩略图 object URL（滚出窗口即回收）
+const visibleCardKeys = computed(() => visibleRows.value.flatMap(row => row.items.map(item => item.key)));
+const { previewUrls, previewStatus } = useManagedImagePreviews(() => visibleItems.value, visibleCardKeys);
+
 // 筛选变化时回到列表顶部；删除/刷新等数据变化保持原滚动位置
 watch([selectedType, selectedCharacterKey, selectedChatId], () => {
   scrollToRow(0);
@@ -313,8 +322,7 @@ watch([selectedType, selectedCharacterKey, selectedChatId], () => {
 
 watch(
   () => props.items,
-  (items, previous) => {
-    syncPreviewUrls(items, previous ?? []);
+  () => {
     reconcileCharacterSelection(characterOptions.value.map(option => option.value));
   },
   { immediate: true },
@@ -351,10 +359,6 @@ watch(
     if (!keys.length) isSelecting.value = false;
   },
 );
-
-onBeforeUnmount(() => {
-  clearPreviewUrls();
-});
 
 /** 切换显式多选模式 */
 function toggleSelectMode(): void {
@@ -436,11 +440,11 @@ function setCardMenuPopover(key: string, el: unknown): void {
 }
 
 /**
- * 读取缩略图预览地址
+ * 读取缩略图预览地址（未就绪时为空串）
  * @param key 复合 key
  */
 function getPreviewUrl(key: string): string {
-  return previewUrlMap.value[key] ?? '';
+  return previewUrls.value[key] ?? '';
 }
 
 /**
@@ -485,51 +489,6 @@ function formatImageLabel(createdAt: number): string {
  */
 function stripPngExtension(name: string): string {
   return name.replace('.png', '');
-}
-
-/**
- * 同步缩略图 URL 映射（按 key 复用；key 变化时按 blob 引用复用）
- * @param items 当前管理项
- * @param previous 上一批管理项
- */
-function syncPreviewUrls(items: ManagedImageItem[], previous: ManagedImageItem[] = []): void {
-  const blobToUrl = new Map<Blob, string>();
-  previous.forEach(item => {
-    const url = previewUrlMap.value[item.key];
-    if (url) blobToUrl.set(item.imageBlob, url);
-  });
-  const nextMap: Record<string, string> = {};
-  const keepUrls = new Set<string>();
-  items.forEach(item => {
-    const objectUrl =
-      previewUrlMap.value[item.key] ?? blobToUrl.get(item.imageBlob) ?? createPreviewUrl(item.imageBlob);
-    nextMap[item.key] = objectUrl;
-    keepUrls.add(objectUrl);
-  });
-  Object.values(previewUrlMap.value).forEach(url => {
-    if (keepUrls.has(url)) return;
-    URL.revokeObjectURL(url);
-    objectUrls.delete(url);
-  });
-  previewUrlMap.value = nextMap;
-}
-
-/**
- * 创建并登记缩略图 URL
- * @param imageBlob 图片数据
- * @returns object URL
- */
-function createPreviewUrl(imageBlob: Blob): string {
-  const objectUrl = URL.createObjectURL(imageBlob);
-  objectUrls.add(objectUrl);
-  return objectUrl;
-}
-
-/** 清理已创建的缩略图 URL */
-function clearPreviewUrls(): void {
-  objectUrls.forEach(url => URL.revokeObjectURL(url));
-  objectUrls.clear();
-  previewUrlMap.value = {};
 }
 
 /**

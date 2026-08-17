@@ -17,6 +17,9 @@ export interface TemporaryImageRecord extends InlineImageFavoriteScope {
   createdAt: number;
 }
 
+/** 临时图片元数据（无 Blob）——管理页按需水合用 */
+export type TemporaryImageMeta = Omit<TemporaryImageRecord, 'imageBlob'>;
+
 let temporaryImageWriteQueue = Promise.resolve();
 
 /**
@@ -54,6 +57,28 @@ export async function listAllTemporaryImages(): Promise<TemporaryImageRecord[]> 
   const db = await openTemporaryImageDb();
   const request = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll();
   return requestToPromise(request as IDBRequest<TemporaryImageRecord[]>);
+}
+
+/**
+ * 读取全部临时图片元数据（读取后即剥除 Blob，不长期驻留内存）
+ * @returns 不含图片数据的元数据列表
+ */
+export async function listAllTemporaryImageMeta(): Promise<TemporaryImageMeta[]> {
+  const records = await listAllTemporaryImages();
+  return records.map(({ imageBlob: _imageBlob, ...meta }) => meta);
+}
+
+/**
+ * 按需读取单张临时图片
+ * @param id 临时图片 ID
+ * @returns 图片 Blob；记录不存在时返回 null
+ */
+export async function loadTemporaryImageBlob(id: string): Promise<Blob | null> {
+  await temporaryImageWriteQueue;
+  const db = await openTemporaryImageDb();
+  const request = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(id);
+  const record = await requestToPromise(request as IDBRequest<TemporaryImageRecord | undefined>);
+  return record?.imageBlob ?? null;
 }
 
 /**
