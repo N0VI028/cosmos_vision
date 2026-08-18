@@ -171,11 +171,12 @@ const relatedLinks: RelatedLink[] = [
 const vibeRows = ref<NovelAIVibeCacheListItem[]>([]);
 const isVibeRowsLoading = ref(false);
 const isVibeActionBusy = ref(false);
-// 管理图片仅持有元数据，缩略图/下载/互换时再按需水合 Blob
 const favoriteMetas = ref<InlineImageFavoriteMeta[]>([]);
 const temporaryMetas = ref<TemporaryImageMeta[]>([]);
 const isManagedImagesLoading = ref(false);
 const isManagedImagesBusy = ref(false);
+let managedRefreshGeneration = 0;
+let managedLocalVersion = 0;
 const managedImageItems = computed(() =>
   mergeManagedImageItems(toManagedFavoriteItems(favoriteMetas.value), toManagedTemporaryItems(temporaryMetas.value)),
 );
@@ -225,10 +226,6 @@ async function refreshVibeRows(): Promise<void> {
     isVibeRowsLoading.value = false;
   }
 }
-
-// 刷新代次与本地变更版本：丢弃晚于互换/删除就地补丁返回的过期刷新快照
-let managedRefreshGeneration = 0;
-let managedLocalVersion = 0;
 
 /**
  * 并行刷新收藏与临时图片管理数据
