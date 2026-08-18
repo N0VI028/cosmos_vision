@@ -21,10 +21,11 @@ export interface GalleryFavoriteHost {
 
 /**
  * 收藏图片：上传本地文件并绑定 slot；raw 仅保证一枚短码
+ * 前端型楼层尾 mount（paragraph 为 null）跳过 raw 短码绑定，仅存 IDB favorite 记录
  * @param group 画廊组
  * @param item 画廊项
  * @param bindSlot 把组升级为 slot 键的回调
- * @returns 是否完成 raw 短码绑定
+ * @returns 是否完成 raw 短码绑定（前端型始终返回 false）
  */
 export async function favoriteGalleryItem(
   group: GalleryFavoriteHost,
@@ -32,14 +33,15 @@ export async function favoriteGalleryItem(
   bindSlot: (slotId: string) => void,
 ): Promise<boolean> {
   const paragraph = group.anchor.paragraph;
-  if (!paragraph) throw new Error('未找到宿主段落，无法收藏图片');
   const slotId = resolveFavoriteSlotId(group, paragraph);
   item.createdAt = Date.now();
   item.slotId = slotId;
-  const record = buildFavoriteRecord(group, item, slotId);
+  const record = buildFavoriteRecord(item, slotId);
   if (!record) throw new Error('当前角色或聊天未就绪，暂时无法收藏图片');
   item.favoriteId = (await saveInlineImageFavorite(record)).id;
   bindSlot(slotId);
+  // 前端型楼层尾无宿主段落，跳过 raw 短码绑定
+  if (!paragraph) return false;
   try {
     await ensureSlotShortcodeOnParagraph(paragraph, slotId);
     return true;
@@ -78,11 +80,11 @@ export async function deleteFavoriteGalleryItem(group: GalleryFavoriteHost, item
 /**
  * 解析收藏应使用的 slotId
  * @param group 画廊组
- * @param paragraph 宿主段落
+ * @param paragraph 宿主段落（前端型为 null）
  * @returns slotId
  */
-function resolveFavoriteSlotId(group: GalleryFavoriteHost, paragraph: HTMLElement): string {
-  return group.slotId ?? resolveParagraphSlotId(paragraph) ?? itemSlotFromGroup(group) ?? newSlotId();
+function resolveFavoriteSlotId(group: GalleryFavoriteHost, paragraph: HTMLElement | null): string {
+  return group.slotId ?? (paragraph && resolveParagraphSlotId(paragraph)) ?? itemSlotFromGroup(group) ?? newSlotId();
 }
 
 /**
@@ -96,18 +98,16 @@ function itemSlotFromGroup(group: GalleryFavoriteHost): string | null {
 
 /**
  * 构建收藏文件记录（仅 scope + slotId + 图 + 快照 + 时间）
- * @param group 画廊组
  * @param item 画廊项
  * @param slotId 位点 id
  * @returns 收藏记录或 null
  */
 function buildFavoriteRecord(
-  group: GalleryFavoriteHost,
   item: InlineGalleryItem,
   slotId: string,
 ): Omit<InlineImageFavoriteRecord, 'id'> | null {
   const scope = getCurrentInlineFavoriteScope();
-  if (!scope || !group.anchor.paragraph) return null;
+  if (!scope) return null;
   return {
     ...scope,
     slotId,

@@ -8,6 +8,8 @@ import {
   buildSlotSessionKey,
   type GallerySessionRecord,
 } from '@/composables/inlineGallerySession';
+import { ensureFloorTailSlotContainer } from '@/services/inline-image/floor-tail-host';
+import { pickFloorTailMountsForMessage } from '@/services/inline-image/floor-tail-restore';
 import {
   createInlineFavoriteAnchor,
   findMessageId,
@@ -60,6 +62,35 @@ export function pickMountFromSession(
 }
 
 /**
+ * 在前端型生成完成时把单条 slot 会话转为楼层尾挂载规格
+ * @param record 会话记录
+ * @param mesId 消息楼层 ID
+ * @param swipeId 当前 swipe ID
+ * @returns 挂载规格
+ */
+export function pickMountFromFloorTailSession(
+  record: GallerySessionRecord,
+  mesId: number,
+  swipeId: number,
+): GalleryMountSpec {
+  const element = ensureFloorTailSlotContainer(mesId, swipeId, record.slotId);
+  return {
+    key: record.key,
+    messageId: mesId,
+    element,
+    mountKey: { kind: 'slot', slotId: record.slotId },
+    anchor: {
+      target: element,
+      placement: 'append',
+      paragraph: null,
+      mesId: String(mesId),
+      swipeId,
+      paragraphTextHash: '',
+    },
+  };
+}
+
+/**
  * 解析待扫描楼层 id 列表
  * @param messageIds 可选限定
  * @returns 楼层 id
@@ -72,7 +103,7 @@ function resolveTargetMessageIds(messageIds?: number[]): number[] {
 }
 
 /**
- * 扫描某一楼的短码
+ * 扫描某一楼的短码与楼层尾 slot
  * @param messageId 楼层
  * @param seen 全局 key 去重
  * @returns 挂载规格
@@ -83,6 +114,7 @@ async function pickSlotMountsForMessage(messageId: number, seen: Set<string>): P
     const mount = pickSlotMountForParagraph(paragraph, messageId, seen);
     if (mount) mounts.push(mount);
   }
+  mounts.push(...pickFloorTailMountsForMessage(messageId, seen));
   return mounts;
 }
 

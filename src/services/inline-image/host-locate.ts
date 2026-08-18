@@ -13,7 +13,7 @@ export interface HostLocateQuery {
   siblingHosts: string[];
 }
 
-interface MappedText {
+export interface MappedText {
   normalized: string;
   /** normalized[i] 对应源串 end-exclusive 偏移 */
   sourceEnd: number[];
@@ -233,9 +233,10 @@ function splitRawBlocks(raw: string): RawBlock[] {
 /**
  * 构造规范化串及每个字符对应的源 end 偏移
  * @param source 源文本
+ * @param preserveNewlines 是否保留换行
  * @returns 映射表
  */
-function mapNormalize(source: string): MappedText {
+export function mapNormalize(source: string, preserveNewlines = false): MappedText {
   const chars: string[] = [];
   const sourceEnd: number[] = [];
   let i = 0;
@@ -243,40 +244,84 @@ function mapNormalize(source: string): MappedText {
     const cp = source.codePointAt(i)!;
     const ch = String.fromCodePoint(cp);
     const width = ch.length;
-    if (isMarkdownNoise(ch)) {
+    if (isMarkdownNoise(ch) || ch === '\r') {
       i += width;
       continue;
     }
-    if (cp === 0x2026) {
-      pushMapped(chars, sourceEnd, '...', i + width);
+    const special = normalizeSpecialChar(ch, cp);
+    if (special) {
+      pushMapped(chars, sourceEnd, special, i + width);
       i += width;
       continue;
     }
-    if ('“”„«»'.includes(ch)) {
-      pushMapped(chars, sourceEnd, '"', i + width);
-      i += width;
-      continue;
-    }
-    if ("‘’‚′".includes(ch)) {
-      pushMapped(chars, sourceEnd, "'", i + width);
-      i += width;
-      continue;
-    }
-    if (ch === '\r') {
-      i += width;
+    if (preserveNewlines && ch === '\n') {
+      i = consumeNewlines(source, i, chars, sourceEnd);
       continue;
     }
     if (/\s/.test(ch)) {
-      while (i < source.length && /\s/.test(source[i]!)) i += 1;
-      if (chars.length > 0 && chars[chars.length - 1] !== ' ') {
-        pushMapped(chars, sourceEnd, ' ', i);
-      }
+      i = consumeWhitespace(source, i, chars, sourceEnd, preserveNewlines);
       continue;
     }
     pushMapped(chars, sourceEnd, ch, i + width);
     i += width;
   }
   return trimMapped(chars, sourceEnd);
+}
+
+/**
+ * 规范化标点与省略号等特殊字符
+ * @param ch 字符
+ * @param cp 代码点
+ * @returns 规范化后的字符或 null
+ */
+function normalizeSpecialChar(ch: string, cp: number): string | null {
+  if (cp === 0x2026) return '...';
+  if ('“”„«»'.includes(ch)) return '"';
+  if ("‘’‚′".includes(ch)) return "'";
+  return null;
+}
+
+/**
+ * 消费连续换行与环绕空白
+ * @param source 源串
+ * @param start 起始位置
+ * @param chars 字符数组
+ * @param sourceEnd 偏移数组
+ * @returns 新位置
+ */
+function consumeNewlines(source: string, start: number, chars: string[], sourceEnd: number[]): number {
+  let i = start;
+  while (i < source.length && /[\r\n\t ]/.test(source[i]!)) i += 1;
+  if (chars.length > 0 && chars[chars.length - 1] !== '\n') {
+    pushMapped(chars, sourceEnd, '\n', i);
+  }
+  return i;
+}
+
+/**
+ * 消费空白字符并合并为单个空格
+ * @param source 源串
+ * @param start 起始位置
+ * @param chars 字符数组
+ * @param sourceEnd 偏移数组
+ * @param preserveNewlines 是否保留换行模式
+ * @returns 新位置
+ */
+function consumeWhitespace(
+  source: string,
+  start: number,
+  chars: string[],
+  sourceEnd: number[],
+  preserveNewlines: boolean,
+): number {
+  let i = start;
+  const pattern = preserveNewlines ? /[ \t]/ : /\s/;
+  while (i < source.length && pattern.test(source[i]!)) i += 1;
+  const last = chars[chars.length - 1];
+  if (chars.length > 0 && last !== ' ' && last !== '\n') {
+    pushMapped(chars, sourceEnd, ' ', i);
+  }
+  return i;
 }
 
 /**
@@ -302,8 +347,8 @@ function pushMapped(chars: string[], sourceEnd: number[], chunk: string, end: nu
 function trimMapped(chars: string[], sourceEnd: number[]): MappedText {
   let start = 0;
   let end = chars.length;
-  while (start < end && chars[start] === ' ') start += 1;
-  while (end > start && chars[end - 1] === ' ') end -= 1;
+  while (start < end && /\s/.test(chars[start]!)) start += 1;
+  while (end > start && /\s/.test(chars[end - 1]!)) end -= 1;
   return {
     normalized: chars.slice(start, end).join(''),
     sourceEnd: sourceEnd.slice(start, end),

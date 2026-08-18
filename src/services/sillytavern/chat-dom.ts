@@ -330,7 +330,7 @@ export function getFocusedChatParagraphs(): HTMLElement[] {
  * @param settings Prompt LLM 历史楼层设置
  * @returns 按时间顺序拼接的历史消息
  */
-async function buildPromptLlmHistoryParagraphsWithRegex(
+export async function buildPromptLlmHistoryParagraphsWithRegex(
   targetP: HTMLElement,
   settings: Pick<PromptLlmSettings, 'historyFloorCount' | 'ignoreUserMessagesInHistory'>,
 ): Promise<string[]> {
@@ -361,6 +361,31 @@ async function buildPromptLlmHistoryParagraphsWithRegex(
   // 每条正则后的消息作为独立段落，不用 split('\n') 拆分，保留消息边界
   const regexedParagraphs = result.messages.map(msg => msg.text).filter(Boolean);
   return [...regexedParagraphs, ...currentParagraphs];
+}
+
+/**
+ * 构建排除焦点楼层的 Prompt LLM 历史段落（前端型气泡专用）
+ * 焦点楼层文本由调用方独立提供，历史只含焦点楼层之前的正则处理消息
+ * @param targetP 焦点气泡元素（用于定位消息索引）
+ * @param settings Prompt LLM 历史楼层设置
+ * @returns 历史段落数组
+ */
+export async function buildPromptLlmHistoryExcludingFocusFloor(
+  targetP: HTMLElement,
+  settings: Pick<PromptLlmSettings, 'historyFloorCount' | 'ignoreUserMessagesInHistory'>,
+): Promise<string[]> {
+  const messageIndex = findMessageId(targetP);
+  const parsedIndex = messageIndex ? parseInt(messageIndex, 10) : NaN;
+  if (!Number.isInteger(parsedIndex) || parsedIndex < 0) return [];
+  const result = await buildRegexedHistory({
+    currentMessageIndex: parsedIndex - 1,
+    depthBaseline: chat.length - 1,
+    historyFloorCount: settings.historyFloorCount,
+    ignoreUserMessages: settings.ignoreUserMessagesInHistory,
+    reverseOrder: false,
+  });
+  if (!result.success) return [];
+  return result.messages.map(msg => msg.text).filter(Boolean);
 }
 
 /**

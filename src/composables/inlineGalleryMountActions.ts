@@ -19,6 +19,7 @@ import {
 } from '@/services/inline-image/favorites-cache';
 import { getCurrentInlineFavoriteScope } from '@/services/sillytavern/chat-context';
 import { removeSlotShortcodeFromMessage } from '@/services/inline-image/slot-bind';
+import { deleteFloorTailSlot, readFloorTailSlots } from '@/services/inline-image/floor-tail-slot';
 import type { GalleryMountRuntime } from '@/store/gallery-runtimes';
 import { useGalleryRuntimesStore } from '@/store/gallery-runtimes';
 import { useSettingsStore } from '@/store/settings';
@@ -185,6 +186,8 @@ export async function removeMountItem(
   if (!remaining.length) {
     const target = mount.anchor.paragraph ?? mount.messageId;
     await removeSlotShortcodeFromMessage(target, mount.mountKey.slotId);
+    // 前端型楼层尾 slot 才需要清 chatMetadata；classic-p slotId 不在 floor-tail slots 里
+    if (!mount.anchor.paragraph) deleteFloorTailSlot(mount.mountKey.slotId);
     useGalleryRuntimesStore().removeMount(mount.key, mount.messageId);
     return false;
   }
@@ -193,37 +196,41 @@ export async function removeMountItem(
 
 /**
  * 读取 regenerate / download 回调
+ * 前端型楼层尾 mount（paragraph 为 null）用 anchor.target 作为生图锚点
  * @param mount 运行时
  * @param item 项
  */
 export function invokeGenerateLast(mount: GalleryMountRuntime, item: InlineGalleryItem): void {
   const handlers = useGalleryRuntimesStore().getActionHandlers();
-  const paragraph = mount.anchor.paragraph;
-  if (!handlers || !paragraph) return;
-  void handlers.onGenerateWithSnapshot(paragraph, item.promptSnapshot);
+  const anchor = mount.anchor.paragraph ?? mount.anchor.target;
+  if (!handlers || !anchor) return;
+  void handlers.onGenerateWithSnapshot(anchor, item.promptSnapshot);
 }
 
 /**
  * 重新生成 TAG + 图
+ * 前端型楼层尾 mount 用 slot 存储的 promptText 作为焦点文本（跳过 DOM 提取）
  * @param mount 运行时
  */
 export function invokeGenerateFresh(mount: GalleryMountRuntime): void {
   const handlers = useGalleryRuntimesStore().getActionHandlers();
-  const paragraph = mount.anchor.paragraph;
-  if (!handlers || !paragraph) return;
-  void handlers.onGenerateWithFreshPrompt(paragraph);
+  const anchor = mount.anchor.paragraph ?? mount.anchor.target;
+  if (!handlers || !anchor) return;
+  const promptText = mount.anchor.paragraph ? undefined : readFloorTailSlots()[mount.mountKey.slotId]?.promptText;
+  void handlers.onGenerateWithFreshPrompt(anchor, 'repeat', promptText);
 }
 
 /**
  * 编辑 TAG 后生图
+ * 前端型楼层尾 mount 用 anchor.target 作为生图锚点
  * @param mount 运行时
  * @param item 项
  */
 export function invokeGenerateEditable(mount: GalleryMountRuntime, item: InlineGalleryItem): void {
   const handlers = useGalleryRuntimesStore().getActionHandlers();
-  const paragraph = mount.anchor.paragraph;
-  if (!handlers || !paragraph) return;
-  void handlers.onGenerateWithEditablePrompt(paragraph, item.promptSnapshot);
+  const anchor = mount.anchor.paragraph ?? mount.anchor.target;
+  if (!handlers || !anchor) return;
+  void handlers.onGenerateWithEditablePrompt(anchor, item.promptSnapshot);
 }
 
 /**

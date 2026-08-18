@@ -5,25 +5,15 @@ import {
 } from '@/composables/inlineGenerationSession';
 import { preventInlineEventBubbling } from '@/composables/inlineImageDom';
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
-import {
-  canEditInlineCharacterPrompts,
-  type InlineCharacterPromptDraft,
-} from '@/composables/inlineEditableCharacterPrompt';
-import {
-  createEditedPromptSnapshot,
-  readEditablePromptInput,
-} from '@/composables/inlineEditablePromptSnapshot';
 import { useGalleryRuntimesStore } from '@/store/gallery-runtimes';
 import {
   generateComfyUIImagesFromPrompts,
   generateComfyUIImagesFromResolvedRequest,
 } from '@/services/comfyui/api';
 import { buildComfyUIResolvedRequest, getComfyUIRequestError } from '@/services/comfyui/workflow';
-import type { ComfyUIRequestSnapshot } from '@/services/comfyui/types';
 import {
   buildNovelAIResolvedRequest,
   buildNovelAIPromptOverrides,
-  type NovelAIFinalPrompts,
   generateNovelAIImageFromPrompts,
   generateNovelAIImagesFromResolvedRequest,
 } from '@/services/novelai/api';
@@ -31,7 +21,10 @@ import { createSelectionShellController } from '@/composables/inlineSelectionShe
 import { nextParagraphSelection } from '@/composables/inlineParagraphSelection';
 import {
   buildPromptLlmContextFromParagraphs,
+  buildPromptLlmHistoryExcludingFocusFloor,
   findChatParagraph,
+  findMessageId,
+  getMessageSwipeId,
   sortChatParagraphsByDomOrder,
 } from '@/services/sillytavern/chat-dom';
 import {
@@ -39,77 +32,45 @@ import {
   generatePromptFromRuntimeContext,
 } from '@/services/prompt-llm/runtime-request';
 import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
-import type { ImagePromptVibeRef } from '@/constants/novelai-vibe';
 import { useSettingsStore } from '@/store/settings';
 import { getCurrentInstance } from 'vue';
 import {
   downloadInlineImageBlob,
 } from '@/services/inline-image/image-download-transform';
-import type { InlineImageDownloadOptions } from '@/services/inline-image/download-options';
-import { formatTimestampForFileName } from '@/services/inline-image/filename-utils';
+import {
+  buildInlineImageDownloadBaseName,
+  createComfyUISnapshot,
+  createNovelAISnapshot,
+} from '@/composables/inlineGenerationSnapshot';
+import { resolveInlineRoute } from '@/services/inline-image/route-resolve';
+import { extractFrontendText, resolveFrontendBubbleRoot } from '@/services/inline-image/frontend-text-extract';
+import { ensureFloorTailHost } from '@/services/inline-image/floor-tail-host';
+import { writeFloorTailSlot } from '@/services/inline-image/floor-tail-slot';
+import { newSlotId } from '@/services/inline-image/slot-shortcode';
 
-type RuntimeEnabledGetter = () => boolean;
-type PromptLlmSchemaFields = ReturnType<typeof buildPromptLlmSchemaFields>;
+import {
+  collectTemporaryVibeSourceHashes,
+  type FreshPromptMode,
+  hasPromotedTemporaryVibes,
+  type InlineGenerationBatchResult,
+  type InlineGenerationTask,
+  type InlineImageGenerationOptions,
+  type InlinePromptPairInputOptions,
+  type InlinePromptPairInputValue,
+  type InlineTextInputOptions,
+  requestEditedPromptSnapshot,
+  type SpecialRequestContext,
+} from '@/composables/inlineGenerationInput';
 
-/** 编辑 TAG 弹窗中的角色提示词草稿 */
+export type {
+  InlineTextInputOptions,
+  InlinePromptPairInputOptions,
+  InlinePromptPairInputValue,
+  InlineImageGenerationOptions,
+};
 export type { InlineCharacterPromptDraft } from '@/composables/inlineEditableCharacterPrompt';
 
-export interface InlineTextInputOptions {
-  title?: string;
-  message: string;
-  defaultValue?: string;
-  rows?: number;
-  acceptLabel?: string;
-  cancelLabel?: string;
-}
-
-export interface InlinePromptPairInputOptions {
-  title?: string;
-  message: string;
-  positiveLabel?: string;
-  negativeLabel?: string;
-  positiveDefaultValue?: string;
-  negativeDefaultValue?: string;
-  positiveRows?: number;
-  negativeRows?: number;
-  acceptLabel?: string;
-  cancelLabel?: string;
-  /** 是否展示角色提示词编辑区（仅 NovelAI V4 / V4.5） */
-  enableCharacters?: boolean;
-  /** 角色提示词初始值 */
-  charactersDefaultValue?: InlineCharacterPromptDraft[];
-}
-
-export interface InlinePromptPairInputValue {
-  positive: string;
-  negative: string;
-  characters: InlineCharacterPromptDraft[];
-}
-
-interface InlineImageGenerationOptions {
-  isRuntimeEnabled?: RuntimeEnabledGetter;
-  requestTextInput: (options: InlineTextInputOptions) => Promise<string | null>;
-  requestPromptPairInput: (options: InlinePromptPairInputOptions) => Promise<InlinePromptPairInputValue | null>;
-  requestImageDownloadOptions: () => Promise<InlineImageDownloadOptions | null>;
-  getDarkMode: () => boolean;
-}
-
-type FreshPromptMode = 'new' | 'repeat';
-
-interface SpecialRequestContext {
-  anchor: HTMLElement;
-  value: string;
-}
-
-interface InlineGenerationBatchResult {
-  imageBlobs: Blob[];
-  promptSnapshot: InlinePromptSnapshot;
-}
-
-type InlineGenerationTask = (
-  session: InlineGenerationSession,
-  onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
-) => Promise<InlineGenerationBatchResult>;
+type PromptLlmSchemaFields = ReturnType<typeof buildPromptLlmSchemaFields>;
 
 
 /**
@@ -221,18 +182,27 @@ export function useInlineImageGeneration(
    * @param e 指针事件
    */
   function handleSelectionPointerUp(e: PointerEvent): void {
-    if (!isRuntimeEnabled()) return;
-    if (!isShortTap(e)) return;
-
+    if (!isRuntimeEnabled() || !isShortTap(e)) return;
     const target = e.target as HTMLElement;
     if (isIgnoredInlineTarget(target)) return;
 
-    // 向上回溯,兼容点击 p 内部 em/q/strong 等子元素
-    const p = findChatParagraph(target);
-    if (p) {
-      // 阻止 pointerup 默认行为,从而避免产生 click 事件唤起手机键盘
-      e.preventDefault();
-      setSelection(nextParagraphSelection(selectedParagraphs.value, p));
+    try {
+      const route = resolveInlineRoute(target);
+      if (route === 'classic-p') {
+        const p = findChatParagraph(target);
+        if (p) {
+          e.preventDefault();
+          setSelection(nextParagraphSelection(selectedParagraphs.value, p));
+          return;
+        }
+      } else {
+        const bubble = resolveFrontendBubbleRoot(target);
+        e.preventDefault();
+        setSelection(selectedParagraphs.value.includes(bubble) ? [] : [bubble]);
+        return;
+      }
+    } catch (error) {
+      toastr.warning(error instanceof Error ? error.message : '选段失败');
       return;
     }
 
@@ -329,10 +299,12 @@ export function useInlineImageGeneration(
    * 重新让 LLM 生成提示词后生图
    * @param source 目标段落或连续段落列表
    * @param mode 生成模式：新上下文不复用，重复生成复用同一锚点缓存
+   * @param presetPromptText 前端型楼层尾重生成时传入的已有提示词文本（跳过 DOM 提取）
    */
   async function handleGenerateWithFreshPrompt(
     source?: HTMLElement | HTMLElement[],
     mode: FreshPromptMode = 'repeat',
+    presetPromptText?: string,
   ): Promise<void> {
     const paragraphs = resolveGenerationParagraphs(source);
     if (!paragraphs.length) return;
@@ -353,7 +325,7 @@ export function useInlineImageGeneration(
 
     specialRequestContext = { anchor, value: specialRequest };
     await runImageGeneration(anchor, true, (session, onSnapshotResolved) =>
-      generateImageResultFromContext(paragraphs, specialRequest, session, onSnapshotResolved),
+      generateImageResultFromContext(paragraphs, specialRequest, session, onSnapshotResolved, presetPromptText),
     );
   }
 
@@ -379,7 +351,7 @@ export function useInlineImageGeneration(
   ): Promise<void> {
     if (!isRuntimeEnabled()) return;
     exitSelectionMode();
-    const editedSnapshot = await requestEditedPromptSnapshot(snapshot);
+    const editedSnapshot = await requestEditedPromptSnapshot(settings, snapshot, requestPromptPairInput);
     if (!editedSnapshot) return;
     await runImageGeneration(paragraph, false, session => generateImageResultFromSnapshot(editedSnapshot, session));
   }
@@ -452,12 +424,21 @@ export function useInlineImageGeneration(
   /**
    * 启动一次内联生成会话
    * 同段落若已有活动请求，会话控制器内部会先取消旧请求再创建新会话
-   * @param paragraph 目标段落
+   * @param paragraph 目标段落或气泡
    * @param requiresPromptLlm 是否需要先生成提示词
    * @returns 生成会话
    */
   function startGenerationSession(paragraph: HTMLElement, requiresPromptLlm: boolean): InlineGenerationSession {
     exitSelectionMode();
+    const route = resolveInlineRoute(paragraph);
+    if (route === 'frontend') {
+      const mesId = Number(findMessageId(paragraph) ?? NaN);
+      const swipeId = getMessageSwipeId(mesId) ?? 0;
+      const host = ensureFloorTailHost(mesId, swipeId);
+      const target = host.querySelector<HTMLElement>('.cv-inline-generation-overlay-shell, .cv-inline-img-wrap') ?? host;
+      const placement = target === host ? 'append' : 'overlay';
+      return generationSession.start(paragraph, target, getInitialStatusText(requiresPromptLlm), placement);
+    }
     const imageContainer = imageGallery.getHost(paragraph);
     const target = imageContainer ?? paragraph;
     const placement = imageContainer ? 'overlay' : 'after';
@@ -466,7 +447,7 @@ export function useInlineImageGeneration(
 
   /**
    * 应用生成结果并按顺序插入全部图片
-   * @param paragraph 目标段落
+   * @param paragraph 目标段落或气泡
    * @param result 批量生成结果
    * @param session 生成会话
    */
@@ -477,12 +458,52 @@ export function useInlineImageGeneration(
   ): Promise<void> {
     generationSession.ensureActive(session);
     session.status.remove();
+    const route = resolveInlineRoute(paragraph);
+    if (route === 'frontend') {
+      await applyFrontendGenerationResult(paragraph, result);
+      return;
+    }
     for (const imageBlob of result.imageBlobs) {
       await imageGallery.showGenerated(paragraph, {
         imageBlob,
         promptSnapshot: result.promptSnapshot,
       });
     }
+  }
+
+  /**
+   * 应用前端型气泡生成结果并写入 chatMetadata 楼层尾 slot
+   * imageRefs 由 showGeneratedFloorTail 返回的持久化 ID 构成，排除被数量限制淘汰的图片
+   * @param bubble 气泡元素
+   * @param result 批量生成结果
+   */
+  async function applyFrontendGenerationResult(
+    bubble: HTMLElement,
+    result: InlineGenerationBatchResult,
+  ): Promise<void> {
+    const mesId = Number(findMessageId(bubble) ?? NaN);
+    if (!Number.isFinite(mesId)) throw new Error('未能获取消息楼层 ID');
+    const swipeId = getMessageSwipeId(mesId) ?? 0;
+    const slotId = newSlotId();
+    const promptText = extractFrontendText(bubble);
+    const imageRefs: string[] = [];
+    for (const imageBlob of result.imageBlobs) {
+      const id = await imageGallery.showGeneratedFloorTail(mesId, swipeId, slotId, {
+        imageBlob,
+        promptSnapshot: result.promptSnapshot,
+      });
+      if (id) imageRefs.push(id);
+    }
+    if (!imageRefs.length) return;
+    writeFloorTailSlot({
+      slotId,
+      mesId,
+      swipeId,
+      promptText,
+      imageRefs,
+      createdAt: Date.now(),
+      route: 'frontend',
+    });
   }
 
   /**
@@ -542,11 +563,12 @@ export function useInlineImageGeneration(
   }
 
   /**
-   * 根据连续段落上下文重新生成提示词并生图
-   * @param paragraphs 选中的连续聊天段落
+   * 根据连续段落或气泡上下文重新生成提示词并生图
+   * @param paragraphs 选中的连续聊天段落或气泡
    * @param specialRequest 本次临时追加要求
    * @param session 生成会话
    * @param onSnapshotResolved LLM 成功后回调，传出提示词快照
+   * @param presetPromptText 前端型楼层尾重生成时传入的已有提示词文本（跳过 DOM 提取）
    * @returns 图片与提示词快照
    */
   async function generateImageResultFromContext(
@@ -554,12 +576,35 @@ export function useInlineImageGeneration(
     specialRequest: string,
     session: InlineGenerationSession,
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
+    presetPromptText?: string,
   ): Promise<InlineGenerationBatchResult> {
-    const promptContext = await buildPromptLlmContextFromParagraphs(paragraphs, settings.promptLlm);
+    const route = resolveInlineRoute(paragraphs[0]!);
+    const promptContext = route === 'frontend'
+      ? await buildFrontendPromptContext(paragraphs, presetPromptText)
+      : await buildPromptLlmContextFromParagraphs(paragraphs, settings.promptLlm);
     const context = { ...promptContext, specialRequest };
     return settings.imageSource === 'comfyui'
       ? generateComfyUIImageResult(context, session, onSnapshotResolved)
       : generateNovelAIImageResult(context, session, onSnapshotResolved);
+  }
+
+  /**
+   * 构建前端型气泡的 Prompt LLM 运行时上下文
+   * 历史排除焦点楼层（避免与 focusParagraph 重复），焦点由 extractFrontendText 独立提供
+   * @param bubbles 选中的气泡元素
+   * @param presetPromptText 楼层尾重生成时传入的已有提示词文本（跳过 DOM 提取）
+   * @returns Prompt LLM 上下文
+   */
+  async function buildFrontendPromptContext(bubbles: HTMLElement[], presetPromptText?: string): Promise<PromptLlmContext> {
+    const anchor = bubbles.at(-1);
+    if (!anchor) throw new Error('未找到目标气泡文本');
+    const focusParagraph = presetPromptText ?? bubbles.map(extractFrontendText).filter(Boolean).join('\n');
+    if (!focusParagraph) throw new Error('未找到目标气泡文本');
+    return {
+      historyParagraphs: await buildPromptLlmHistoryExcludingFocusFloor(anchor, settings.promptLlm),
+      focusParagraph,
+      specialRequest: '',
+    };
   }
 
   /**
@@ -658,25 +703,6 @@ export function useInlineImageGeneration(
   }
 
   /**
-   * 收集当前仍为临时态的 vibe 来源 hash
-   * @param vibes 本次请求绑定的 vibe 引用
-   */
-  function collectTemporaryVibeSourceHashes(vibes?: readonly ImagePromptVibeRef[]): string[] {
-    return (vibes ?? []).filter(vibe => vibe.temporary).map(vibe => vibe.sourceHash);
-  }
-
-  /**
-   * 判断本次请求是否将临时 vibe 升级为持久条目
-   * @param vibes 当前 vibe 引用
-   * @param sourceHashes 请求开始前的临时 vibe hash
-   * @returns 是否发生升级
-   */
-  function hasPromotedTemporaryVibes(vibes: readonly ImagePromptVibeRef[] | undefined, sourceHashes: readonly string[]): boolean {
-    if (!sourceHashes.length || !vibes?.length) return false;
-    return sourceHashes.some(sourceHash => !vibes.find(vibe => vibe.sourceHash === sourceHash)?.temporary);
-  }
-
-  /**
    * 使用 ComfyUI 生成图片
    * @param context Prompt LLM 运行时上下文
    * @param session 生成会话
@@ -716,60 +742,6 @@ export function useInlineImageGeneration(
   }
 
   /**
-   * 请求用户编辑当前图片保存的正负提示词（含角色）
-   * @param snapshot 当前图片保存的提示词快照
-   * @returns 编辑后的快照,取消时返回 null
-   */
-  async function requestEditedPromptSnapshot(snapshot: InlinePromptSnapshot): Promise<InlinePromptSnapshot | null> {
-    const initialPrompts = readEditablePromptInput(settings.novelai, snapshot);
-    const canEditCharacters = canEditInlineCharacterPrompts(settings.novelai.model);
-    const prompts = await requestPromptPairInput({
-      title: '编辑提示词后生图',
-      message: canEditCharacters
-        ? '直接编辑当前图片保存的全局提示词与角色提示词，确认后生成图片'
-        : '直接编辑当前图片保存的提示词，确认后生成图片',
-      positiveLabel: '正向提示词',
-      negativeLabel: '负向提示词',
-      positiveDefaultValue: initialPrompts.positive,
-      negativeDefaultValue: initialPrompts.negative,
-      positiveRows: 6,
-      negativeRows: 4,
-      enableCharacters: canEditCharacters,
-      charactersDefaultValue: initialPrompts.characters,
-    });
-    if (!prompts) return null;
-    return createEditedPromptSnapshot(settings.novelai, snapshot, prompts);
-  }
-
-  /**
-   * 创建 NovelAI 内联提示词快照
-   * @param prompts NovelAI 最终提示词
-   * @returns 内联提示词快照
-   */
-  function createNovelAISnapshot(prompts: NovelAIFinalPrompts): InlinePromptSnapshot {
-    return {
-      positivePrompt: prompts.positivePrompt,
-      negativePrompt: prompts.negativePrompt,
-      imageSource: 'novelai',
-      novelai: prompts,
-    };
-  }
-
-  /**
-   * 创建 ComfyUI 内联提示词快照
-   * @param snapshot ComfyUI 请求快照
-   * @returns 内联提示词快照
-   */
-  function createComfyUISnapshot(snapshot: ComfyUIRequestSnapshot): InlinePromptSnapshot {
-    return {
-      positivePrompt: snapshot.positivePrompt,
-      negativePrompt: snapshot.negativePrompt,
-      imageSource: 'comfyui',
-      comfyui: snapshot,
-    };
-  }
-
-  /**
    * 清理所有临时图片与 Object URL
    */
   function cleanup(): void {
@@ -778,6 +750,7 @@ export function useInlineImageGeneration(
     exitSelectionMode();
     generationSession.cleanup();
   }
+
   return {
     isSelectionMode,
     toggleSelectionMode,
@@ -786,13 +759,4 @@ export function useInlineImageGeneration(
     refreshGalleryTheme: () => imageGallery.refreshTheme(),
     cleanup,
   };
-}
-
-/**
- * 构建内联单图下载文件名
- * @param createdAt 图片创建时间
- * @returns 不含扩展名的文件名
- */
-function buildInlineImageDownloadBaseName(createdAt: number): string {
-  return `cosmos-vision-inline-image-${formatTimestampForFileName(createdAt)}`;
 }

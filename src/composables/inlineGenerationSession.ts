@@ -59,7 +59,7 @@ interface InlineGenerationStatusState {
   rawOutput?: string;
 }
 
-type InlineGenerationStatusPlacement = 'after' | 'overlay';
+type InlineGenerationStatusPlacement = 'after' | 'overlay' | 'append';
 type ActiveInlineGenerationSessions = Map<HTMLElement, InlineGenerationSession>;
 type InlineGenerationStatusSlots = Record<string, () => ReturnType<typeof h>>;
 
@@ -320,6 +320,10 @@ function createSession(
 function mountStatusHost(target: HTMLElement, host: HTMLElement, placement: InlineGenerationStatusPlacement): void {
   if (placement === 'overlay') {
     host.classList.add('cv-inline-generation-status--overlay');
+    target.append(host);
+    return;
+  }
+  if (placement === 'append') {
     target.append(host);
     return;
   }

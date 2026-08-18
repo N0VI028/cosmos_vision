@@ -1,6 +1,7 @@
 import { uuidv4 } from '@sillytavern/scripts/utils';
 import {
   pickGalleryMounts,
+  pickMountFromFloorTailSession,
   pickMountFromSession,
   type GalleryMountSpec,
 } from '@/services/inline-image/slot-gallery-pick';
@@ -15,6 +16,7 @@ import {
   type GallerySessionRecord,
 } from '@/composables/inlineGallerySession';
 import type { InlineGeneratedImageResult } from '@/composables/inlineImageGeneratedResult';
+import type { FreshPromptMode } from '@/composables/inlineGenerationInput';
 import {
   ensureSlotRenderContainerForParagraph,
   findRenderContainerAfter,
@@ -26,7 +28,8 @@ import { newSlotId } from '@/services/inline-image/slot-shortcode';
 import type { InlineFavoriteAnchor } from '@/services/sillytavern/chat-dom';
 import { event_types, eventSource } from '@sillytavern/script';
 import { useSettingsStore } from '@/store/settings';
-import { pruneTemporaryImages } from '@/services/inline-image/temporary-images';
+import { deleteTemporaryImage, pruneTemporaryImages } from '@/services/inline-image/temporary-images';
+import { pruneFloorTailSlotsAboveMesId } from '@/services/inline-image/floor-tail-slot';
 
 /** 管理页类型互换后的画廊就地补丁（保留 objectUrl，避免闪烁） */
 export type GalleryKindPatch =
@@ -69,7 +72,7 @@ interface GalleryRuntimeHandlers {
     paragraph: HTMLElement,
     snapshot: GallerySessionItem['promptSnapshot'],
   ) => Promise<void>;
-  onGenerateWithFreshPrompt: (paragraph: HTMLElement) => Promise<void>;
+  onGenerateWithFreshPrompt: (paragraph: HTMLElement, mode: FreshPromptMode, promptText?: string) => Promise<void>;
   onGenerateWithEditablePrompt: (
     paragraph: HTMLElement,
     snapshot: GallerySessionItem['promptSnapshot'],
@@ -97,7 +100,20 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
 
   const onChatLoaded = () => scheduleRestore();
   const onMoreMessages = () => scheduleJob({ kind: 'audit' });
-  const onMessageDeleted = () => scheduleJob({ kind: 'audit' });
+  const onMessageDeleted = (data?: unknown) => {
+    // ST 的 MESSAGE_DELETED emit 的是删除后的 chat.length，非被删 mesId
+    // 删除后剩余 mesId 为 [0, chat.length) 连续区间，超出上界的 slot 均已失效
+    const threshold = normalizeMessageId(data);
+    if (threshold !== null) {
+      const deletedSlots = pruneFloorTailSlotsAboveMesId(threshold);
+      for (const slot of deletedSlots) {
+        for (const imgId of slot.imageRefs) {
+          void deleteTemporaryImage(imgId);
+        }
+      }
+    }
+    scheduleJob({ kind: 'audit' });
+  };
   const onMessageFloor = (messageId: unknown) => {
     const id = normalizeMessageId(messageId);
     if (id === null) return;
@@ -239,6 +255,47 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
       });
   }
 
+  /**
+   * 展示新生成的前端型楼层尾临时图并返回持久化后的图片 ID
+   * @param mesId 消息楼层 ID
+   * @param swipeId 当前 swipe ID
+   * @param slotId 楼层尾 slotId
+   * @param result 生成结果
+   * @returns 持久化成功且未被数量限制淘汰时返回图片 ID，否则返回 null
+   */
+  async function showGeneratedFloorTail(
+    mesId: number,
+    swipeId: number,
+    slotId: string,
+    result: InlineGeneratedImageResult,
+  ): Promise<string | null> {
+    if (disposed || !settingsStore.savedSettings.enabled) return null;
+    const item: GallerySessionItem = {
+      id: createSessionItemId(),
+      favoriteId: null,
+      slotId,
+      imageBlob: result.imageBlob,
+      promptSnapshot: result.promptSnapshot,
+      createdAt: Date.now(),
+    };
+    const session = appendGeneratedSessionItem(slotId, item);
+    upsertFloorTailSessionMount(session, mesId, swipeId);
+    const scope = getCurrentInlineFavoriteScope();
+    if (!scope) {
+      console.warn('[CosmosVision] 当前聊天不可用，临时图片仅保留在内存中');
+      return item.id;
+    }
+    try {
+      const removedIds = await persistGallerySessionItem(session, item, scope, settingsStore.savedSettings.temporaryImageLimit);
+      removePrunedMounts(removedIds);
+      return removedIds.includes(item.id) ? null : item.id;
+    } catch (error) {
+      console.error('[CosmosVision] 临时图片持久化失败', error);
+      toastr.error('临时图片保存失败');
+      return null;
+    }
+  }
+
   /** 从 IndexedDB 恢复当前聊天临时图片 */
   function scheduleRestore(): void {
     void enqueue(async () => {
@@ -260,12 +317,13 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
   }
 
   /**
-   * 读取段落 after 的生成蒙版宿主
-   * @param paragraph 段落
+   * 读取段落 after 或楼层尾的生成蒙版宿主
+   * @param target 段落或楼层元素
    * @returns 宿主容器或 null
    */
-  function getHost(paragraph: HTMLElement): HTMLElement | null {
-    const container = findRenderContainerAfter(paragraph);
+  function getHost(target: HTMLElement): HTMLElement | null {
+    const container = findRenderContainerAfter(target)
+      ?? (target.classList.contains('cv-render') ? target : target.querySelector('.cv-render'));
     if (!container) return null;
     return container.querySelector('.cv-inline-generation-overlay-shell')
       ?? container.querySelector('.cv-inline-img-wrap')
@@ -439,6 +497,36 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
   }
 
   /**
+   * 把前端型生成会话写入 / 更新楼层 runtime
+   * @param session 会话
+   * @param mesId 消息楼层 ID
+   * @param swipeId 当前 swipe ID
+   */
+  function upsertFloorTailSessionMount(session: GallerySessionRecord, mesId: number, swipeId: number): void {
+    const mount = pickMountFromFloorTailSession(session, mesId, swipeId);
+    const existing = runtimes.value.find(runtime => runtime.message_id === mesId);
+    if (!existing) {
+      runtimes.value = [
+        ...runtimes.value,
+        {
+          message_id: mesId,
+          reload_memo: createReloadMemo(),
+          mounts: [toMountRuntime(mount)],
+        },
+      ];
+      return;
+    }
+    const current = existing.mounts.find(item => item.key === mount.key || item.element === mount.element);
+    if (current) {
+      current.mountKey = mount.mountKey;
+      current.anchor = toMountRuntime(mount).anchor;
+      current.generatedItem = session.items[0] ?? null;
+      return;
+    }
+    existing.mounts.push(toMountRuntime(mount));
+  }
+
+  /**
    * 摘掉空 mount 并可能移除空壳容器
    * @param key mount key
    * @param messageId 楼层
@@ -450,7 +538,13 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
     runtime.mounts = runtime.mounts.filter(item => item.key !== key);
     const orphan = Boolean(mount?.element.isConnected)
       && !runtime.mounts.some(item => item.element === mount?.element);
-    if (orphan) mount?.element.remove();
+    if (orphan) {
+      const parentRoot = mount?.element.closest('.cv-floor-tail');
+      mount?.element.remove();
+      if (parentRoot && !parentRoot.children.length) {
+        parentRoot.remove();
+      }
+    }
     if (!runtime.mounts.length) {
       runtimes.value = runtimes.value.filter(item => item.message_id !== messageId);
       return;
@@ -469,6 +563,7 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
     restoreAll,
     patchSlotKind,
     showGenerated,
+    showGeneratedFloorTail,
     getHost,
     removeMount,
   };

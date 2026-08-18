@@ -17,6 +17,7 @@ import { useGalleryRuntimesStore } from '@/store/gallery-runtimes';
 import { useSettingsStore } from '@/store/settings';
 import { storeToRefs } from 'pinia';
 import { removeSlotShortcodeFromMessage } from '@/services/inline-image/slot-bind';
+import { deleteFloorTailSlot } from '@/services/inline-image/floor-tail-slot';
 
 const props = defineProps<{
   mount: GalleryMountRuntime;
@@ -107,6 +108,8 @@ async function onForceDeleteShortcode(): Promise<void> {
   try {
     const target = props.mount.anchor.paragraph ?? props.mount.messageId;
     if (target) await removeSlotShortcodeFromMessage(target, props.mount.mountKey.slotId);
+    // 前端型楼层尾 slot 才需要清 chatMetadata；classic-p slotId 不在 floor-tail slots 里
+    if (!props.mount.anchor.paragraph) deleteFloorTailSlot(props.mount.mountKey.slotId);
     removeMount(props.mount.key, props.mount.messageId);
     toastr.success('已成功移除失效短码并清理占位符');
   } catch (error) {
@@ -232,7 +235,7 @@ onUnmounted(() => {
       :items="items"
       :active-item-id="activeItemId"
       :dark-mode="darkMode"
-      :can-generate="Boolean(mount.anchor.paragraph)"
+      :can-generate="true"
       :is-runtime-enabled="() => settingsStore.savedSettings.enabled"
       :select-item="selectItem"
       :toggle-favorite="item => void onToggleFavorite(item)"
