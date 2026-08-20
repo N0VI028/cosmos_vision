@@ -154,11 +154,9 @@
 
 /* 被选中段落仅作标记；视觉蒙版由整体选区壳覆盖，避免段间距缝隙 */
 .cv-inline-selected {
-  @apply relative block w-full;
+  @apply relative;
   box-shadow: none !important;
   overflow: visible !important;
-  display: block !important;
-  width: 100% !important;
 }
 
 /* 选区挂载容器允许整体蒙版溢出 */
@@ -282,6 +280,8 @@ body.dark .cv-inline-toolbar {
   line-height: 1 !important;
   font-style: normal !important;
   color: #ffffff !important;
+  /* 防止CSS前端通配符覆盖FontAwesome字体 */
+  font-family: 'Font Awesome 6 Free' !important;
 }
 
 /* 悬停时 icon 圆形微转动 */

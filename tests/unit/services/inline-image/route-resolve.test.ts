@@ -28,7 +28,7 @@ describe('route-resolve', () => {
     expect(resolveInlineRoute(bubble)).toBe('frontend');
   });
 
-  it('throws error when element is from another document (iframe)', () => {
+  it('handles element from another document (iframe) as frontend route', () => {
     const iframe = document.createElement('iframe');
     document.body.appendChild(iframe);
     // 轻量 DOM 模拟（如部分 happy-dom 配置）不提供 iframe 文档时跳过该用例
@@ -37,6 +37,6 @@ describe('route-resolve', () => {
     const insideIframe = iframeDoc.createElement('div');
     iframeDoc.body.appendChild(insideIframe);
 
-    expect(() => resolveInlineRoute(insideIframe)).toThrow('暂不支持 iframe 内选段生图');
+    expect(resolveInlineRoute(insideIframe)).toBe('frontend');
   });
 });

@@ -10,9 +10,12 @@ export type InlineRouteType = 'classic-p' | 'frontend';
  */
 export function resolveInlineRoute(element: HTMLElement): InlineRouteType {
   if (element.ownerDocument !== document) {
-    throw new Error('暂不支持 iframe 内选段生图');
+    // iframe 场景，归 frontend 路由
+    return 'frontend';
   }
-  if (findChatParagraph(element)) {
+
+  const chatParagraph = findChatParagraph(element);
+  if (chatParagraph) {
     return 'classic-p';
   }
   return 'frontend';

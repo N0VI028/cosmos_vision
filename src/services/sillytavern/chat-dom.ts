@@ -3,6 +3,7 @@ import { chat } from '@sillytavern/script';
 import { stripSlotShortcodes } from '@/services/inline-image/slot-shortcode';
 import { readPromptLlmHistoryMessages } from '@/services/tavern-helper/chat-history';
 import { buildRegexedHistory } from '@/services/tavern-helper/history-builder';
+import { extractFrontendText } from '@/services/inline-image/frontend-text-extract';
 
 const MESSAGE_TEXT_BLOCK_SELECTOR = 'p, li, blockquote, pre, h1, h2, h3, h4, h5, h6';
 
@@ -104,27 +105,87 @@ export function findInlineFavoriteFallbackTarget(): InlineFavoriteAnchor | null 
 }
 
 /**
- * 获取目标段落所属 mes 内的语义文本块元素
+ * 获取目标段落所属消息内的语义块与前端型气泡
  * @param targetP 目标段落 DOM 元素
- * @returns 同一条 mes 内的文本块元素数组
+ * @returns 同一条消息内按 DOM 顺序排列的文本块
  */
 function getMessageTextBlockElements(targetP: HTMLElement): HTMLElement[] {
-  const mesBlock = targetP.closest('[mesid]');
-  if (!(mesBlock instanceof HTMLElement)) {
-    throw new Error('未找到目标段落所属消息');
-  }
-  const elements = Array.from(mesBlock.querySelectorAll(`.mes_text :is(${MESSAGE_TEXT_BLOCK_SELECTOR})`));
-  return elements.filter(isLeafMessageTextBlock);
+  const mesBlock = targetP.closest<HTMLElement>('[mesid]');
+  if (!mesBlock) throw new Error('未找到目标段落所属消息');
+  const semanticBlocks = Array.from(
+    mesBlock.querySelectorAll(`.mes_text :is(${MESSAGE_TEXT_BLOCK_SELECTOR})`),
+  ).filter(isLeafMessageTextBlock);
+  const explicitBubbles = getExplicitFrontendBubbles(mesBlock);
+  const implicitBubbles = getImplicitFrontendBubbles(mesBlock, semanticBlocks);
+  return [...new Set([...semanticBlocks, ...explicitBubbles, ...implicitBubbles])].sort(compareDomOrder);
+}
+
+/**
+ * 获取带显式可选标记的前端型气泡
+ * @param mesBlock 当前消息元素
+ * @returns 显式气泡元素
+ */
+function getExplicitFrontendBubbles(mesBlock: HTMLElement): HTMLElement[] {
+  return Array.from(mesBlock.querySelectorAll('.mes_text [data-cv-selectable]')).filter(
+    (element): element is HTMLElement => element instanceof HTMLElement,
+  );
+}
+
+/**
+ * 获取最内层的隐式前端型文本气泡
+ * @param mesBlock 当前消息元素
+ * @param semanticBlocks 已识别的普通语义块
+ * @returns 不与显式气泡层级重叠的最内层气泡
+ */
+function getImplicitFrontendBubbles(mesBlock: HTMLElement, semanticBlocks: HTMLElement[]): HTMLElement[] {
+  const candidates = Array.from(mesBlock.querySelectorAll('.mes_text div')).filter(
+    (element): element is HTMLElement => isImplicitFrontendBubble(element, semanticBlocks),
+  );
+  return candidates.filter(candidate => !candidates.some(other => other !== candidate && candidate.contains(other)));
+}
+
+/**
+ * 判断元素是否为有效的隐式前端型文本气泡
+ * @param element 待判断元素
+ * @param semanticBlocks 已识别的普通语义块
+ * @returns 是否可作为隐式气泡候选
+ */
+function isImplicitFrontendBubble(element: Element, semanticBlocks: HTMLElement[]): element is HTMLElement {
+  return element instanceof HTMLElement
+    && Boolean(element.className)
+    && Boolean(element.textContent?.trim())
+    && !semanticBlocks.includes(element)
+    && !hasCosmosInlineClass(element)
+    && !element.querySelector(MESSAGE_TEXT_BLOCK_SELECTOR)
+    && !element.closest('[data-cv-selectable]')
+    && !element.querySelector('[data-cv-selectable]');
+}
+
+/**
+ * 按 DOM 文档顺序比较两个元素
+ * @param left 左侧元素
+ * @param right 右侧元素
+ * @returns 排序比较值
+ */
+function compareDomOrder(left: HTMLElement, right: HTMLElement): number {
+  const position = left.compareDocumentPosition(right);
+  if (position & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+  if (position & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+  return 0;
 }
 
 /**
  * 提取目标段落所属 mes 的全部语义文本块
  * @param targetP 目标段落 DOM 元素
+ * @param excludedElements 需按元素身份排除的文本块
  * @returns 整层历史文本块数组
  */
-export function extractMessageParagraphs(targetP: HTMLElement): string[] {
-  const messageBlocks = extractMessageTextBlockTexts(getMessageTextBlockElements(targetP));
+export function extractMessageParagraphs(targetP: HTMLElement, excludedElements?: HTMLElement[]): string[] {
+  const excluded = new Set(excludedElements);
+  const elements = getMessageTextBlockElements(targetP).filter(element => !excluded.has(element));
+  const messageBlocks = extractMessageTextBlockTexts(elements);
   if (messageBlocks.length > 0) return messageBlocks;
+  if (excludedElements) return [];
   const focusParagraph = extractCleanParagraphText(targetP);
   return focusParagraph ? [focusParagraph] : [];
 }
@@ -154,12 +215,14 @@ function extractMessageTextBlockTexts(elements: HTMLElement[]): string[] {
 }
 
 /**
- * 提取单个语义文本块文本
+ * 提取语义文本块内的纯净文本（支持普通段落和前端型气泡）
  * @param element 语义文本块元素
- * @returns 已规范化空白的文本
+ * @returns 规范化后的文本
  */
 function extractMessageTextBlockText(element: HTMLElement): string {
-  return normalizeMessageTextBlock(readMessageTextNode(element));
+  return element.hasAttribute('data-cv-selectable')
+    ? extractFrontendText(element)
+    : normalizeMessageTextBlock(readMessageTextNode(element));
 }
 
 /**
@@ -316,10 +379,16 @@ export function getFocusedChatParagraph(): HTMLElement | null {
  * 读取当前全部带选中态的聊天段落（DOM 序）
  * @returns 选中段落数组
  */
+/**
+ * 读取当前选中的聊天段落（支持普通p段落和前端型气泡）
+ * @returns 选中的段落元素数组
+ */
 export function getFocusedChatParagraphs(): HTMLElement[] {
-  return Array.from(document.querySelectorAll('.mes_text p.cv-inline-selected')).filter(
+  // 查找所有选中元素（不限p标签，包括前端型气泡）
+  const selected = Array.from(document.querySelectorAll('.cv-inline-selected')).filter(
     (el): el is HTMLElement => el instanceof HTMLElement,
   );
+  return selected;
 }
 
 /**
@@ -384,7 +453,10 @@ export async function buildPromptLlmHistoryExcludingFocusFloor(
     ignoreUserMessages: settings.ignoreUserMessagesInHistory,
     reverseOrder: false,
   });
-  if (!result.success) return [];
+  if (!result.success) {
+    console.warn('[chat-dom] Regex history build failed for frontend bubble:', result.error);
+    return [];
+  }
   return result.messages.map(msg => msg.text).filter(Boolean);
 }
 

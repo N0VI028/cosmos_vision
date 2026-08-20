@@ -20,6 +20,7 @@ interface FocusedParagraphInputState {
 export const FOCUSED_PARAGRAPH_TEXT_KEY = Symbol('focused-paragraph-text');
 export const FOCUSED_PARAGRAPH_MESSAGE_ID_KEY = Symbol('focused-paragraph-message-id');
 export const FOCUSED_PARAGRAPH_MESSAGE_PARAGRAPHS_KEY = Symbol('focused-paragraph-message-paragraphs');
+export const FOCUSED_PARAGRAPH_ELEMENTS_KEY = Symbol('focused-paragraph-elements');
 
 /**
  * 管理测试面板使用的焦点段落输入
@@ -32,15 +33,18 @@ export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInp
   const initialParagraphText = inject<ComputedRef<string> | null>(FOCUSED_PARAGRAPH_TEXT_KEY, null);
   const initialMessageId = inject<ComputedRef<string | null> | null>(FOCUSED_PARAGRAPH_MESSAGE_ID_KEY, null);
   const initialMessageParagraphs = inject<ComputedRef<string[]> | null>(FOCUSED_PARAGRAPH_MESSAGE_PARAGRAPHS_KEY, null);
+  const initialElements = inject<ComputedRef<HTMLElement[] | null> | null>(FOCUSED_PARAGRAPH_ELEMENTS_KEY, null);
   const paragraphText = ref(initialParagraphText?.value || initialValue);
   const messageId = ref<string | null>(initialMessageId?.value ?? null);
   const messageParagraphs = ref<string[]>([...(initialMessageParagraphs?.value ?? [])]);
+  const focusElements = ref<HTMLElement[]>([...(initialElements?.value ?? [])]);
   const hasFocusedChatParagraph = ref(false);
   const hasFocusedParagraph = computed(() => hasFocusedChatParagraph.value || Boolean(paragraphText.value.trim()));
 
   /**
    * 获取当前焦点段落（优先从 DOM，降级从快照恢复）
    * 解决进入测试页后 DOM 选择状态丢失的竞态问题
+   * 降级使用打开面板时捕获的焦点元素本身，保证前端型气泡等非 p 焦点不被误换
    * @returns 焦点段落数组，无焦点时返回空数组
    */
   function getFocusedParagraphsWithFallback(): HTMLElement[] {
@@ -50,20 +54,8 @@ export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInp
       return domParagraphs;
     }
 
-    // 降级：从快照恢复（通过 messageId 查找对应消息的段落）
-    if (!messageId.value) {
-      return [];
-    }
-
-    const mesBlock = document.querySelector(`[mesid="${messageId.value}"]`);
-    if (!mesBlock) {
-      return [];
-    }
-
-    const paragraphs = Array.from(mesBlock.querySelectorAll('.mes_text p')).filter(
-      (el): el is HTMLElement => el instanceof HTMLElement,
-    );
-    return paragraphs;
+    // 降级：用打开面板时捕获的焦点元素（仍在 DOM 中时有效）
+    return focusElements.value.filter(element => element.isConnected);
   }
 
   onMounted(() => {
@@ -114,6 +106,7 @@ export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInp
       syncInitialFocusedParagraph();
       return;
     }
+    focusElements.value = focusedParagraphs;
     const anchor = focusedParagraphs.at(-1)!;
     paragraphText.value = mergeFocusParagraphText(focusedParagraphs);
     messageId.value = findMessageId(anchor);

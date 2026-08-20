@@ -17,6 +17,7 @@
     :initial-focus-message-id="settingsFocusMessageId"
     :initial-focus-message-paragraphs="settingsFocusMessageParagraphs"
     :initial-focus-paragraph-text="settingsFocusParagraphText"
+    :initial-focus-paragraph-elements="settingsFocusParagraphElements"
   />
   <TextInputDialog
     v-model:visible="textInputDialogVisible"
@@ -195,6 +196,9 @@ const settingsFocusMessageId = ref<string | null>(null);
 /** 打开设置时捕获的焦点整楼文本快照 */
 const settingsFocusMessageParagraphs = ref<string[]>([]);
 
+/** 打开设置时捕获的焦点元素快照（供测试页降级恢复真实焦点元素） */
+const settingsFocusParagraphElements = ref<HTMLElement[]>([]);
+
 /** Speed Dial 菜单展开状态 */
 const speedDialOpen = ref(false);
 
@@ -341,6 +345,7 @@ function openSettings(): void {
   settingsFocusParagraphText.value = mergeFocusParagraphText(paragraphs);
   settingsFocusMessageId.value = anchor ? findMessageId(anchor) : null;
   settingsFocusMessageParagraphs.value = anchor ? extractMessageParagraphs(anchor) : [];
+  settingsFocusParagraphElements.value = paragraphs;
   speedDialOpen.value = false;
   exitSelectionMode();
   ensureTavernHelper();
@@ -354,6 +359,7 @@ function clearSettingsFocusParagraphText(): void {
   settingsFocusParagraphText.value = '';
   settingsFocusMessageId.value = null;
   settingsFocusMessageParagraphs.value = [];
+  settingsFocusParagraphElements.value = [];
 }
 
 /**

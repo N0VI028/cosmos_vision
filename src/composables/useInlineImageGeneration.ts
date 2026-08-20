@@ -22,6 +22,7 @@ import { nextParagraphSelection } from '@/composables/inlineParagraphSelection';
 import {
   buildPromptLlmContextFromParagraphs,
   buildPromptLlmHistoryExcludingFocusFloor,
+  extractMessageParagraphsUntil,
   findChatParagraph,
   findMessageId,
   getMessageSwipeId,
@@ -47,6 +48,7 @@ import { extractFrontendText, resolveFrontendBubbleRoot } from '@/services/inlin
 import { ensureFloorTailHost } from '@/services/inline-image/floor-tail-host';
 import { writeFloorTailSlot } from '@/services/inline-image/floor-tail-slot';
 import { newSlotId } from '@/services/inline-image/slot-shortcode';
+import { tryAccessIframeDocument } from '@/services/inline-image/iframe-utils';
 
 import {
   collectTemporaryVibeSourceHashes,
@@ -71,7 +73,6 @@ export type {
 export type { InlineCharacterPromptDraft } from '@/composables/inlineEditableCharacterPrompt';
 
 type PromptLlmSchemaFields = ReturnType<typeof buildPromptLlmSchemaFields>;
-
 
 /**
  * 段落生图运行时控制器
@@ -98,6 +99,11 @@ export function useInlineImageGeneration(
 
   /** 当前活动选区（同一消息内连续段落，DOM 序） */
   const selectedParagraphs = ref<HTMLElement[]>([]);
+
+  /** 已注入监听器的 iframe，key=iframe 元素，value=清理函数 */
+  const injectedIframes = new WeakMap<HTMLIFrameElement, () => void>();
+  /** 跟踪活跃的 iframe（用于退出时遍历清理） */
+  const activeIframes = new Set<HTMLIFrameElement>();
 
   /** 连续选区整体蒙版壳控制器 */
   const selectionShell = createSelectionShellController();
@@ -149,8 +155,43 @@ export function useInlineImageGeneration(
   function exitSelectionMode(options: { preserveSelection?: boolean } = {}): void {
     document.removeEventListener('pointerdown', handleSelectionPointerDown, true);
     document.removeEventListener('pointerup', handleSelectionPointerUp, true);
+
+    // 清理所有已注入的 iframe 监听器
+    activeIframes.forEach((iframe) => {
+      const cleanup = injectedIframes.get(iframe);
+      if (cleanup) cleanup();
+    });
+    activeIframes.clear();
+
     isSelectionMode.value = false;
     if (!options.preserveSelection) clearSelection();
+  }
+
+  /**
+   * 延迟注入 iframe 内选段监听器（首次点击时触发）
+   * @param iframe iframe 元素
+   */
+  function tryInjectIframeListener(iframe: HTMLIFrameElement): void {
+    // 查重：已注入则跳过
+    if (injectedIframes.has(iframe)) return;
+
+    // 同源检测
+    const iframeDoc = tryAccessIframeDocument(iframe);
+    if (!iframeDoc) {
+      // 跨域或未加载，静默跳过
+      return;
+    }
+
+    // 注入监听器（复用父文档的处理函数）
+    const handler = (e: PointerEvent) => handleSelectionPointerDown(e);
+    iframeDoc.addEventListener('pointerdown', handler, true);
+
+    // 记录清理函数
+    const cleanup = () => {
+      iframeDoc.removeEventListener('pointerdown', handler, true);
+    };
+    injectedIframes.set(iframe, cleanup);
+    activeIframes.add(iframe);
   }
 
   /**
@@ -159,6 +200,15 @@ export function useInlineImageGeneration(
    * @param e 指针事件
    */
   function handleSelectionPointerDown(e: PointerEvent): void {
+    // 检测 iframe 内点击，延迟注入监听器
+    const target = e.target as HTMLElement;
+    if (target.ownerDocument !== document) {
+      const iframe = target.ownerDocument.defaultView?.frameElement;
+      if (iframe instanceof HTMLIFrameElement) {
+        tryInjectIframeListener(iframe);
+      }
+    }
+
     if (!shouldHandleParagraphPointer(e)) return;
     pointerDownX = e.clientX;
     pointerDownY = e.clientY;
@@ -173,7 +223,13 @@ export function useInlineImageGeneration(
    */
   function shouldHandleParagraphPointer(e: PointerEvent): boolean {
     const target = e.target as HTMLElement;
-    return !isIgnoredInlineTarget(target) && Boolean(target.closest('.mes_text, [mesid]'));
+    if (isIgnoredInlineTarget(target)) return false;
+    if (!target.closest('.mes_text, [mesid]')) return false;
+
+    // 排除空容器：目标或其最近文本块祖先必须包含可见文本
+    const textBlock = target.closest('p, div, span, section, article, li, blockquote') as HTMLElement | null;
+    const hasText = textBlock && textBlock.textContent?.trim();
+    return Boolean(hasText);
   }
 
   /**
@@ -600,8 +656,11 @@ export function useInlineImageGeneration(
     if (!anchor) throw new Error('未找到目标气泡文本');
     const focusParagraph = presetPromptText ?? bubbles.map(extractFrontendText).filter(Boolean).join('\n');
     if (!focusParagraph) throw new Error('未找到目标气泡文本');
+    const previousParagraphs = await buildPromptLlmHistoryExcludingFocusFloor(anchor, settings.promptLlm);
+    const currentFloorParagraphs = extractMessageParagraphsUntil(anchor);
+    const historyParagraphs = [...previousParagraphs, ...currentFloorParagraphs];
     return {
-      historyParagraphs: await buildPromptLlmHistoryExcludingFocusFloor(anchor, settings.promptLlm),
+      historyParagraphs,
       focusParagraph,
       specialRequest: '',
     };

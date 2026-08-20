@@ -294,6 +294,7 @@ import SubTabNav from '@/panel/components/SubTabNav.vue';
 import { useSettingsOnboardingTutorial } from '@/panel/composables/useSettingsOnboardingTutorial';
 import { useSettingsStore } from '@/store/settings';
 import {
+  FOCUSED_PARAGRAPH_ELEMENTS_KEY,
   FOCUSED_PARAGRAPH_MESSAGE_ID_KEY,
   FOCUSED_PARAGRAPH_MESSAGE_PARAGRAPHS_KEY,
   FOCUSED_PARAGRAPH_TEXT_KEY,
@@ -326,6 +327,7 @@ interface Props {
   initialFocusMessageId?: string | null;
   initialFocusMessageParagraphs?: string[];
   initialFocusParagraphText?: string;
+  initialFocusParagraphElements?: HTMLElement[] | null;
 }
 
 const NAV_ITEMS = [
@@ -340,6 +342,7 @@ const props = withDefaults(defineProps<Props>(), {
   initialFocusMessageId: null,
   initialFocusMessageParagraphs: () => [],
   initialFocusParagraphText: '',
+  initialFocusParagraphElements: null,
 });
 
 const visible = defineModel<boolean>('visible', { default: false });
@@ -527,6 +530,7 @@ provide('showPrompt', showCustomPrompt);
 provide(FOCUSED_PARAGRAPH_MESSAGE_ID_KEY, computed(() => props.initialFocusMessageId));
 provide(FOCUSED_PARAGRAPH_MESSAGE_PARAGRAPHS_KEY, computed(() => props.initialFocusMessageParagraphs));
 provide(FOCUSED_PARAGRAPH_TEXT_KEY, computed(() => props.initialFocusParagraphText));
+provide(FOCUSED_PARAGRAPH_ELEMENTS_KEY, computed(() => props.initialFocusParagraphElements));
 
 const dialogVisible = computed({
   get: () => visible.value,

@@ -1,4 +1,5 @@
 import { mapNormalize } from '@/services/inline-image/host-locate';
+import { isHTMLElementNode } from '@/services/inline-image/iframe-utils';
 
 const IGNORED_TAGS = new Set(['SCRIPT', 'STYLE', 'BUTTON']);
 
@@ -15,12 +16,45 @@ export function extractFrontendText(element: HTMLElement): string {
 
 /**
  * 解析前端型气泡的顶级承载容器
+ * 优先查找显式标记的 data-cv-selectable，否则智能识别CSS气泡特征
  * @param element 触发元素
  * @returns 气泡容器元素
  */
 export function resolveFrontendBubbleRoot(element: HTMLElement): HTMLElement {
+  // 优先使用显式标记
   const custom = element.closest<HTMLElement>('[data-cv-selectable]');
-  if (custom) return custom;
+  if (custom) {
+    return custom;
+  }
+
+  // 智能识别CSS气泡：查找最近的有class的div/section/article
+  let current: HTMLElement | null = element;
+  while (current) {
+    const parent: HTMLElement | null = current.parentElement;
+    if (!parent) break;
+
+    // 停止条件：到达 .mes_text 边界
+    if (parent.classList.contains('mes_text')) {
+      // 如果当前节点有class且包含文本，视为气泡
+      if (current.className && current.textContent?.trim()) {
+        return current;
+      }
+      break;
+    }
+
+    // 识别气泡特征：div/section/article + 有class + 包含文本
+    if (
+      current.matches('div, section, article') &&
+      current.className &&
+      current.textContent?.trim()
+    ) {
+      return current;
+    }
+
+    current = parent;
+  }
+
+  // 降级：查找通用块级元素
   const block = element.closest<HTMLElement>('div, p, section, article');
   return block ?? element;
 }
@@ -39,7 +73,7 @@ function collectBubbleDomText(root: HTMLElement): string {
   const chunks: string[] = [];
   let current = walker.nextNode();
   while (current) {
-    if (current instanceof HTMLElement && current.tagName === 'BR') {
+    if (isHTMLElementNode(current) && current.tagName === 'BR') {
       chunks.push('\n');
     } else if (current.nodeType === Node.TEXT_NODE) {
       chunks.push(current.textContent ?? '');
@@ -55,7 +89,7 @@ function collectBubbleDomText(root: HTMLElement): string {
  * @returns 节点过滤状态
  */
 function filterBubbleNode(node: Node): number {
-  if (node instanceof HTMLElement) {
+  if (isHTMLElementNode(node)) {
     if (IGNORED_TAGS.has(node.tagName) || hasIgnoredClass(node)) {
       return NodeFilter.FILTER_REJECT;
     }
