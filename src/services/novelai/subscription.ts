@@ -3,14 +3,21 @@ import { NOVELAI_TIERS, type NovelAIAccount, type NovelAITierLabel } from '@/con
 /** NovelAI 订阅接口固定端点 */
 const SUBSCRIPTION_ENDPOINT = 'https://api.novelai.net/user/subscription';
 
+/** 换算系数：每 1% ≈ 17.3 张（参考官网实测校准值） */
+export const V5_IMAGES_PER_PERCENT = 17.3;
+
 /** NovelAI 官方订阅响应中本扩展关心的字段 */
 interface NovelAISubscriptionRaw {
   tier: number;
   active: boolean;
   expiresAt: number;
-  trainingStepsLeft: {
-    fixedTrainingStepsLeft: number;
-    purchasedTrainingSteps: number;
+  trainingStepsLeft?: {
+    fixedTrainingStepsLeft?: number;
+    purchasedTrainingSteps?: number;
+  };
+  usage?: {
+    percent?: number;
+    isNegative?: boolean;
   };
 }
 
@@ -24,6 +31,33 @@ export interface SubscriptionInfo {
   fixedAnlas: number;
   purchasedAnlas: number;
   totalAnlas: number;
+  /** V5 滚动额度百分比（>100 表示累积未用，随时间恢复） */
+  v5UsagePercent: number | null;
+  /** V5 额度是否透支超额 */
+  v5UsageNegative: boolean;
+  /** V5 预估剩余生成张数 */
+  v5EstimatedImages: number;
+}
+
+/**
+ * 估算 V5 剩余可生成张数（负值视为 0）
+ * @param percent V5 剩余额度百分比
+ * @returns 预估张数
+ */
+export function estimateV5Images(percent: number | null | undefined): number {
+  return Math.max(0, Math.round((percent ?? 0) * V5_IMAGES_PER_PERCENT));
+}
+
+/**
+ * 根据百分比获取 V5 进度条色彩类名
+ * @param percent 剩余百分比
+ * @param negative 是否透支
+ * @returns CSS 样式类名
+ */
+export function getV5BarClass(percent: number | null | undefined, negative?: boolean): string {
+  const p = percent ?? 0;
+  if (negative || p <= 0) return 'bg-[var(--cvp-red-500,#ef4444)]';
+  return 'bg-(--cv-primary-container)';
 }
 
 /**
@@ -84,6 +118,8 @@ function normalize(raw: NovelAISubscriptionRaw): SubscriptionInfo {
   const meta = NOVELAI_TIERS.find(item => item.tier === raw.tier) ?? NOVELAI_TIERS[0];
   const fixed = raw.trainingStepsLeft?.fixedTrainingStepsLeft ?? 0;
   const purchased = raw.trainingStepsLeft?.purchasedTrainingSteps ?? 0;
+  const percent = typeof raw.usage?.percent === 'number' ? raw.usage.percent : null;
+  const isNegative = Boolean(raw.usage?.isNegative);
   return {
     tier: raw.tier,
     tierLabel: meta.label,
@@ -93,6 +129,9 @@ function normalize(raw: NovelAISubscriptionRaw): SubscriptionInfo {
     fixedAnlas: fixed,
     purchasedAnlas: purchased,
     totalAnlas: fixed + purchased,
+    v5UsagePercent: percent,
+    v5UsageNegative: isNegative,
+    v5EstimatedImages: estimateV5Images(percent),
   };
 }
 

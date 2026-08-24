@@ -144,7 +144,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     noiseSchedule: 'karras',
     positivePromptPresetId: DEFAULT_POSITIVE_PROMPT_PRESET_ID,
     negativePromptPresetId: DEFAULT_NEGATIVE_PROMPT_PRESET_ID,
-    addQualityTags: true,
+    qualityPreset: 'Standard',
     ucPreset: 'Heavy',
     autoCharacterCoords: true,
   },

@@ -1,4 +1,9 @@
-import { isNovelAIV4Model, type CharacterPromptItem, type NovelAIModel } from '@/constants/novelai';
+import {
+  canPositionOneCharacter,
+  isNovelAIV4OrNewer,
+  type CharacterPromptItem,
+  type NovelAIModel,
+} from '@/constants/novelai';
 
 /** 编辑 TAG 弹窗中的角色提示词草稿 */
 export interface InlineCharacterPromptDraft {
@@ -14,7 +19,7 @@ export interface InlineCharacterPromptDraft {
  * @returns 是否支持角色提示词
  */
 export function canEditInlineCharacterPrompts(model: NovelAIModel): boolean {
-  return isNovelAIV4Model(model);
+  return isNovelAIV4OrNewer(model);
 }
 
 /**
@@ -52,14 +57,17 @@ export function toCharacterPromptItem(draft: InlineCharacterPromptDraft): Charac
  * @param count 角色数
  * @param previous 原快照 useCharacterCoords
  * @param autoCharacterCoords 设置页自动坐标开关
+ * @param model NovelAI 模型
  * @returns 是否手动坐标
  */
 export function resolveEditedUseCharacterCoords(
   count: number,
   previous: boolean | undefined,
   autoCharacterCoords: boolean,
+  model?: NovelAIModel,
 ): boolean {
-  if (count < 2) return false;
+  if (count === 0) return false;
+  if (count === 1 && (!model || !canPositionOneCharacter(model))) return false;
   return previous ?? !autoCharacterCoords;
 }
 

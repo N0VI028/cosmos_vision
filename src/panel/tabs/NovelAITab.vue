@@ -224,9 +224,15 @@
             fluid
           />
         </label>
-        <label class="cv-field-inline">
-          <ToggleSwitch v-model="settings.novelai.addQualityTags" />
-          <span>使用官方正面质量词</span>
+        <label class="cv-field">
+          <span>正面质量词预设</span>
+          <Select
+            v-model="settings.novelai.qualityPreset"
+            :options="qualityPresetOptions"
+            option-label="label"
+            option-value="value"
+            fluid
+          />
         </label>
       </div>
 
@@ -281,7 +287,14 @@
       />
       <h2 class="cv-section-title">Vibe Transfer</h2>
       <div class="cv-section-body">
+        <div
+          v-if="isV5Model"
+          class="rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container) p-(--cv-space-2xl) text-center text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant)"
+        >
+          V5 模型暂不支持 Vibe Transfer
+        </div>
         <NovelAIVibePresetPanel
+          v-else
           :preset-settings="settings.novelai.novelAIVibePresets"
           :settings="settings.novelai"
           @update:preset-settings="settings.novelai.novelAIVibePresets = $event"
@@ -305,17 +318,18 @@ import {
   NOVELAI_NOISE_SCHEDULES,
   NOVELAI_RESOLUTION_PRESETS,
   NOVELAI_SAMPLERS,
-  NOVELAI_UC_PRESETS,
   NOVELAI_V3_NOISE_SCHEDULES,
   isNovelAIV3Model,
   isNovelAIV45Model,
   isNovelAIV4OnlyModel,
+  isNovelAIV5Model,
   NOVELAI_IMAGE_COUNT_LIMITS,
 } from '@/constants/novelai';
 import ImagePromptPresetPanel from '@/panel/components/ImagePromptPresetPanel.vue';
 import NovelAIVibePresetPanel from '@/panel/components/NovelAIVibePresetPanel.vue';
 import SubscriptionCard from '@/panel/components/SubscriptionCard.vue';
 import { buildProxiedUrl } from '@/services/novelai/subscription';
+import { getSupportedQualityPresets, getSupportedUcPresets } from '@/services/novelai/prompt-presets';
 import { getRoutingModeHint } from '@/constants/routing';
 import { useSettingsStore } from '@/store/settings';
 import NovelAIAccountList from '@/panel/components/NovelAIAccountList.vue';
@@ -345,11 +359,23 @@ const resolutionPresetOptions = [
   { value: NOVELAI_CUSTOM_RESOLUTION_PRESET, label: 'Custom' },
 ];
 const samplerOptions = [...NOVELAI_SAMPLERS];
-const ucPresetOptions = [...NOVELAI_UC_PRESETS];
+const ucPresetOptions = computed(() =>
+  getSupportedUcPresets(settings.novelai.model).map(preset => ({
+    label: preset === 'Human_Focus' ? 'Human Focus' : preset === 'Furry_Focus' ? 'Furry Focus' : preset,
+    value: preset,
+  })),
+);
+const qualityPresetOptions = computed(() =>
+  getSupportedQualityPresets(settings.novelai.model).map(preset => ({
+    label: preset,
+    value: preset,
+  })),
+);
 const imageSizeLimits = NOVELAI_IMAGE_SIZE_LIMITS;
 const imageCountLimits = NOVELAI_IMAGE_COUNT_LIMITS;
 const maxSeed = NOVELAI_MAX_SEED;
 const isV3Model = computed(() => isNovelAIV3Model(settings.novelai.model));
+const isV5Model = computed(() => isNovelAIV5Model(settings.novelai.model));
 const isV45Model = computed(() => isNovelAIV45Model(settings.novelai.model));
 const isV4OnlyModel = computed(() => isNovelAIV4OnlyModel(settings.novelai.model));
 const supportsVarietyPlus = computed(() => isV3Model.value || isV45Model.value);
@@ -402,6 +428,14 @@ function normalizeModelScopedOptions(): void {
   }
   if (!supportsVarietyPlus.value) settings.novelai.varietyPlus = false;
   if (!isV4OnlyModel.value) settings.novelai.legacyPromptMode = false;
+  const supportedQuality = getSupportedQualityPresets(settings.novelai.model);
+  if (!supportedQuality.includes(settings.novelai.qualityPreset)) {
+    settings.novelai.qualityPreset = 'Standard';
+  }
+  const supportedUc = getSupportedUcPresets(settings.novelai.model);
+  if (!supportedUc.includes(settings.novelai.ucPreset)) {
+    settings.novelai.ucPreset = 'Heavy';
+  }
 }
 
 const routingModeHint = computed(() => getRoutingModeHint(settings.novelai.routingMode));

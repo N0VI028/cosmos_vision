@@ -10,8 +10,10 @@ export * from './prompt-llm';
  * 集中维护模型列表与默认设置,供 store 初始化与 UI 下拉使用
  */
 
-/** NovelAI 模型固定列表(本期不开放自定义) */
+/** NovelAI 模型固定列表 */
 export const NOVELAI_MODELS = [
+  { value: 'nai-diffusion-5-curated', label: 'NAI Diffusion v5 Curated' },
+  { value: 'nai-diffusion-5-full', label: 'NAI Diffusion v5 Full' },
   { value: 'nai-diffusion-4-5-curated', label: 'NAI Diffusion v4.5 Curated' },
   { value: 'nai-diffusion-4-5-full', label: 'NAI Diffusion v4.5 Full' },
   { value: 'nai-diffusion-4-curated-preview', label: 'NAI Diffusion v4 Curated' },
@@ -43,9 +45,18 @@ export const NOVELAI_V3_NOISE_SCHEDULES = [{ value: 'native', label: 'native' },
 
 /** NovelAI 负向提示词程度固定列表 */
 export const NOVELAI_UC_PRESETS = [
-  { value: 'Heavy', label: '重度' },
-  { value: 'Light', label: '轻度' },
-  { value: 'None', label: '无' },
+  { value: 'Heavy', label: 'Heavy' },
+  { value: 'Light', label: 'Light' },
+  { value: 'Human_Focus', label: 'Human Focus' },
+  { value: 'Furry_Focus', label: 'Furry Focus' },
+  { value: 'None', label: 'None' },
+] as const;
+
+/** NovelAI 正面质量词预设固定列表 */
+export const NOVELAI_QUALITY_PRESETS = [
+  { value: 'Standard', label: 'Standard' },
+  { value: 'Light', label: 'Light' },
+  { value: 'None', label: 'None' },
 ] as const;
 
 /** NovelAI 图像尺寸预设(对齐 nai-webui) */
@@ -85,6 +96,9 @@ export type NovelAIModel = (typeof NOVELAI_MODELS)[number]['value'];
 
 /** NovelAI 采样器 value 联合类型 */
 export type NovelAISampler = (typeof NOVELAI_SAMPLERS)[number]['value'];
+
+/** NovelAI 正面质量词预设类型 */
+export type NovelAIQualityPreset = (typeof NOVELAI_QUALITY_PRESETS)[number]['value'];
 
 /** NovelAI 噪声调度 value 联合类型 */
 export type NovelAINoiseSchedule = (typeof NOVELAI_V3_NOISE_SCHEDULES)[number]['value'];
@@ -137,6 +151,34 @@ export function isNovelAIV4OnlyModel(model: NovelAIModel): boolean {
 }
 
 /**
+ * 判断是否为 NovelAI V5 模型
+ * @param model NovelAI 模型
+ * @returns 是否为 V5 模型
+ */
+export function isNovelAIV5Model(model: NovelAIModel): boolean {
+  return model.startsWith('nai-diffusion-5');
+}
+
+/**
+ * 判断是否为支持 V4+ 格式（包含 V4/V4.5/V5）的模型
+ * @param model NovelAI 模型
+ * @returns 是否为 V4 或更高版本模型
+ */
+export function isNovelAIV4OrNewer(model: NovelAIModel): boolean {
+  return isNovelAIV4Model(model) || isNovelAIV5Model(model);
+}
+
+/**
+ * 判断当前模型是否支持单角色坐标定位
+ * 仅 V5 支持单角色坐标定位，V4/V4.5 需 ≥2 角色才支持
+ * @param model NovelAI 模型
+ * @returns 是否支持单角色坐标控制
+ */
+export function canPositionOneCharacter(model: NovelAIModel): boolean {
+  return isNovelAIV5Model(model);
+}
+
+/**
  * NovelAI 订阅档位映射
  * tier 数字 → 档位标签 + 主题强调色,供订阅卡片展示
  */
@@ -184,7 +226,7 @@ export interface NovelAISettings extends ImagePromptPresetReferences {
   legacyPromptMode: boolean;
   promptGuidanceRescale: number;
   noiseSchedule: NovelAINoiseSchedule;
-  addQualityTags: boolean;
+  qualityPreset: NovelAIQualityPreset;
   ucPreset: NovelAIUcPreset;
   /** 是否让 NovelAI 自动安排多角色坐标 */
   autoCharacterCoords: boolean;

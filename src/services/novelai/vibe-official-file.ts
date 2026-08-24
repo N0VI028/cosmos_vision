@@ -25,6 +25,8 @@ interface OfficialVibeFile {
 }
 
 const OFFICIAL_MODEL_KEY_MAP: Record<NovelAIModel, string> = {
+  'nai-diffusion-5-curated': '',
+  'nai-diffusion-5-full': '',
   'nai-diffusion-4-5-curated': 'v4-5curated',
   'nai-diffusion-4-5-full': 'v4-5full',
   'nai-diffusion-4-curated-preview': 'v4curated',

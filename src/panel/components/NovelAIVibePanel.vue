@@ -122,7 +122,7 @@ import {
   DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
   type ImagePromptVibeRef,
 } from '@/constants/novelai-vibe';
-import { isNovelAIV3Model, type NovelAISettings } from '@/constants/novelai';
+import { isNovelAIV3Model, isNovelAIV5Model, type NovelAISettings } from '@/constants/novelai';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import CvMiniToggleSwitch from '@/panel/components/CvMiniToggleSwitch.vue';
@@ -462,7 +462,8 @@ function showParseButton(vibe: ImagePromptVibeRef): boolean {
     summary?.hasImage &&
       summary.hasImage &&
       !summary.hasEncoded &&
-      !isNovelAIV3Model(props.settings.model),
+      !isNovelAIV3Model(props.settings.model) &&
+      !isNovelAIV5Model(props.settings.model),
   );
 }
 

@@ -65,6 +65,7 @@ export function createEditedPromptSnapshot(
         characterPrompts.length,
         snapshot.novelai?.useCharacterCoords,
         settings.autoCharacterCoords,
+        settings.model,
       ),
     });
     return edited;

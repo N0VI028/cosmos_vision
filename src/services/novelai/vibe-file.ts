@@ -9,6 +9,8 @@ const OFFICIAL_VIBE_BUNDLE_IDENTIFIER = 'novelai-vibe-transfer-bundle';
 const PNG_NAIDATA_KEYWORD = 'naidata';
 const PNG_ITXT_CHUNK_TYPE = 'iTXt';
 const OFFICIAL_SUPPORTED_MODELS = new Set<NovelAIModel>([
+  'nai-diffusion-5-curated',
+  'nai-diffusion-5-full',
   'nai-diffusion-4-5-curated',
   'nai-diffusion-4-5-full',
   'nai-diffusion-4-curated-preview',
@@ -17,6 +19,8 @@ const OFFICIAL_SUPPORTED_MODELS = new Set<NovelAIModel>([
   'nai-diffusion-furry-3',
 ]);
 const OFFICIAL_MODEL_KEY_MAP: Record<NovelAIModel, string> = {
+  'nai-diffusion-5-curated': '',
+  'nai-diffusion-5-full': '',
   'nai-diffusion-4-5-curated': 'v4-5curated',
   'nai-diffusion-4-5-full': 'v4-5full',
   'nai-diffusion-4-curated-preview': 'v4curated',

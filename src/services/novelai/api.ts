@@ -1,119 +1,57 @@
 import type { ImagePromptPresetSettings } from '@/constants/image-prompt';
-import type { ImagePromptVibeRef } from '@/constants/novelai-vibe';
 import type {
   NovelAIAccount,
   CharacterPromptItem,
-  NovelAIModel,
-  NovelAINoiseSchedule,
-  NovelAISampler,
   NovelAISettings,
-  NovelAIUcPreset,
 } from '@/constants/novelai';
 import {
   NOVELAI_MAX_SEED,
   NOVELAI_IMAGE_COUNT_LIMITS,
-  isNovelAIV3Model,
-  isNovelAIV4Model,
-  isNovelAIV45Model,
-  isNovelAIV4OnlyModel,
+  isNovelAIV5Model,
 } from '@/constants/novelai';
 import {
   buildNegativePrompt,
   buildPositivePrompt,
-  getUcPresetValue,
-  type NovelAIPromptMode,
-} from '@/services/novelai/prompt-presets';
+} from './prompt-presets';
 import type { PromptLlmExtractSettings, PromptLlmOutput } from '@/services/tavern-helper/prompt-llm';
-import { extractNovelAIJsonImages } from '@/services/novelai/response-images';
-import { extractImages } from '@/services/novelai/zip';
-import { getNovelAIRequestAccounts } from '@/services/novelai/router';
+import { extractNovelAIJsonImages } from './response-images';
+import { extractImages } from './zip';
+import { getNovelAIRequestAccounts } from './router';
 import { createRequestTimeoutController, throwIfRequestTimedOut } from '@/services/request-timeout';
 import {
   getActiveNovelAIVibePresetRefs,
   resolveNovelAIVibeParameters,
-} from '@/services/novelai/vibe-parameters';
-import type { NovelAIVibeParameters, NovelAIVibeSnapshot } from '@/services/novelai/vibe-types';
+} from './vibe-parameters';
+import type { NovelAIVibeParameters, NovelAIVibeSnapshot } from './vibe-types';
+import {
+  buildPayload,
+  buildParameters,
+  createBaseParameters,
+  getEffectiveNoiseSchedule,
+  getEffectiveSampler,
+  resolveUseCoords,
+  toNovelAICoordinate,
+} from './payload';
+import type {
+  NovelAIFinalPrompts,
+  NovelAIImageResult,
+  NovelAIImagesResult,
+  NovelAIPromptOverrides,
+  NovelAIRequestOptions,
+  NovelAIRequestSnapshot,
+  NovelAIResolvedRequest,
+} from './types';
 
-const REFERENCE_PIXEL_COUNT = 1011712;
-const SIGMA_MAGIC_NUMBER_V3_V4 = 19;
-const SIGMA_MAGIC_NUMBER_V4_5 = 58;
-
-interface NovelAIPayload {
-  action: 'generate';
-  input: string;
-  model: string;
-  parameters: Record<string, unknown>;
-  use_new_shared_trial: boolean;
-}
-
-export interface NovelAIPromptOverrides {
-  positiveLLMPrompt?: string;
-  negativeLLMPrompt?: string;
-  positivePromptMode?: NovelAIPromptMode;
-  negativePromptMode?: NovelAIPromptMode;
-  characterPrompts?: CharacterPromptItem[];
-}
-
-export interface NovelAIFinalPrompts {
-  positivePrompt: string;
-  negativePrompt: string;
-  useCharacterCoords?: boolean;
-  vibeReferences?: ImagePromptVibeRef[];
-  vibeParameters?: NovelAIVibeParameters;
-  characterPrompts?: CharacterPromptItem[];
-}
-
-export interface NovelAIRequestSnapshot {
-  endpoint: string;
-  positivePrompt: string;
-  negativePrompt: string;
-  /** 从 LLM 解析并发送给 NovelAI 的角色提示词 */
-  characterPrompts: CharacterPromptItem[];
-  model: NovelAIModel;
-  width: number;
-  height: number;
-  sampler: NovelAISampler;
-  seed: number;
-  steps: number;
-  guidance: number;
-  autoSampler: boolean;
-  varietyPlus: boolean;
-  smea: boolean;
-  smeaDyn: boolean;
-  decrisp: boolean;
-  legacyPromptMode: boolean;
-  promptGuidanceRescale: number;
-  noiseSchedule: NovelAINoiseSchedule;
-  ucPreset: NovelAIUcPreset;
-  addQualityTags: boolean;
-  imageCount: number;
-  vibes: NovelAIVibeSnapshot;
-}
-
-export interface NovelAIResolvedRequest {
-  settings: NovelAISettings;
-  prompts: NovelAIFinalPrompts;
-  accounts: NovelAIAccount[];
-  seed: number;
-  snapshot: NovelAIRequestSnapshot;
-}
-
-export interface NovelAIImageResult {
-  imageBlob: Blob;
-  snapshot: NovelAIRequestSnapshot;
-  prompts: NovelAIFinalPrompts;
-}
-
-export interface NovelAIImagesResult {
-  imageBlobs: Blob[];
-  snapshot: NovelAIRequestSnapshot;
-  prompts: NovelAIFinalPrompts;
-}
-
-/** NovelAI 请求控制选项 */
-export interface NovelAIRequestOptions {
-  signal?: AbortSignal;
-}
+export * from './types';
+export {
+  buildPayload,
+  buildParameters,
+  createBaseParameters,
+  getEffectiveNoiseSchedule,
+  getEffectiveSampler,
+  resolveUseCoords,
+  toNovelAICoordinate,
+};
 
 /**
  * 使用已解析提示词请求 NovelAI 图片
@@ -303,7 +241,7 @@ function buildRequestSnapshot(
     promptGuidanceRescale: settings.promptGuidanceRescale,
     noiseSchedule: getEffectiveNoiseSchedule(settings),
     ucPreset: settings.ucPreset,
-    addQualityTags: settings.addQualityTags,
+    qualityPreset: settings.qualityPreset,
     imageCount,
     vibes: buildVibeSnapshot(prompts),
   };
@@ -317,174 +255,6 @@ function validatePrompts(prompts: NovelAIFinalPrompts): void {
   if (!prompts.positivePrompt.trim() && !prompts.negativePrompt.trim()) {
     throw new Error('正向提示词或负向提示词至少填写一个');
   }
-}
-
-/**
- * 构建 NovelAI 官方请求体
- * @param settings NovelAI 设置页参数
- * @param prompts 最终提示词
- * @param seed 本次请求使用的 seed
- * @returns 官方 API payload
- */
-function buildPayload(
-  settings: NovelAISettings,
-  prompts: NovelAIFinalPrompts,
-  seed: number,
-  imageCount: number,
-): NovelAIPayload {
-  return {
-    action: 'generate',
-    input: prompts.positivePrompt,
-    model: settings.model,
-    parameters: buildParameters(settings, prompts, seed, imageCount),
-    use_new_shared_trial: true,
-  };
-}
-
-/**
- * 构建 NovelAI parameters 字段(对齐 nai-webui 文生图实现)
- * @param settings NovelAI 设置页参数
- * @param prompts 最终提示词
- * @param seed 本次请求使用的 seed
- * @returns 官方 parameters
- */
-function buildParameters(
-  settings: NovelAISettings,
-  prompts: NovelAIFinalPrompts,
-  seed: number,
-  imageCount: number,
-): Record<string, unknown> {
-  const parameters = createBaseParameters(settings, prompts, seed, imageCount);
-  if (isNovelAIV3Model(settings.model)) applyV3Parameters(parameters, settings);
-  if (isNovelAIV4Model(settings.model)) applyV4Prompts(parameters, prompts, settings.autoCharacterCoords);
-  if (prompts.vibeParameters) Object.assign(parameters, prompts.vibeParameters);
-  return parameters;
-}
-
-/**
- * 构建 NovelAI parameters 基础字段
- * @param settings NovelAI 设置页参数
- * @param prompts 最终提示词
- * @param seed 本次请求使用的 seed
- * @returns 官方 parameters 基础对象
- */
-function createBaseParameters(
-  settings: NovelAISettings,
-  prompts: NovelAIFinalPrompts,
-  seed: number,
-  imageCount: number,
-): Record<string, unknown> {
-  return {
-    params_version: 3,
-    width: settings.width,
-    height: settings.height,
-    scale: settings.guidance,
-    sampler: getEffectiveSampler(settings),
-    steps: settings.steps,
-    n_samples: imageCount,
-    ucPreset: getUcPresetValue(settings.ucPreset),
-    qualityToggle: settings.addQualityTags,
-    autoSmea: false,
-    controlnet_strength: 1,
-    add_original_image: true,
-    cfg_rescale: settings.promptGuidanceRescale,
-    noise_schedule: getEffectiveNoiseSchedule(settings),
-    legacy_v3_extend: false,
-    legacy_uc: false,
-    normalize_reference_strength_multiple: true,
-    inpaintImg2ImgStrength: 1,
-    seed,
-    characterPrompts: [],
-    negative_prompt: prompts.negativePrompt,
-    prefer_brownian: true,
-    ...createModelCompatibilityParameters(settings),
-  };
-}
-
-/**
- * 构建 NovelAI 模型兼容字段
- * @param settings NovelAI 设置页参数
- * @returns 与模型能力相关的 parameters 字段
- */
-function createModelCompatibilityParameters(settings: NovelAISettings): Record<string, unknown> {
-  const legacy = isNovelAIV4OnlyModel(settings.model) && settings.legacyPromptMode;
-  return {
-    dynamic_thresholding: isNovelAIV3Model(settings.model) && settings.decrisp,
-    legacy,
-    skip_cfg_above_sigma: calculateSkipCfgAboveSigma(settings),
-    deliberate_euler_ancestral_bug: legacy,
-  };
-}
-
-/**
- * 写入 V3 专属 NovelAI 参数
- * @param parameters 官方 parameters
- * @param settings NovelAI 设置页参数
- */
-function applyV3Parameters(parameters: Record<string, unknown>, settings: NovelAISettings): void {
-  parameters.sm = settings.smea;
-  parameters.sm_dyn = settings.smea && settings.smeaDyn;
-}
-
-/**
- * 写入 V4 提示词结构
- * @param parameters 官方 parameters
- * @param prompts 最终提示词
- */
-function applyV4Prompts(
-  parameters: Record<string, unknown>,
-  prompts: NovelAIFinalPrompts,
-  autoCharacterCoords: boolean,
-): void {
-  const promptCharacters = prompts.characterPrompts ?? [];
-  const characters = promptCharacters.map(createV4CharacterPrompt);
-  const useCoords = prompts.useCharacterCoords ?? resolveUseCoords(promptCharacters.length, autoCharacterCoords);
-  parameters.characterPrompts = characters.map(character => character.parameter);
-  parameters.v4_prompt = {
-    caption: { base_caption: prompts.positivePrompt, char_captions: characters.map(character => character.positiveCaption) },
-    use_coords: useCoords,
-    use_order: Boolean(characters.length),
-  };
-  parameters.v4_negative_prompt = {
-    caption: { base_caption: prompts.negativePrompt, char_captions: characters.map(character => character.negativeCaption) },
-    use_coords: useCoords,
-    use_order: Boolean(characters.length),
-    legacy_uc: false,
-  };
-}
-
-/**
- * 将内部角色条目转换为 NovelAI V4 字段
- * @param item 角色提示词
- * @returns 参数与正负 caption
- */
-function createV4CharacterPrompt(item: CharacterPromptItem) {
-  const center = { ...item.position };
-  return {
-    parameter: { prompt: item.positivePrompt, uc: item.negativePrompt, center, enabled: true },
-    positiveCaption: { char_caption: item.positivePrompt, centers: [center] },
-    negativeCaption: { char_caption: item.negativePrompt, centers: [center] },
-  };
-}
-
-/**
- * 决定是否让 NovelAI 使用手动坐标
- * @param count 有效角色数
- * @param auto 自动坐标开关
- * @returns use_coords 请求值
- */
-function resolveUseCoords(count: number, auto: unknown): boolean {
-  return count >= 2 && auto === false;
-}
-
-/**
- * 读取实际发送的采样器
- * V3 Auto 模式按 nai-webui 逻辑使用 Euler Ancestral
- * @param settings NovelAI 设置页参数
- * @returns 实际发送的 sampler
- */
-function getEffectiveSampler(settings: NovelAISettings): NovelAISampler {
-  return isNovelAIV3Model(settings.model) && settings.autoSampler ? 'k_euler_ancestral' : settings.sampler;
 }
 
 /**
@@ -503,27 +273,6 @@ function resolveNovelAISeed(settings: NovelAISettings): number {
  */
 function createRandomSeed(): number {
   return Math.floor(Math.random() * (NOVELAI_MAX_SEED + 1));
-}
-
-/**
- * 读取实际发送的噪声调度
- * native 仅 V3 支持，其他模型自动回退 karras
- * @param settings NovelAI 设置页参数
- * @returns 实际发送的噪声调度
- */
-function getEffectiveNoiseSchedule(settings: NovelAISettings): NovelAINoiseSchedule {
-  return !isNovelAIV3Model(settings.model) && settings.noiseSchedule === 'native' ? 'karras' : settings.noiseSchedule;
-}
-
-/**
- * 计算 Variety+ 的 skip_cfg_above_sigma
- * @param settings NovelAI 设置页参数
- * @returns NovelAI sigma 阈值或 null
- */
-function calculateSkipCfgAboveSigma(settings: NovelAISettings): number | null {
-  if (!settings.varietyPlus || (!isNovelAIV3Model(settings.model) && !isNovelAIV45Model(settings.model))) return null;
-  const ratio = Math.sqrt((settings.width * settings.height) / REFERENCE_PIXEL_COUNT);
-  return ratio * (isNovelAIV45Model(settings.model) ? SIGMA_MAGIC_NUMBER_V4_5 : SIGMA_MAGIC_NUMBER_V3_V4);
 }
 
 function buildEndpoint(url: string): string {
@@ -549,24 +298,27 @@ function resolveFinalPrompts(
   overrides?: NovelAIPromptOverrides,
 ): NovelAIFinalPrompts {
   const characterPrompts = overrides?.characterPrompts ?? [];
+  const positivePrompt = buildPositivePrompt(
+    settings,
+    imagePromptPresets,
+    extractSettings,
+    overrides?.positiveLLMPrompt ?? '',
+    overrides?.positivePromptMode ?? 'extract',
+  );
+  const isV5 = isNovelAIV5Model(settings.model);
   return {
-    positivePrompt: buildPositivePrompt(
-      settings,
-      imagePromptPresets,
-      extractSettings,
-      overrides?.positiveLLMPrompt ?? '',
-      overrides?.positivePromptMode ?? 'extract',
-    ),
+    positivePrompt,
     negativePrompt: buildNegativePrompt(
       settings,
       imagePromptPresets,
       extractSettings,
       overrides?.negativeLLMPrompt ?? '',
       overrides?.negativePromptMode ?? 'extract',
+      positivePrompt,
     ),
-    useCharacterCoords: resolveUseCoords(characterPrompts.length, settings.autoCharacterCoords),
+    useCharacterCoords: resolveUseCoords(characterPrompts.length, settings.autoCharacterCoords, settings.model),
     characterPrompts,
-    vibeReferences: getActiveNovelAIVibePresetRefs(settings.novelAIVibePresets),
+    vibeReferences: isV5 ? [] : getActiveNovelAIVibePresetRefs(settings.novelAIVibePresets),
   };
 }
 
@@ -598,6 +350,7 @@ async function resolveRequestPrompts(
   request: NovelAIResolvedRequest,
   options: NovelAIRequestOptions,
 ): Promise<NovelAIFinalPrompts> {
+  if (isNovelAIV5Model(request.settings.model)) return request.prompts;
   if (request.prompts.vibeParameters || !request.prompts.vibeReferences?.length) return request.prompts;
   const vibeParameters = await resolveNovelAIVibeParameters(
     request.settings,

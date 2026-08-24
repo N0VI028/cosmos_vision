@@ -102,6 +102,33 @@
             </span>
           </div>
         </div>
+
+        <!-- V5 滚动额度 -->
+        <div v-if="data?.v5UsagePercent != null || loading" class="flex flex-col gap-(--cv-space-lg) md:col-span-2">
+          <div class="flex items-center justify-between">
+            <span
+              class="font-(family-name:--cv-font-label) text-(length:--cv-font-size-xs) font-medium tracking-[0.05em] text-(--cv-on-surface-variant) uppercase"
+              >V5 滚动额度</span
+            >
+            <span
+              v-if="!loading && data?.v5UsagePercent != null"
+              class="font-mono text-(length:--cv-font-size-sm) font-medium text-(--cv-on-surface) tabular-nums"
+              :title="`剩余约 ${data.v5EstimatedImages} 张`"
+            >
+              {{ Math.round(data.v5UsagePercent) }}%  ~{{ data.v5EstimatedImages.toLocaleString() }} 张
+            </span>
+          </div>
+          <div
+            v-if="!loading && data?.v5UsagePercent != null"
+            class="h-2 w-full overflow-hidden rounded-full bg-(--cv-surface-variant)"
+          >
+            <div
+              class="h-full rounded-full transition-all duration-300"
+              :class="getV5BarClass(data.v5UsagePercent, data.v5UsageNegative)"
+              :style="{ width: `${Math.min(100, Math.max(0, data.v5UsagePercent))}%` }"
+            />
+          </div>
+        </div>
       </div>
       <div
         v-else-if="!error"
@@ -125,6 +152,7 @@
 
 <script setup lang="ts">
 import { getAvailableNovelAIAccounts } from '@/services/novelai/router';
+import { getV5BarClass } from '@/services/novelai/subscription';
 import { useNovelAISubscription } from '@/composables/useNovelAISubscription';
 import { useSettingsStore } from '@/store/settings';
 

@@ -433,7 +433,7 @@ const novelaiParamRows = computed<ParamRow[]>(() => {
     { label: '提示词引导重缩放', value: String(novelaiSnapshot.value.promptGuidanceRescale) },
     { label: '噪声调度', value: novelaiSnapshot.value.noiseSchedule, code: true },
     { label: '负向提示词程度', value: novelaiSnapshot.value.ucPreset },
-    { label: '使用官方正面质量词', value: novelaiSnapshot.value.addQualityTags ? '开启' : '关闭' },
+    { label: '正面质量词预设', value: novelaiSnapshot.value.qualityPreset },
     ...buildVibeParamRows(novelaiSnapshot.value.vibes),
   ];
 });

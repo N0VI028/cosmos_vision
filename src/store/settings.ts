@@ -25,6 +25,7 @@ import {
   NOVELAI_IMAGE_SIZE_LIMITS,
   NOVELAI_MAX_SEED,
   NOVELAI_MODELS,
+  NOVELAI_QUALITY_PRESETS,
   NOVELAI_RESOLUTION_PRESETS,
   NOVELAI_ROUTING_MODES,
   NOVELAI_SAMPLERS,
@@ -32,6 +33,7 @@ import {
   NOVELAI_V3_NOISE_SCHEDULES,
   type CosmosVisionSettings,
   type NovelAIAccount,
+  type NovelAIQualityPreset,
   type NovelAISettings,
   PROMPT_LLM_MESSAGE_ROLES,
   PROMPT_LLM_MESSAGE_TRIGGER_MATCH_MODES,
@@ -70,6 +72,7 @@ const novelAIModelSchema = z.enum(optionValues(NOVELAI_MODELS));
 const novelAISamplerSchema = z.enum(optionValues(NOVELAI_SAMPLERS));
 const novelAINoiseScheduleSchema = z.enum(optionValues(NOVELAI_V3_NOISE_SCHEDULES));
 const novelAIUcPresetSchema = z.enum(optionValues(NOVELAI_UC_PRESETS));
+const novelAIQualityPresetSchema = z.enum(optionValues(NOVELAI_QUALITY_PRESETS));
 const novelAIRoutingModeSchema = z.enum(optionValues(NOVELAI_ROUTING_MODES));
 const imageSourceSchema = z.enum(optionValues(IMAGE_SOURCES));
 const novelAIResolutionPresetSchema = z.union([
@@ -163,7 +166,7 @@ const novelAISettingsSchema = z.object({
   noiseSchedule: novelAINoiseScheduleSchema,
   positivePromptPresetId: imagePromptPresetIdSchema,
   negativePromptPresetId: imagePromptPresetIdSchema,
-  addQualityTags: z.boolean(),
+  qualityPreset: novelAIQualityPresetSchema,
   ucPreset: novelAIUcPresetSchema,
   autoCharacterCoords: z.boolean(),
 });
@@ -468,10 +471,26 @@ function recoverNovelAISettings(value: unknown): NovelAISettings {
     noiseSchedule: read('noiseSchedule', novelAINoiseScheduleSchema),
     positivePromptPresetId: read('positivePromptPresetId', imagePromptPresetIdSchema),
     negativePromptPresetId: read('negativePromptPresetId', imagePromptPresetIdSchema),
-    addQualityTags: read('addQualityTags', z.boolean()),
+    qualityPreset: readNovelAIQualityPreset(record, fallback.qualityPreset),
     ucPreset: read('ucPreset', novelAIUcPresetSchema),
     autoCharacterCoords: read('autoCharacterCoords', z.boolean()),
   };
+}
+
+/**
+ * 读取 NovelAI 质量词预设并平滑迁移旧布尔值 addQualityTags
+ * @param record NovelAI 设置记录
+ * @param fallback 默认质量词预设
+ * @returns 质量词预设
+ */
+function readNovelAIQualityPreset(record: PlainRecord, fallback: NovelAIQualityPreset): NovelAIQualityPreset {
+  if (typeof record.qualityPreset === 'string') {
+    return parseField(novelAIQualityPresetSchema, record.qualityPreset, fallback);
+  }
+  if (typeof record.addQualityTags === 'boolean') {
+    return record.addQualityTags ? 'Standard' : 'None';
+  }
+  return fallback;
 }
 
 /**
