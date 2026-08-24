@@ -4,8 +4,19 @@ import { stripSlotShortcodes } from '@/services/inline-image/slot-shortcode';
 import { readPromptLlmHistoryMessages } from '@/services/tavern-helper/chat-history';
 import { buildRegexedHistory } from '@/services/tavern-helper/history-builder';
 import { extractFrontendText } from '@/services/inline-image/frontend-text-extract';
+import { getHostIframe, isHTMLElementNode, tryAccessIframeDocument } from '@/services/inline-image/iframe-utils';
 
 const MESSAGE_TEXT_BLOCK_SELECTOR = 'p, li, blockquote, pre, h1, h2, h3, h4, h5, h6';
+const IGNORED_TEXT_BLOCK_TAGS = new Set(['HEAD', 'TITLE', 'SCRIPT', 'STYLE', 'BUTTON']);
+
+/**
+ * 跨 realm 判断元素是否为 HTMLIFrameElement
+ * @param node 待检查节点
+ * @returns 是否为 iframe 元素
+ */
+function isIframeElementNode(node: unknown): node is HTMLIFrameElement {
+  return isHTMLElementNode(node) && node.tagName === 'IFRAME';
+}
 
 /**
  * ST 聊天 DOM 段落定位与上下文抽取
@@ -94,7 +105,7 @@ export function getInlineFavoriteAnchor(index: number): InlineFavoriteAnchor | n
 
 /**
  * 读取收藏图恢复兜底挂载点
- * @returns 最后可见段落或可见消息正文
+ * @returns 最后一个可见段落或可见消息正文
  */
 export function findInlineFavoriteFallbackTarget(): InlineFavoriteAnchor | null {
   const paragraphs = getVisibleChatParagraphElements();
@@ -105,43 +116,95 @@ export function findInlineFavoriteFallbackTarget(): InlineFavoriteAnchor | null 
 }
 
 /**
- * 获取目标段落所属消息内的语义块与前端型气泡
- * @param targetP 目标段落 DOM 元素
- * @returns 同一条消息内按 DOM 顺序排列的文本块
+ * 获取容器内部的文本根节点（若包含 .mes_text 则在其内部查找，否则在容器根节点查找）
+ * @param container 容器元素
+ * @returns 根节点元素
  */
-function getMessageTextBlockElements(targetP: HTMLElement): HTMLElement[] {
-  const mesBlock = targetP.closest<HTMLElement>('[mesid]');
-  if (!mesBlock) throw new Error('未找到目标段落所属消息');
-  const semanticBlocks = Array.from(
-    mesBlock.querySelectorAll(`.mes_text :is(${MESSAGE_TEXT_BLOCK_SELECTOR})`),
-  ).filter(isLeafMessageTextBlock);
-  const explicitBubbles = getExplicitFrontendBubbles(mesBlock);
-  const implicitBubbles = getImplicitFrontendBubbles(mesBlock, semanticBlocks);
-  return [...new Set([...semanticBlocks, ...explicitBubbles, ...implicitBubbles])].sort(compareDomOrder);
+function getContainerRoot(container: HTMLElement): HTMLElement {
+  return container.querySelector<HTMLElement>('.mes_text') ?? container;
 }
 
 /**
- * 获取带显式可选标记的前端型气泡
- * @param mesBlock 当前消息元素
- * @returns 显式气泡元素
+ * 获取指定容器内的扁平文本块元素列表
+ * @param container 容器元素
+ * @param hasIframeTarget 是否存在 iframe 目标（用于排除父文档中的 HTML 源码）
+ * @returns 该容器内按 DOM 顺序排列的叶子文本块元素
  */
-function getExplicitFrontendBubbles(mesBlock: HTMLElement): HTMLElement[] {
-  return Array.from(mesBlock.querySelectorAll('.mes_text [data-cv-selectable]')).filter(
-    (element): element is HTMLElement => element instanceof HTMLElement,
+function getContainerTextBlockElements(container: HTMLElement, hasIframeTarget = false): HTMLElement[] {
+  const root = getContainerRoot(container);
+  const semanticBlocks = Array.from(
+    root.querySelectorAll(`:is(${MESSAGE_TEXT_BLOCK_SELECTOR})`),
+  ).filter(isLeafMessageTextBlock).filter(element =>
+    !hasIframeTarget || !isFrontendSourceBlock(element),
   );
+  const explicitBubbles = Array.from(root.querySelectorAll('[data-cv-selectable]')).filter(isHTMLElementNode);
+  const implicitBubbles = getImplicitFrontendBubbles(root, semanticBlocks);
+  return [...new Set([...semanticBlocks, ...explicitBubbles, ...implicitBubbles])]
+    .sort(compareDomOrder);
+}
+
+/**
+ * 获取目标段落所属消息内的全部语义块与前端型气泡（按 DOM 序递归展开 iframe 内部块）
+ * @param targetP 目标段落 DOM 元素
+ * @returns 同一条消息内按 DOM 顺序排列的叶子文本块数组
+ */
+function getMessageTextBlockElements(targetP: HTMLElement): HTMLElement[] {
+  const mesBlock = (getHostIframe(targetP) ?? targetP).closest<HTMLElement>('[mesid]');
+  if (!mesBlock) throw new Error('未找到目标段落所属消息');
+  const hasIframe = Boolean(getHostIframe(targetP) || mesBlock.querySelector('iframe'));
+
+  const parentBlocks = getContainerTextBlockElements(mesBlock, hasIframe);
+  const iframeElements = getIframeBubbleBlocks(mesBlock);
+
+  if (iframeElements.length === 0) {
+    return parentBlocks;
+  }
+
+  const allBlocks: HTMLElement[] = [];
+  const parentAndIframes = [...new Set([...parentBlocks, ...iframeElements])].sort(compareDomOrder);
+
+  for (const element of parentAndIframes) {
+    if (isIframeElementNode(element)) {
+      const doc = tryAccessIframeDocument(element);
+      if (doc?.body) {
+        const innerBlocks = getContainerTextBlockElements(doc.body, false);
+        if (innerBlocks.length > 0) {
+          allBlocks.push(...innerBlocks);
+        } else {
+          allBlocks.push(element);
+        }
+      }
+    } else {
+      allBlocks.push(element);
+    }
+  }
+
+  return allBlocks;
 }
 
 /**
  * 获取最内层的隐式前端型文本气泡
- * @param mesBlock 当前消息元素
+ * @param container 容器元素
  * @param semanticBlocks 已识别的普通语义块
  * @returns 不与显式气泡层级重叠的最内层气泡
  */
-function getImplicitFrontendBubbles(mesBlock: HTMLElement, semanticBlocks: HTMLElement[]): HTMLElement[] {
-  const candidates = Array.from(mesBlock.querySelectorAll('.mes_text div')).filter(
-    (element): element is HTMLElement => isImplicitFrontendBubble(element, semanticBlocks),
+function getImplicitFrontendBubbles(container: HTMLElement, semanticBlocks: HTMLElement[]): HTMLElement[] {
+  const candidates = Array.from(container.querySelectorAll('div')).filter(
+    element => isImplicitFrontendBubble(element, semanticBlocks),
   );
   return candidates.filter(candidate => !candidates.some(other => other !== candidate && candidate.contains(other)));
+}
+
+/**
+ * 获取楼层内可访问内容的外部 iframe
+ * @param mesBlock 当前消息元素
+ * @returns 同源可访问的 iframe 元素
+ */
+function getIframeBubbleBlocks(mesBlock: HTMLElement): HTMLIFrameElement[] {
+  const root = getContainerRoot(mesBlock);
+  return Array.from(root.querySelectorAll('iframe'))
+    .filter(isIframeElementNode)
+    .filter(element => tryAccessIframeDocument(element) !== null);
 }
 
 /**
@@ -150,15 +213,17 @@ function getImplicitFrontendBubbles(mesBlock: HTMLElement, semanticBlocks: HTMLE
  * @param semanticBlocks 已识别的普通语义块
  * @returns 是否可作为隐式气泡候选
  */
-function isImplicitFrontendBubble(element: Element, semanticBlocks: HTMLElement[]): element is HTMLElement {
-  return element instanceof HTMLElement
+function isImplicitFrontendBubble(element: Element, semanticBlocks: HTMLElement[]): boolean {
+  return isHTMLElementNode(element)
     && Boolean(element.className)
     && Boolean(element.textContent?.trim())
     && !semanticBlocks.includes(element)
     && !hasCosmosInlineClass(element)
     && !element.querySelector(MESSAGE_TEXT_BLOCK_SELECTOR)
     && !element.closest('[data-cv-selectable]')
-    && !element.querySelector('[data-cv-selectable]');
+    && !element.querySelector('[data-cv-selectable]')
+    && !element.closest('iframe')
+    && element.tagName !== 'IFRAME';
 }
 
 /**
@@ -182,7 +247,9 @@ function compareDomOrder(left: HTMLElement, right: HTMLElement): number {
  */
 export function extractMessageParagraphs(targetP: HTMLElement, excludedElements?: HTMLElement[]): string[] {
   const excluded = new Set(excludedElements);
-  const elements = getMessageTextBlockElements(targetP).filter(element => !excluded.has(element));
+  const elements = getMessageTextBlockElements(targetP).filter(
+    element => !excluded.has(element) && !Array.from(excluded).some(ex => element.contains(ex) || ex.contains(element)),
+  );
   const messageBlocks = extractMessageTextBlockTexts(elements);
   if (messageBlocks.length > 0) return messageBlocks;
   if (excludedElements) return [];
@@ -197,7 +264,10 @@ export function extractMessageParagraphs(targetP: HTMLElement, excludedElements?
  */
 export function extractMessageParagraphsUntil(targetP: HTMLElement): string[] {
   const messageBlocks = getMessageTextBlockElements(targetP);
-  const targetIndex = messageBlocks.indexOf(targetP);
+  const hostIframe = getHostIframe(targetP);
+  const targetIndex = messageBlocks.findIndex(
+    block => block === targetP || block.contains(targetP) || (hostIframe && block === hostIframe),
+  );
   const visibleBlocks = targetIndex >= 0 ? messageBlocks.slice(0, targetIndex + 1) : [targetP];
   const paragraphs = extractMessageTextBlockTexts(visibleBlocks);
   if (paragraphs.length > 0) return paragraphs;
@@ -220,9 +290,38 @@ function extractMessageTextBlockTexts(elements: HTMLElement[]): string[] {
  * @returns 规范化后的文本
  */
 function extractMessageTextBlockText(element: HTMLElement): string {
+  if (isIframeElementNode(element)) {
+    const doc = tryAccessIframeDocument(element);
+    return doc?.body ? extractFrontendText(doc.body) : '';
+  }
   return element.hasAttribute('data-cv-selectable')
     ? extractFrontendText(element)
     : normalizeMessageTextBlock(readMessageTextNode(element));
+}
+
+/**
+ * 从 Prompt LLM 历史段落中移除前端 HTML/CSS 源码
+ * @param value 可能包含渲染源码的历史文本
+ * @returns 去除源码后的历史文本
+ */
+export function stripFrontendSourceMarkup(value: string): string {
+  return value
+    .replace(/<!doctype\s+html\b[\s\S]*?<\/html\s*>/gi, '')
+    .replace(/<html\b[\s\S]*?<\/html\s*>/gi, '')
+    .replace(/<(title|style|script)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/**
+ * 判断普通文本块是否是被 iframe 渲染器保留的 HTML 源码
+ * @param element 待检查的文本块
+ * @returns 是否应从 iframe 焦点历史中排除
+ */
+function isFrontendSourceBlock(element: HTMLElement): boolean {
+  const text = element.textContent?.trim() ?? '';
+  if (!text) return false;
+  return stripFrontendSourceMarkup(text) !== text;
 }
 
 /**
@@ -232,8 +331,8 @@ function extractMessageTextBlockText(element: HTMLElement): string {
  */
 function readMessageTextNode(node: Node): string {
   if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? '';
-  if (!(node instanceof HTMLElement)) return '';
-  if (hasCosmosInlineClass(node)) return '';
+  if (!isHTMLElementNode(node)) return '';
+  if (IGNORED_TEXT_BLOCK_TAGS.has(node.tagName) || hasCosmosInlineClass(node)) return '';
   if (node.tagName === 'BR') return '\n';
   return Array.from(node.childNodes).map(readMessageTextNode).join('');
 }
@@ -257,7 +356,7 @@ function hasCosmosInlineClass(element: HTMLElement): boolean {
  * @returns 是否作为本次抽取单位
  */
 function isLeafMessageTextBlock(element: Element): element is HTMLElement {
-  return element instanceof HTMLElement && !element.querySelector(MESSAGE_TEXT_BLOCK_SELECTOR);
+  return isHTMLElementNode(element) && !element.querySelector(MESSAGE_TEXT_BLOCK_SELECTOR);
 }
 
 /**
@@ -266,7 +365,7 @@ function isLeafMessageTextBlock(element: Element): element is HTMLElement {
  * @returns 保留换行后的文本
  */
 function normalizeMessageTextBlock(text: string): string {
-  return text.replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').trim();
+  return text.replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 /**
@@ -321,11 +420,9 @@ export async function buildPromptLlmContextFromParagraphs(
  * @returns 同消息 `.mes_text p` 元素（DOM 序）
  */
 export function getMessageChatParagraphs(targetP: HTMLElement): HTMLElement[] {
-  const mesBlock = targetP.closest('[mesid]');
-  if (!(mesBlock instanceof HTMLElement)) return [];
-  return Array.from(mesBlock.querySelectorAll('.mes_text p')).filter(
-    (el): el is HTMLElement => el instanceof HTMLElement,
-  );
+  const mesBlock = (getHostIframe(targetP) ?? targetP).closest('[mesid]');
+  if (!isHTMLElementNode(mesBlock)) return [];
+  return Array.from(mesBlock.querySelectorAll('.mes_text p')).filter(isHTMLElementNode);
 }
 
 /**
@@ -376,19 +473,29 @@ export function getFocusedChatParagraph(): HTMLElement | null {
 }
 
 /**
- * 读取当前全部带选中态的聊天段落（DOM 序）
- * @returns 选中段落数组
- */
-/**
  * 读取当前选中的聊天段落（支持普通p段落和前端型气泡）
  * @returns 选中的段落元素数组
  */
 export function getFocusedChatParagraphs(): HTMLElement[] {
-  // 查找所有选中元素（不限p标签，包括前端型气泡）
-  const selected = Array.from(document.querySelectorAll('.cv-inline-selected')).filter(
-    (el): el is HTMLElement => el instanceof HTMLElement,
-  );
-  return selected;
+  const selected = Array.from(document.querySelectorAll('.cv-inline-selected')).filter(isHTMLElementNode);
+  return [...selected, ...getIframeSelectedElements()];
+}
+
+/**
+ * 收集所有同源 iframe 内部带选中态的元素
+ * @returns iframe 内选中元素数组
+ */
+function getIframeSelectedElements(): HTMLElement[] {
+  const iframes = Array.from(document.querySelectorAll<HTMLIFrameElement>('iframe'));
+  const collected: HTMLElement[] = [];
+  for (const iframe of iframes) {
+    const doc = tryAccessIframeDocument(iframe);
+    if (!doc) continue;
+    for (const el of doc.querySelectorAll('.cv-inline-selected')) {
+      if (isHTMLElementNode(el)) collected.push(el);
+    }
+  }
+  return collected;
 }
 
 /**
@@ -406,28 +513,23 @@ export async function buildPromptLlmHistoryParagraphsWithRegex(
   const currentParagraphs = extractMessageParagraphsUntil(targetP);
   const messageIndex = findMessageId(targetP);
 
-  // 解析消息索引，无效时降级为旧逻辑
   const parsedIndex = messageIndex ? parseInt(messageIndex, 10) : NaN;
   if (!Number.isInteger(parsedIndex) || parsedIndex < 0) {
-    console.warn('[chat-dom] Failed to parse messageId:', messageIndex);
     return buildPromptLlmHistoryParagraphs(targetP, settings);
   }
 
-  // 历史范围排除焦点楼层本身，焦点楼层走 DOM 段落截取
   const result = await buildRegexedHistory({
     currentMessageIndex: parsedIndex - 1,
     depthBaseline: chat.length - 1,
     historyFloorCount: settings.historyFloorCount,
     ignoreUserMessages: settings.ignoreUserMessagesInHistory,
-    reverseOrder: false, // 历史按时间正序
+    reverseOrder: false,
   });
 
   if (!result.success) {
-    console.warn('[chat-dom] Regex history build failed, falling back to legacy:', result.error);
     return buildPromptLlmHistoryParagraphs(targetP, settings);
   }
 
-  // 每条正则后的消息作为独立段落，不用 split('\n') 拆分，保留消息边界
   const regexedParagraphs = result.messages.map(msg => msg.text).filter(Boolean);
   return [...regexedParagraphs, ...currentParagraphs];
 }
@@ -454,7 +556,6 @@ export async function buildPromptLlmHistoryExcludingFocusFloor(
     reverseOrder: false,
   });
   if (!result.success) {
-    console.warn('[chat-dom] Regex history build failed for frontend bubble:', result.error);
     return [];
   }
   return result.messages.map(msg => msg.text).filter(Boolean);
@@ -462,8 +563,6 @@ export async function buildPromptLlmHistoryExcludingFocusFloor(
 
 /**
  * 构建 Prompt LLM 历史消息数组（旧版，未使用 prompt 正则）
- * 焦点楼层仅保留至焦点段落，避免将后续剧情作为既有历史发送
- * 使用 TavernHelper 原始消息（未经 prompt 正则）
  * @deprecated 已废弃，请使用 buildPromptLlmHistoryParagraphsWithRegex
  * @param targetP 当前焦点段落
  * @param settings Prompt LLM 历史楼层设置
@@ -488,7 +587,7 @@ function buildPromptLlmHistoryParagraphs(
  * @returns mesid 字符串,未找到返回 null
  */
 export function findMessageId(p: HTMLElement): string | null {
-  const mesBlock = p.closest('[mesid]');
+  const mesBlock = (getHostIframe(p) ?? p).closest('[mesid]');
   return mesBlock?.getAttribute('mesid') ?? null;
 }
 
@@ -553,7 +652,6 @@ export function createInlineTextHash(value: string): string {
 
 /**
  * 从任意 DOM 元素向上查找其所属的聊天段落 p
- * 兼容 `<p>` 内部嵌套 `<em>` / `<q>` / `<strong>` 等内联元素的点击
  * @param el 点击目标元素
  * @returns 所属的 `.mes_text` 下的 `<p>` 元素,未找到返回 null
  */
@@ -567,7 +665,7 @@ export function findChatParagraph(el: HTMLElement): HTMLElement | null {
  */
 function findVisibleMessageText(): HTMLElement | null {
   return Array.from(document.querySelectorAll('.mes .mes_text, .mes_text'))
-    .filter((el): el is HTMLElement => el instanceof HTMLElement)
+    .filter(isHTMLElementNode)
     .filter(isVisibleElement)
     .at(-1) ?? null;
 }

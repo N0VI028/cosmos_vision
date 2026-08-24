@@ -3,6 +3,7 @@ import {
   getSelectionShellContainer,
   layoutSelectionShell,
 } from '@/composables/inlineParagraphSelection';
+import { defaultFrameRegistry } from '@/services/inline-image/frame-registry';
 
 export interface SelectionShellController {
   paint: (paragraphs: HTMLElement[], createToolbar: () => HTMLElement) => void;
@@ -28,18 +29,21 @@ export function createSelectionShellController(): SelectionShellController {
     if (!paragraphs.length) return;
     const container = getSelectionShellContainer(paragraphs);
     if (!container) return;
+    container.classList.add('cv-inline-selection-container');
     for (const p of paragraphs) p.classList.add('cv-inline-selected');
     const shell = document.createElement('div');
     shell.className = 'cv-inline-selection-shell';
     preventInlineEventBubbling(shell);
-    shell.appendChild(createToolbar());
+    const toolbar = createToolbar();
+    shell.appendChild(toolbar);
     container.appendChild(shell);
     selectionShell = shell;
     const syncLayout = () => {
       if (selectionShell) layoutSelectionShell(selectionShell, paragraphs, container);
     };
     syncLayout();
-    stopSelectionLayoutSync = bindSelectionLayoutSync(syncLayout);
+
+    stopSelectionLayoutSync = defaultFrameRegistry.bindLayoutSync(syncLayout, [container, ...paragraphs]);
   }
 
   /**
@@ -51,24 +55,11 @@ export function createSelectionShellController(): SelectionShellController {
     stopSelectionLayoutSync = null;
     for (const p of paragraphs) p.classList.remove('cv-inline-selected');
     if (selectionShell) {
+      selectionShell.parentElement?.classList.remove('cv-inline-selection-container');
       removeInlineVueHost(selectionShell);
       selectionShell = null;
     }
   }
 
   return { paint, clear };
-}
-
-/**
- * 绑定滚动与窗口尺寸变化时的选区壳重排
- * @param syncLayout 布局同步函数
- * @returns 清理函数
- */
-function bindSelectionLayoutSync(syncLayout: () => void): () => void {
-  window.addEventListener('scroll', syncLayout, true);
-  window.addEventListener('resize', syncLayout);
-  return () => {
-    window.removeEventListener('scroll', syncLayout, true);
-    window.removeEventListener('resize', syncLayout);
-  };
 }

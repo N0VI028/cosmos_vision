@@ -15,8 +15,5 @@ export function resolveInlineRoute(element: HTMLElement): InlineRouteType {
   }
 
   const chatParagraph = findChatParagraph(element);
-  if (chatParagraph) {
-    return 'classic-p';
-  }
-  return 'frontend';
+  return chatParagraph ? 'classic-p' : 'frontend';
 }

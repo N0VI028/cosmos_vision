@@ -48,7 +48,8 @@ import { extractFrontendText, resolveFrontendBubbleRoot } from '@/services/inlin
 import { ensureFloorTailHost } from '@/services/inline-image/floor-tail-host';
 import { writeFloorTailSlot } from '@/services/inline-image/floor-tail-slot';
 import { newSlotId } from '@/services/inline-image/slot-shortcode';
-import { tryAccessIframeDocument } from '@/services/inline-image/iframe-utils';
+import { getHostIframe } from '@/services/inline-image/iframe-utils';
+import { FrameRegistry } from '@/services/inline-image/frame-registry';
 
 import {
   collectTemporaryVibeSourceHashes,
@@ -100,10 +101,10 @@ export function useInlineImageGeneration(
   /** 当前活动选区（同一消息内连续段落，DOM 序） */
   const selectedParagraphs = ref<HTMLElement[]>([]);
 
-  /** 已注入监听器的 iframe，key=iframe 元素，value=清理函数 */
-  const injectedIframes = new WeakMap<HTMLIFrameElement, () => void>();
-  /** 跟踪活跃的 iframe（用于退出时遍历清理） */
-  const activeIframes = new Set<HTMLIFrameElement>();
+  /** 统一的同源 iframe 生命周期与手势注册表 */
+  const frameRegistry = new FrameRegistry();
+  /** 跟踪当前挂载了 pointerup 的文档（顶层或 iframe 文档） */
+  let activePointerUpDoc: Document | null = null;
 
   /** 连续选区整体蒙版壳控制器 */
   const selectionShell = createSelectionShellController();
@@ -129,6 +130,30 @@ export function useInlineImageGeneration(
   let pointerDownY = 0;
 
   /**
+   * 清理 pointerup / pointercancel 监听器，防止跨文档手势泄漏
+   */
+  function removeActivePointerUpListener(): void {
+    if (activePointerUpDoc) {
+      try {
+        activePointerUpDoc.removeEventListener('pointerup', handleSelectionPointerUp, true);
+        activePointerUpDoc.removeEventListener('pointercancel', handleSelectionPointerCancel, true);
+      } catch {
+        // 忽略已卸载的文档异常
+      }
+      activePointerUpDoc = null;
+    }
+    window.removeEventListener('pointerup', handleSelectionPointerUp, true);
+    window.removeEventListener('pointercancel', handleSelectionPointerCancel, true);
+  }
+
+  /**
+   * 处理手势取消
+   */
+  function handleSelectionPointerCancel(): void {
+    removeActivePointerUpListener();
+  }
+
+  /**
    * 切换段落生图选择模式
    */
   function toggleSelectionMode(): void {
@@ -146,6 +171,9 @@ export function useInlineImageGeneration(
     if (!isRuntimeEnabled() || isSelectionMode.value) return;
     isSelectionMode.value = true;
     document.addEventListener('pointerdown', handleSelectionPointerDown, true);
+    document.addEventListener('pointerover', handleSelectionPointerOver, true);
+    frameRegistry.bindPointerDown(handleSelectionPointerDown);
+    frameRegistry.startObserving();
   }
 
   /**
@@ -154,44 +182,23 @@ export function useInlineImageGeneration(
    */
   function exitSelectionMode(options: { preserveSelection?: boolean } = {}): void {
     document.removeEventListener('pointerdown', handleSelectionPointerDown, true);
-    document.removeEventListener('pointerup', handleSelectionPointerUp, true);
-
-    // 清理所有已注入的 iframe 监听器
-    activeIframes.forEach((iframe) => {
-      const cleanup = injectedIframes.get(iframe);
-      if (cleanup) cleanup();
-    });
-    activeIframes.clear();
+    document.removeEventListener('pointerover', handleSelectionPointerOver, true);
+    removeActivePointerUpListener();
+    frameRegistry.destroy();
 
     isSelectionMode.value = false;
     if (!options.preserveSelection) clearSelection();
   }
 
   /**
-   * 延迟注入 iframe 内选段监听器（首次点击时触发）
-   * @param iframe iframe 元素
+   * 鼠标悬停到 iframe 元素时提前登记并刷新监听器
+   * @param e 指针事件
    */
-  function tryInjectIframeListener(iframe: HTMLIFrameElement): void {
-    // 查重：已注入则跳过
-    if (injectedIframes.has(iframe)) return;
-
-    // 同源检测
-    const iframeDoc = tryAccessIframeDocument(iframe);
-    if (!iframeDoc) {
-      // 跨域或未加载，静默跳过
-      return;
+  function handleSelectionPointerOver(e: PointerEvent): void {
+    const target = e.target;
+    if (target instanceof HTMLIFrameElement) {
+      frameRegistry.registerIframe(target);
     }
-
-    // 注入监听器（复用父文档的处理函数）
-    const handler = (e: PointerEvent) => handleSelectionPointerDown(e);
-    iframeDoc.addEventListener('pointerdown', handler, true);
-
-    // 记录清理函数
-    const cleanup = () => {
-      iframeDoc.removeEventListener('pointerdown', handler, true);
-    };
-    injectedIframes.set(iframe, cleanup);
-    activeIframes.add(iframe);
   }
 
   /**
@@ -200,22 +207,31 @@ export function useInlineImageGeneration(
    * @param e 指针事件
    */
   function handleSelectionPointerDown(e: PointerEvent): void {
-    // 检测 iframe 内点击，延迟注入监听器
     const target = e.target as HTMLElement;
-    if (target.ownerDocument !== document) {
+    const inIframe = target.ownerDocument !== document;
+
+    if (inIframe) {
       const iframe = target.ownerDocument.defaultView?.frameElement;
       if (iframe instanceof HTMLIFrameElement) {
-        tryInjectIframeListener(iframe);
+        frameRegistry.registerIframe(iframe);
       }
     }
 
     if (!shouldHandleParagraphPointer(e)) return;
+
     pointerDownX = e.clientX;
     pointerDownY = e.clientY;
     e.preventDefault();
-    document.addEventListener('pointerup', handleSelectionPointerUp, { once: true, capture: true });
+    removeActivePointerUpListener();
+    const doc = target.ownerDocument ?? document;
+    activePointerUpDoc = doc;
+    doc.addEventListener('pointerup', handleSelectionPointerUp, { once: true, capture: true });
+    doc.addEventListener('pointercancel', handleSelectionPointerCancel, { once: true, capture: true });
+    if (doc !== document) {
+      window.addEventListener('pointerup', handleSelectionPointerUp, { once: true, capture: true });
+      window.addEventListener('pointercancel', handleSelectionPointerCancel, { once: true, capture: true });
+    }
   }
-
   /**
    * 判断本次 pointer 事件是否应进入段落选择处理
    * @param e 指针事件
@@ -224,7 +240,8 @@ export function useInlineImageGeneration(
   function shouldHandleParagraphPointer(e: PointerEvent): boolean {
     const target = e.target as HTMLElement;
     if (isIgnoredInlineTarget(target)) return false;
-    if (!target.closest('.mes_text, [mesid]')) return false;
+    const host = getHostIframe(target) ?? target;
+    if (!host.closest('.mes_text, [mesid]')) return false;
 
     // 排除空容器：目标或其最近文本块祖先必须包含可见文本
     const textBlock = target.closest('p, div, span, section, article, li, blockquote') as HTMLElement | null;
@@ -263,7 +280,8 @@ export function useInlineImageGeneration(
     }
 
     // 点击聊天区空白处取消选中
-    if (target.closest('.mes_text, [mesid]')) {
+    const host = getHostIframe(target) ?? target;
+    if (host.closest('.mes_text, [mesid]')) {
       clearSelection();
     }
   }

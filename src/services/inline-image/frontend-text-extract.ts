@@ -1,7 +1,7 @@
 import { mapNormalize } from '@/services/inline-image/host-locate';
 import { isHTMLElementNode } from '@/services/inline-image/iframe-utils';
 
-const IGNORED_TAGS = new Set(['SCRIPT', 'STYLE', 'BUTTON']);
+const IGNORED_TAGS = new Set(['HEAD', 'TITLE', 'SCRIPT', 'STYLE', 'BUTTON']);
 
 /**
  * 提取前端型气泡内的纯文本内容（保留 <br> 换行，剔除控件与脚本）

@@ -160,9 +160,12 @@
 }
 
 /* 选区挂载容器允许整体蒙版溢出 */
+.cv-inline-selection-container,
 [mesid]:has(.cv-inline-selected),
-.mes_text:has(.cv-inline-selected) {
-  position: relative;
+.mes_text:has(.cv-inline-selected),
+[mesid]:has(.cv-inline-selection-shell),
+.mes_text:has(.cv-inline-selection-shell) {
+  position: relative !important;
   overflow: visible !important;
 }
 
