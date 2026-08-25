@@ -6,13 +6,13 @@ import {
 } from '@/composables/inlineImageDom';
 import Button from 'primevue/button';
 import Galleria from 'primevue/galleria';
-import type { ComponentPublicInstance, PropType, VNode, VNodeRef } from 'vue';
-import { defineComponent, h, nextTick, onMounted, watch } from 'vue';
+import type { PropType, VNode } from 'vue';
+import { defineComponent, h } from 'vue';
 
 export interface InlineGalleryItem {
   id: string;
   favoriteId: number | null;
-  /** 段落位点 slotId；临时项可为空 */
+  /** 段落位点 slotId；临时项可以为空 */
   slotId: string | null;
   imageBlob: Blob;
   objectUrl: string;
@@ -61,13 +61,7 @@ export const InlineGalleryGroupView = defineComponent({
   },
   setup(props) {
     const resolvedProps = props as InlineGalleryGroupProps;
-    const thumbnailRefs = new Map<string, HTMLButtonElement>();
-    onMounted(() => queueActiveThumbnailSync(resolvedProps, thumbnailRefs));
-    watch(
-      () => [resolvedProps.activeItemId, resolvedProps.items],
-      () => queueActiveThumbnailSync(resolvedProps, thumbnailRefs),
-    );
-    return () => (resolvedProps.items.length ? renderGalleryGroup(resolvedProps, thumbnailRefs) : h('div'));
+    return () => (resolvedProps.items.length ? renderGalleryGroup(resolvedProps) : h('div'));
   },
 });
 
@@ -78,7 +72,6 @@ export const InlineGalleryGroupView = defineComponent({
  */
 function renderGalleryGroup(
   props: Readonly<InlineGalleryGroupProps>,
-  thumbnailRefs: Map<string, HTMLButtonElement>,
 ): VNode {
   const children: VNode[] = [
     h('div', { class: 'cv-inline-favorite-main' }, [
@@ -86,7 +79,7 @@ function renderGalleryGroup(
       renderGalleria(props),
     ]),
   ];
-  if (props.items.length > 1) children.push(renderThumbnailStrip(props, thumbnailRefs));
+  if (props.items.length > 1) children.push(renderThumbnailStrip(props));
   return h('div', { class: 'cv-inline-favorite-content' }, children);
 }
 
@@ -311,39 +304,16 @@ function findActiveIndex(items: InlineGalleryItem[], activeItemId: string): numb
 }
 
 /**
- * 排队同步当前焦点缩略图位置
- * @param props 组件参数
- * @param thumbnailRefs 缩略图按钮引用
- */
-function queueActiveThumbnailSync(
-  props: Readonly<InlineGalleryThumbnailStripProps>,
-  thumbnailRefs: Map<string, HTMLButtonElement>,
-): void {
-  void nextTick(() => scrollActiveThumbnail(props.activeItemId, thumbnailRefs));
-}
-
-/**
- * 让当前焦点缩略图滚动到可见区域
- * @param activeItemId 当前焦点图片 ID
- * @param thumbnailRefs 缩略图按钮引用
- */
-function scrollActiveThumbnail(activeItemId: string, thumbnailRefs: Map<string, HTMLButtonElement>): void {
-  thumbnailRefs.get(activeItemId)?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
-}
-
-/**
  * 渲染缩略图条
  * @param props 组件参数
- * @param thumbnailRefs 缩略图按钮引用
  * @returns 缩略图条 VNode
  */
 function renderThumbnailStrip(
   props: Readonly<InlineGalleryThumbnailStripProps>,
-  thumbnailRefs: Map<string, HTMLButtonElement>,
 ): VNode {
   return h('div', { class: 'cv-inline-gallery-strip', role: 'group', 'aria-label': '图片缩略图' }, [
     renderThumbnailNavButton(props, -1),
-    h('div', { class: 'cv-inline-gallery-strip-viewport' }, [renderThumbnailList(props, thumbnailRefs)]),
+    h('div', { class: 'cv-inline-gallery-strip-viewport' }, [renderThumbnailList(props)]),
     renderThumbnailNavButton(props, 1),
   ]);
 }
@@ -351,18 +321,16 @@ function renderThumbnailStrip(
 /**
  * 渲染缩略图列表
  * @param props 组件参数
- * @param thumbnailRefs 缩略图按钮引用
  * @returns 缩略图列表 VNode
  */
 function renderThumbnailList(
   props: Readonly<InlineGalleryThumbnailStripProps>,
-  thumbnailRefs: Map<string, HTMLButtonElement>,
 ): VNode {
   return h(
     'div',
     { class: 'cv-inline-gallery-strip-list' },
     props.items.map((item, index) =>
-      renderThumbnailItem(item, index, props.activeItemId, props.selectItem, thumbnailRefs),
+      renderThumbnailItem(item, index, props.activeItemId, props.selectItem),
     ),
   );
 }
@@ -373,7 +341,6 @@ function renderThumbnailList(
  * @param index 当前索引
  * @param activeItemId 当前焦点图片 ID
  * @param selectItem 切换焦点图片
- * @param thumbnailRefs 缩略图按钮引用
  * @returns 缩略图按钮 VNode
  */
 function renderThumbnailItem(
@@ -381,13 +348,11 @@ function renderThumbnailItem(
   index: number,
   activeItemId: string,
   selectItem: (item: InlineGalleryItem) => void,
-  thumbnailRefs: Map<string, HTMLButtonElement>,
 ): VNode {
   const active = item.id === activeItemId;
   return h(
     'button',
     {
-      ref: createThumbnailRef(thumbnailRefs, item.id),
       type: 'button',
       class: 'cv-prime-galleria-thumbnail-item cv-inline-gallery-strip-item',
       'data-p-active': active ? 'true' : 'false',
@@ -400,69 +365,45 @@ function renderThumbnailItem(
 }
 
 /**
- * 创建缩略图按钮引用回调
- * @param thumbnailRefs 缩略图按钮引用
- * @param itemId 图片 ID
- * @returns Vue DOM 引用回调
- */
-function createThumbnailRef(thumbnailRefs: Map<string, HTMLButtonElement>, itemId: string): VNodeRef {
-  return (ref: Element | ComponentPublicInstance | null) => bindThumbnailRef(thumbnailRefs, itemId, ref);
-}
-
-/**
- * 绑定缩略图按钮引用
- * @param thumbnailRefs 缩略图按钮引用
- * @param itemId 图片 ID
- * @param element DOM 元素
- */
-function bindThumbnailRef(
-  thumbnailRefs: Map<string, HTMLButtonElement>,
-  itemId: string,
-  element: Element | ComponentPublicInstance | null,
-): void {
-  if (element instanceof HTMLButtonElement) thumbnailRefs.set(itemId, element);
-  else thumbnailRefs.delete(itemId);
-}
-
-/**
- * 渲染缩略图导航按钮
+ * 渲染缩略图前后导航箭头按钮
  * @param props 组件参数
- * @param step 切换步进
+ * @param step 步进方向（-1 上一张，1 下一张）
  * @returns 导航按钮 VNode
  */
 function renderThumbnailNavButton(props: Readonly<InlineGalleryThumbnailStripProps>, step: -1 | 1): VNode {
-  const previous = step < 0;
+  const activeIndex = findActiveIndex(props.items, props.activeItemId);
+  const disabled = props.items.length <= 1;
+  const isPrev = step === -1;
   return h(
     'button',
     {
       type: 'button',
       class: 'cv-prime-galleria-nav-button cv-inline-gallery-strip-nav',
-      disabled: isThumbnailNavDisabled(props, step),
-      'aria-label': previous ? '上一张图片' : '下一张图片',
-      onClick: () => selectAdjacentThumbnail(props, step),
+      disabled,
+      'aria-label': isPrev ? '上一张' : '下一张',
+      onClick: () => stepActiveItem(props, activeIndex + step),
     },
-    [h('i', { class: ['cv-prime-galleria-nav-icon fa-solid', previous ? 'fa-chevron-left' : 'fa-chevron-right'] })],
+    [
+      h('i', {
+        class: [
+          'cv-prime-galleria-nav-icon',
+          isPrev ? 'fa-solid fa-chevron-left' : 'fa-solid fa-chevron-right',
+        ],
+        'aria-hidden': 'true',
+      }),
+    ],
   );
 }
 
 /**
- * 判断缩略图导航按钮是否应禁用
+ * 步进切换当前焦点图片
  * @param props 组件参数
- * @param step 切换步进
- * @returns 是否禁用
+ * @param targetIndex 目标索引
  */
-function isThumbnailNavDisabled(props: Readonly<InlineGalleryThumbnailStripProps>, step: -1 | 1): boolean {
-  const activeIndex = findActiveIndex(props.items, props.activeItemId);
-  return step < 0 ? activeIndex <= 0 : activeIndex >= props.items.length - 1;
-}
-
-/**
- * 切换相邻缩略图
- * @param props 组件参数
- * @param step 切换步进
- */
-function selectAdjacentThumbnail(props: Readonly<InlineGalleryThumbnailStripProps>, step: -1 | 1): void {
-  const activeIndex = findActiveIndex(props.items, props.activeItemId);
-  const target = props.items[activeIndex + step];
-  if (target) props.selectItem(target);
+function stepActiveItem(props: Readonly<InlineGalleryThumbnailStripProps>, targetIndex: number): void {
+  const total = props.items.length;
+  if (total <= 1) return;
+  const normalized = (targetIndex + total) % total;
+  const nextItem = props.items[normalized];
+  if (nextItem) props.selectItem(nextItem);
 }
