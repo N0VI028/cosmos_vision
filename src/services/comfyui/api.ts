@@ -271,6 +271,7 @@ export async function applyImageBindings(
   signal?: AbortSignal,
 ): Promise<void> {
   for (const target of bindings) {
+    if (signal?.aborted) throw createComfyUIAbortError();
     const node = workflow[target.nodeId];
     if (!node) continue;
 
@@ -280,7 +281,9 @@ export async function applyImageBindings(
       filename: `cosmos-${target.source}.png`,
       signal,
     });
-    node.inputs[target.inputName] = uploaded.name;
+    node.inputs[target.inputName] = uploaded.subfolder
+      ? `${uploaded.subfolder}/${uploaded.name}`
+      : uploaded.name;
   }
 }
 
@@ -356,7 +359,7 @@ async function fetchComfyUIHistoryResult(
   const entry = readHistoryEntry(history, promptId);
   if (!entry) return null;
 
-  if (entry.status?.status_str === 'error') {
+  if (entry.status && isHistoryStatusError(entry.status.status_str)) {
     const detail = extractHistoryStatusMessage(entry.status.messages);
     throw new Error(`ComfyUI 执行失败: ${detail ?? '未知节点错误'}`);
   }
@@ -534,14 +537,33 @@ async function interruptComfyUI(baseUrl: string): Promise<void> {
 }
 
 /**
+ * 判断 history 状态字符串是否表示执行失败
+ * @param statusStr ComfyUI 原始状态字符串
+ * @returns 是否为错误状态
+ */
+function isHistoryStatusError(statusStr: string | undefined): boolean {
+  if (!statusStr) return false;
+  const normalized = statusStr.trim().toLowerCase();
+  return normalized === 'error' || normalized === 'failed' || normalized.includes('error');
+}
+
+/** ComfyUI 生图取消统一的 AbortError 消息 */
+const COMFYUI_ABORT_MESSAGE = 'ComfyUI 生图已被取消';
+
+/** 构造统一 AbortError */
+function createComfyUIAbortError(): Error {
+  const error = new Error(COMFYUI_ABORT_MESSAGE);
+  error.name = 'AbortError';
+  return error;
+}
+
+/**
  * 检查信号是否已中止并抛出统一 AbortError
  * @param signal 取消信号
  */
 function throwIfComfyUIAborted(signal?: AbortSignal): void {
   if (!signal?.aborted) return;
-  const error = new Error('ComfyUI 生图已被取消');
-  error.name = 'AbortError';
-  throw error;
+  throw createComfyUIAbortError();
 }
 
 /**
@@ -605,7 +627,7 @@ async function readJsonResponse<T>(response: Response, label: string): Promise<T
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
-      reject(new Error('ComfyUI 生图已被取消'));
+      reject(createComfyUIAbortError());
       return;
     }
     const timer = setTimeout(() => {
@@ -614,7 +636,7 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
     }, ms);
     const onAbort = () => {
       clearTimeout(timer);
-      reject(new Error('ComfyUI 生图已被取消'));
+      reject(createComfyUIAbortError());
     };
     signal?.addEventListener('abort', onAbort, { once: true });
   });

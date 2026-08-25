@@ -2,7 +2,6 @@ import {
   getAvatarPath,
   readAvatarFile,
   validateImageFile,
-  type TavernAvatarSource,
 } from '@/services/tavern-helper/avatar';
 import type { WdImageSource } from './types';
 
@@ -12,7 +11,7 @@ import type { WdImageSource } from './types';
  * @returns 可读取的头像路径或 null
  */
 export function getWdAvatarPath(source: Exclude<WdImageSource, 'upload'>): string | null {
-  return getAvatarPath(source as TavernAvatarSource);
+  return getAvatarPath(source);
 }
 
 /**
@@ -25,7 +24,7 @@ export async function readWdAvatarFile(
   source: Exclude<WdImageSource, 'upload'>,
   fetchImpl: typeof fetch = fetch,
 ): Promise<File> {
-  return readAvatarFile(source as TavernAvatarSource, fetchImpl);
+  return readAvatarFile(source, fetchImpl);
 }
 
 /**

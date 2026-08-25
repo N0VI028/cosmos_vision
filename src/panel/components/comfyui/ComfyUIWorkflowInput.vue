@@ -281,15 +281,15 @@
 import type { ChipPassThroughOptions } from 'primevue/chip';
 import type { PopoverPassThroughOptions } from 'primevue/popover';
 import Popover from 'primevue/popover';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { COMFYUI_DIMENSION_PRESETS } from '@/constants/comfyui';
 import { MACRO_POPOVER_BASE_Z_INDEX, type MacroPopoverInstance } from '@/panel/components/prompt-llm-macro-popover';
 import type {
   ComfyUIInputControlDesc,
-  ImageBindingSource,
   PromptBinding,
   SeedMode,
 } from '@/services/comfyui/types';
+import type { TavernAvatarSource } from '@/services/tavern-helper/avatar';
 import { fetchComfyUICheckpointNames, uploadComfyUIImage } from '@/services/comfyui/api';
 import { normalizeComfyUIUrl } from '@/services/comfyui/parse';
 import { getAvatarPath } from '@/services/tavern-helper/avatar';
@@ -313,7 +313,7 @@ const BINDING_OPTIONS: PromptBindingOption[] = [
 ];
 
 interface ImageBindingOption {
-  value: ImageBindingSource | null;
+  value: TavernAvatarSource | null;
   label: string;
   icon: string;
 }
@@ -345,7 +345,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   'update:value': [value: unknown];
   'update:prompt-binding': [binding: PromptBinding | null];
-  'update:image-binding': [source: ImageBindingSource | null];
+  'update:image-binding': [source: TavernAvatarSource | null];
   'update:seed-mode': [mode: SeedMode | null];
 }>();
 
@@ -530,6 +530,15 @@ watch(
   },
 );
 
+// 释放上一次的 Blob URL，避免长会话累积泄漏
+watch(localPreviewUrl, (next, prev) => {
+  if (prev && prev !== next) URL.revokeObjectURL(prev);
+});
+
+onBeforeUnmount(() => {
+  if (localPreviewUrl.value) URL.revokeObjectURL(localPreviewUrl.value);
+});
+
 function handlePreviewError(): void {
   hasPreviewError.value = true;
 }
@@ -569,7 +578,7 @@ function selectPromptBinding(binding: PromptBinding | null): void {
  * 选择图片绑定并关闭下拉
  * @param source null 表示不绑定
  */
-function selectImageBinding(source: ImageBindingSource | null): void {
+function selectImageBinding(source: TavernAvatarSource | null): void {
   emit('update:image-binding', source);
   imagePopover.value?.hide();
 }

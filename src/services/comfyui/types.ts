@@ -1,8 +1,10 @@
 /** 提示词绑定方向 */
 export type PromptBinding = 'positive' | 'negative';
 
-/** 图片绑定来源 */
-export type ImageBindingSource = 'character-avatar' | 'user-avatar';
+import type { TavernAvatarSource } from '@/services/tavern-helper/avatar';
+
+/** 图片绑定来源（复用 tavern-helper 头像来源类型，避免重复定义） */
+export type ImageBindingSource = TavernAvatarSource;
 
 /** seed 控件模式 */
 export type SeedMode = 'fixed' | 'randomize' | 'increment' | 'decrement';

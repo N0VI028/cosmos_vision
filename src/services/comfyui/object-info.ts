@@ -10,8 +10,11 @@ import type {
   CosmosVisionNodeMeta,
 } from '@/services/comfyui/types';
 import { isLinkRef } from '@/services/comfyui/link';
+import { isImageFilename } from '@/services/comfyui/object-info-elementary';
 import { readNodeMeta } from '@/services/comfyui/meta';
 import { normalizeComfyUIUrl } from '@/services/comfyui/parse';
+
+export { isImageFilename } from '@/services/comfyui/object-info-elementary';
 
 /** 按规范化 URL 缓存最近一次成功的 object_info */
 const objectInfoCache = new Map<string, ComfyUIObjectInfoMap>();
@@ -115,9 +118,6 @@ export function listInputControls(
   );
 }
 
-/** 兼容别名导出 */
-export const mapInputControls = listInputControls;
-
 /**
  * 读取可被指定为输出节点的候选节点 ID
  * @param workflow 工作流
@@ -152,18 +152,7 @@ function isImageOutputCandidate(
 }
 
 /**
- * 判断是否为图片文件名
- * @param name 文件名
- * @returns 是否为图片文件格式
- */
-export function isImageFilename(name: unknown): boolean {
-  if (typeof name !== 'string') return false;
-  return /\.(png|jpe?g|webp|bmp|gif|avif)$/i.test(name.trim());
-}
-
-/**
  * 判断是否为图像输入控件（如 LoadImage 的 image 字段或标记了 image_upload 的输入）
- * @param _nodeId 节点 ID
  * @param inputName 输入名
  * @param value 当前值
  * @param schema 节点定义
@@ -171,7 +160,6 @@ export function isImageFilename(name: unknown): boolean {
  * @returns 是否为图片输入控件
  */
 export function isImageInputControl(
-  _nodeId: string,
   inputName: string,
   value: unknown,
   schema?: ComfyUIObjectInfoNode,
@@ -207,7 +195,7 @@ function buildInputControl(
 
   const promptBinding = meta.promptBindings?.[inputName] ?? null;
   const imageBinding = meta.imageBindings?.[inputName] ?? null;
-  const isImageInput = isImageInputControl(nodeId, inputName, value, schema, spec);
+  const isImageInput = isImageInputControl(inputName, value, schema, spec);
 
   return {
     nodeId,

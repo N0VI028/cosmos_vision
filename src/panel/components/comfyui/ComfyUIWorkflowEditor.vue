@@ -279,16 +279,16 @@ import {
   fetchComfyUIObjectInfo,
   getCachedComfyUIObjectInfo,
   listOutputCandidates,
-  mapInputControls,
+  listInputControls,
 } from '@/services/comfyui/object-info';
 import { parseComfyUIWorkflow, serializeComfyUIWorkflow } from '@/services/comfyui/parse';
 import type {
   ComfyUIObjectInfoMap,
   ComfyUIWorkflow,
-  ImageBindingSource,
   PromptBinding,
   SeedMode,
 } from '@/services/comfyui/types';
+import type { TavernAvatarSource } from '@/services/tavern-helper/avatar';
 import {
   buildFavoriteLocateOptions,
   pruneFavoriteNodeIds,
@@ -492,7 +492,7 @@ const nodeSelectOptions = computed(() => {
 
 const selectedControls = computed(() => {
   if (!workflow.value || !selectedNodeId.value) return [];
-  return mapInputControls(workflow.value, selectedNodeId.value, objectInfo.value);
+  return listInputControls(workflow.value, selectedNodeId.value, objectInfo.value);
 });
 
 const selectedOutputs = computed(() => {
@@ -577,7 +577,7 @@ function updatePromptBinding(inputName: string, binding: PromptBinding | null): 
  * @param inputName 输入名
  * @param source 绑定来源
  */
-function updateImageBinding(inputName: string, source: ImageBindingSource | null): void {
+function updateImageBinding(inputName: string, source: TavernAvatarSource | null): void {
   if (!workflow.value || !selectedNodeId.value) return;
   const next = structuredClone(workflow.value) as ComfyUIWorkflow;
   setImageBinding(next, selectedNodeId.value, inputName, source);

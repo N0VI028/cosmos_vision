@@ -6,7 +6,7 @@ import {
   isImageFilename,
   isImageInputControl,
   listOutputCandidates,
-  mapInputControls,
+  listInputControls,
   normalizeObjectInfo,
 } from '@/services/comfyui/object-info';
 import { createMockFetch } from '../../../helpers/fetch-mocks';
@@ -112,13 +112,13 @@ describe('comfyui object-info', () => {
       },
     };
 
-    const controls = mapInputControls(workflow, '1', objectInfoMap);
+    const controls = listInputControls(workflow, '1', objectInfoMap);
     expect(controls).toHaveLength(2);
     expect(controls[0].kind).toBe('textarea');
     expect(controls[0].canPromptBind).toBe(true);
     expect(controls[1].kind).toBe('link');
 
-    const imageControls = mapInputControls(workflow, '2', objectInfoMap);
+    const imageControls = listInputControls(workflow, '2', objectInfoMap);
     expect(imageControls).toHaveLength(1);
     expect(imageControls[0].isImageInput).toBe(true);
     expect(imageControls[0].canImageBind).toBe(true);
@@ -138,7 +138,7 @@ describe('comfyui object-info', () => {
     const objectInfoMap = normalizeObjectInfo(rawObjectInfo);
     const schema = objectInfoMap.LoadImage;
     const spec = schema.inputs[0];
-    expect(isImageInputControl('2', 'image', 'input.png', schema, spec)).toBe(true);
-    expect(isImageInputControl('1', 'text', 'hello', objectInfoMap.CLIPTextEncode, objectInfoMap.CLIPTextEncode.inputs[0])).toBe(false);
+    expect(isImageInputControl('image', 'input.png', schema, spec)).toBe(true);
+    expect(isImageInputControl('text', 'hello', objectInfoMap.CLIPTextEncode, objectInfoMap.CLIPTextEncode.inputs[0])).toBe(false);
   });
 });

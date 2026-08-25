@@ -36,9 +36,9 @@ describe('comfyui image upload and dynamic bindings', () => {
     await expect(uploadComfyUIImage('http://127.0.0.1:8188', blob)).rejects.toThrow(/请求失败 \(500\)/);
   });
 
-  it('applies character and user avatar bindings dynamically to workflow', async () => {
+  it('applies character avatar bindings dynamically to workflow', async () => {
     const fakeFile = new File(['fake avatar'], 'avatar.png', { type: 'image/png' });
-    vi.spyOn(avatarService, 'readAvatarFile').mockResolvedValue(fakeFile);
+    const readSpy = vi.spyOn(avatarService, 'readAvatarFile').mockResolvedValue(fakeFile);
 
     const mockFetch = createMockFetch(() => ({
       json: { name: 'avatar_result.png' },
@@ -58,7 +58,49 @@ describe('comfyui image upload and dynamic bindings', () => {
 
     await applyImageBindings('http://127.0.0.1:8188', workflow, bindings);
 
-    expect(avatarService.readAvatarFile).toHaveBeenCalledWith('character-avatar');
+    expect(readSpy).toHaveBeenCalledWith('character-avatar');
     expect(workflow['1'].inputs.image).toBe('avatar_result.png');
+  });
+
+  it('includes subfolder when ComfyUI upload returns one', async () => {
+    const fakeFile = new File(['fake avatar'], 'avatar.png', { type: 'image/png' });
+    vi.spyOn(avatarService, 'readAvatarFile').mockResolvedValue(fakeFile);
+    vi.stubGlobal(
+      'fetch',
+      createMockFetch(() => ({ json: { name: 'avatar_result.png', subfolder: 'cosmos', type: 'input' } })),
+    );
+
+    const workflow: ComfyUIWorkflow = {
+      '1': { class_type: 'LoadImage', inputs: { image: 'old.png' } },
+    };
+    const bindings: ComfyUIImageBindingTarget[] = [
+      { nodeId: '1', inputName: 'image', source: 'user-avatar' },
+    ];
+
+    await applyImageBindings('http://127.0.0.1:8188', workflow, bindings);
+
+    expect(workflow['1'].inputs.image).toBe('cosmos/avatar_result.png');
+  });
+
+  it('rejects promptly when signal is already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const readSpy = vi.spyOn(avatarService, 'readAvatarFile').mockResolvedValue(
+      new File(['x'], 'avatar.png', { type: 'image/png' }),
+    );
+    const fetchMock = createMockFetch(() => ({ json: { name: 'never.png' } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const workflow: ComfyUIWorkflow = { '1': { class_type: 'LoadImage', inputs: { image: 'old.png' } } };
+    const bindings: ComfyUIImageBindingTarget[] = [
+      { nodeId: '1', inputName: 'image', source: 'character-avatar' },
+    ];
+
+    await expect(
+      applyImageBindings('http://127.0.0.1:8188', workflow, bindings, controller.signal),
+    ).rejects.toThrow();
+    // 取消信号已 abort，跳过 readAvatarFile 直接抛出
+    expect(readSpy).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

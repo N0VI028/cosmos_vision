@@ -1,5 +1,7 @@
 import type {
   ComfyUIImageBindingTarget,
+  ComfyUIObjectInfoMap,
+  ComfyUIObjectInfoNode,
   ComfyUIPromptBindingTarget,
   ComfyUISeedModeTarget,
   ComfyUIWorkflow,
@@ -10,6 +12,7 @@ import type {
   SeedMode,
 } from '@/services/comfyui/types';
 import { isLinkRef, isWritableScalar } from '@/services/comfyui/link';
+import { isImageFilename } from '@/services/comfyui/object-info-elementary';
 
 /**
  * 从工作流节点读取 CosmosVision 私有元数据
@@ -239,15 +242,49 @@ export function validatePromptBindings(workflow: ComfyUIWorkflow): string | null
 }
 
 /**
+ * 判断工作流输入是否为图片输入（值是图片文件名，或 schema 标记为图片上传）
+ * @param classType 节点类型
+ * @param inputName 输入名
+ * @param value 当前值
+ * @param schema 节点定义（在线时提供）
+ * @returns 是否为图片输入
+ */
+function isImageBindingTarget(
+  classType: string,
+  inputName: string,
+  value: unknown,
+  schema: ComfyUIObjectInfoNode | undefined,
+): boolean {
+  const spec = schema?.inputs.find(item => item.name === inputName);
+  if (spec?.imageUpload) return true;
+  if (spec?.type === 'IMAGEUPLOAD') return true;
+  if (classType === 'LoadImage' && inputName === 'image') return true;
+  if (typeof value === 'string' && isImageFilename(value)) return true;
+  if (spec?.options && spec.options.some(option => isImageFilename(option))) return true;
+  return false;
+}
+
+/**
  * 校验图片绑定仍指向工作流内可写输入
  * @param workflow 工作流
+ * @param objectInfo 可选节点 schema 表，提供时额外校验目标输入是否为图片输入
  * @returns 校验错误或 null
  */
-export function validateImageBindings(workflow: ComfyUIWorkflow): string | null {
+export function validateImageBindings(
+  workflow: ComfyUIWorkflow,
+  objectInfo?: ComfyUIObjectInfoMap | null,
+): string | null {
   const targets = readImageBindings(workflow);
   for (const target of targets) {
     const error = validateBindingTarget(workflow, target.nodeId, target.inputName, '图片绑定');
     if (error) return error;
+    if (!objectInfo) continue;
+    const node = workflow[target.nodeId];
+    const schema = objectInfo[node.class_type];
+    // schema 已同步但目标输入被识别为非图片输入时，提示绑定失效
+    if (schema && !isImageBindingTarget(node.class_type, target.inputName, node.inputs?.[target.inputName], schema)) {
+      return `图片绑定失效: 节点 ${target.nodeId} 输入 ${target.inputName} 不是图片输入`;
+    }
   }
   return null;
 }

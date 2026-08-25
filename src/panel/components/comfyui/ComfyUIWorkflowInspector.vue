@@ -226,10 +226,10 @@ import type {
   ComfyUIInputControlDesc,
   ComfyUIObjectInfoOutputSpec,
   ComfyUIWorkflowNode,
-  ImageBindingSource,
   PromptBinding,
   SeedMode,
 } from '@/services/comfyui/types';
+import type { TavernAvatarSource } from '@/services/tavern-helper/avatar';
 import type { DividerDesignTokens } from '@primeuix/themes/types/divider';
 
 /** 紧凑 inspector：去掉水平分割线默认上下外边距 */
@@ -265,7 +265,7 @@ const emit = defineEmits<{
   'toggle-favorite': [];
   'update:input': [inputName: string, value: unknown];
   'update:prompt-binding': [inputName: string, binding: PromptBinding | null];
-  'update:image-binding': [inputName: string, source: ImageBindingSource | null];
+  'update:image-binding': [inputName: string, source: TavernAvatarSource | null];
   'update:seed-mode': [inputName: string, mode: SeedMode | null];
   'update:lora-preset-settings': [settings: ComfyUILoraPresetSettings];
   'refresh-lora-options': [];

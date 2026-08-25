@@ -13,8 +13,13 @@ import {
 } from '@/services/comfyui/meta';
 import { getComfyUIWorkflowValidationError, normalizeComfyUIUrl, parseComfyUIWorkflow } from '@/services/comfyui/parse';
 import { applySeedModes } from '@/services/comfyui/seed-runtime';
+import { getCachedComfyUIObjectInfo } from '@/services/comfyui/object-info';
 import { getActiveComfyUIWorkflowJson } from '@/services/comfyui/workflow-presets';
-import type { ComfyUIRequestSnapshot, ComfyUIResolvedRequest, ComfyUIWorkflow } from '@/services/comfyui/types';
+import type {
+  ComfyUIRequestSnapshot,
+  ComfyUIResolvedRequest,
+  ComfyUIWorkflow,
+} from '@/services/comfyui/types';
 
 /**
  * 按共享生图预设解析并构建 ComfyUI 最终请求
@@ -42,7 +47,7 @@ export function buildComfyUIResolvedRequestFromPrompts(
   prompts: ImagePromptPair,
 ): ComfyUIResolvedRequest {
   const workflowJson = getActiveComfyUIWorkflowJson(settings.workflowPresets);
-  const source = parseAndValidateWorkflow(workflowJson);
+  const source = parseAndValidateWorkflow(settings, workflowJson);
   const { positivePrompt, negativePrompt } = requirePromptPair(prompts);
   const workflow = structuredClone(source) as ComfyUIWorkflow;
   applyPromptBindings(workflow, positivePrompt, negativePrompt);
@@ -71,14 +76,22 @@ export function buildComfyUIResolvedRequestFromPrompts(
 
 /**
  * 解析并校验工作流绑定与输出节点
+ * @param settings ComfyUI 设置
  * @param workflowJson 工作流 JSON
  * @returns 已校验工作流
  */
-function parseAndValidateWorkflow(workflowJson: string): ComfyUIWorkflow {
+function parseAndValidateWorkflow(
+  settings: Pick<ComfyUISettings, 'url'>,
+  workflowJson: string,
+): ComfyUIWorkflow {
   const source = parseComfyUIWorkflow(workflowJson);
   const bindingError = validatePromptBindings(source);
   if (bindingError) throw new Error(bindingError);
-  const imageBindingError = validateImageBindings(source);
+  // 图片绑定校验：在线时用已同步 schema 校验目标输入是图片输入；离线时只校验存在性
+  const imageBindingError = validateImageBindings(
+    source,
+    getCachedComfyUIObjectInfo(settings.url),
+  );
   if (imageBindingError) throw new Error(imageBindingError);
   const outputError = validateImageOutput(source);
   if (outputError) throw new Error(outputError);
