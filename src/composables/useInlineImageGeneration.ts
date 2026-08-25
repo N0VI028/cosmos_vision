@@ -38,7 +38,7 @@ import {
 import { resolveInlineRoute } from '@/services/inline-image/route-resolve';
 import { resolveFrontendBubbleRoot } from '@/services/inline-image/frontend-text-extract';
 import { ensureFloorTailHost } from '@/services/inline-image/floor-tail-host';
-import { writeFloorTailSlot } from '@/services/inline-image/floor-tail-slot';
+import { writeFloorTailSlot, findFloorTailSlotByTarget } from '@/services/inline-image/floor-tail-slot';
 import { newSlotId } from '@/services/inline-image/slot-shortcode';
 import { getHostIframe } from '@/services/inline-image/iframe-utils';
 import { FrameRegistry } from '@/services/inline-image/frame-registry';
@@ -116,7 +116,7 @@ export function useInlineImageGeneration(
   let pointerDownY = 0;
 
   /**
-   * 清理 pointerup / pointercancel 监听器，防止跨文档手势泄漏
+   * 清理 pointerup / pointercancel 监听器，防止跨文档手势泄露
    */
   function removeActivePointerUpListener(): void {
     if (activePointerUpDoc) {
@@ -275,6 +275,7 @@ export function useInlineImageGeneration(
 
   /**
    * 判断目标是否应跳过段落选择
+   * 排除内联工具栏、图片容器等已有的功能区域
    * @param target 事件目标
    * @returns 是否跳过
    */
@@ -557,11 +558,13 @@ export function useInlineImageGeneration(
     const mesId = Number(findMessageId(bubble) ?? NaN);
     if (!Number.isFinite(mesId)) throw new Error('未能获取消息楼层 ID');
     const swipeId = getMessageSwipeId(mesId) ?? 0;
-    const slotId = newSlotId();
-    imageGallery.setFloorTailAnchor(slotId, bubble);
     const renderContext = resolveFloorTailRenderContext(bubble, mesId, floorTailContext);
     const targetAnchor = renderContext.hostIframe ?? bubble;
-    const imageRefs = await persistFloorTailImages(
+    // 归并：同一 iframe 渲染单元复用已有 slot，多次选段生图进同一画廊
+    const existingSlot = findFloorTailSlotByTarget(mesId, swipeId, renderContext);
+    const slotId = existingSlot?.slotId ?? newSlotId();
+    imageGallery.setFloorTailAnchor(slotId, bubble);
+    const newImageRefs = await persistFloorTailImages(
       imageGallery.showGeneratedFloorTail,
       mesId,
       swipeId,
@@ -569,18 +572,28 @@ export function useInlineImageGeneration(
       result,
       targetAnchor,
     );
-    if (!imageRefs.length) {
-      imageGallery.clearFloorTailAnchor(slotId);
+    if (!newImageRefs.length) {
+      if (!existingSlot) imageGallery.clearFloorTailAnchor(slotId);
       return;
     }
     writeFloorTailSlot({
       slotId,
       mesId,
       swipeId,
-      imageRefs,
+      imageRefs: mergeImageRefs(existingSlot?.imageRefs, newImageRefs),
       targetIframeId: renderContext.targetIframeId,
       targetIframeIndex: renderContext.targetIframeIndex,
     });
+  }
+
+  /**
+   * 归并新旧图片引用，避免重复累计已淘汰的引用
+   * @param existing 旧引用列表
+   * @param next 新引用列表
+   * @returns 合并去重后的引用列表
+   */
+  function mergeImageRefs(existing: string[] | undefined, next: string[]): string[] {
+    return [...new Set([...(existing ?? []), ...next])];
   }
 
   /**

@@ -623,7 +623,7 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
 });
 
 /**
- * Runtime 挂载目标是否仍连在文档
+ * Runtime 挂载目标是否仍连接在文档
  * @param runtime 楼层 runtime
  * @returns 是否可 keep
  */

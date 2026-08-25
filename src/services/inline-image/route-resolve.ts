@@ -4,7 +4,7 @@ import { findChatParagraph } from '@/services/sillytavern/chat-dom';
 export type InlineRouteType = 'classic-p' | 'frontend';
 
 /**
- * 根据 DOM 元素特征判定选段生图链路由（排除法）
+ * 根据 DOM 元素特征判定选段生图链路路由（排除法）
  * 规则：
  * 1. 处于 iframe 内部的元素 -> 一律 frontend 路由
  * 2. 处于顶层文档中：
@@ -16,25 +16,9 @@ export type InlineRouteType = 'classic-p' | 'frontend';
 export function resolveInlineRoute(element: HTMLElement): InlineRouteType {
   const isIframe = element.ownerDocument !== document;
   if (isIframe) {
-    console.log('[CosmosVision Debug] [RouteResolve] Element is in iframe -> frontend route', {
-      element,
-      tagName: element.tagName,
-      className: element.className,
-      ownerDoc: element.ownerDocument,
-    });
     return 'frontend';
   }
 
   const chatParagraph = findChatParagraph(element);
-  const route: InlineRouteType = chatParagraph ? 'classic-p' : 'frontend';
-
-  console.log('[CosmosVision Debug] [RouteResolve] Resolving route (exclusion-based):', {
-    element,
-    tagName: element.tagName,
-    className: element.className,
-    chatParagraph,
-    resolvedRoute: route,
-  });
-
-  return route;
+  return chatParagraph ? 'classic-p' : 'frontend';
 }

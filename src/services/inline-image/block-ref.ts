@@ -74,7 +74,7 @@ export function extractMessageBlocks(mesElement: HTMLElement): BlockRef[] {
         continue;
       }
 
-      // 如果显式声明了可选择标记
+      // 如果显式声明了可选标记
       if (child.hasAttribute('data-cv-selectable')) {
         const text = extractFrontendText(child);
         if (text) {
@@ -167,7 +167,7 @@ export function extractMessageBlocks(mesElement: HTMLElement): BlockRef[] {
 
     // 查找具有 bubble 特征的子节点
     const candidates = Array.from(
-      body.querySelectorAll<HTMLElement>('.bubble, .message-bubble, .chat-bubble, div[class*="bubble"], div[class*="message"]'),
+      body.querySelectorAll<HTMLElement>('.bubble, .message-bubble, .chat-bubble, div[class*=\"bubble\"], div[class*=\"message\"]'),
     ).filter(isHTMLElementNode);
 
     // 过滤出叶子气泡容器
@@ -226,7 +226,6 @@ export function extractMessageBlocks(mesElement: HTMLElement): BlockRef[] {
   }
 
   traverse(host);
-  console.log('[CosmosVision Debug] [BlockRef] extractMessageBlocks result count:', blocks.length, blocks);
   return blocks;
 }
 
@@ -240,13 +239,6 @@ export function extractBlocksUntil(target: HTMLElement): ExtractedBlockContext {
   const hostIframe = getHostIframe(target);
   const anchorNode = hostIframe ?? target;
   const mesBlock = anchorNode.closest<HTMLElement>('.mes_text, [mesid]');
-
-  console.log('[CosmosVision Debug] [BlockRef] extractBlocksUntil:', {
-    target,
-    hostIframe,
-    anchorNode,
-    mesBlock,
-  });
 
   if (!mesBlock) {
     const focusBlock: BlockRef = {
@@ -288,12 +280,6 @@ export function extractBlocksUntil(target: HTMLElement): ExtractedBlockContext {
   if (targetIndex < 0 && hostIframe) {
     targetIndex = allBlocks.findIndex(b => b.hostIframe === hostIframe);
   }
-
-  console.log('[CosmosVision Debug] [BlockRef] extractBlocksUntil targetIndex matched:', {
-    targetIndex,
-    allBlocksCount: allBlocks.length,
-    matchedBlock: targetIndex >= 0 ? allBlocks[targetIndex] : null,
-  });
 
   if (targetIndex < 0) {
     // 未能在已有块列表中索引到，回退为最后一个块或目标元素
@@ -341,19 +327,25 @@ function extractCleanText(element: HTMLElement): string {
 }
 
 /**
- * 检查文本是否为 HTML 源码标记
+ * 判断元素是否包含应忽略的类名（如头像、状态栏、操作菜单等）
  */
-function isSourceMarkupText(text: string): boolean {
-  return /<!doctype\s+html\b|<html\b|<head\\b|<body\b|<style\b|<script\b/i.test(text);
+function hasIgnoredClass(element: HTMLElement): boolean {
+  const ignoredClasses = [
+    'avatar',
+    'cv-inline',
+    'cv-render',
+    'menu',
+    'toolbar',
+    'controls',
+    'timestamp',
+    'badge',
+  ];
+  return ignoredClasses.some(cls => element.classList.contains(cls));
 }
 
 /**
- * 检查是否包含需忽略的样式类
+ * 过滤源标记或纯空白
  */
-function hasIgnoredClass(element: HTMLElement): boolean {
-  if (element.classList.contains('image-tag-button')) return true;
-  if (element.classList.contains('cv-floor-tail') || element.classList.contains('cv-floor-tail-slot')) return true;
-  return Array.from(element.classList).some(
-    className => className.startsWith('cv-inline') && className !== 'cv-inline-selected',
-  );
+function isSourceMarkupText(text: string): boolean {
+  return !text.trim();
 }

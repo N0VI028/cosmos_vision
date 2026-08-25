@@ -146,6 +146,14 @@ export function clearAllGallerySessions(): void {
 }
 
 /**
+ * 读取当前内存会话 key 快照
+ * @returns 当前全部会话 key
+ */
+export function snapshotSessionKeys(): string[] {
+  return Array.from(sessions.keys());
+}
+
+/**
  * 构建 slot 会话 key
  * @param slotId 位点 id
  * @returns key
@@ -218,7 +226,9 @@ function toTemporaryImageRecord(
  * @param record 临时图片记录
  */
 function restoreTemporaryImageRecord(record: TemporaryImageRecord): void {
-  if (!record.slotId) return;
+  if (!record.slotId) {
+    return;
+  }
   appendToSlotSession(record.slotId, {
     id: record.id,
     favoriteId: record.favoriteId ?? null,

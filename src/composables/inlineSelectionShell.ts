@@ -28,7 +28,9 @@ export function createSelectionShellController(): SelectionShellController {
     clear(paragraphs);
     if (!paragraphs.length) return;
     const container = getSelectionShellContainer(paragraphs);
-    if (!container) return;
+    if (!container) {
+      return;
+    }
     container.classList.add('cv-inline-selection-container');
     for (const p of paragraphs) p.classList.add('cv-inline-selected');
     const shell = document.createElement('div');

@@ -32,38 +32,13 @@ interface RawBlock {
  * @returns 插入偏移，找不到返回 null
  */
 export function locateHostEndInRaw(raw: string, query: HostLocateQuery): number | null {
-  console.log('[CosmosVision Debug] [HostLocate] Starting locateHostEndInRaw:', {
-    host: query.host,
-    hostLength: query.host?.length,
-    occurrence: query.occurrence,
-    paragraphIndex: query.paragraphIndex,
-    siblingHostsCount: query.siblingHosts?.length,
-    siblingHosts: query.siblingHosts,
-    rawLength: raw.length,
-    rawPreview: raw.slice(0, 300),
-  });
-
   const direct = locateByDirectHost(raw, query.host, query.occurrence);
-  console.log('[CosmosVision Debug] [HostLocate] locateByDirectHost result:', direct, direct !== null ? {
-    snippet: raw.slice(Math.max(0, direct - 40), Math.min(raw.length, direct + 40)),
-  } : null);
   if (direct !== null) return direct;
 
   const transformed = locateByTransformedHost(raw, query.host, query.occurrence);
-  console.log('[CosmosVision Debug] [HostLocate] locateByTransformedHost result:', transformed, transformed !== null ? {
-    snippet: raw.slice(Math.max(0, transformed - 40), Math.min(raw.length, transformed + 40)),
-  } : null);
   if (transformed !== null) return transformed;
 
-  const byIndex = locateByParagraphIndex(raw, query.paragraphIndex, query.siblingHosts);
-  console.log('[CosmosVision Debug] [HostLocate] locateByParagraphIndex result:', byIndex, byIndex !== null ? {
-    snippet: raw.slice(Math.max(0, byIndex - 40), Math.min(raw.length, byIndex + 40)),
-  } : null);
-
-  if (byIndex === null) {
-    console.warn('[CosmosVision Debug] [HostLocate] FAILED to locate host in raw! query:', query, 'raw:', raw);
-  }
-  return byIndex;
+  return locateByParagraphIndex(raw, query.paragraphIndex, query.siblingHosts);
 }
 
 /**
@@ -102,7 +77,6 @@ function locateByOrderedDeletion(raw: string, host: string, occurrence: number):
     const blockNorm = mapNormalize(block.text).normalized;
     return isHighConfidenceDeletionMatch(hostNorm, blockNorm);
   });
-  console.log('[CosmosVision Debug] [HostLocate] locateByOrderedDeletion candidates count:', candidates.length);
   return candidates[occurrence]?.end ?? null;
 }
 
@@ -141,9 +115,7 @@ function isOrderedSubsequence(needle: string, haystack: string): boolean {
  */
 function locateByExactHost(raw: string, host: string, occurrence: number): number | null {
   if (!host) return null;
-  const res = findNthEnd(raw, host, occurrence);
-  console.log('[CosmosVision Debug] [HostLocate] locateByExactHost:', { host, occurrence, res });
-  return res;
+  return findNthEnd(raw, host, occurrence);
 }
 
 /**
@@ -160,15 +132,9 @@ function locateByNormalizedHost(raw: string, host: string, occurrence: number): 
   if (!hostNorm) return null;
   const endNorm = findNthEnd(rawMap.normalized, hostNorm, occurrence);
   if (endNorm === null || endNorm <= 0) {
-    console.log('[CosmosVision Debug] [HostLocate] locateByNormalizedHost: not found in normalized text', {
-      hostNorm,
-      rawNormPreview: rawMap.normalized.slice(0, 200),
-    });
     return null;
   }
-  const pos = rawMap.sourceEnd[endNorm - 1] ?? null;
-  console.log('[CosmosVision Debug] [HostLocate] locateByNormalizedHost found at sourceEnd:', { hostNorm, endNorm, sourcePos: pos });
-  return pos;
+  return rawMap.sourceEnd[endNorm - 1] ?? null;
 }
 
 /**
@@ -192,7 +158,6 @@ function locateBySeedBlockEnd(raw: string, host: string, occurrence: number): nu
     : (rawMap.sourceEnd[0] ?? 0) - 1;
   const blocks = splitRawBlocks(raw);
   const block = blocks.find(item => sourcePos >= item.start && sourcePos < item.end);
-  console.log('[CosmosVision Debug] [HostLocate] locateBySeedBlockEnd block:', block);
   return block?.end ?? null;
 }
 
@@ -209,15 +174,8 @@ function locateByParagraphIndex(
   siblingHosts: string[],
 ): number | null {
   const blocks = splitRawBlocks(raw);
-  console.log('[CosmosVision Debug] [HostLocate] locateByParagraphIndex inspection:', {
-    blocksCount: blocks.length,
-    paragraphIndex,
-    siblingHostsCount: siblingHosts.length,
-    blocks: blocks.map((b, i) => ({ i, start: b.start, end: b.end, text: b.text.slice(0, 60) })),
-  });
   if (!blocks.length || paragraphIndex < 0) return null;
   if (paragraphIndex < blocks.length && blocks.length === siblingHosts.length) {
-    console.log('[CosmosVision Debug] [HostLocate] locateByParagraphIndex 1:1 match at index:', paragraphIndex);
     return blocks[paragraphIndex]!.end;
   }
   const targetNorm = mapNormalize(siblingHosts[paragraphIndex] ?? '').normalized;
@@ -231,11 +189,6 @@ function locateByParagraphIndex(
       bestIdx = i;
     }
   }
-  console.log('[CosmosVision Debug] [HostLocate] locateByParagraphIndex similarity match:', {
-    targetNorm,
-    bestIdx,
-    bestScore,
-  });
   if (bestIdx < 0 || bestScore < 0.35) return null;
   return blocks[bestIdx]!.end;
 }
@@ -328,7 +281,7 @@ export function mapNormalize(source: string, preserveNewlines = false): MappedTe
 function normalizeSpecialChar(ch: string, cp: number): string | null {
   if (cp === 0x2026) return '...';
   if ('“”„«»'.includes(ch)) return '"';
-  if ("‘’‚′".includes(ch)) return "'";
+  if ('‘’‚′'.includes(ch)) return "'";
   return null;
 }
 

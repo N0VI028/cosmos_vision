@@ -40,7 +40,6 @@ export function ensureFloorTailHost(mesId: number, swipeId: number, targetAnchor
     let next = wrapper.nextElementSibling;
     while (next instanceof HTMLElement && next.classList.contains(CV_RENDER_CLASS)) {
       if (next.getAttribute(CV_MESID_ATTR) === String(mesId) && next.getAttribute(CV_SWIPE_ATTR) === String(swipeId)) {
-        console.log('[CosmosVision Debug] [FloorTailHost] Found existing floor tail host next to anchor wrapper:', wrapper, next);
         return next;
       }
       next = next.nextElementSibling;
@@ -49,11 +48,9 @@ export function ensureFloorTailHost(mesId: number, swipeId: number, targetAnchor
 
   const existing = findFloorTailHost(mesId, swipeId);
   if (existing && !targetAnchor) {
-    console.log('[CosmosVision Debug] [FloorTailHost] Found existing floor tail host for mesId:', mesId, 'swipeId:', swipeId, existing);
     return existing;
   }
 
-  console.log('[CosmosVision Debug] [FloorTailHost] Creating new floor tail host for mesId:', mesId, 'swipeId:', swipeId, 'targetAnchor:', targetAnchor);
   return createFloorTailRootContainer(mes, mesId, swipeId, targetAnchor);
 }
 
@@ -74,7 +71,6 @@ export function ensureFloorTailSlotContainer(
   // 全局查找是否已存在该 slotId 的容器
   const existing = document.querySelector<HTMLElement>(`.${CV_FLOOR_TAIL_SLOT_CLASS}[${CV_SLOT_ATTR}="${slotId}"]`);
   if (existing) {
-    console.log('[CosmosVision Debug] [FloorTailHost] Found existing slot container for slotId:', slotId, existing);
     return existing;
   }
 
@@ -89,7 +85,6 @@ export function ensureFloorTailSlotContainer(
   slotContainer.setAttribute(CV_SLOT_ATTR, slotId);
   preventInlineEventBubbling(slotContainer);
   root.appendChild(slotContainer);
-  console.log('[CosmosVision Debug] [FloorTailHost] Created new slot container for slotId:', slotId, slotContainer, 'inside root:', root);
   return slotContainer;
 }
 
@@ -141,7 +136,6 @@ function createFloorTailRootContainer(
   if (targetAnchor) {
     const wrapper = resolveAnchorWrapper(targetAnchor);
     if (wrapper && mes.contains(wrapper)) {
-      console.log('[CosmosVision Debug] [FloorTailHost] Appending floor tail host directly AFTER target wrapper:', wrapper);
       wrapper.after(host);
       return host;
     }
@@ -151,7 +145,6 @@ function createFloorTailRootContainer(
   const thRenders = Array.from(mes.querySelectorAll('div.TH-render')).filter(isHTMLElementNode);
   if (thRenders.length > 0) {
     const lastThRender = thRenders[thRenders.length - 1]!;
-    console.log('[CosmosVision Debug] [FloorTailHost] Appending floor tail host after LAST TH-render:', lastThRender);
     lastThRender.after(host);
     return host;
   }
@@ -159,19 +152,16 @@ function createFloorTailRootContainer(
   const iframes = Array.from(mes.querySelectorAll('iframe')).filter(isHTMLElementNode);
   if (iframes.length > 0) {
     const lastIframe = iframes[iframes.length - 1]!;
-    console.log('[CosmosVision Debug] [FloorTailHost] Appending floor tail host after LAST iframe:', lastIframe);
     lastIframe.after(host);
     return host;
   }
 
   const mesText = mes.querySelector('.mes_text');
   if (mesText instanceof HTMLElement) {
-    console.log('[CosmosVision Debug] [FloorTailHost] Appending floor tail host into mesText:', mesText);
     mesText.appendChild(host);
     return host;
   }
 
-  console.log('[CosmosVision Debug] [FloorTailHost] Appending floor tail host into mes root:', mes);
   mes.appendChild(host);
   return host;
 }
