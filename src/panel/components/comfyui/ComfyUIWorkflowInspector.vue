@@ -85,6 +85,7 @@
             :comfyui-url="comfyuiUrl"
             @update:value="value => emit('update:input', control.inputName, value)"
             @update:prompt-binding="binding => emit('update:prompt-binding', control.inputName, binding)"
+            @update:image-binding="source => emit('update:image-binding', control.inputName, source)"
             @update:seed-mode="mode => emit('update:seed-mode', control.inputName, mode)"
           />
           <div
@@ -225,6 +226,7 @@ import type {
   ComfyUIInputControlDesc,
   ComfyUIObjectInfoOutputSpec,
   ComfyUIWorkflowNode,
+  ImageBindingSource,
   PromptBinding,
   SeedMode,
 } from '@/services/comfyui/types';
@@ -263,6 +265,7 @@ const emit = defineEmits<{
   'toggle-favorite': [];
   'update:input': [inputName: string, value: unknown];
   'update:prompt-binding': [inputName: string, binding: PromptBinding | null];
+  'update:image-binding': [inputName: string, source: ImageBindingSource | null];
   'update:seed-mode': [inputName: string, mode: SeedMode | null];
   'update:lora-preset-settings': [settings: ComfyUILoraPresetSettings];
   'refresh-lora-options': [];
@@ -276,7 +279,7 @@ const displayName = computed(() => {
 });
 
 const isImageOutput = computed(() => Boolean(props.node && readNodeMeta(props.node).imageOutput));
-/** 候选可设，或已绑定（便于取消） */
+/** 候选可选，或已绑定（便于取消） */
 const showOutputChip = computed(() => props.canSetOutput || isImageOutput.value);
 const showLoraPanel = computed(() => isSupportedLoraNode(props.node ?? undefined));
 

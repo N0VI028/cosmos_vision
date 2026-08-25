@@ -7,14 +7,17 @@ import {
 } from '@/services/comfyui/parse';
 import {
   clearImageOutputNode,
+  readImageBindings,
   readImageOutputNodeId,
   readNumberInput,
   readPromptBindings,
   readSeedModes,
+  setImageBinding,
   setImageOutputNode,
   setPromptBinding,
   setSeedMode,
   stripCosmosVisionMeta,
+  validateImageBindings,
   validateImageOutput,
   validatePromptBindings,
 } from '@/services/comfyui/meta';
@@ -93,6 +96,22 @@ describe('comfyui meta', () => {
     expect(readSeedModes(workflow)).toHaveLength(0);
   });
 
+  it('sets and reads image bindings and validates correctly', () => {
+    const workflow = structuredClone(sampleWorkflow);
+    workflow['4'] = {
+      class_type: 'LoadImage',
+      inputs: { image: 'test.png' },
+    };
+    setImageBinding(workflow, '4', 'image', 'character-avatar');
+    expect(readImageBindings(workflow)).toEqual([
+      { nodeId: '4', inputName: 'image', source: 'character-avatar' },
+    ]);
+    expect(validateImageBindings(workflow)).toBeNull();
+
+    setImageBinding(workflow, '4', 'image', null);
+    expect(readImageBindings(workflow)).toEqual([]);
+  });
+
   it('validates missing binding and output node errors', () => {
     const workflow = structuredClone(sampleWorkflow);
     setPromptBinding(workflow, '1', 'text', null);
@@ -110,6 +129,7 @@ describe('comfyui meta', () => {
 
   it('strips private meta only', () => {
     const workflow = structuredClone(sampleWorkflow);
+    setImageBinding(workflow, '1', 'image', 'user-avatar');
     stripCosmosVisionMeta(workflow);
     expect(workflow['1']._meta?.title).toBe('Positive');
     expect(workflow['1']._meta?.cosmosVision).toBeUndefined();

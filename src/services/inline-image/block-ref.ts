@@ -167,7 +167,7 @@ export function extractMessageBlocks(mesElement: HTMLElement): BlockRef[] {
 
     // 查找具有 bubble 特征的子节点
     const candidates = Array.from(
-      body.querySelectorAll<HTMLElement>('.bubble, .message-bubble, .chat-bubble, div[class*=\"bubble\"], div[class*=\"message\"]'),
+      body.querySelectorAll<HTMLElement>('.bubble, .message-bubble, .chat-bubble, div[class*="bubble"], div[class*="message"]'),
     ).filter(isHTMLElementNode);
 
     // 过滤出叶子气泡容器

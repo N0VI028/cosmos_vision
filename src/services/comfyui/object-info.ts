@@ -99,7 +99,7 @@ export function normalizeObjectInfo(payload: unknown): ComfyUIObjectInfoMap {
  * @param objectInfo 节点 schema 表
  * @returns 输入控件描述列表
  */
-export function mapInputControls(
+export function listInputControls(
   workflow: ComfyUIWorkflow,
   nodeId: string,
   objectInfo: ComfyUIObjectInfoMap | null,
@@ -114,6 +114,9 @@ export function mapInputControls(
     buildInputControl(nodeId, inputName, value, schema, meta, online),
   );
 }
+
+/** 兼容别名导出 */
+export const mapInputControls = listInputControls;
 
 /**
  * 读取可被指定为输出节点的候选节点 ID
@@ -149,6 +152,40 @@ function isImageOutputCandidate(
 }
 
 /**
+ * 判断是否为图片文件名
+ * @param name 文件名
+ * @returns 是否为图片文件格式
+ */
+export function isImageFilename(name: unknown): boolean {
+  if (typeof name !== 'string') return false;
+  return /\.(png|jpe?g|webp|bmp|gif|avif)$/i.test(name.trim());
+}
+
+/**
+ * 判断是否为图像输入控件（如 LoadImage 的 image 字段或标记了 image_upload 的输入）
+ * @param _nodeId 节点 ID
+ * @param inputName 输入名
+ * @param value 当前值
+ * @param schema 节点定义
+ * @param spec 输入定义
+ * @returns 是否为图片输入控件
+ */
+export function isImageInputControl(
+  _nodeId: string,
+  inputName: string,
+  value: unknown,
+  schema?: ComfyUIObjectInfoNode,
+  spec?: ComfyUIObjectInfoInputSpec,
+): boolean {
+  if (spec?.imageUpload) return true;
+  if (spec?.type === 'IMAGEUPLOAD') return true;
+  if (schema?.classType === 'LoadImage' && inputName === 'image') return true;
+  if (inputName === 'image' && typeof value === 'string' && isImageFilename(value)) return true;
+  if (spec?.options && spec.options.length > 0 && spec.options.some(isImageFilename)) return true;
+  return false;
+}
+
+/**
  * 构建单个输入控件描述
  * @param nodeId 节点 ID
  * @param inputName 输入名
@@ -169,6 +206,9 @@ function buildInputControl(
   if (isLinkRef(value)) return buildLinkControl(nodeId, inputName, value, spec);
 
   const promptBinding = meta.promptBindings?.[inputName] ?? null;
+  const imageBinding = meta.imageBindings?.[inputName] ?? null;
+  const isImageInput = isImageInputControl(nodeId, inputName, value, schema, spec);
+
   return {
     nodeId,
     inputName,
@@ -176,8 +216,12 @@ function buildInputControl(
     dataType: spec?.type,
     value,
     promptBinding,
+    imageBinding,
+    isImageInput,
     // schema multiline 可绑；已有绑定仍可改/解绑。离线时恒为 false
     canPromptBind: online && Boolean(spec?.multiline || promptBinding),
+    // 识别为图像输入或已有图片绑定时可配置图片绑定
+    canImageBind: online && Boolean(isImageInput || imageBinding),
     seedMode: meta.seedModes?.[inputName],
     controlAfterGenerate: Boolean(spec?.controlAfterGenerate),
     ...resolveScalarControlFields(value, spec),
@@ -328,6 +372,7 @@ function normalizeInputSpec(
     max: readNumber(extras.max),
     step: readNumber(extras.step),
     multiline: Boolean(extras.multiline),
+    imageUpload: Boolean(extras.image_upload),
     controlAfterGenerate: Boolean(extras.control_after_generate),
   };
 }

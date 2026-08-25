@@ -217,6 +217,7 @@
             @toggle-favorite="toggleSelectedFavorite"
             @update:input="updateInput"
             @update:prompt-binding="updatePromptBinding"
+            @update:image-binding="updateImageBinding"
             @update:seed-mode="updateSeedMode"
             @update:lora-preset-settings="onLoraPresetUpdate"
             @refresh-lora-options="emit('refresh-lora-options')"
@@ -248,6 +249,7 @@
         @toggle-favorite="toggleSelectedFavorite"
         @update:input="updateInput"
         @update:prompt-binding="updatePromptBinding"
+        @update:image-binding="updateImageBinding"
         @update:seed-mode="updateSeedMode"
         @update:lora-preset-settings="onLoraPresetUpdate"
         @refresh-lora-options="emit('refresh-lora-options')"
@@ -257,7 +259,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick } from 'vue';
+import { computed, inject, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import type { ComfyUILoraPresetSettings } from '@/constants/comfyui';
 import { DARK_CLASS } from '@/constants/default-settings';
 import { getActiveComfyUILoraPreset } from '@/services/comfyui/lora-presets';
@@ -269,6 +271,7 @@ import {
   clearImageOutputNode,
   readNodeMeta,
   setPromptBinding,
+  setImageBinding,
   setSeedMode,
   readPromptBindings,
 } from '@/services/comfyui/meta';
@@ -279,7 +282,13 @@ import {
   mapInputControls,
 } from '@/services/comfyui/object-info';
 import { parseComfyUIWorkflow, serializeComfyUIWorkflow } from '@/services/comfyui/parse';
-import type { ComfyUIObjectInfoMap, ComfyUIWorkflow, PromptBinding, SeedMode } from '@/services/comfyui/types';
+import type {
+  ComfyUIObjectInfoMap,
+  ComfyUIWorkflow,
+  ImageBindingSource,
+  PromptBinding,
+  SeedMode,
+} from '@/services/comfyui/types';
 import {
   buildFavoriteLocateOptions,
   pruneFavoriteNodeIds,
@@ -564,6 +573,18 @@ function updatePromptBinding(inputName: string, binding: PromptBinding | null): 
 }
 
 /**
+ * 更新图片绑定
+ * @param inputName 输入名
+ * @param source 绑定来源
+ */
+function updateImageBinding(inputName: string, source: ImageBindingSource | null): void {
+  if (!workflow.value || !selectedNodeId.value) return;
+  const next = structuredClone(workflow.value) as ComfyUIWorkflow;
+  setImageBinding(next, selectedNodeId.value, inputName, source);
+  commitWorkflow(next);
+}
+
+/**
  * 更新 seed 模式
  * @param inputName 输入名
  * @param mode 模式
@@ -626,7 +647,7 @@ function canBindParagraphResult(nodeId: string): boolean {
 }
 
 /**
- * 确认是否改绑段落生图结果
+ * 确认是否改绑定段落生图结果
  * @param next 工作流草稿
  * @param nodeId 目标节点 ID
  * @returns 是否继续改绑
@@ -639,7 +660,7 @@ async function confirmParagraphResultRebind(next: ComfyUIWorkflow, nodeId: strin
   return Boolean(
     await showConfirm?.({
       title: '改绑段落生图结果',
-      message: `节点 #${existingId}（${name}）已绑定为段落生图结果。是否改绑到当前节点 #${nodeId}？`,
+      message: `节点 #${existingId}（${name}）已绑定为段落生图结果。是否改绑定到当前节点 #${nodeId}？`,
       acceptLabel: '确认改绑',
       cancelLabel: '取消',
       severity: 'warn',

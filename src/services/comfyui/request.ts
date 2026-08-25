@@ -3,9 +3,11 @@ import type { ImagePromptPresetSettings } from '@/constants/image-prompt';
 import { buildImagePromptPair, type ImagePromptPair } from '@/services/image-prompt/presets';
 import { readLoraSnapshotsFromWorkflow } from '@/services/comfyui/lora-adapter';
 import {
+  readImageBindings,
   readImageOutputNodeId,
   readPromptBindings,
   stripCosmosVisionMeta,
+  validateImageBindings,
   validateImageOutput,
   validatePromptBindings,
 } from '@/services/comfyui/meta';
@@ -47,6 +49,7 @@ export function buildComfyUIResolvedRequestFromPrompts(
   const seedValues = applySeedModes(workflow, workflowJson);
   const imageOutputNodeId = readImageOutputNodeId(workflow)!;
   const promptBindings = readPromptBindings(workflow);
+  const imageBindings = readImageBindings(workflow);
   const loras = readLoraSnapshotsFromWorkflow(workflow);
   stripCosmosVisionMeta(workflow);
 
@@ -60,6 +63,7 @@ export function buildComfyUIResolvedRequestFromPrompts(
       imageOutputNodeId,
       promptBindings,
       seedValues,
+      imageBindings,
       loras,
     },
   };
@@ -74,6 +78,8 @@ function parseAndValidateWorkflow(workflowJson: string): ComfyUIWorkflow {
   const source = parseComfyUIWorkflow(workflowJson);
   const bindingError = validatePromptBindings(source);
   if (bindingError) throw new Error(bindingError);
+  const imageBindingError = validateImageBindings(source);
+  if (imageBindingError) throw new Error(imageBindingError);
   const outputError = validateImageOutput(source);
   if (outputError) throw new Error(outputError);
   return source;

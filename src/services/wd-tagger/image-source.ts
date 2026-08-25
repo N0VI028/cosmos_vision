@@ -1,4 +1,9 @@
-import { getTavernHelper } from '@/services/tavern-helper/availability';
+import {
+  getAvatarPath,
+  readAvatarFile,
+  validateImageFile,
+  type TavernAvatarSource,
+} from '@/services/tavern-helper/avatar';
 import type { WdImageSource } from './types';
 
 /**
@@ -7,11 +12,7 @@ import type { WdImageSource } from './types';
  * @returns 可读取的头像路径或 null
  */
 export function getWdAvatarPath(source: Exclude<WdImageSource, 'upload'>): string | null {
-  const tavernHelper = getTavernHelper({ silent: true });
-  if (!tavernHelper) return null;
-  const path =
-    source === 'user-avatar' ? tavernHelper.getPersonaAvatarPath('current') : tavernHelper.getCharAvatarPath('current');
-  return path?.trim() || null;
+  return getAvatarPath(source as TavernAvatarSource);
 }
 
 /**
@@ -24,13 +25,7 @@ export async function readWdAvatarFile(
   source: Exclude<WdImageSource, 'upload'>,
   fetchImpl: typeof fetch = fetch,
 ): Promise<File> {
-  const path = getWdAvatarPath(source);
-  if (!path) throw new Error('当前头像不可用，请改为上传图片');
-  const response = await fetchImpl(path);
-  if (!response.ok) throw new Error('无法读取当前头像，请改为上传图片');
-  const blob = await response.blob();
-  if (!blob.type.startsWith('image/')) throw new Error('当前头像不是有效图片');
-  return new File([blob], `${source}.png`, { type: blob.type });
+  return readAvatarFile(source as TavernAvatarSource, fetchImpl);
 }
 
 /**
@@ -39,7 +34,5 @@ export async function readWdAvatarFile(
  * @returns 可上传的图片文件
  */
 export function validateWdImageFile(file: File | null): File {
-  if (!file) throw new Error('请先选择图片');
-  if (!file.type.startsWith('image/')) throw new Error('请选择图片文件');
-  return file;
+  return validateImageFile(file);
 }

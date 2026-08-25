@@ -1,6 +1,9 @@
 /** 提示词绑定方向 */
 export type PromptBinding = 'positive' | 'negative';
 
+/** 图片绑定来源 */
+export type ImageBindingSource = 'character-avatar' | 'user-avatar';
+
 /** seed 控件模式 */
 export type SeedMode = 'fixed' | 'randomize' | 'increment' | 'decrement';
 
@@ -8,6 +11,7 @@ export type SeedMode = 'fixed' | 'randomize' | 'increment' | 'decrement';
 export interface CosmosVisionNodeMeta {
   promptBindings?: Record<string, PromptBinding>;
   seedModes?: Record<string, SeedMode>;
+  imageBindings?: Record<string, ImageBindingSource>;
   imageOutput?: boolean;
 }
 
@@ -69,6 +73,13 @@ export interface ComfyUIPromptBindingTarget {
   binding: PromptBinding;
 }
 
+/** 图片绑定目标 */
+export interface ComfyUIImageBindingTarget {
+  nodeId: string;
+  inputName: string;
+  source: ImageBindingSource;
+}
+
 /** seed 模式目标 */
 export interface ComfyUISeedModeTarget {
   nodeId: string;
@@ -108,6 +119,15 @@ export interface ComfyUIInputControlDesc {
    * 离线恒 false。
    */
   canPromptBind?: boolean;
+  /** 图片绑定来源 */
+  imageBinding?: ImageBindingSource | null;
+  /**
+   * 是否展示改图片绑定 UI：已同步 object_info 且（已识别为图片输入或已有图片绑定）。
+   * 离线恒 false。
+   */
+  canImageBind?: boolean;
+  /** 是否为图片输入项 */
+  isImageInput?: boolean;
   linkSource?: { nodeId: string; outputIndex: number };
   readonly?: boolean;
 }
@@ -123,6 +143,7 @@ export interface ComfyUIObjectInfoInputSpec {
   max?: number;
   step?: number;
   multiline?: boolean;
+  imageUpload?: boolean;
   controlAfterGenerate?: boolean;
 }
 
@@ -153,6 +174,22 @@ export interface ComfyUIHistoryImage {
   type?: string;
 }
 
+/** ComfyUI 上传图片响应 */
+export interface ComfyUIUploadImageResponse {
+  name: string;
+  subfolder?: string;
+  type?: string;
+}
+
+/** ComfyUI 上传图片选项 */
+export interface ComfyUIUploadImageOptions {
+  filename?: string;
+  subfolder?: string;
+  type?: 'input' | 'temp' | 'output';
+  overwrite?: boolean;
+  signal?: AbortSignal;
+}
+
 /** ComfyUI LoRA 请求快照 */
 export interface ComfyUILoraSnapshot {
   name: string;
@@ -167,6 +204,7 @@ export interface ComfyUIRequestSnapshot {
   imageOutputNodeId: string;
   promptBindings: ComfyUIPromptBindingTarget[];
   seedValues: ComfyUISeedModeTarget[];
+  imageBindings?: ComfyUIImageBindingTarget[];
   loras: ComfyUILoraSnapshot[];
 }
 

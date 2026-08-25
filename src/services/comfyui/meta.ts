@@ -1,9 +1,11 @@
 import type {
+  ComfyUIImageBindingTarget,
   ComfyUIPromptBindingTarget,
   ComfyUISeedModeTarget,
   ComfyUIWorkflow,
   ComfyUIWorkflowNode,
   CosmosVisionNodeMeta,
+  ImageBindingSource,
   PromptBinding,
   SeedMode,
 } from '@/services/comfyui/types';
@@ -39,6 +41,22 @@ export function readPromptBindings(workflow: ComfyUIWorkflow): ComfyUIPromptBind
     const meta = readNodeMeta(node);
     for (const [inputName, binding] of Object.entries(meta.promptBindings ?? {})) {
       targets.push({ nodeId, inputName, binding });
+    }
+  }
+  return targets;
+}
+
+/**
+ * 读取工作流内全部图片绑定目标
+ * @param workflow 工作流
+ * @returns 绑定目标列表
+ */
+export function readImageBindings(workflow: ComfyUIWorkflow): ComfyUIImageBindingTarget[] {
+  const targets: ComfyUIImageBindingTarget[] = [];
+  for (const [nodeId, node] of Object.entries(workflow)) {
+    const meta = readNodeMeta(node);
+    for (const [inputName, source] of Object.entries(meta.imageBindings ?? {})) {
+      targets.push({ nodeId, inputName, source });
     }
   }
   return targets;
@@ -128,6 +146,28 @@ export function setPromptBinding(
 }
 
 /**
+ * 设置图片绑定
+ * @param workflow 工作流
+ * @param nodeId 节点 ID
+ * @param inputName 输入名
+ * @param source 绑定来源，null 表示清除
+ */
+export function setImageBinding(
+  workflow: ComfyUIWorkflow,
+  nodeId: string,
+  inputName: string,
+  source: ImageBindingSource | null,
+): void {
+  const node = workflow[nodeId];
+  if (!node) return;
+  const meta = readNodeMeta(node);
+  const bindings = { ...(meta.imageBindings ?? {}) };
+  if (source === null) delete bindings[inputName];
+  else bindings[inputName] = source;
+  writeNodeMeta(node, { ...meta, imageBindings: bindings });
+}
+
+/**
  * 设置 seed 模式
  * @param workflow 工作流
  * @param nodeId 节点 ID
@@ -192,7 +232,21 @@ export function validatePromptBindings(workflow: ComfyUIWorkflow): string | null
   const targets = readPromptBindings(workflow);
   if (!targets.length) return '未指定任何提示词绑定目标';
   for (const target of targets) {
-    const error = validateBindingTarget(workflow, target);
+    const error = validateBindingTarget(workflow, target.nodeId, target.inputName, '提示词绑定');
+    if (error) return error;
+  }
+  return null;
+}
+
+/**
+ * 校验图片绑定仍指向工作流内可写输入
+ * @param workflow 工作流
+ * @returns 校验错误或 null
+ */
+export function validateImageBindings(workflow: ComfyUIWorkflow): string | null {
+  const targets = readImageBindings(workflow);
+  for (const target of targets) {
+    const error = validateBindingTarget(workflow, target.nodeId, target.inputName, '图片绑定');
     if (error) return error;
   }
   return null;
@@ -211,26 +265,30 @@ export function validateImageOutput(workflow: ComfyUIWorkflow): string | null {
 }
 
 /**
- * 校验单个提示词绑定目标
+ * 校验单个绑定目标
  * @param workflow 工作流
- * @param target 绑定目标
+ * @param nodeId 节点 ID
+ * @param inputName 输入名
+ * @param label 提示标签
  * @returns 校验错误或 null
  */
 function validateBindingTarget(
   workflow: ComfyUIWorkflow,
-  target: ComfyUIPromptBindingTarget,
+  nodeId: string,
+  inputName: string,
+  label: string,
 ): string | null {
-  const node = workflow[target.nodeId];
-  if (!node) return `提示词绑定失效: 节点 ${target.nodeId} 不存在`;
-  const value = node.inputs?.[target.inputName];
+  const node = workflow[nodeId];
+  if (!node) return `${label}失效: 节点 ${nodeId} 不存在`;
+  const value = node.inputs?.[inputName];
   if (value === undefined) {
-    return `提示词绑定失效: 节点 ${target.nodeId} 缺少输入 ${target.inputName}`;
+    return `${label}失效: 节点 ${nodeId} 缺少输入 ${inputName}`;
   }
   if (isLinkRef(value)) {
-    return `提示词绑定失效: 节点 ${target.nodeId} 输入 ${target.inputName} 是连线引用,不能写入提示词`;
+    return `${label}失效: 节点 ${nodeId} 输入 ${inputName} 是连线引用,不能绑定`;
   }
   if (!isWritableScalar(value) && typeof value !== 'string') {
-    return `提示词绑定失效: 节点 ${target.nodeId} 输入 ${target.inputName} 不是可写值`;
+    return `${label}失效: 节点 ${nodeId} 输入 ${inputName} 不是可写值`;
   }
   return null;
 }

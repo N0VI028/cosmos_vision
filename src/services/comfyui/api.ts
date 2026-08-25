@@ -9,9 +9,13 @@ import {
 import { normalizeComfyUIUrl } from '@/services/comfyui/parse';
 import { extractHistoryImages, type ComfyUIHistoryEntry } from '@/services/comfyui/history';
 import { createRequestTimeoutController, throwIfRequestTimedOut } from '@/services/request-timeout';
+import { readAvatarFile } from '@/services/tavern-helper/avatar';
 import type {
   ComfyUIHistoryImage,
+  ComfyUIImageBindingTarget,
   ComfyUIResolvedRequest,
+  ComfyUIUploadImageOptions,
+  ComfyUIUploadImageResponse,
   ComfyUIWorkflow,
 } from '@/services/comfyui/types';
 import type { ImagePromptPair } from '@/services/image-prompt/presets';
@@ -97,17 +101,23 @@ export async function generateComfyUIImagesFromResolvedRequest(
   const baseUrl = normalizeComfyUIUrl(settings.url);
   let cleanupAbort: () => void = () => undefined;
   try {
+    if (request.snapshot.imageBindings?.length) {
+      await applyImageBindings(baseUrl, request.workflow, request.snapshot.imageBindings, timeout.signal);
+    }
     const promptId = await queueComfyUIPrompt(baseUrl, request.workflow, timeout.signal);
     cleanupAbort = bindComfyUIAbort(baseUrl, timeout.signal);
-    const images = await waitForComfyUIHistoryImages(
+    const historyResult = await pollComfyUIHistory(
       baseUrl,
       promptId,
       request.imageOutputNodeId,
       timeout.signal,
     );
-    return await downloadComfyUIImages(baseUrl, images, timeout.signal);
+    return await Promise.all(
+      historyResult.images.map(image => fetchComfyUIImage(baseUrl, image, timeout.signal)),
+    );
   } catch (error) {
-    throwIfRequestTimedOut(timeout, 'ComfyUI', settings.timeout);
+    throwIfRequestTimedOut(timeout, 'ComfyUI 生图', settings.timeout);
+    throwIfComfyUIAborted(timeout.signal);
     throw error;
   } finally {
     cleanupAbort();
@@ -116,12 +126,12 @@ export async function generateComfyUIImagesFromResolvedRequest(
 }
 
 /**
- * 兼容旧入口：返回指定输出节点的第一张图片
+ * 使用共享生图预设与正负提示词请求单张 ComfyUI 图片
  * @param settings ComfyUI 设置
  * @param presetSettings 共享生图提示词预设
  * @param prompts 正负提示词
  * @param options 请求控制选项
- * @returns 首张输出图片 Blob
+ * @returns 第一张图片 Blob
  */
 export async function generateComfyUIImage(
   settings: ComfyUISettings,
@@ -134,11 +144,11 @@ export async function generateComfyUIImage(
 }
 
 /**
- * 兼容旧入口：使用最终提示词返回第一张图片
+ * 使用最终提示词请求单张 ComfyUI 图片
  * @param settings ComfyUI 设置
  * @param prompts 最终提示词
  * @param options 请求控制选项
- * @returns 首张输出图片 Blob
+ * @returns 第一张图片 Blob
  */
 export async function generateComfyUIImageFromPrompts(
   settings: ComfyUISettings,
@@ -150,11 +160,11 @@ export async function generateComfyUIImageFromPrompts(
 }
 
 /**
- * 兼容旧入口：发送已解析请求并返回第一张图片
+ * 发送已解析请求并返回单张图片
  * @param settings ComfyUI 设置
  * @param request 已解析请求
  * @param options 请求控制选项
- * @returns 首张输出图片 Blob
+ * @returns 第一张图片 Blob
  */
 export async function generateComfyUIImageFromResolvedRequest(
   settings: ComfyUISettings,
@@ -166,7 +176,7 @@ export async function generateComfyUIImageFromResolvedRequest(
 }
 
 /**
- * 读取 ComfyUI 当前可用 checkpoint 列表
+ * 从 ComfyUI 获取可用 checkpoint 列表
  * @param settings ComfyUI 设置
  * @returns checkpoint 文件名列表
  */
@@ -176,16 +186,15 @@ export async function fetchComfyUICheckpointNames(settings: ComfyUISettings): Pr
   try {
     response = await fetch(`${baseUrl}/object_info/CheckpointLoaderSimple`);
   } catch (error) {
-    throw new Error(`[ComfyUI /object_info/CheckpointLoaderSimple] ${(error as Error).message}`);
+    throw new Error(`[ComfyUI /object_info] ${(error as Error).message}`);
   }
 
-  return extractCheckpointNames(
-    await readJsonResponse<unknown>(response, 'ComfyUI /object_info/CheckpointLoaderSimple'),
-  );
+  const payload = await readJsonResponse<unknown>(response, 'ComfyUI CheckpointLoaderSimple');
+  return extractCheckpointNames(payload);
 }
 
 /**
- * 读取 ComfyUI 当前可用 LoRA 列表
+ * 从 ComfyUI 获取可用 LoRA 列表
  * @param settings ComfyUI 设置
  * @returns LoRA 文件名列表
  */
@@ -198,13 +207,87 @@ export async function fetchComfyUILoraNames(settings: ComfyUISettings): Promise<
     throw new Error(`[ComfyUI /models/loras] ${(error as Error).message}`);
   }
 
-  return extractModelFolderNames(await readJsonResponse<unknown>(response, 'ComfyUI /models/loras'), 'LoRA');
+  const payload = await readJsonResponse<unknown>(response, 'ComfyUI /models/loras');
+  return extractModelFolderNames(payload, 'LoRA');
 }
 
 /**
- * 向 ComfyUI 提交工作流
+ * 上传图片至 ComfyUI 服务端
+ * @param baseUrlOrSettings ComfyUI 基础地址或设置
+ * @param fileOrBlob 图片文件或 Blob
+ * @param options 上传控制选项
+ * @returns 服务端返回的文件名信息
+ */
+export async function uploadComfyUIImage(
+  baseUrlOrSettings: string | Pick<ComfyUISettings, 'url'>,
+  fileOrBlob: File | Blob,
+  options: ComfyUIUploadImageOptions = {},
+): Promise<ComfyUIUploadImageResponse> {
+  const url = typeof baseUrlOrSettings === 'string' ? baseUrlOrSettings : baseUrlOrSettings.url;
+  const baseUrl = normalizeComfyUIUrl(url);
+
+  const formData = new FormData();
+  const filename = options.filename ?? (fileOrBlob instanceof File ? fileOrBlob.name : 'upload.png');
+  formData.append('image', fileOrBlob, filename);
+  if (options.overwrite !== undefined) {
+    formData.append('overwrite', String(options.overwrite));
+  }
+  if (options.subfolder !== undefined) {
+    formData.append('subfolder', options.subfolder);
+  }
+  if (options.type !== undefined) {
+    formData.append('type', options.type);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/upload/image`, {
+      method: 'POST',
+      body: formData,
+      signal: options.signal,
+    });
+  } catch (error) {
+    throw new Error(`[ComfyUI /upload/image] ${(error as Error).message}`);
+  }
+
+  const data = await readJsonResponse<ComfyUIUploadImageResponse>(response, 'ComfyUI /upload/image');
+  if (!data.name) {
+    throw new Error('ComfyUI /upload/image 未返回图片文件名');
+  }
+  return data;
+}
+
+/**
+ * 动态处理工作流中的图片绑定（读取当前角色/用户头像并上传至 ComfyUI）
  * @param baseUrl ComfyUI 基础地址
- * @param workflow 已解析工作流
+ * @param workflow 工作流对象
+ * @param bindings 图片绑定目标
+ * @param signal 取消信号
+ */
+export async function applyImageBindings(
+  baseUrl: string,
+  workflow: ComfyUIWorkflow,
+  bindings: ComfyUIImageBindingTarget[],
+  signal?: AbortSignal,
+): Promise<void> {
+  for (const target of bindings) {
+    const node = workflow[target.nodeId];
+    if (!node) continue;
+
+    const avatarFile = await readAvatarFile(target.source);
+    const uploaded = await uploadComfyUIImage(baseUrl, avatarFile, {
+      overwrite: true,
+      filename: `cosmos-${target.source}.png`,
+      signal,
+    });
+    node.inputs[target.inputName] = uploaded.name;
+  }
+}
+
+/**
+ * 向 ComfyUI 投递 prompt
+ * @param baseUrl ComfyUI 基础地址
+ * @param workflow API 工作流
  * @param signal 取消信号
  * @returns prompt_id
  */
@@ -227,47 +310,41 @@ async function queueComfyUIPrompt(baseUrl: string, workflow: ComfyUIWorkflow, si
 }
 
 /**
- * 轮询历史记录直到指定输出节点返回图片
+ * 轮询 ComfyUI history 结果
  * @param baseUrl ComfyUI 基础地址
  * @param promptId prompt_id
- * @param imageOutputNodeId 指定输出节点
+ * @param imageOutputNodeId 图片输出节点 ID
  * @param signal 取消信号
- * @returns 图片元数据列表
+ * @returns 输出图片元数据列表
  */
-async function waitForComfyUIHistoryImages(
+async function pollComfyUIHistory(
   baseUrl: string,
   promptId: string,
   imageOutputNodeId: string,
   signal?: AbortSignal,
-): Promise<ComfyUIHistoryImage[]> {
+): Promise<{ images: ComfyUIHistoryImage[] }> {
   while (true) {
     throwIfComfyUIAborted(signal);
     const result = await fetchComfyUIHistoryResult(baseUrl, promptId, imageOutputNodeId, signal);
-    if (result.executionError) throw new Error(result.executionError);
-    if (result.images) return result.images;
+    if (result) return result;
     await sleep(COMFYUI_POLL_INTERVAL_MS, signal);
   }
-}
-
-interface ComfyUIHistoryPollResult {
-  images: ComfyUIHistoryImage[] | null;
-  executionError: string | null;
 }
 
 /**
  * 读取当前 prompt 的历史轮询结果
  * @param baseUrl ComfyUI 基础地址
  * @param promptId prompt_id
- * @param imageOutputNodeId 指定输出节点
+ * @param imageOutputNodeId 图片输出节点 ID
  * @param signal 取消信号
- * @returns 当前轮询结果
+ * @returns 图片列表或未完成时的 null
  */
 async function fetchComfyUIHistoryResult(
   baseUrl: string,
   promptId: string,
   imageOutputNodeId: string,
   signal?: AbortSignal,
-): Promise<ComfyUIHistoryPollResult> {
+): Promise<{ images: ComfyUIHistoryImage[] } | null> {
   let response: Response;
   try {
     response = await fetch(`${baseUrl}/history/${encodeURIComponent(promptId)}`, { signal });
@@ -277,51 +354,22 @@ async function fetchComfyUIHistoryResult(
 
   const history = await readJsonResponse<unknown>(response, 'ComfyUI /history');
   const entry = readHistoryEntry(history, promptId);
-  return {
-    images: extractHistoryImages(entry, imageOutputNodeId),
-    executionError: extractHistoryExecutionError(entry),
-  };
-}
+  if (!entry) return null;
 
-/**
- * 按顺序下载图片列表
- * @param baseUrl ComfyUI 基础地址
- * @param images 图片元数据
- * @param signal 取消信号
- * @returns Blob 列表
- */
-async function downloadComfyUIImages(
-  baseUrl: string,
-  images: ComfyUIHistoryImage[],
-  signal?: AbortSignal,
-): Promise<Blob[]> {
-  const blobs: Blob[] = [];
-  for (const image of images) {
-    blobs.push(await fetchComfyUIImage(baseUrl, image, signal));
+  if (entry.status?.status_str === 'error') {
+    const detail = extractHistoryStatusMessage(entry.status.messages);
+    throw new Error(`ComfyUI 执行失败: ${detail ?? '未知节点错误'}`);
   }
-  return blobs;
-}
 
-/**
- * 从历史记录里提取执行失败信息
- * @param entry 当前 prompt 的历史条目
- * @returns 执行失败文案或 null
- */
-function extractHistoryExecutionError(entry: ComfyUIHistoryEntry | null): string | null {
-  const status = entry?.status;
-  const statusText = status?.status_str?.trim();
-  if (!status || !statusText) return null;
+  const images = extractHistoryImages(entry, imageOutputNodeId);
+  if (!images) return null;
 
-  const normalized = statusText.toLowerCase();
-  if (!normalized.includes('error') && !normalized.includes('fail')) return null;
-
-  const detail = extractHistoryStatusMessage(status.messages);
-  return detail ? `ComfyUI 工作流执行失败: ${detail}` : `ComfyUI 工作流执行失败: ${statusText}`;
+  return { images };
 }
 
 /**
  * 解析 history/{prompt_id} 返回结构
- * @param history 原始响应
+ * @param history 历史响应
  * @param promptId prompt_id
  * @returns 当前 prompt 的历史条目
  */
@@ -386,192 +434,197 @@ function extractCheckpointNames(payload: unknown): string[] {
 }
 
 /**
- * 读取 CheckpointLoaderSimple 节点元数据
- * @param payload ComfyUI object_info 响应
- * @returns CheckpointLoaderSimple 节点信息
+ * 从 models/* 响应中提取模型文件名列表
+ * @param payload ComfyUI 模型列表响应
+ * @param label 模型类型名
+ * @returns 模型文件名列表
  */
-function readCheckpointLoaderInfo(payload: unknown): ComfyUICheckpointLoaderInfo {
-  if (!isRecord(payload) || !isRecord(payload.CheckpointLoaderSimple)) {
-    throw new Error('ComfyUI 未返回 CheckpointLoaderSimple 元数据');
+function extractModelFolderNames(payload: unknown, label: string): string[] {
+  if (!Array.isArray(payload)) {
+    throw new Error(`ComfyUI 未返回可用的 ${label} 列表`);
   }
-  return payload.CheckpointLoaderSimple as ComfyUICheckpointLoaderInfo;
+
+  const names = payload
+    .map(readModelFolderName)
+    .filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+  return Array.from(new Set(names));
 }
 
 /**
- * 从 /models/{folder} 响应中提取模型文件名
- * @param payload ComfyUI models 接口响应
- * @param itemLabel 模型类型文案
- * @returns 文件名列表
- */
-function extractModelFolderNames(payload: unknown, itemLabel: string): string[] {
-  if (!Array.isArray(payload)) throw new Error(`ComfyUI ${itemLabel} 列表返回格式异常`);
-  const names = [...new Set(payload.map(readModelFolderName).filter((name): name is string => Boolean(name)))];
-  if (!names.length) throw new Error(`ComfyUI 当前没有可用 ${itemLabel}`);
-  return names;
-}
-
-/**
- * 读取单个 models 列表条目的显示名称
- * @param value 单个 models 条目
+ * 读取单个模型条目文件名
+ * @param entry 模型条目
  * @returns 文件名或 null
  */
-function readModelFolderName(value: unknown): string | null {
-  if (typeof value === 'string' && value.trim()) return value.trim();
-  if (!isRecord(value)) return null;
-
-  const entry = value as ComfyUIModelFolderEntry;
-  return readTrimmedString(entry.name) ?? readTrimmedString(entry.filename) ?? readTrimmedString(entry.path);
+function readModelFolderName(entry: unknown): string | null {
+  if (typeof entry === 'string' && entry.trim()) return entry.trim();
+  if (!isRecord(entry)) return null;
+  const item = entry as ComfyUIModelFolderEntry;
+  return readTrimmedString(item.name) ?? readTrimmedString(item.filename) ?? readTrimmedString(item.path);
 }
 
 /**
- * 下载单张图片
+ * 读取 CheckpointLoaderSimple 定义
+ * @param payload object_info 响应
+ * @returns CheckpointLoaderSimple 定义
+ */
+function readCheckpointLoaderInfo(payload: unknown): ComfyUICheckpointLoaderInfo {
+  if (!isRecord(payload)) throw new Error('ComfyUI object_info 响应无效');
+  if (isRecord(payload.CheckpointLoaderSimple)) {
+    return payload.CheckpointLoaderSimple as ComfyUICheckpointLoaderInfo;
+  }
+  return payload as ComfyUICheckpointLoaderInfo;
+}
+
+/**
+ * 下载单张 ComfyUI 图片
  * @param baseUrl ComfyUI 基础地址
  * @param image 图片元数据
  * @param signal 取消信号
  * @returns 图片 Blob
  */
-async function fetchComfyUIImage(baseUrl: string, image: ComfyUIHistoryImage, signal?: AbortSignal): Promise<Blob> {
-  const query = new URLSearchParams({
-    filename: image.filename,
-    subfolder: image.subfolder ?? '',
-    type: image.type ?? 'output',
-  });
+async function fetchComfyUIImage(
+  baseUrl: string,
+  image: ComfyUIHistoryImage,
+  signal?: AbortSignal,
+): Promise<Blob> {
+  const params = new URLSearchParams({ filename: image.filename });
+  if (image.subfolder) params.set('subfolder', image.subfolder);
+  if (image.type) params.set('type', image.type);
 
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/view?${query.toString()}`, { signal });
+    response = await fetch(`${baseUrl}/view?${params.toString()}`, { signal });
   } catch (error) {
     throw new Error(`[ComfyUI /view] ${(error as Error).message}`);
   }
 
-  if (!response.ok) throw new Error(`ComfyUI /view 请求失败: ${response.status}`);
-  return response.blob();
+  if (!response.ok) {
+    throw new Error(`ComfyUI /view 下载图片失败: ${response.status}`);
+  }
+  return await response.blob();
 }
 
 /**
- * 绑定 ComfyUI 取消时的服务端中断
+ * 绑定外部 AbortSignal 到 ComfyUI /interrupt
  * @param baseUrl ComfyUI 基础地址
  * @param signal 取消信号
  * @returns 解绑函数
  */
 function bindComfyUIAbort(baseUrl: string, signal?: AbortSignal): () => void {
   if (!signal) return () => undefined;
-  const interrupt = () => void interruptComfyUI(baseUrl);
-  signal.addEventListener('abort', interrupt, { once: true });
-  return () => signal.removeEventListener('abort', interrupt);
+  const onAbort = () => {
+    void interruptComfyUI(baseUrl);
+  };
+  signal.addEventListener('abort', onAbort, { once: true });
+  return () => {
+    signal.removeEventListener('abort', onAbort);
+  };
 }
 
 /**
- * 尝试中断 ComfyUI 当前工作流
+ * 触发 ComfyUI 中断
  * @param baseUrl ComfyUI 基础地址
  */
 async function interruptComfyUI(baseUrl: string): Promise<void> {
   try {
     await fetch(`${baseUrl}/interrupt`, { method: 'POST' });
-  } catch (error) {
-    console.warn('[ComfyUI /interrupt]', error);
+  } catch {
+    // 忽略中断通知失败
   }
 }
 
 /**
- * 抛出 ComfyUI 取消错误
+ * 检查信号是否已中止并抛出统一 AbortError
  * @param signal 取消信号
  */
 function throwIfComfyUIAborted(signal?: AbortSignal): void {
   if (!signal?.aborted) return;
-  throw createComfyUIAbortError();
+  const error = new Error('ComfyUI 生图已被取消');
+  error.name = 'AbortError';
+  throw error;
 }
 
 /**
- * 创建 ComfyUI 取消错误
- * @returns 取消错误
- */
-function createComfyUIAbortError(): Error {
-  return new Error('已取消生成');
-}
-
-/**
- * 要求至少一张图片并返回第一张
- * @param blobs 图片列表
- * @returns 第一张图片
- */
-function requireFirstBlob(blobs: Blob[]): Blob {
-  if (!blobs.length) throw new Error('指定输出节点未返回任何图片');
-  return blobs[0];
-}
-
-/**
- * 读取 JSON 响应并在失败时抛出用户可理解错误
- * @param response fetch 响应
- * @param label 接口标签
- * @returns JSON 结果
- */
-async function readJsonResponse<T>(response: Response, label: string): Promise<T> {
-  if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    throw new Error(`${label} 请求失败: ${response.status}${formatErrorDetail(detail)}`);
-  }
-
-  try {
-    return (await response.json()) as T;
-  } catch (error) {
-    throw new Error(`${label} 返回的不是有效 JSON: ${(error as Error).message}`);
-  }
-}
-
-/**
- * 判断值是否为普通对象
- * @param value 待判断值
- * @returns 是否为对象
- */
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-/**
- * 构建错误详情尾巴
- * @param detail 原始错误文本
- * @returns 拼接后的详情
- */
-function formatErrorDetail(detail: string): string {
-  return detail.trim() ? ` ${detail.slice(0, 160)}` : '';
-}
-
-/**
- * 读取并裁剪字符串字段
- * @param value 原始字段值
- * @returns 去空白后的字符串或 null
+ * 读取非空字符串
+ * @param value 原始值
+ * @returns 字符串或 null
  */
 function readTrimmedString(value: unknown): string | null {
-  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
 /**
+ * 校验首张 Blob
+ * @param blobs 图片 Blob 列表
+ * @returns 第一张 Blob
+ */
+function requireFirstBlob(blobs: Blob[]): Blob {
+  const first = blobs[0];
+  if (!first) throw new Error('ComfyUI 未返回有效图片');
+  return first;
+}
+
+/**
  * 生成 client_id
- * @returns 客户端请求 ID
+ * @returns client_id
  */
 function createClientId(): string {
   return `cosmos-vision-${uuidv4()}`;
 }
 
 /**
- * 简单休眠
- * @param ms 等待毫秒数
+ * 读取 JSON 响应
+ * @param response Fetch 响应
+ * @param label 接口标签
+ * @returns JSON 数据
+ */
+async function readJsonResponse<T>(response: Response, label: string): Promise<T> {
+  if (!response.ok) {
+    let errorText = '';
+    try {
+      errorText = await response.text();
+    } catch {
+      // 忽略读取失败
+    }
+    const message = errorText ? `: ${errorText.slice(0, 200)}` : '';
+    throw new Error(`${label} 请求失败 (${response.status})${message}`);
+  }
+
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new Error(`${label} 响应不是有效的 JSON`);
+  }
+}
+
+/**
+ * 异步等待
+ * @param ms 毫秒
  * @param signal 取消信号
- * @returns Promise
  */
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (signal?.aborted) return reject(createComfyUIAbortError());
-    const abort = () => {
-      window.clearTimeout(timeout);
-      reject(createComfyUIAbortError());
-    };
-    const timeout = window.setTimeout(() => {
-      signal?.removeEventListener('abort', abort);
+    if (signal?.aborted) {
+      reject(new Error('ComfyUI 生图已被取消'));
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
       resolve();
     }, ms);
-    signal?.addEventListener('abort', abort, { once: true });
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new Error('ComfyUI 生图已被取消'));
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
   });
+}
+
+/**
+ * 判断是否为普通对象
+ * @param value 原始值
+ * @returns 是否为对象
+ */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
