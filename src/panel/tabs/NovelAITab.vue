@@ -253,7 +253,7 @@
               :min-fraction-digits="2"
             />
           </label>
-          <label class="cv-field">
+          <label v-if="!isV5Model" class="cv-field">
             <span>噪声调度</span>
             <Select
               v-model="settings.novelai.noiseSchedule"

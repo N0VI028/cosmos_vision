@@ -33,6 +33,8 @@ export interface NovelAIPayload {
 
 /**
  * 将角色坐标转换为官方 NovelAI 坐标 (0.1 ~ 0.9)
+ * 约定：0~4 的整数视为 5 点网格索引（对齐官网 [0.1,0.3,0.5,0.7,0.9]）；
+ * 其余浮点视为 0-1 连续坐标（V5），>1 的遗留值按旧网格除以 4 归一化。
  * @param v 原始坐标（0-4 网格索引或 0-1 浮点数）
  * @returns 官方归一化坐标
  */
@@ -82,7 +84,7 @@ export function getTagHintQt(preset: NovelAIQualityPreset): number {
 /**
  * 决定是否让 NovelAI 使用手动坐标
  * @param count 有效角色数
- * @param auto 自动坐标开关
+ * @param auto 自动坐标开关（true = "让 AI 决定"，此时禁用手动坐标，对齐官网 characterPromptsGlobalAiChoice）
  * @param model 当前模型
  * @returns use_coords 请求值
  */
@@ -247,12 +249,12 @@ export function applyV4Prompts(
   parameters.v4_prompt = {
     caption: { base_caption: prompts.positivePrompt, char_captions: characters.map(character => character.positiveCaption) },
     use_coords: useCoords,
-    use_order: Boolean(characters.length),
+    use_order: true,
   };
   parameters.v4_negative_prompt = {
     caption: { base_caption: prompts.negativePrompt, char_captions: characters.map(character => character.negativeCaption) },
     use_coords: useCoords,
-    use_order: Boolean(characters.length),
+    use_order: true,
     legacy_uc: false,
   };
 }

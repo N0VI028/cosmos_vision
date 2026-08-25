@@ -1,3 +1,6 @@
+import { shallowMount, type DOMWrapper, type VueWrapper } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
+import { nextTick } from 'vue';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_SETTINGS } from '@/constants/default-settings';
 import type { CharacterPromptItem, NovelAISettings } from '@/constants/novelai';
@@ -9,6 +12,7 @@ import {
 import {
   buildPayload,
   buildParameters,
+  getEffectiveNoiseSchedule,
   toNovelAICoordinate,
   resolveUseCoords,
 } from '@/services/novelai/payload';
@@ -21,6 +25,17 @@ import {
   getUcPresetPrompt,
 } from '@/services/novelai/prompt-presets';
 import type { NovelAIFinalPrompts } from '@/services/novelai/types';
+import NovelAITab from '@/panel/tabs/NovelAITab.vue';
+import { useSettingsStore } from '@/store/settings';
+
+/**
+ * 查找噪声调度完整字段
+ * @param wrapper NovelAI 设置页挂载实例
+ * @returns 包含标题与选择器的 label
+ */
+function findNoiseScheduleField(wrapper: VueWrapper): DOMWrapper<Element> | undefined {
+  return wrapper.findAll('label').find(label => label.text().includes('噪声调度'));
+}
 
 describe('NovelAI V5 Protocol & Params v4', () => {
   const createBaseSettings = (model: NovelAISettings['model'] = 'nai-diffusion-5-curated'): NovelAISettings => ({
@@ -110,6 +125,56 @@ describe('NovelAI V5 Protocol & Params v4', () => {
       expect(resolveUseCoords(2, true, 'nai-diffusion-5-curated')).toBe(false);
       expect(resolveUseCoords(2, true, 'nai-diffusion-4-5-curated')).toBe(false);
     });
+
+    it('sends use_order: true for V4+ even without characters (official behavior)', () => {
+      const settings = createBaseSettings('nai-diffusion-4-5-full');
+      const payload = buildPayload(settings, createPrompts(), 12345, 1);
+      expect(payload.parameters.v4_prompt).toMatchObject({
+        caption: { char_captions: [] },
+        use_order: true,
+      });
+      expect(payload.parameters.v4_negative_prompt).toMatchObject({ use_order: true });
+    });
+  });
+
+  describe('Noise Schedule Model Compatibility', () => {
+    it('hides the complete field for both V5 models and restores it after model switches', async () => {
+      setActivePinia(createPinia());
+      const settingsStore = useSettingsStore();
+      const wrapper = shallowMount(NovelAITab, { props: { subTab: 'config' } });
+
+      settingsStore.settings.novelai.model = 'nai-diffusion-5-curated';
+      await nextTick();
+      expect(findNoiseScheduleField(wrapper)).toBeUndefined();
+
+      settingsStore.settings.novelai.model = 'nai-diffusion-5-full';
+      await nextTick();
+      expect(findNoiseScheduleField(wrapper)).toBeUndefined();
+
+      settingsStore.settings.novelai.model = 'nai-diffusion-4-5-curated';
+      await nextTick();
+      expect(findNoiseScheduleField(wrapper)?.findComponent({ name: 'Select' }).exists()).toBe(true);
+
+      settingsStore.settings.novelai.model = 'nai-diffusion-3';
+      await nextTick();
+      expect(findNoiseScheduleField(wrapper)?.findComponent({ name: 'Select' }).exists()).toBe(true);
+    });
+
+    it('keeps non-native schedules across V5 and restores native only for V3', () => {
+      const v5Settings = {
+        ...createBaseSettings('nai-diffusion-5-curated'),
+        noiseSchedule: 'exponential' as const,
+      };
+      const v45Settings = {
+        ...createBaseSettings('nai-diffusion-4-5-full'),
+        noiseSchedule: 'native' as const,
+      };
+      const v3Settings = { ...createBaseSettings('nai-diffusion-3'), noiseSchedule: 'native' as const };
+
+      expect(getEffectiveNoiseSchedule(v5Settings)).toBe('exponential');
+      expect(getEffectiveNoiseSchedule(v45Settings)).toBe('karras');
+      expect(getEffectiveNoiseSchedule(v3Settings)).toBe('native');
+    });
   });
 
   describe('Universal params_version: 4 across all models', () => {
@@ -167,13 +232,21 @@ describe('NovelAI V5 Protocol & Params v4', () => {
       });
       const params = buildParameters(settings, prompts, 12345, 1);
 
-      expect(params.ucPreset).toBeUndefined();
-      expect(params.qualityToggle).toBeUndefined();
+      expect(params).not.toHaveProperty('ucPreset');
+      expect(params).not.toHaveProperty('qualityToggle');
       expect(params.legacy).toBe(false);
       expect(params.dynamic_thresholding).toBe(false);
-      expect(params.skip_cfg_above_sigma).toBeUndefined();
-      expect(params.sm).toBeUndefined();
-      expect(params.reference_image_multiple).toBeUndefined();
+      expect(params.deliberate_euler_ancestral_bug).toBe(false);
+      expect(params).not.toHaveProperty('skip_cfg_above_sigma');
+      expect(params).not.toHaveProperty('sm');
+      expect(params).not.toHaveProperty('sm_dyn');
+      expect(params).not.toHaveProperty('director_reference_descriptions');
+      expect(params).not.toHaveProperty('director_reference_information_extracted');
+      expect(params).not.toHaveProperty('director_reference_strength_values');
+      expect(params).not.toHaveProperty('director_reference_secondary_strength_values');
+      expect(params).not.toHaveProperty('reference_image_multiple');
+      expect(params).not.toHaveProperty('reference_strength_multiple');
+      expect(params).not.toHaveProperty('reference_information_extracted_multiple');
     });
 
     it('properly structures single character coordinates for V5', () => {
