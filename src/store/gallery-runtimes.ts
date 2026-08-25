@@ -1,20 +1,4 @@
-import { event_types, eventSource } from '@sillytavern/scripts/extensions';
-import { v4 as uuidv4 } from 'uuid';
-import { markRaw, ref, watch } from 'vue';
-import {
-  appendGeneratedSessionItem,
-  clearAllGallerySessions,
-  createSessionItemId,
-  type GallerySessionItem,
-  type GallerySessionRecord,
-  persistGallerySessionItem,
-  restoreGallerySessions,
-} from '@/composables/inlineGallerySession';
-import { pruneTemporaryImages } from '@/services/inline-image/temporary-images';
-import {
-  findRenderContainerAfter,
-  removeRenderContainer,
-} from '@/services/inline-image/cv-render-container';
+import { uuidv4 } from '@sillytavern/scripts/utils';
 import {
   pickGalleryMounts,
   pickMountFromFloorTailSession,
@@ -22,78 +6,204 @@ import {
   type GalleryMountSpec,
 } from '@/services/inline-image/slot-gallery-pick';
 import {
-  ensureSlotShortcodeOnParagraph,
-  resolveParagraphSlotId,
-} from '@/services/inline-image/slot-bind';
-import { ensureSlotRenderContainerForParagraph } from '@/services/inline-image/cv-render-container';
+  appendGeneratedSessionItem,
+  clearAllGallerySessions,
+  createSessionItemId,
+  persistGallerySessionItem,
+  removeSessionItemsByIds,
+  restoreGallerySessions,
+  type GallerySessionItem,
+  type GallerySessionRecord,
+} from '@/composables/inlineGallerySession';
+import type { InlineGeneratedImageResult } from '@/composables/inlineImageGeneratedResult';
+import type { FreshPromptMode } from '@/composables/inlineGenerationInput';
+import {
+  ensureSlotRenderContainerForParagraph,
+  findRenderContainerAfter,
+  removeRenderContainer,
+} from '@/services/inline-image/cv-render-container';
 import { getCurrentInlineFavoriteScope } from '@/services/sillytavern/chat-context';
-import { type InlineFavoriteAnchor } from '@/services/sillytavern/chat-dom';
+import { ensureSlotShortcodeOnParagraph, resolveParagraphSlotId } from '@/services/inline-image/slot-bind';
+import { newSlotId } from '@/services/inline-image/slot-shortcode';
+import type { InlineFavoriteAnchor } from '@/services/sillytavern/chat-dom';
+import { event_types, eventSource } from '@sillytavern/script';
 import { useSettingsStore } from '@/store/settings';
+import { deleteTemporaryImage, pruneTemporaryImages } from '@/services/inline-image/temporary-images';
+import { pruneFloorTailSlotsAboveMesId } from '@/services/inline-image/floor-tail-slot';
 
-declare const toastr: any;
+/** 管理页类型互换后的画廊就地补丁（保留 objectUrl，避免闪烁） */
+export type GalleryKindPatch =
+  | {
+      to: 'favorite';
+      temporaryId: string;
+      favoriteId: number;
+      createdAt: number;
+    }
+  | {
+      to: 'temporary';
+      favoriteId: number;
+      temporaryId: string;
+      createdAt: number;
+    };
 
-/** 单张临时图入参 */
-export interface InlineGeneratedImageResult {
-  imageBlob: Blob;
-  promptSnapshot: string;
-}
-
-/** 单个位点类型互换就地补丁 */
-export interface GalleryKindPatch {
-  kind: 'card' | 'gallery';
-  imageIndex: number;
-}
-
-/** 挂载项运行时状态 */
+/** 单画廊 mount 运行时 */
 export interface GalleryMountRuntime {
   key: string;
   messageId: number;
   element: HTMLElement;
   mountKey: GalleryMountSpec['mountKey'];
-  /** 就地生成的单图项（优先于会话数据直接渲染） */
-  generatedItem: GallerySessionItem | null;
-  /** 就地类型互换补丁 */
-  kindPatch: GalleryKindPatch | null;
   anchor: InlineFavoriteAnchor;
+  generatedItem: GallerySessionItem | null;
+  /** 类型互换就地补丁 */
+  kindPatch: GalleryKindPatch | null;
 }
 
-/** 单楼层运行时汇总 */
+/** 楼层粒度 runtime */
 export interface GalleryMessageRuntime {
   message_id: number;
   reload_memo: string;
   mounts: GalleryMountRuntime[];
 }
 
-/** 动作回调 */
-export interface GalleryRuntimeHandlers {
-  onGenerateMore: (anchor: InlineFavoriteAnchor) => void;
-  onDownload: (anchor: InlineFavoriteAnchor) => void;
+export type { InlineGeneratedImageResult };
+
+/** 楼层尾画廊动作恢复上下文 */
+export interface GalleryGenerationContext {
+  targetIframeId?: string;
+  targetIframeIndex?: number;
 }
 
-/** 事件串行队列项 */
-type QueueJob =
-  | { kind: 'chatLoaded' }
+interface GalleryRuntimeHandlers {
+  onGenerateWithSnapshot: (
+    paragraph: HTMLElement,
+    snapshot: GallerySessionItem['promptSnapshot'],
+    context?: GalleryGenerationContext,
+  ) => Promise<void>;
+  onGenerateWithFreshPrompt: (paragraph: HTMLElement, mode: FreshPromptMode, context?: GalleryGenerationContext) => Promise<void>;
+  onGenerateWithEditablePrompt: (
+    paragraph: HTMLElement,
+    snapshot: GallerySessionItem['promptSnapshot'],
+    context?: GalleryGenerationContext,
+  ) => Promise<void>;
+  onDownloadImage: (imageBlob: Blob, createdAt: number) => Promise<void>;
+}
+
+type PendingJob =
+  | { kind: 'audit' }
   | { kind: 'rerenderAll'; clearSessions: boolean }
-  | { kind: 'floor'; messageId: number }
-  | { kind: 'audit' };
-
-/** 全局单例 state */
-const runtimes = ref<GalleryMessageRuntime[]>([]);
-const themeToken = ref(0);
-let started = false;
-let disposed = false;
-let handlers: GalleryRuntimeHandlers | null = null;
-
-let queueTail: Promise<void> = Promise.resolve();
+  | { kind: 'floor'; messageId: number };
 
 /**
- * 集中管理画廊挂载实例与会话
+ * 段落画廊 runtime store：扫短码 / temp → cv-render → Teleport
+ * 异步任务串行防重入
  */
-export function useGalleryRuntimes() {
+export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtimes', () => {
   const settingsStore = useSettingsStore();
+  const runtimes = ref<GalleryMessageRuntime[]>([]);
+  const themeToken = ref(0);
+  let handlers: GalleryRuntimeHandlers | null = null;
+  let disposed = false;
+  let started = false;
+  let chain: Promise<void> = Promise.resolve();
+  const floorTailAnchors = new Map<string, HTMLElement>();
+
+  const onChatLoaded = () => scheduleRestore();
+  const onMoreMessages = () => scheduleJob({ kind: 'audit' });
+  const onMessageDeleted = (data?: unknown) => {
+    // ST 的 MESSAGE_DELETED emit 的是删除后的 chat.length，非被删 mesId
+    // 删除后剩余 mesId 为 [0, chat.length) 连续区间，超出上界的 slot 均已失效
+    const threshold = normalizeMessageId(data);
+    if (threshold !== null) {
+      const deletedSlots = pruneFloorTailSlotsAboveMesId(threshold);
+      for (const slot of deletedSlots) {
+        floorTailAnchors.delete(slot.slotId);
+        for (const imgId of slot.imageRefs) {
+          void deleteTemporaryImage(imgId);
+        }
+      }
+    }
+    scheduleJob({ kind: 'audit' });
+  };
+  const onMessageFloor = (messageId: unknown) => {
+    const id = normalizeMessageId(messageId);
+    if (id === null) return;
+    scheduleJob({ kind: 'floor', messageId: id });
+  };
+
+  watch(
+    () => settingsStore.savedSettings.enabled,
+    enabled => {
+      if (!started || disposed) return;
+      if (enabled) scheduleJob({ kind: 'rerenderAll', clearSessions: false });
+      else clearRuntimesOnly();
+    },
+  );
+
+  watch(
+    () => settingsStore.savedSettings.temporaryImageLimit,
+    limit => {
+      if (!started || disposed) return;
+      void pruneTemporaryImages(limit)
+        .then(removedIds => {
+          removeSessionItemsByIds(removedIds);
+          scheduleJob(removedIds.length ? { kind: 'rerenderAll', clearSessions: false } : { kind: 'audit' });
+        })
+        .catch(error => {
+          console.error('[CosmosVision] 临时图片数量清理失败', error);
+          toastr.error('临时图片数量清理失败');
+        });
+    },
+  );
 
   /**
-   * 启动画廊挂载运行时
+   * 注入生成/下载回调
+   * @param next 回调集合
+   */
+  function setHandlers(next: GalleryRuntimeHandlers): void {
+    handlers = next;
+  }
+
+  /**
+   * 读取动作回调
+   * @returns handlers 或 null
+   */
+  function getActionHandlers(): GalleryRuntimeHandlers | null {
+    return handlers;
+  }
+
+  /**
+   * 保存当前页面内 floor-tail 的真实焦点元素
+   * @param slotId floor-tail 位点
+   * @param anchor 前端气泡或段落元素
+   */
+  function setFloorTailAnchor(slotId: string, anchor: HTMLElement): void {
+    floorTailAnchors.set(slotId, anchor);
+  }
+
+  /**
+   * 读取当前页面内 floor-tail 的真实焦点元素
+   * @param slotId floor-tail 位点
+   * @returns 仍连接在文档中的焦点元素，否则 null
+   */
+  function getFloorTailAnchor(slotId: string): HTMLElement | null {
+    const anchor = floorTailAnchors.get(slotId);
+    if (!anchor?.isConnected) {
+      floorTailAnchors.delete(slotId);
+      return null;
+    }
+    return anchor;
+  }
+
+  /**
+   * 删除 floor-tail 的运行时焦点元素
+   * @param slotId floor-tail 位点
+   */
+  function clearFloorTailAnchor(slotId: string): void {
+    floorTailAnchors.delete(slotId);
+  }
+
+  /**
+   * 启动事件监听并首次全量 scan
    */
   function start(): void {
     if (started) return;
@@ -104,33 +214,32 @@ export function useGalleryRuntimes() {
   }
 
   /**
-   * 清理运行时
+   * 清理监听、容器与会话
    */
   function cleanup(): void {
     disposed = true;
     started = false;
     unbindEvents();
-    clearRuntimesOnly();
+    removeAllRenderContainers();
+    runtimes.value = [];
+    clearAllGallerySessions();
+    floorTailAnchors.clear();
+    handlers = null;
   }
 
   /**
-   * 注册动作回调
+   * 仅清空运行时 DOM（关插件，保留会话与监听）
    */
-  function setHandlers(nextHandlers: GalleryRuntimeHandlers): void {
-    handlers = nextHandlers;
+  function clearRuntimesOnly(): void {
+    removeAllRenderContainers();
+    runtimes.value = [];
+    floorTailAnchors.clear();
   }
 
   /**
-   * 获取动作回调
+   * 刷新主题 token
    */
-  function getActionHandlers(): GalleryRuntimeHandlers | null {
-    return handlers;
-  }
-
-  /**
-   * 触发重绘（例如主题色改变）
-   */
-  function bumpThemeToken(): void {
+  function refreshTheme(): void {
     themeToken.value += 1;
   }
 
@@ -185,17 +294,16 @@ export function useGalleryRuntimes() {
       .then(removedIds => removePrunedMounts(removedIds))
       .catch(error => {
         console.error('[CosmosVision] 临时图片持久化失败', error);
-        toastr?.error?.('临时图片保存失败');
+        toastr.error('临时图片保存失败');
       });
   }
 
   /**
-   * 展示新生成的前端型楼层尾/组件尾临时图并返回持久化后的图片 ID
+   * 展示新生成的前端型楼层尾临时图并返回持久化后的图片 ID
    * @param mesId 消息楼层 ID
    * @param swipeId 当前 swipe ID
    * @param slotId 楼层尾 slotId
    * @param result 生成结果
-   * @param targetAnchor 可选的目标 iframe 或组件元素（用于精准就近插入）
    * @returns 持久化成功且未被数量限制淘汰时返回图片 ID，否则返回 null
    */
   async function showGeneratedFloorTail(
@@ -227,7 +335,7 @@ export function useGalleryRuntimes() {
       return removedIds.includes(item.id) ? null : item.id;
     } catch (error) {
       console.error('[CosmosVision] 临时图片持久化失败', error);
-      toastr?.error?.('临时图片保存失败');
+      toastr.error('临时图片保存失败');
       return null;
     }
   }
@@ -305,55 +413,54 @@ export function useGalleryRuntimes() {
    * 把事件任务加入串行队列
    * @param job 待执行工作
    */
-  function scheduleJob(job: QueueJob): void {
+  function scheduleJob(job: PendingJob): void {
     if (disposed) return;
     void enqueue(() => runJob(job));
   }
 
   /**
-   * 执行单个队列任务
-   * @param job 队列项
+   * 串行执行异步工作，避免 auditToken 互废
+   * @param task 任务
    */
-  async function runJob(job: QueueJob): Promise<void> {
+  function enqueue(task: () => Promise<void>): Promise<void> {
+    const run = chain.then(task, task);
+    chain = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
+
+  /**
+   * 执行合并后的单次 job
+   * @param job 合并结果
+   */
+  async function runJob(job: PendingJob): Promise<void> {
     if (disposed) return;
-    switch (job.kind) {
-      case 'chatLoaded':
-        await onChatLoadedJob();
-        break;
-      case 'rerenderAll':
-        await rerenderAll();
-        break;
-      case 'floor':
-        await applyFloor(job.messageId);
-        break;
-      case 'audit':
-        await auditVisibleMessages();
-        break;
+    if (job.kind === 'rerenderAll') {
+      if (job.clearSessions) clearAllGallerySessions();
+      await rerenderAll();
+      return;
     }
+    if (job.kind === 'floor') {
+      await applyFloor(job.messageId);
+      return;
+    }
+    await audit();
   }
 
   /**
-   * 聊天加载完成工作：恢复 IDB，并重扫整屏
+   * 增量 audit：保留已有 runtime，补扫未渲染楼层
    */
-  async function onChatLoadedJob(): Promise<void> {
-    if (disposed || !settingsStore.savedSettings.enabled) return;
-    const scope = getCurrentInlineFavoriteScope();
-    clearAllGallerySessions();
-    if (scope) {
-      await pruneTemporaryImages(settingsStore.savedSettings.temporaryImageLimit);
-      await restoreGallerySessions(scope);
+  async function audit(): Promise<void> {
+    if (disposed || !settingsStore.savedSettings.enabled) {
+      runtimes.value = [];
+      return;
     }
-    await rerenderAll();
-  }
-
-  /**
-   * 差异审计可视楼层（用于滚动加载/零星更新）
-   */
-  async function auditVisibleMessages(): Promise<void> {
-    if (disposed || !settingsStore.savedSettings.enabled) return;
+    if (!getCurrentInlineFavoriteScope()) return;
     const toRender = listVisibleMessageIds();
     const keep = runtimes.value.filter(runtime =>
-      toRender.includes(runtime.message_id) && document.querySelector(`#chat > .mes[mesid="${runtime.message_id}"]`),
+      toRender.includes(runtime.message_id) && isRuntimeLive(runtime),
     );
     const missing = toRender.filter(id => !keep.some(runtime => runtime.message_id === id));
     const added = await buildRuntimes(missing);
@@ -438,7 +545,6 @@ export function useGalleryRuntimes() {
    * @param session 会话
    * @param mesId 消息楼层 ID
    * @param swipeId 当前 swipe ID
-   * @param targetAnchor 可选目标 iframe 或组件元素
    */
   function upsertFloorTailSessionMount(
     session: GallerySessionRecord,
@@ -478,75 +584,51 @@ export function useGalleryRuntimes() {
     const runtime = runtimes.value.find(item => item.message_id === messageId);
     if (!runtime) return;
     const mount = runtime.mounts.find(item => item.key === key);
+    if (mount) clearFloorTailAnchor(mount.mountKey.slotId);
     runtime.mounts = runtime.mounts.filter(item => item.key !== key);
     const orphan = Boolean(mount?.element.isConnected)
       && !runtime.mounts.some(item => item.element === mount?.element);
-    if (orphan && mount?.element) {
-      removeRenderContainer(mount.element);
+    if (orphan) {
+      const parentRoot = mount?.element.closest('.cv-floor-tail');
+      mount?.element.remove();
+      if (parentRoot && !parentRoot.children.length) {
+        parentRoot.remove();
+      }
     }
     if (!runtime.mounts.length) {
       runtimes.value = runtimes.value.filter(item => item.message_id !== messageId);
+      return;
     }
-  }
-
-  /** 仅清空前端 runtime 视图（保留 IndexedDB 会话数据） */
-  function clearRuntimesOnly(): void {
-    removeAllRenderContainers();
-    runtimes.value = [];
-  }
-
-  function onChatLoaded(): void {
-    scheduleJob({ kind: 'chatLoaded' });
-  }
-
-  function onMoreMessages(): void {
-    scheduleJob({ kind: 'audit' });
-  }
-
-  function onMessageDeleted(_rawId: unknown): void {
-    scheduleJob({ kind: 'audit' });
-  }
-
-  function onMessageFloor(rawId: unknown): void {
-    const id = normalizeMessageId(rawId);
-    if (id === null) return;
-    scheduleJob({ kind: 'floor', messageId: id });
-  }
-
-  function newSlotId(): string {
-    return uuidv4();
+    runtime.reload_memo = createReloadMemo();
   }
 
   return {
     runtimes,
     themeToken,
-    start,
-    cleanup,
     setHandlers,
     getActionHandlers,
-    bumpThemeToken,
+    start,
+    cleanup,
+    refreshTheme,
     restoreAll,
     patchSlotKind,
+    setFloorTailAnchor,
+    getFloorTailAnchor,
+    clearFloorTailAnchor,
     showGenerated,
     showGeneratedFloorTail,
-    removeMount,
     getHost,
+    removeMount,
   };
-}
-
-export const useGalleryRuntimesStore = useGalleryRuntimes;
+});
 
 /**
- * 串行任务排队包装
- * @param task 异步任务
+ * Runtime 挂载目标是否仍连在文档
+ * @param runtime 楼层 runtime
+ * @returns 是否可 keep
  */
-function enqueue(task: () => Promise<void>): Promise<void> {
-  queueTail = queueTail
-    .catch(() => {})
-    .then(async () => {
-      await task();
-    });
-  return queueTail;
+function isRuntimeLive(runtime: GalleryMessageRuntime): boolean {
+  return runtime.mounts.every(mount => mount.element.isConnected);
 }
 
 /**
@@ -571,7 +653,7 @@ async function buildRuntimes(messageIds: number[]): Promise<GalleryMessageRuntim
     }));
   } catch (error) {
     console.error('[CosmosVision] 扫描画廊 runtime 失败', error);
-    toastr?.error?.('读取段落图片收藏失败');
+    toastr.error('读取段落图片收藏失败');
     return [];
   }
 }

@@ -19,31 +19,11 @@ import {
 } from '@/services/inline-image/favorites-cache';
 import { getCurrentInlineFavoriteScope } from '@/services/sillytavern/chat-context';
 import { removeSlotShortcodeFromMessage } from '@/services/inline-image/slot-bind';
-import { deleteFloorTailSlot } from '@/services/inline-image/floor-tail-slot';
-import type { GalleryMountRuntime } from '@/store/gallery-runtimes';
+import { deleteFloorTailSlot, readFloorTailSlots } from '@/services/inline-image/floor-tail-slot';
+import type { GalleryGenerationContext, GalleryMountRuntime } from '@/store/gallery-runtimes';
 import { useGalleryRuntimesStore } from '@/store/gallery-runtimes';
 import { useSettingsStore } from '@/store/settings';
 import type { InlineFavoriteAnchor } from '@/services/sillytavern/chat-dom';
-
-/**
- * 把会话临时项转换为画廊显示项
- * @param sessionItem 会话项
- * @param objectUrls URL 集合
- * @returns 画廊项
- */
-export function sessionItemToGalleryItem(
-  sessionItem: GallerySessionItem,
-  objectUrls: Set<string>,
-): InlineGalleryItem {
-  return {
-    id: sessionItem.id,
-    favoriteId: sessionItem.favoriteId,
-    blobUrl: createTrackedObjectUrl(sessionItem.imageBlob, objectUrls),
-    imageBlob: sessionItem.imageBlob,
-    promptSnapshot: sessionItem.promptSnapshot,
-    createdAt: sessionItem.createdAt,
-  };
-}
 
 /**
  * 解析 mount 的画廊项列表（本地文件收藏 + 会话临时覆盖层）
@@ -175,7 +155,7 @@ function createUnfavoritedSessionItem(item: InlineGalleryItem, slotId: string, f
 }
 
 /**
- * 将取消收藏后的图片重新写入临时存储
+ * 将取消收藏后的图片重新写入临时仓储
  * @param key 会话键
  * @param itemId 图片 ID
  */
@@ -222,9 +202,9 @@ export async function removeMountItem(
  */
 export function invokeGenerateLast(mount: GalleryMountRuntime, item: InlineGalleryItem): void {
   const handlers = useGalleryRuntimesStore().getActionHandlers();
-  const anchor = mount.anchor.paragraph ?? mount.anchor.target;
+  const anchor = resolveGenerationTarget(mount);
   if (!handlers || !anchor) return;
-  void handlers.onGenerateWithSnapshot(anchor, item.promptSnapshot);
+  void handlers.onGenerateWithSnapshot(anchor, item.promptSnapshot, getGenerationContext(mount));
 }
 
 /**
@@ -233,9 +213,10 @@ export function invokeGenerateLast(mount: GalleryMountRuntime, item: InlineGalle
  */
 export function invokeGenerateFresh(mount: GalleryMountRuntime): void {
   const handlers = useGalleryRuntimesStore().getActionHandlers();
-  const anchor = mount.anchor.paragraph ?? mount.anchor.target;
+  const anchor = resolveFreshGenerationTarget(mount);
   if (!handlers || !anchor) return;
-  void handlers.onGenerateWithFreshPrompt(anchor, 'repeat');
+  const context = getGenerationContext(mount);
+  void handlers.onGenerateWithFreshPrompt(anchor, 'repeat', context);
 }
 
 /**
@@ -246,9 +227,9 @@ export function invokeGenerateFresh(mount: GalleryMountRuntime): void {
  */
 export function invokeGenerateEditable(mount: GalleryMountRuntime, item: InlineGalleryItem): void {
   const handlers = useGalleryRuntimesStore().getActionHandlers();
-  const anchor = mount.anchor.paragraph ?? mount.anchor.target;
+  const anchor = resolveGenerationTarget(mount);
   if (!handlers || !anchor) return;
-  void handlers.onGenerateWithEditablePrompt(anchor, item.promptSnapshot);
+  void handlers.onGenerateWithEditablePrompt(anchor, item.promptSnapshot, getGenerationContext(mount));
 }
 
 /**
@@ -259,6 +240,53 @@ export function invokeDownload(item: InlineGalleryItem): void {
   const handlers = useGalleryRuntimesStore().getActionHandlers();
   if (!handlers) return;
   void handlers.onDownloadImage(item.imageBlob, item.createdAt);
+}
+
+/**
+ * 从 floor-tail 元数据恢复真实生图锚点
+ * @param mount 运行时挂载
+ * @returns 原始段落、iframe body 或 slot 容器
+ */
+function resolveGenerationTarget(mount: GalleryMountRuntime): HTMLElement {
+  if (mount.anchor.paragraph) return mount.anchor.paragraph;
+  const slot = readFloorTailSlots()[mount.mountKey.slotId];
+  const message = document.querySelector<HTMLElement>(`#chat > .mes[mesid="${mount.messageId}"]`);
+  const iframes = message ? Array.from(message.querySelectorAll<HTMLIFrameElement>('iframe')) : [];
+  const iframe = iframes.find(frame => frame.id && frame.id === slot?.targetIframeId)
+    ?? (typeof slot?.targetIframeIndex === 'number' ? iframes[slot.targetIframeIndex] : undefined);
+  if (iframe?.contentDocument?.body) return iframe.contentDocument.body;
+  const floorRoot = mount.anchor.target.closest<HTMLElement>('.cv-floor-tail');
+  const previous = floorRoot?.previousElementSibling;
+  if (previous instanceof HTMLElement) return previous;
+  return mount.anchor.target;
+}
+
+/**
+ * 读取重新生成 TAG 所需的当前页面焦点
+ * @param mount 运行时挂载
+ * @returns 当前页面焦点或 null
+ */
+function resolveFreshGenerationTarget(mount: GalleryMountRuntime): HTMLElement | null {
+  if (mount.anchor.paragraph) return mount.anchor.paragraph;
+  const anchor = useGalleryRuntimesStore().getFloorTailAnchor(mount.mountKey.slotId);
+  if (anchor) return anchor;
+  toastr.warning('前端美化部分在页面刷新后无法恢复原始焦点段落，请重新手动选择段落生成');
+  return null;
+}
+
+/**
+ * 读取楼层尾再生成所需的持久化上下文
+ * @param mount 运行时挂载
+ * @returns 楼层尾上下文或 undefined
+ */
+function getGenerationContext(mount: GalleryMountRuntime): GalleryGenerationContext | undefined {
+  if (mount.anchor.paragraph) return undefined;
+  const slot = readFloorTailSlots()[mount.mountKey.slotId];
+  if (!slot) return undefined;
+  return {
+    targetIframeId: slot.targetIframeId,
+    targetIframeIndex: slot.targetIframeIndex,
+  };
 }
 
 /**
@@ -278,67 +306,77 @@ export function createTrackedObjectUrl(blob: Blob, objectUrls: Set<string>): str
  * @param objectUrls 集合
  */
 export function revokeTrackedObjectUrls(objectUrls: Set<string>): void {
-  for (const url of objectUrls) {
-    URL.revokeObjectURL(url);
-  }
+  objectUrls.forEach(url => URL.revokeObjectURL(url));
   objectUrls.clear();
 }
 
 /**
- * 从 IndexedDB 会话读取当前 slot 的临时图片项
- * @param slotId 短码 ID
+ * 加载 slot 画廊：IDB + 会话未收藏覆盖
+ * @param slotId 位点
  * @param objectUrls URL 集合
- * @returns 会话画廊项列表
- */
-function loadSlotMountSessionItems(slotId: string, objectUrls: Set<string>): InlineGalleryItem[] {
-  return listSlotSessionItems(slotId).map(item => sessionItemToGalleryItem(item, objectUrls));
-}
-
-/**
- * 读取 slot 绑定的收藏图片并组装画廊项
- * @param slotId 短码位点 ID
- * @param objectUrls 由调用方持有的 URL 集合
- * @returns 收藏画廊项列表
- */
-async function loadSlotMountFavoriteItems(
-  slotId: string,
-  objectUrls: Set<string>,
-): Promise<InlineGalleryItem[]> {
-  const scope = getCurrentInlineFavoriteScope();
-  if (!scope) return [];
-  const favorites = await listInlineImageFavoritesBySlot(scope, slotId);
-  return favorites.map(favorite => ({
-    id: `fav-${favorite.id}`,
-    favoriteId: favorite.id,
-    blobUrl: createTrackedObjectUrl(favorite.imageBlob, objectUrls),
-    imageBlob: favorite.imageBlob,
-    promptSnapshot: favorite.promptSnapshot,
-    createdAt: favorite.createdAt,
-  }));
-}
-
-/**
- * 合并 slot 下的收藏图片与临时会话图片（收藏排在前，临时排在后）
- * @param slotId 短码位点 ID
- * @param objectUrls URL 集合
- * @returns 完整画廊项列表
+ * @returns items
  */
 async function loadSlotMountItems(
   slotId: string,
   objectUrls: Set<string>,
 ): Promise<InlineGalleryItem[]> {
-  const favorites = await loadSlotMountFavoriteItems(slotId, objectUrls);
-  const favoriteIds = new Set(favorites.map(f => f.favoriteId));
-  const sessionItems = loadSlotMountSessionItems(slotId, objectUrls)
-    .filter(item => typeof item.favoriteId !== 'number' || !favoriteIds.has(item.favoriteId));
-  return [...favorites, ...sessionItems];
+  const favorites = await listInlineImageFavoritesBySlot(slotId, getCurrentInlineFavoriteScope());
+  const favoriteItems = favorites.map(record => createFavoriteItem(record, slotId, objectUrls));
+  const sessionItems = listSlotSessionItems(slotId)
+    .filter(item => !favorites.some(record => record.id === item.favoriteId))
+    .map(item => sessionItemToGalleryItem(item, objectUrls));
+  return sortGalleryItems([...sessionItems, ...favoriteItems]);
 }
 
 /**
- * 组装收藏宿主对象
- * @param mount 运行时 mount
- * @param items 当前画廊项列表
- * @returns 收藏宿主
+ * IDB 记录 → 画廊项
+ * @param record 收藏
+ * @param slotId 位点
+ * @param objectUrls 集合
+ * @returns item
+ */
+function createFavoriteItem(
+  record: InlineImageFavoriteListItem,
+  slotId: string,
+  objectUrls: Set<string>,
+): InlineGalleryItem {
+  return {
+    id: `favorite-${record.id}`,
+    favoriteId: record.id,
+    slotId,
+    imageBlob: record.imageBlob,
+    objectUrl: createTrackedObjectUrl(record.imageBlob, objectUrls),
+    promptSnapshot: record.promptSnapshot,
+    createdAt: record.createdAt,
+  };
+}
+
+/**
+ * 会话项 → 画廊项
+ * @param item 会话项
+ * @param objectUrls 集合
+ * @returns 画廊项
+ */
+export function sessionItemToGalleryItem(
+  item: GallerySessionItem,
+  objectUrls: Set<string>,
+): InlineGalleryItem {
+  return {
+    id: item.id,
+    favoriteId: item.favoriteId,
+    slotId: item.slotId,
+    imageBlob: item.imageBlob,
+    objectUrl: createTrackedObjectUrl(item.imageBlob, objectUrls),
+    promptSnapshot: item.promptSnapshot,
+    createdAt: item.createdAt,
+  };
+}
+
+/**
+ * 构建 favorite 服务 host
+ * @param mount runtime
+ * @param items items
+ * @returns host
  */
 function buildFavoriteHost(
   mount: GalleryMountRuntime,
@@ -348,9 +386,14 @@ function buildFavoriteHost(
   anchor: InlineFavoriteAnchor;
   items: InlineGalleryItem[];
 } {
-  return {
-    slotId: mount.mountKey.slotId,
-    anchor: mount.anchor,
-    items,
-  };
+  return { slotId: mount.mountKey.slotId, anchor: mount.anchor, items };
+}
+
+/**
+ * 按创建时间从新到旧排序
+ * @param items 画廊项
+ * @returns 排序后的项
+ */
+function sortGalleryItems(items: InlineGalleryItem[]): InlineGalleryItem[] {
+  return [...items].sort((left, right) => right.createdAt - left.createdAt);
 }

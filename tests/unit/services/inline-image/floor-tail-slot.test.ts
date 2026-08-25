@@ -50,7 +50,7 @@ describe('floor-tail-slot', () => {
     expect(readFloorTailSlots()['test-slot-1']).toBeUndefined();
   });
 
-  it('prunes floor tail slots above given mesId on rollback/truncate', () => {
+  it('prunes slots at or above chat length and returns deleted records', () => {
     writeFloorTailSlot({
       slotId: 'slot-1',
       mesId: 5,
@@ -59,15 +59,23 @@ describe('floor-tail-slot', () => {
     });
     writeFloorTailSlot({
       slotId: 'slot-2',
-      mesId: 12,
+      mesId: 10,
       swipeId: 0,
       imageRefs: ['ref-2'],
     });
 
-    pruneFloorTailSlotsAboveMesId(10);
+    const deleted = pruneFloorTailSlotsAboveMesId(10);
 
     const remaining = readFloorTailSlots();
+    expect(deleted.map(slot => slot.slotId)).toEqual(['slot-2']);
     expect(remaining['slot-1']).toBeDefined();
     expect(remaining['slot-2']).toBeUndefined();
+  });
+
+  it('preserves metadata insertion order during restoration', () => {
+    writeFloorTailSlot({ slotId: 'first', mesId: 3, swipeId: 1, imageRefs: [] });
+    writeFloorTailSlot({ slotId: 'second', mesId: 3, swipeId: 1, imageRefs: [] });
+
+    expect(listFloorTailSlotsBySwipe(3, 1).map(slot => slot.slotId)).toEqual(['first', 'second']);
   });
 });

@@ -59,25 +59,25 @@ export function deleteFloorTailSlot(slotId: string): void {
  */
 export function listFloorTailSlotsBySwipe(mesId: number, swipeId: number): CvFloorTailSlot[] {
   const slots = readFloorTailSlots();
-  return Object.values(slots).filter(s => s.mesId === mesId && s.swipeId === swipeId);
+  return Object.values(slots).filter(slot => slot.mesId === mesId && slot.swipeId === swipeId);
 }
 
 /**
- * 楼层回退/删除截断时，清理 mesId 大于指定值的楼层尾 slots
- * @param mesId 截断保留的最大楼层 ID
+ * 楼层回退/删除截断时，清理超出有效范围的楼层尾 slots
+ * @param threshold 删除后的聊天长度，即有效 mesId 上界
+ * @returns 被删除的 slot 列表
  */
-export function pruneFloorTailSlotsAboveMesId(mesId: number): void {
+export function pruneFloorTailSlotsAboveMesId(threshold: number): CvFloorTailSlot[] {
   const slots = readFloorTailSlots();
-  let changed = false;
+  const deleted: CvFloorTailSlot[] = [];
   for (const [id, slot] of Object.entries(slots)) {
-    if (slot.mesId > mesId) {
+    if (slot.mesId >= threshold) {
+      deleted.push(slot);
       delete slots[id];
-      changed = true;
     }
   }
-  if (changed) {
-    persistChatMetadata();
-  }
+  if (deleted.length) persistChatMetadata();
+  return deleted;
 }
 
 /**
