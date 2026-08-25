@@ -76,14 +76,18 @@ export function pickMountFromSession(
 /**
  * 扫描指定楼层的全部画廊挂载规格
  * @param messageIds 楼层 ID 列表
+ * @param sessionRestored 是否已完成 IDB 临时图片恢复（false 时跳过惰性清理删除 slot）
  * @returns 挂载规格列表
  */
-export async function pickGalleryMounts(messageIds?: number[]): Promise<GalleryMountSpec[]> {
+export async function pickGalleryMounts(
+  messageIds?: number[],
+  sessionRestored = true,
+): Promise<GalleryMountSpec[]> {
   const ids = resolveTargetMessageIds(messageIds);
   const seen = new Set<string>();
   const mounts: GalleryMountSpec[] = [];
   for (const id of ids) {
-    mounts.push(...await pickSlotMountsForMessage(id, seen));
+    mounts.push(...await pickSlotMountsForMessage(id, seen, sessionRestored));
   }
   return mounts;
 }
@@ -104,15 +108,20 @@ function resolveTargetMessageIds(messageIds?: number[]): number[] {
  * 扫描某一楼的短码与楼层尾 slot
  * @param messageId 楼层
  * @param seen 全局 key 去重
+ * @param sessionRestored 是否已完成 IDB 临时图片恢复（false 时跳过惰性清理删除 slot）
  * @returns 挂载规格
  */
-async function pickSlotMountsForMessage(messageId: number, seen: Set<string>): Promise<GalleryMountSpec[]> {
+async function pickSlotMountsForMessage(
+  messageId: number,
+  seen: Set<string>,
+  sessionRestored = true,
+): Promise<GalleryMountSpec[]> {
   const mounts: GalleryMountSpec[] = [];
   for (const paragraph of getMessageParagraphs(messageId)) {
     const mount = pickSlotMountForParagraph(paragraph, messageId, seen);
     if (mount) mounts.push(mount);
   }
-  mounts.push(...pickFloorTailMountsForMessage(messageId, seen));
+  mounts.push(...await pickFloorTailMountsForMessage(messageId, seen, sessionRestored));
   return mounts;
 }
 

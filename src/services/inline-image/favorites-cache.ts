@@ -118,6 +118,24 @@ export async function listInlineImageFavoriteMeta(): Promise<InlineImageFavorite
 }
 
 /**
+ * 判断指定位点在作用域内是否存有收藏图片（仅元数据，不水合 Blob）
+ * 用于楼层尾 slot 存活判定：服务端有收藏即视为该 slot 可跨设备恢复
+ * @param slotId 段落位点 ID
+ * @param scope 可选角色与聊天作用域
+ * @returns 是否存在收藏记录
+ */
+export async function hasInlineImageFavoriteBySlot(
+  slotId: string,
+  scope?: InlineImageFavoriteScope | null,
+): Promise<boolean> {
+  if (!slotId) return false;
+  await manifestWriteQueue;
+  const entries = (await readFavoriteManifest()).records.filter(entry => entry.slotId === slotId);
+  const scoped = scope ? entries.filter(entry => matchesFavoriteScope(entry, scope)) : entries;
+  return scoped.length > 0;
+}
+
+/**
  * 按需读取单张收藏图片
  * @param filePath 清单中的文件路径
  * @returns 图片 Blob；文件不存在时返回 null

@@ -82,8 +82,8 @@ async function favoriteMountItem(
     items: InlineGalleryItem[];
   },
 ): Promise<void> {
-  const bound = await favoriteGalleryItem(host, item, () => undefined);
-  if (bound) toastr.success('已收藏图片，将存储于 SillyTavern 本地文件');
+  await favoriteGalleryItem(host, item, () => undefined);
+  toastr.success('已收藏图片，将存储于 SillyTavern 本地文件');
   patchSessionItem(mount.key, item.id, {
     favoriteId: item.favoriteId,
     createdAt: item.createdAt,
@@ -184,10 +184,13 @@ export async function removeMountItem(
   const remaining = items.filter(candidate => candidate.id !== item.id);
   await removeSessionItem(mount.key, item.id);
   if (!remaining.length) {
-    const target = mount.anchor.paragraph ?? mount.messageId;
-    await removeSlotShortcodeFromMessage(target, mount.mountKey.slotId);
-    // 前端型楼层尾 slot 才需要清 chatMetadata；classic-p slotId 不在 floor-tail slots 里
-    if (!mount.anchor.paragraph) deleteFloorTailSlot(mount.mountKey.slotId);
+    // 前端型楼层尾无 paragraph → 无原文短码，只清 chatMetadata slot；
+    // classic-p 才需要从消息原文移除短码
+    if (mount.anchor.paragraph) {
+      await removeSlotShortcodeFromMessage(mount.anchor.paragraph, mount.mountKey.slotId);
+    } else {
+      deleteFloorTailSlot(mount.mountKey.slotId);
+    }
     useGalleryRuntimesStore().removeMount(mount.key, mount.messageId);
     return false;
   }

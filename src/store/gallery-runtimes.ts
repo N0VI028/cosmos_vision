@@ -102,6 +102,8 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
   const runtimes = ref<GalleryMessageRuntime[]>([]);
   const themeToken = ref(0);
   let handlers: GalleryRuntimeHandlers | null = null;
+  /** 是否已完成当前聊天的 IDB 临时图片恢复（防止楼层事件惰性清理误删 slot） */
+  let sessionRestored = false;
   let disposed = false;
   let started = false;
   let chain: Promise<void> = Promise.resolve();
@@ -218,6 +220,7 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
    */
   function cleanup(): void {
     disposed = true;
+    sessionRestored = false;
     started = false;
     unbindEvents();
     removeAllRenderContainers();
@@ -344,9 +347,11 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
   function scheduleRestore(): void {
     void enqueue(async () => {
       const scope = getCurrentInlineFavoriteScope();
+      sessionRestored = false;
       clearAllGallerySessions();
       await pruneTemporaryImages(settingsStore.savedSettings.temporaryImageLimit);
       if (scope) await restoreGallerySessions(scope);
+      sessionRestored = true;
       await runJob({ kind: 'rerenderAll', clearSessions: false });
     });
   }
@@ -463,7 +468,7 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
       toRender.includes(runtime.message_id) && isRuntimeLive(runtime),
     );
     const missing = toRender.filter(id => !keep.some(runtime => runtime.message_id === id));
-    const added = await buildRuntimes(missing);
+    const added = await buildRuntimes(missing, true);
     if (disposed) return;
     runtimes.value = [...keep, ...added];
   }
@@ -480,7 +485,7 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
     removeAllRenderContainers();
     runtimes.value = [];
     if (!getCurrentInlineFavoriteScope()) return;
-    const added = await buildRuntimes(listVisibleMessageIds());
+    const added = await buildRuntimes(listVisibleMessageIds(), true);
     if (disposed) return;
     runtimes.value = added;
   }
@@ -491,8 +496,10 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
    */
   async function applyFloor(messageId: number): Promise<void> {
     if (disposed || !settingsStore.savedSettings.enabled) return;
+    // 恢复未完成时，事件驱动的单楼重扫会误判 slot 失效并删除，跳过静待全量恢复
+    if (!sessionRestored) return;
     dropFloorRuntime(messageId);
-    const built = await buildRuntimes([messageId]);
+    const built = await buildRuntimes([messageId], sessionRestored);
     if (disposed) return;
     const others = runtimes.value.filter(runtime => runtime.message_id !== messageId);
     runtimes.value = built.length ? [...others, ...built] : others;
@@ -636,10 +643,19 @@ function isRuntimeLive(runtime: GalleryMessageRuntime): boolean {
  * @param messageIds 楼层集合
  * @returns runtimes
  */
-async function buildRuntimes(messageIds: number[]): Promise<GalleryMessageRuntime[]> {
+/**
+ * 批量 build 楼层 runtime
+ * @param messageIds 楼层集合
+ * @param sessionRestored 是否已完成 IDB 临时图片恢复（false 时跳过惰性清理删除 slot）
+ * @returns runtimes
+ */
+async function buildRuntimes(
+  messageIds: number[],
+  sessionRestored: boolean,
+): Promise<GalleryMessageRuntime[]> {
   if (!messageIds.length) return [];
   try {
-    const mounts = await pickGalleryMounts(messageIds);
+    const mounts = await pickGalleryMounts(messageIds, sessionRestored);
     const byMessage = new Map<number, GalleryMountRuntime[]>();
     for (const mount of mounts) {
       const list = byMessage.get(mount.messageId) ?? [];

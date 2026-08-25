@@ -8,11 +8,13 @@ export const CV_SWIPE_ATTR = 'data-cv-swipe';
 export const CV_ROUTE_ATTR = 'data-cv-route';
 
 /**
- * 查找指定 targetAnchor 对应的顶层宿主挂载外层容器（例如特定 iframe 的 TH-render 或 details 等）
+ * 查找指定 targetAnchor 对应的顶层宿主挂载外层容器
+ * iframe 情境回退到宿主 iframe；HTML 情境回退到最近的有 class 容器
+ * @param targetAnchor 目标元素
+ * @returns 顶层宿主容器
  */
-export function resolveAnchorWrapper(targetAnchor: HTMLElement): HTMLElement {
-  const isIframe = targetAnchor.tagName === 'IFRAME';
-  const iframe = isIframe ? targetAnchor : getHostIframe(targetAnchor);
+function resolveAnchorWrapper(targetAnchor: HTMLElement): HTMLElement {
+  const iframe = targetAnchor.tagName === 'IFRAME' ? targetAnchor : getHostIframe(targetAnchor);
   if (iframe) {
     return iframe.closest<HTMLElement>('div.TH-render') ?? iframe;
   }
@@ -24,19 +26,30 @@ export function resolveAnchorWrapper(targetAnchor: HTMLElement): HTMLElement {
 }
 
 /**
- * 确保指定楼层与 swipe 的宿主根容器存在（支持锚定到特定 iframe/组件下方）
+ * 判断 targetAnchor 是否关联 iframe（iframe 本身或处于 iframe 内）
+ * @param targetAnchor 目标元素
+ * @returns 是否 iframe 路由
+ */
+function isIframeAnchor(targetAnchor: HTMLElement): boolean {
+  if (targetAnchor.tagName === 'IFRAME') return true;
+  return Boolean(getHostIframe(targetAnchor));
+}
+
+/**
+ * 确保指定楼层与 swipe 的宿主根容器存在
+ * iframe 路由精准锚定到对应渲染单元正后方；HTML（无 iframe）统一复用楼层末尾 root
  * @param mesId 消息楼层 ID
  * @param swipeId 当前 swipe ID
- * @param targetAnchor 可选的目标元素或 iframe（用于准确定位挂载位置）
+ * @param targetAnchor 可选的目标元素或 iframe（仅 iframe 路由用于精准定位）
  * @returns 楼层宿主根容器
  */
 export function ensureFloorTailHost(mesId: number, swipeId: number, targetAnchor?: HTMLElement): HTMLElement {
   const mes = findMessageElement(mesId);
   if (!mes) throw new Error(`未找到 ID 为 ${mesId} 的消息元素`);
 
-  if (targetAnchor) {
+  // iframe 路由：在对应渲染单元后查找已有 root，找不到则精准创建在其后
+  if (targetAnchor && isIframeAnchor(targetAnchor)) {
     const wrapper = resolveAnchorWrapper(targetAnchor);
-    // 检查 wrapper 紧随其后是否已有本楼层的宿主容器
     let next = wrapper.nextElementSibling;
     while (next instanceof HTMLElement && next.classList.contains(CV_RENDER_CLASS)) {
       if (next.getAttribute(CV_MESID_ATTR) === String(mesId) && next.getAttribute(CV_SWIPE_ATTR) === String(swipeId)) {
@@ -44,14 +57,13 @@ export function ensureFloorTailHost(mesId: number, swipeId: number, targetAnchor
       }
       next = next.nextElementSibling;
     }
+    return createFloorTailRootContainer(mes, mesId, swipeId, targetAnchor);
   }
 
+  // HTML 或无锚点：复用楼层末尾已有 root，不存在则创建到末尾
   const existing = findFloorTailHost(mesId, swipeId);
-  if (existing && !targetAnchor) {
-    return existing;
-  }
-
-  return createFloorTailRootContainer(mes, mesId, swipeId, targetAnchor);
+  if (existing) return existing;
+  return createFloorTailRootContainer(mes, mesId, swipeId);
 }
 
 /**
@@ -112,11 +124,11 @@ function findMessageElement(mesId: number): HTMLElement | null {
 
 /**
  * 创建并插入楼层尾根容器
- * 若提供了 targetAnchor（如特定 iframe），则精准插入在对应 iframe/组件容器正下方
+ * 有 targetAnchor（iframe 路由）则精准插入在对应渲染单元正后方；无则插入楼层末尾
  * @param mes 消息根元素
  * @param mesId 消息楼层 ID
  * @param swipeId 当前 swipe ID
- * @param targetAnchor 可选目标元素
+ * @param targetAnchor 可选目标元素（仅 iframe 路由）
  * @returns 新创建的根容器
  */
 function createFloorTailRootContainer(
@@ -132,7 +144,7 @@ function createFloorTailRootContainer(
   host.setAttribute(CV_ROUTE_ATTR, 'frontend');
   preventInlineEventBubbling(host);
 
-  // 1. 如果有明确的 targetAnchor（特定 iframe 或 HTML 组件），精准插入在该组件容器正后方
+  // iframe 路由：精准插入在对应渲染单元正后方
   if (targetAnchor) {
     const wrapper = resolveAnchorWrapper(targetAnchor);
     if (wrapper && mes.contains(wrapper)) {
@@ -141,18 +153,16 @@ function createFloorTailRootContainer(
     }
   }
 
-  // 2. 兜底：插入在楼层内最后一个 TH-render / iframe 后面
+  // HTML / 无锚点兜底：插入楼层内最后一个 TH-render / iframe 后，否则追加 mes_text 末尾
   const thRenders = Array.from(mes.querySelectorAll('div.TH-render')).filter(isHTMLElementNode);
   if (thRenders.length > 0) {
-    const lastThRender = thRenders[thRenders.length - 1]!;
-    lastThRender.after(host);
+    thRenders[thRenders.length - 1]!.after(host);
     return host;
   }
 
   const iframes = Array.from(mes.querySelectorAll('iframe')).filter(isHTMLElementNode);
   if (iframes.length > 0) {
-    const lastIframe = iframes[iframes.length - 1]!;
-    lastIframe.after(host);
+    iframes[iframes.length - 1]!.after(host);
     return host;
   }
 

@@ -146,14 +146,6 @@ export function clearAllGallerySessions(): void {
 }
 
 /**
- * 读取当前内存会话 key 快照
- * @returns 当前全部会话 key
- */
-export function snapshotSessionKeys(): string[] {
-  return Array.from(sessions.keys());
-}
-
-/**
  * 构建 slot 会话 key
  * @param slotId 位点 id
  * @returns key

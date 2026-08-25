@@ -359,7 +359,6 @@ export function useInlineImageGeneration(
       if (!armed) {
         e.preventDefault();
         e.stopPropagation();
-        console.warn('[CosmosVision Debug] [Pointer] toolbar click ignored (not armed: synthetic click)');
         return;
       }
       armed = false;
