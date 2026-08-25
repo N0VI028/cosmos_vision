@@ -17,12 +17,19 @@ import {
  */
 export function resolveParagraphSlotId(paragraph: HTMLElement): string | null {
   const fromDom = parseFirstSlotId(paragraph.textContent ?? '');
+  console.log('[CosmosVision Debug] [SlotBind] resolveParagraphSlotId:', {
+    paragraph,
+    paragraphText: paragraph.textContent,
+    fromDom,
+  });
   if (fromDom) return fromDom;
   const messageId = findMessageId(paragraph);
   if (!messageId) return null;
   const raw = readChatMessageRaw(messageId);
   if (!raw) return null;
-  return findSlotIdForParagraphHost(raw, paragraph);
+  const fromRaw = findSlotIdForParagraphHost(raw, paragraph);
+  console.log('[CosmosVision Debug] [SlotBind] resolveParagraphSlotId fromRaw:', fromRaw);
+  return fromRaw;
 }
 
 /**
@@ -32,13 +39,36 @@ export function resolveParagraphSlotId(paragraph: HTMLElement): string | null {
  */
 export async function ensureSlotShortcodeOnParagraph(paragraph: HTMLElement, slotId: string): Promise<void> {
   const messageId = findMessageId(paragraph);
+  console.log('[CosmosVision Debug] [SlotBind] ensureSlotShortcodeOnParagraph start:', {
+    paragraph,
+    slotId,
+    messageId,
+  });
   if (!messageId) throw new Error('未找到消息楼层，无法绑定短码');
   const raw = readChatMessageRaw(messageId);
   if (raw === null) throw new Error('读取消息原文失败，无法绑定短码');
-  if (hasSlotShortcode(raw, slotId)) return;
+  if (hasSlotShortcode(raw, slotId)) {
+    console.log('[CosmosVision Debug] [SlotBind] raw already has slotId:', slotId);
+    return;
+  }
   const at = locateParagraphHostEnd(raw, paragraph);
-  if (at === null) throw new Error('raw 中找不到宿主段落，无法绑定短码');
+  console.log('[CosmosVision Debug] [SlotBind] locateParagraphHostEnd offset:', at, 'rawLength:', raw.length);
+  if (at === null) {
+    console.error('[CosmosVision Debug] [SlotBind] Failed to find insertion offset in raw!', {
+      paragraph,
+      paragraphHtml: paragraph.outerHTML,
+      paragraphText: paragraph.textContent,
+      raw,
+    });
+    throw new Error('raw 中找不到宿主段落，无法绑定短码');
+  }
   const next = appendSlotShortcodeAt(raw, at, slotId);
+  console.log('[CosmosVision Debug] [SlotBind] Resulting raw after appendSlotShortcodeAt:', {
+    at,
+    snippetBefore: raw.slice(Math.max(0, at - 50), at),
+    snippetAfter: raw.slice(at, Math.min(raw.length, at + 50)),
+    nextSnippet: next.slice(Math.max(0, at - 50), Math.min(next.length, at + 80)),
+  });
   if (next === raw) return;
   await writeChatMessageRaw(messageId, next, 'none');
 }
@@ -99,6 +129,13 @@ function locateParagraphHostEnd(raw: string, paragraph: HTMLElement): number | n
   const host = paragraphIndex >= 0
     ? siblingHosts[paragraphIndex]!
     : stripSlotShortcodes(extractCleanParagraphText(paragraph));
+  console.log('[CosmosVision Debug] [SlotBind] locateParagraphHostEnd details:', {
+    paragraph,
+    paragraphIndex,
+    siblingsCount: siblings.length,
+    host,
+    siblingHosts,
+  });
   if (!host) return null;
   return locateHostEndInRaw(raw, {
     host,

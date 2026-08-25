@@ -15,6 +15,7 @@ export function pickFloorTailMountsForMessage(messageId: number, seen: Set<strin
   const swipeId = getMessageSwipeId(messageId) ?? 0;
   const slots = listFloorTailSlotsBySwipe(messageId, swipeId);
   const mounts: GalleryMountSpec[] = [];
+  const mes = document.querySelector<HTMLElement>(`#chat .mes[mesid="${messageId}"]`);
 
   for (const slot of slots) {
     // 惰性清理：imageRefs 全部不在内存会话（IDB 已淘汰）时丢弃 slot
@@ -26,7 +27,18 @@ export function pickFloorTailMountsForMessage(messageId: number, seen: Set<strin
     if (seen.has(key)) continue;
     seen.add(key);
 
-    const element = ensureFloorTailSlotContainer(messageId, swipeId, slot.slotId);
+    let targetIframe: HTMLElement | null = null;
+    if (mes) {
+      if (slot.targetIframeId) {
+        targetIframe = mes.querySelector<HTMLElement>(`#${slot.targetIframeId}`);
+      }
+      if (!targetIframe && typeof slot.targetIframeIndex === 'number') {
+        const iframes = Array.from(mes.querySelectorAll('iframe'));
+        targetIframe = iframes[slot.targetIframeIndex] ?? null;
+      }
+    }
+
+    const element = ensureFloorTailSlotContainer(messageId, swipeId, slot.slotId, targetIframe ?? undefined);
     mounts.push({
       key,
       messageId,
@@ -63,6 +75,5 @@ function createFloorTailAnchor(element: HTMLElement, messageId: number, swipeId:
     paragraph: null,
     mesId: String(messageId),
     swipeId,
-    paragraphTextHash: '',
   };
 }

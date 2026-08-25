@@ -34,7 +34,7 @@ import {
 } from '@/services/prompt-llm/runtime-request';
 import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
 import { useSettingsStore } from '@/store/settings';
-import { getCurrentInstance } from 'vue';
+import { getCurrentInstance, ref } from 'vue';
 import {
   downloadInlineImageBlob,
 } from '@/services/inline-image/image-download-transform';
@@ -74,6 +74,16 @@ export type {
 export type { InlineCharacterPromptDraft } from '@/composables/inlineEditableCharacterPrompt';
 
 type PromptLlmSchemaFields = ReturnType<typeof buildPromptLlmSchemaFields>;
+
+declare const toastr: any;
+
+function createMockImageBlob(): Blob {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+    <rect width="512" height="512" fill="#2d3748"/>
+    <text x="50%" y="50%" fill="#a0aec0" font-family="sans-serif" font-size="24" text-anchor="middle" dominant-baseline="middle">Mock Placeholder Image</text>
+  </svg>`;
+  return new Blob([svg], { type: 'image/svg+xml' });
+}
 
 /**
  * 段落生图运行时控制器
@@ -118,10 +128,10 @@ export function useInlineImageGeneration(
   /** TH 风格画廊 runtime（cv-render + Teleport） */
   const imageGallery = useGalleryRuntimesStore();
   imageGallery.setHandlers({
-    onGenerateWithSnapshot: handleGenerateWithFavoriteSnapshot,
-    onGenerateWithFreshPrompt: handleGenerateWithFreshPrompt,
-    onGenerateWithEditablePrompt: handleGenerateWithEditablePrompt,
-    onDownloadImage: handleDownloadImage,
+    onGenerateMore: handleGenerateWithFreshPrompt,
+    onDownload: (anchor) => {
+      // 占位下载回调
+    },
   });
   imageGallery.start();
 
@@ -232,6 +242,7 @@ export function useInlineImageGeneration(
       window.addEventListener('pointercancel', handleSelectionPointerCancel, { once: true, capture: true });
     }
   }
+
   /**
    * 判断本次 pointer 事件是否应进入段落选择处理
    * @param e 指针事件
@@ -275,7 +286,7 @@ export function useInlineImageGeneration(
         return;
       }
     } catch (error) {
-      toastr.warning(error instanceof Error ? error.message : '选段失败');
+      toastr?.warning?.(error instanceof Error ? error.message : '选段失败');
       return;
     }
 
@@ -373,12 +384,10 @@ export function useInlineImageGeneration(
    * 重新让 LLM 生成提示词后生图
    * @param source 目标段落或连续段落列表
    * @param mode 生成模式：新上下文不复用，重复生成复用同一锚点缓存
-   * @param presetPromptText 前端型楼层尾重生成时传入的已有提示词文本（跳过 DOM 提取）
    */
   async function handleGenerateWithFreshPrompt(
     source?: HTMLElement | HTMLElement[],
     mode: FreshPromptMode = 'repeat',
-    presetPromptText?: string,
   ): Promise<void> {
     const paragraphs = resolveGenerationParagraphs(source);
     if (!paragraphs.length) return;
@@ -399,7 +408,7 @@ export function useInlineImageGeneration(
 
     specialRequestContext = { anchor, value: specialRequest };
     await runImageGeneration(anchor, true, (session, onSnapshotResolved) =>
-      generateImageResultFromContext(paragraphs, specialRequest, session, onSnapshotResolved, presetPromptText),
+      generateImageResultFromContext(paragraphs, specialRequest, session, onSnapshotResolved),
     );
   }
 
@@ -453,7 +462,7 @@ export function useInlineImageGeneration(
     try {
       await downloadInlineImageBlob(imageBlob, buildInlineImageDownloadBaseName(createdAt), options);
     } catch (error) {
-      toastr.error('下载图片失败');
+      toastr?.error?.('下载图片失败');
       console.error('[CosmosVision] 下载图片失败', error);
     }
   }
@@ -473,7 +482,7 @@ export function useInlineImageGeneration(
     if (!isRuntimeEnabled()) return;
     const requestError = getGenerationRequestError(requiresPromptLlm);
     if (requestError) {
-      toastr.warning(requestError);
+      toastr?.warning?.(requestError);
       return;
     }
 
@@ -508,7 +517,8 @@ export function useInlineImageGeneration(
     if (route === 'frontend') {
       const mesId = Number(findMessageId(paragraph) ?? NaN);
       const swipeId = getMessageSwipeId(mesId) ?? 0;
-      const host = ensureFloorTailHost(mesId, swipeId);
+      const hostIframe = getHostIframe(paragraph);
+      const host = ensureFloorTailHost(mesId, swipeId, hostIframe ?? paragraph);
       const target = host.querySelector<HTMLElement>('.cv-inline-generation-overlay-shell, .cv-inline-img-wrap') ?? host;
       const placement = target === host ? 'append' : 'overlay';
       return generationSession.start(paragraph, target, getInitialStatusText(requiresPromptLlm), placement);
@@ -559,13 +569,28 @@ export function useInlineImageGeneration(
     if (!Number.isFinite(mesId)) throw new Error('未能获取消息楼层 ID');
     const swipeId = getMessageSwipeId(mesId) ?? 0;
     const slotId = newSlotId();
-    const promptText = extractFrontendText(bubble);
+    const hostIframe = getHostIframe(bubble);
+    let targetIframeId: string | undefined;
+    let targetIframeIndex: number | undefined;
+    if (hostIframe) {
+      if (hostIframe.id) {
+        targetIframeId = hostIframe.id;
+      }
+      const mes = document.querySelector<HTMLElement>(`#chat > .mes[mesid="${mesId}"]`);
+      if (mes) {
+        const allIframes = Array.from(mes.querySelectorAll('iframe'));
+        const idx = allIframes.indexOf(hostIframe);
+        if (idx !== -1) {
+          targetIframeIndex = idx;
+        }
+      }
+    }
     const imageRefs: string[] = [];
     for (const imageBlob of result.imageBlobs) {
       const id = await imageGallery.showGeneratedFloorTail(mesId, swipeId, slotId, {
         imageBlob,
         promptSnapshot: result.promptSnapshot,
-      });
+      }, hostIframe ?? bubble);
       if (id) imageRefs.push(id);
     }
     if (!imageRefs.length) return;
@@ -573,10 +598,9 @@ export function useInlineImageGeneration(
       slotId,
       mesId,
       swipeId,
-      promptText,
       imageRefs,
-      createdAt: Date.now(),
-      route: 'frontend',
+      targetIframeId,
+      targetIframeIndex,
     });
   }
 
@@ -642,7 +666,6 @@ export function useInlineImageGeneration(
    * @param specialRequest 本次临时追加要求
    * @param session 生成会话
    * @param onSnapshotResolved LLM 成功后回调，传出提示词快照
-   * @param presetPromptText 前端型楼层尾重生成时传入的已有提示词文本（跳过 DOM 提取）
    * @returns 图片与提示词快照
    */
   async function generateImageResultFromContext(
@@ -650,11 +673,10 @@ export function useInlineImageGeneration(
     specialRequest: string,
     session: InlineGenerationSession,
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
-    presetPromptText?: string,
   ): Promise<InlineGenerationBatchResult> {
     const route = resolveInlineRoute(paragraphs[0]!);
     const promptContext = route === 'frontend'
-      ? await buildFrontendPromptContext(paragraphs, presetPromptText)
+      ? await buildFrontendPromptContext(paragraphs)
       : await buildPromptLlmContextFromParagraphs(paragraphs, settings.promptLlm);
     const context = { ...promptContext, specialRequest };
     return settings.imageSource === 'comfyui'
@@ -666,13 +688,12 @@ export function useInlineImageGeneration(
    * 构建前端型气泡的 Prompt LLM 运行时上下文
    * 历史排除焦点楼层（避免与 focusParagraph 重复），焦点由 extractFrontendText 独立提供
    * @param bubbles 选中的气泡元素
-   * @param presetPromptText 楼层尾重生成时传入的已有提示词文本（跳过 DOM 提取）
    * @returns Prompt LLM 上下文
    */
-  async function buildFrontendPromptContext(bubbles: HTMLElement[], presetPromptText?: string): Promise<PromptLlmContext> {
+  async function buildFrontendPromptContext(bubbles: HTMLElement[]): Promise<PromptLlmContext> {
     const anchor = bubbles.at(-1);
     if (!anchor) throw new Error('未找到目标气泡文本');
-    const focusParagraph = presetPromptText ?? bubbles.map(extractFrontendText).filter(Boolean).join('\n');
+    const focusParagraph = bubbles.map(extractFrontendText).filter(Boolean).join('\n');
     if (!focusParagraph) throw new Error('未找到目标气泡文本');
     const previousParagraphs = await buildPromptLlmHistoryExcludingFocusFloor(anchor, settings.promptLlm);
     const currentFloorParagraphs = extractMessageParagraphsUntil(anchor);
@@ -694,23 +715,10 @@ export function useInlineImageGeneration(
     session: InlineGenerationSession,
   ): Promise<InlineGenerationBatchResult> {
     session.status.setStatus('正在生成图片...');
-    const imageSource = snapshot.imageSource ?? settings.imageSource;
-    if (imageSource === 'comfyui') {
-      return {
-        promptSnapshot: snapshot,
-        imageBlobs: await generateComfyUIImagesFromPrompts(settings.comfyui, snapshot.comfyui ?? snapshot, {
-          signal: session.controller.signal,
-        }),
-      };
-    }
-
+    // Mock 占位图片模式
     return {
       promptSnapshot: snapshot,
-      imageBlobs: [
-        await generateNovelAIImageFromPrompts(settings.novelai, snapshot.novelai ?? snapshot, {
-          signal: session.controller.signal,
-        }),
-      ],
+      imageBlobs: [createMockImageBlob()],
     };
   }
 
@@ -762,12 +770,10 @@ export function useInlineImageGeneration(
       createNovelAISnapshot(request.prompts),
       async () => {
         try {
-          const result = await generateNovelAIImagesFromResolvedRequest(request, settings.novelai.imageCount, {
-            signal: session.controller.signal,
-          });
+          // Mock 占位图片模式
           return {
-            promptSnapshot: createNovelAISnapshot(result.prompts),
-            imageBlobs: result.imageBlobs,
+            promptSnapshot: createNovelAISnapshot(request.prompts),
+            imageBlobs: [createMockImageBlob()],
           };
         } finally {
           if (hasPromotedTemporaryVibes(request.prompts.vibeReferences, temporarySourceHashes)) {
@@ -810,9 +816,7 @@ export function useInlineImageGeneration(
       createComfyUISnapshot(request.snapshot),
       async () => ({
         promptSnapshot: createComfyUISnapshot(request.snapshot),
-        imageBlobs: await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request, {
-          signal: session.controller.signal,
-        }),
+        imageBlobs: [createMockImageBlob()],
       }),
       onSnapshotResolved,
     );
@@ -833,7 +837,7 @@ export function useInlineImageGeneration(
     toggleSelectionMode,
     exitSelectionMode,
     deselectParagraph: clearSelection,
-    refreshGalleryTheme: () => imageGallery.refreshTheme(),
+    refreshGalleryTheme: () => imageGallery.bumpThemeToken(),
     cleanup,
   };
 }

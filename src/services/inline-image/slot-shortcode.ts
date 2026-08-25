@@ -99,8 +99,8 @@ export function removeSlotShortcode(raw: string, slotId: string): string {
   const newline = readLineBreak(raw);
   const escapedNewline = escapeRegExp(newline);
   const code = escapeRegExp(encodeSlotShortcode(slotId));
-  const leading = new RegExp(`^[\t ]*${code}[\t ]*${escapedNewline}?`);
-  const middleOrEnd = new RegExp(`${escapedNewline}{1,2}[\t ]*${code}[\t ]*(?=${escapedNewline}|$)`, 'g');
+  const leading = new RegExp(`^[\\t ]*${code}[\\t ]*${escapedNewline}?`);
+  const middleOrEnd = new RegExp(`${escapedNewline}{1,2}[\\t ]*${code}[\\t ]*(?=${escapedNewline}|$)`, 'g');
   return raw.replace(leading, '').replace(middleOrEnd, '');
 }
 /**
@@ -120,12 +120,23 @@ function escapeRegExp(value: string): string {
  * @returns 写入后的 raw
  */
 export function appendSlotShortcodeAt(raw: string, at: number, slotId: string): string {
-  if (hasSlotShortcode(raw, slotId)) return raw;
+  if (hasSlotShortcode(raw, slotId)) {
+    console.log('[CosmosVision Debug] [SlotShortcode] appendSlotShortcodeAt: raw already has shortcode for slotId:', slotId);
+    return raw;
+  }
   if (!Number.isInteger(at) || at < 0 || at > raw.length) {
+    console.error('[CosmosVision Debug] [SlotShortcode] appendSlotShortcodeAt: invalid offset', { at, rawLength: raw.length });
     throw new Error('短码插入偏移无效，无法绑定短码');
   }
   const insert = buildMarkerInsertion(raw, at, slotId);
   const next = `${raw.slice(0, at)}${insert}${raw.slice(at)}`;
+  console.log('[CosmosVision Debug] [SlotShortcode] appendSlotShortcodeAt inserted:', {
+    at,
+    slotId,
+    insertText: JSON.stringify(insert),
+    snippetBefore: raw.slice(Math.max(0, at - 30), at),
+    snippetAfter: raw.slice(at, Math.min(raw.length, at + 30)),
+  });
   assertBodyPreserved(raw, next, at, insert.length);
   return next;
 }

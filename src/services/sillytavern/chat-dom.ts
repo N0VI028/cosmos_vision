@@ -10,6 +10,11 @@ const MESSAGE_TEXT_BLOCK_SELECTOR = 'p, li, blockquote, pre, h1, h2, h3, h4, h5,
 const IGNORED_TEXT_BLOCK_TAGS = new Set(['HEAD', 'TITLE', 'SCRIPT', 'STYLE', 'BUTTON']);
 
 /**
+ * 标准 Markdown 允许出现在 <p> 与 .mes_text 之间的父级容器标签白名单
+ */
+const ALLOWED_MARKDOWN_CONTAINER_TAGS = new Set(['BLOCKQUOTE', 'LI', 'UL', 'OL']);
+
+/**
  * 跨 realm 判断元素是否为 HTMLIFrameElement
  * @param node 待检查节点
  * @returns 是否为 iframe 元素
@@ -149,9 +154,10 @@ function getContainerTextBlockElements(container: HTMLElement, hasIframeTarget =
  * @returns 同一条消息内按 DOM 顺序排列的叶子文本块数组
  */
 function getMessageTextBlockElements(targetP: HTMLElement): HTMLElement[] {
-  const mesBlock = (getHostIframe(targetP) ?? targetP).closest<HTMLElement>('[mesid]');
+  const hostIframe = getHostIframe(targetP);
+  const mesBlock = (hostIframe ?? targetP).closest<HTMLElement>('[mesid]');
   if (!mesBlock) throw new Error('未找到目标段落所属消息');
-  const hasIframe = Boolean(getHostIframe(targetP) || mesBlock.querySelector('iframe'));
+  const hasIframe = Boolean(hostIframe || mesBlock.querySelector('iframe'));
 
   const parentBlocks = getContainerTextBlockElements(mesBlock, hasIframe);
   const iframeElements = getIframeBubbleBlocks(mesBlock);
@@ -208,7 +214,7 @@ function getIframeBubbleBlocks(mesBlock: HTMLElement): HTMLIFrameElement[] {
 }
 
 /**
- * 判断元素是否为有效的隐式前端型文本气泡
+ * 判断元素是否为有效的前端型文本气泡候选
  * @param element 待判断元素
  * @param semanticBlocks 已识别的普通语义块
  * @returns 是否可作为隐式气泡候选
@@ -395,7 +401,7 @@ export function mergeFocusParagraphText(paragraphs: HTMLElement[]): string {
  * 从连续选区构建 Prompt LLM 上下文
  * 历史以锚点末段所在楼层为准，焦点为合并后的多段正文
  * 使用 ST 正则处理后的历史消息
- * @param paragraphs 同一消息内连续段落（DOM 序）
+ * @param paragraphs 同一条消息内连续段落（DOM 序）
  * @param settings Prompt LLM 历史楼层设置
  * @returns Prompt LLM 运行时上下文
  */
@@ -651,12 +657,56 @@ export function createInlineTextHash(value: string): string {
 }
 
 /**
- * 从任意 DOM 元素向上查找其所属的聊天段落 p
+ * 查找目标元素所属的纯 Markdown 标准段落（排除法）
+ * 规则：
+ * 1. 必须在主文档中（非 iframe）
+ * 2. 属于 .mes_text 的子孙节点
+ * 3. 自身为 <p> 元素，且无作者自定义 style 属性
+ * 4. 从 <p> 到 .mes_text 之间的所有父级节点，只能是标准 Markdown 容器标签（blockquote, li, ul, ol），且无自定义 style 或标记
+ *
+ * 凡是不满足上述条件的（如自定义 div/card、details、summary、带 style 的段落、iframe 内元素等），一律返回 null（由上层判定为 frontend 路由）。
  * @param el 点击目标元素
- * @returns 所属的 `.mes_text` 下的 `<p>` 元素,未找到返回 null
+ * @returns 所属的纯 Markdown `<p>` 元素，非纯 Markdown 段落返回 null
  */
 export function findChatParagraph(el: HTMLElement): HTMLElement | null {
-  return el.closest('.mes_text p');
+  if (el.ownerDocument !== document) {
+    return null;
+  }
+
+  const mesText = el.closest<HTMLElement>('.mes_text');
+  if (!mesText) {
+    return null;
+  }
+
+  const p = el.closest<HTMLElement>('p');
+  if (!p || !mesText.contains(p)) {
+    return null;
+  }
+
+  // 检查 <p> 自身是否带有内联样式（纯 Markdown 渲染器不会生成 style 属性）
+  if (p.hasAttribute('style')) {
+    return null;
+  }
+
+  // 严格检查从 <p> 到 .mes_text 之间的父级链路
+  let current: HTMLElement | null = p.parentElement;
+  while (current && current !== mesText) {
+    const tagName = current.tagName.toUpperCase();
+
+    // 如果包含任何非标准 Markdown 容器标签（如 DIV, DETAILS, SUMMARY, SECTION, ARTICLE, TABLE, DIALOG 等）
+    if (!ALLOWED_MARKDOWN_CONTAINER_TAGS.has(tagName)) {
+      return null;
+    }
+
+    // 如果父容器包含内联样式或自定义标记
+    if (current.hasAttribute('style') || current.hasAttribute('data-cv-selectable')) {
+      return null;
+    }
+
+    current = current.parentElement;
+  }
+
+  return p;
 }
 
 /**

@@ -11,7 +11,15 @@ const IGNORED_TAGS = new Set(['HEAD', 'TITLE', 'SCRIPT', 'STYLE', 'BUTTON']);
 export function extractFrontendText(element: HTMLElement): string {
   const root = resolveFrontendBubbleRoot(element);
   const rawText = collectBubbleDomText(root);
-  return mapNormalize(rawText, true).normalized;
+  const normalized = mapNormalize(rawText, true).normalized;
+  console.log('[CosmosVision Debug] [FrontendTextExtract] extractFrontendText:', {
+    inputElement: element,
+    rootElement: root,
+    rawTextLength: rawText.length,
+    rawTextPreview: rawText.slice(0, 100),
+    normalized,
+  });
+  return normalized;
 }
 
 /**
@@ -24,6 +32,7 @@ export function resolveFrontendBubbleRoot(element: HTMLElement): HTMLElement {
   // 优先使用显式标记
   const custom = element.closest<HTMLElement>('[data-cv-selectable]');
   if (custom) {
+    console.log('[CosmosVision Debug] [FrontendTextExtract] resolveFrontendBubbleRoot matched [data-cv-selectable]:', custom);
     return custom;
   }
 
@@ -37,6 +46,7 @@ export function resolveFrontendBubbleRoot(element: HTMLElement): HTMLElement {
     if (parent.classList.contains('mes_text')) {
       // 如果当前节点有class且包含文本，视为气泡
       if (current.className && current.textContent?.trim()) {
+        console.log('[CosmosVision Debug] [FrontendTextExtract] resolveFrontendBubbleRoot reached mes_text boundary, matched bubble:', current);
         return current;
       }
       break;
@@ -48,6 +58,7 @@ export function resolveFrontendBubbleRoot(element: HTMLElement): HTMLElement {
       current.className &&
       current.textContent?.trim()
     ) {
+      console.log('[CosmosVision Debug] [FrontendTextExtract] resolveFrontendBubbleRoot matched container with class:', current);
       return current;
     }
 
@@ -56,6 +67,7 @@ export function resolveFrontendBubbleRoot(element: HTMLElement): HTMLElement {
 
   // 降级：查找通用块级元素
   const block = element.closest<HTMLElement>('div, p, section, article');
+  console.log('[CosmosVision Debug] [FrontendTextExtract] resolveFrontendBubbleRoot fallback block:', block ?? element);
   return block ?? element;
 }
 

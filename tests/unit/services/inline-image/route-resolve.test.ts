@@ -28,6 +28,23 @@ describe('route-resolve', () => {
     expect(resolveInlineRoute(bubble)).toBe('frontend');
   });
 
+  it('identifies html container elements like details or styled div p as frontend route', () => {
+    document.body.innerHTML = `
+      <div class="mes" mesid="1">
+        <div class="mes_text">
+          <details id="details">
+            <summary>小剧场</summary>
+            <div style="background-color: #f7f9fa;">
+              <p id="details-p" style="color: #333;"><strong>标题</strong></p>
+            </div>
+          </details>
+        </div>
+      </div>
+    `;
+    const detailsP = document.getElementById('details-p')!;
+    expect(resolveInlineRoute(detailsP)).toBe('frontend');
+  });
+
   it('handles element from another document (iframe) as frontend route', () => {
     const iframe = document.createElement('iframe');
     document.body.appendChild(iframe);

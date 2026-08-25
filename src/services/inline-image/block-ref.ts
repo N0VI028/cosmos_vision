@@ -226,6 +226,7 @@ export function extractMessageBlocks(mesElement: HTMLElement): BlockRef[] {
   }
 
   traverse(host);
+  console.log('[CosmosVision Debug] [BlockRef] extractMessageBlocks result count:', blocks.length, blocks);
   return blocks;
 }
 
@@ -239,6 +240,13 @@ export function extractBlocksUntil(target: HTMLElement): ExtractedBlockContext {
   const hostIframe = getHostIframe(target);
   const anchorNode = hostIframe ?? target;
   const mesBlock = anchorNode.closest<HTMLElement>('.mes_text, [mesid]');
+
+  console.log('[CosmosVision Debug] [BlockRef] extractBlocksUntil:', {
+    target,
+    hostIframe,
+    anchorNode,
+    mesBlock,
+  });
 
   if (!mesBlock) {
     const focusBlock: BlockRef = {
@@ -280,6 +288,12 @@ export function extractBlocksUntil(target: HTMLElement): ExtractedBlockContext {
   if (targetIndex < 0 && hostIframe) {
     targetIndex = allBlocks.findIndex(b => b.hostIframe === hostIframe);
   }
+
+  console.log('[CosmosVision Debug] [BlockRef] extractBlocksUntil targetIndex matched:', {
+    targetIndex,
+    allBlocksCount: allBlocks.length,
+    matchedBlock: targetIndex >= 0 ? allBlocks[targetIndex] : null,
+  });
 
   if (targetIndex < 0) {
     // 未能在已有块列表中索引到，回退为最后一个块或目标元素
@@ -330,7 +344,7 @@ function extractCleanText(element: HTMLElement): string {
  * 检查文本是否为 HTML 源码标记
  */
 function isSourceMarkupText(text: string): boolean {
-  return /<!doctype\s+html\b|<html\b|<head\b|<body\b|<style\b|<script\b/i.test(text);
+  return /<!doctype\s+html\b|<html\b|<head\\b|<body\b|<style\b|<script\b/i.test(text);
 }
 
 /**

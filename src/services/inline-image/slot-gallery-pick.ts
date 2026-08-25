@@ -1,79 +1,39 @@
-import { parseSlotMarkerLine } from '@/services/inline-image/slot-shortcode';
+import type { GallerySessionRecord } from '@/composables/inlineGallerySession';
 import {
   CV_SLOT_ATTR,
   ensureSlotRenderContainer,
   ensureSlotRenderContainerForParagraph,
 } from '@/services/inline-image/cv-render-container';
-import {
-  buildSlotSessionKey,
-  type GallerySessionRecord,
-} from '@/composables/inlineGallerySession';
 import { ensureFloorTailSlotContainer } from '@/services/inline-image/floor-tail-host';
 import { pickFloorTailMountsForMessage } from '@/services/inline-image/floor-tail-restore';
-import {
-  createInlineFavoriteAnchor,
-  findMessageId,
-  type InlineFavoriteAnchor,
-} from '@/services/sillytavern/chat-dom';
+import { parseSlotMarkerLine } from '@/services/inline-image/slot-shortcode';
+import { buildSlotSessionKey } from '@/composables/inlineGallerySession';
+import { createInlineFavoriteAnchor, findMessageId } from '@/services/sillytavern/chat-dom';
 
-/** 画廊挂载规格：容器 + 短码位点 + 楼层（不含 Vue） */
+/** 单个画廊挂载规格 */
 export interface GalleryMountSpec {
   key: string;
   messageId: number;
   element: HTMLElement;
   mountKey: { kind: 'slot'; slotId: string };
-  anchor: InlineFavoriteAnchor;
+  anchor: ReturnType<typeof createInlineFavoriteAnchor>;
 }
 
 /**
- * 扫描可见楼层的短码，产出可 Teleport 的挂载规格
- * @param messageIds 可选限定楼层
- * @returns 挂载规格列表
- */
-export async function pickGalleryMounts(messageIds?: number[]): Promise<GalleryMountSpec[]> {
-  const targetMes = resolveTargetMessageIds(messageIds);
-  const seen = new Set<string>();
-  const mounts: GalleryMountSpec[] = [];
-  for (const messageId of targetMes) {
-    mounts.push(...await pickSlotMountsForMessage(messageId, seen));
-  }
-  return mounts;
-}
-
-/**
- * 在生成完成时把单条 slot 会话转为挂载规格
- * @param record 会话记录
- * @param paragraph 宿主段落
- * @returns 挂载规格或 null
- */
-export function pickMountFromSession(
-  record: GallerySessionRecord,
-  paragraph: HTMLElement,
-): GalleryMountSpec | null {
-  const messageId = Number(findMessageId(paragraph) ?? NaN);
-  if (!Number.isFinite(messageId)) return null;
-  return {
-    key: record.key,
-    messageId,
-    element: ensureSlotRenderContainerForParagraph(paragraph, record.slotId),
-    mountKey: { kind: 'slot', slotId: record.slotId },
-    anchor: createInlineFavoriteAnchor(paragraph),
-  };
-}
-
-/**
- * 在前端型生成完成时把单条 slot 会话转为楼层尾挂载规格
+ * 将会话记录转换为挂载规格（用于前端型气泡生图）
  * @param record 会话记录
  * @param mesId 消息楼层 ID
  * @param swipeId 当前 swipe ID
+ * @param targetAnchor 可选目标 iframe 或组件元素
  * @returns 挂载规格
  */
 export function pickMountFromFloorTailSession(
   record: GallerySessionRecord,
   mesId: number,
   swipeId: number,
+  targetAnchor?: HTMLElement,
 ): GalleryMountSpec {
-  const element = ensureFloorTailSlotContainer(mesId, swipeId, record.slotId);
+  const element = ensureFloorTailSlotContainer(mesId, swipeId, record.slotId, targetAnchor);
   return {
     key: record.key,
     messageId: mesId,
@@ -88,6 +48,44 @@ export function pickMountFromFloorTailSession(
       paragraphTextHash: '',
     },
   };
+}
+
+/**
+ * 将普通段落会话记录转换为挂载规格（用于经典 p 段落生图）
+ * @param record 会话记录
+ * @param paragraph 锚点段落
+ * @returns 挂载规格或 null
+ */
+export function pickMountFromSession(
+  record: GallerySessionRecord,
+  paragraph: HTMLElement,
+): GalleryMountSpec | null {
+  const mesIdStr = findMessageId(paragraph);
+  if (!mesIdStr) return null;
+  const messageId = Number(mesIdStr);
+  const container = ensureSlotRenderContainerForParagraph(paragraph, record.slotId);
+  return {
+    key: record.key,
+    messageId,
+    element: container,
+    mountKey: { kind: 'slot', slotId: record.slotId },
+    anchor: createInlineFavoriteAnchor(paragraph),
+  };
+}
+
+/**
+ * 扫描指定楼层的全部画廊挂载规格
+ * @param messageIds 楼层 ID 列表
+ * @returns 挂载规格列表
+ */
+export async function pickGalleryMounts(messageIds?: number[]): Promise<GalleryMountSpec[]> {
+  const ids = resolveTargetMessageIds(messageIds);
+  const seen = new Set<string>();
+  const mounts: GalleryMountSpec[] = [];
+  for (const id of ids) {
+    mounts.push(...await pickSlotMountsForMessage(id, seen));
+  }
+  return mounts;
 }
 
 /**

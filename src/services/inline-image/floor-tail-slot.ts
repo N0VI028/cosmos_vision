@@ -5,10 +5,11 @@ export interface CvFloorTailSlot {
   slotId: string;
   mesId: number;
   swipeId: number;
-  promptText: string;
   imageRefs: string[];
-  createdAt: number;
-  route: 'frontend';
+  /** 目标 iframe 的 DOM id（如果有） */
+  targetIframeId?: string;
+  /** 目标 iframe 在楼层内的索引序号（如果有） */
+  targetIframeIndex?: number;
 }
 
 interface CosmosVisionChatMetadata {
@@ -44,47 +45,47 @@ export function writeFloorTailSlot(slot: CvFloorTailSlot): void {
  */
 export function deleteFloorTailSlot(slotId: string): void {
   const slots = readFloorTailSlots();
-  if (!slots[slotId]) return;
-  delete slots[slotId];
-  persistChatMetadata();
+  if (slots[slotId]) {
+    delete slots[slotId];
+    persistChatMetadata();
+  }
 }
 
 /**
- * 按楼层 ID 与 swipeId 查询关联的全部楼层尾 slot
+ * 按楼层 ID 和 swipe ID 筛选楼层尾 slot 列表
  * @param mesId 消息楼层 ID
- * @param swipeId 当前激活的 swipeId
- * @returns slot 数组（按创建时间正序）
+ * @param swipeId swipe ID
+ * @returns 匹配的 slot 数组
  */
 export function listFloorTailSlotsBySwipe(mesId: number, swipeId: number): CvFloorTailSlot[] {
   const slots = readFloorTailSlots();
-  return Object.values(slots)
-    .filter(slot => slot.mesId === mesId && slot.swipeId === swipeId)
-    .sort((a, b) => a.createdAt - b.createdAt);
+  return Object.values(slots).filter(s => s.mesId === mesId && s.swipeId === swipeId);
 }
 
 /**
- * 清理 mesId 超出有效范围的楼层尾 slot 并返回被删除项
- * ST 删除消息后剩余 mesId 为 [0, threshold) 连续区间，任何 mesId >= threshold 的 slot 均已失效
- * @param threshold 有效 mesId 上界（删除后 chat.length）
- * @returns 被删除的 slot 数组
+ * 楼层回退/删除截断时，清理 mesId 大于指定值的楼层尾 slots
+ * @param mesId 截断保留的最大楼层 ID
  */
-export function pruneFloorTailSlotsAboveMesId(threshold: number): CvFloorTailSlot[] {
+export function pruneFloorTailSlotsAboveMesId(mesId: number): void {
   const slots = readFloorTailSlots();
-  const deleted: CvFloorTailSlot[] = [];
+  let changed = false;
   for (const [id, slot] of Object.entries(slots)) {
-    if (slot.mesId >= threshold) {
-      deleted.push(slot);
+    if (slot.mesId > mesId) {
       delete slots[id];
+      changed = true;
     }
   }
-  if (deleted.length > 0) persistChatMetadata();
-  return deleted;
+  if (changed) {
+    persistChatMetadata();
+  }
 }
 
 /**
- * 防抖持久化当前聊天元数据
+ * 调用 SillyTavern 防抖保存 chatMetadata
  */
 function persistChatMetadata(): void {
   const context = getContext();
-  context.saveMetadataDebounced?.();
+  if (typeof context.saveMetadataDebounced === 'function') {
+    context.saveMetadataDebounced();
+  }
 }

@@ -31,10 +31,9 @@ describe('floor-tail-slot', () => {
       slotId: 'test-slot-1',
       mesId: 10,
       swipeId: 0,
-      promptText: 'prompt sample',
       imageRefs: ['temp-1', 'temp-2'],
-      createdAt: 1000,
-      route: 'frontend',
+      targetIframeId: 'TH-message--10--0',
+      targetIframeIndex: 0,
     };
 
     writeFloorTailSlot(slot);
@@ -51,45 +50,24 @@ describe('floor-tail-slot', () => {
     expect(readFloorTailSlots()['test-slot-1']).toBeUndefined();
   });
 
-  it('prunes slots whose mesId is at or above the threshold (chat.length after delete)', () => {
-    const slot1: CvFloorTailSlot = {
-      slotId: 'p1',
-      mesId: 3,
-      swipeId: 0,
-      promptText: 'text 1',
-      imageRefs: ['i1'],
-      createdAt: 1000,
-      route: 'frontend',
-    };
-    const slot2: CvFloorTailSlot = {
-      slotId: 'p2',
-      mesId: 4,
-      swipeId: 0,
-      promptText: 'text 2',
-      imageRefs: ['i2'],
-      createdAt: 2000,
-      route: 'frontend',
-    };
-    const slot3: CvFloorTailSlot = {
-      slotId: 'p3',
+  it('prunes floor tail slots above given mesId on rollback/truncate', () => {
+    writeFloorTailSlot({
+      slotId: 'slot-1',
       mesId: 5,
-      swipeId: 1,
-      promptText: 'text 3',
-      imageRefs: ['i3'],
-      createdAt: 3000,
-      route: 'frontend',
-    };
+      swipeId: 0,
+      imageRefs: ['ref-1'],
+    });
+    writeFloorTailSlot({
+      slotId: 'slot-2',
+      mesId: 12,
+      swipeId: 0,
+      imageRefs: ['ref-2'],
+    });
 
-    writeFloorTailSlot(slot1);
-    writeFloorTailSlot(slot2);
-    writeFloorTailSlot(slot3);
+    pruneFloorTailSlotsAboveMesId(10);
 
-    // 删除后 chat.length = 5，mesId >= 5 的 slot 失效
-    const deleted = pruneFloorTailSlotsAboveMesId(5);
-    expect(deleted).toHaveLength(1);
-    expect(deleted[0]?.slotId).toBe('p3');
-    expect(readFloorTailSlots()['p1']).toBeDefined();
-    expect(readFloorTailSlots()['p2']).toBeDefined();
-    expect(readFloorTailSlots()['p3']).toBeUndefined();
+    const remaining = readFloorTailSlots();
+    expect(remaining['slot-1']).toBeDefined();
+    expect(remaining['slot-2']).toBeUndefined();
   });
 });

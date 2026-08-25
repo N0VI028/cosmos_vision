@@ -42,4 +42,41 @@ describe('floor-tail-host', () => {
     const reused = ensureFloorTailSlotContainer(42, 0, 'slot-1234');
     expect(reused).toBe(slotContainer);
   });
+
+  it('places floor tail host after the LAST TH-render in multi-iframe floors when no target specified', () => {
+    document.body.innerHTML = `
+      <div id="chat">
+        <div class="mes" mesid="2">
+          <div class="mes_text">
+            <div class="TH-render" id="th-0"><iframe id="frame-0"></iframe></div>
+            <div class="TH-render" id="th-1"><iframe id="frame-1"></iframe></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const host = ensureFloorTailHost(2, 0);
+    const th1 = document.getElementById('th-1')!;
+    expect(th1.nextElementSibling).toBe(host);
+  });
+
+  it('places floor tail host precisely after the targeted iframe TH-render container (Scheme A)', () => {
+    document.body.innerHTML = `
+      <div id="chat">
+        <div class="mes" mesid="2">
+          <div class="mes_text">
+            <div class="TH-render" id="th-0"><iframe id="frame-0"></iframe></div>
+            <div class="TH-render" id="th-1"><iframe id="frame-1"></iframe></div>
+            <div class="TH-render" id="th-2"><iframe id="frame-2"></iframe></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const frame1 = document.getElementById('frame-1')!;
+    const host = ensureFloorTailHost(2, 0, frame1);
+    const th1 = document.getElementById('th-1')!;
+    expect(th1.nextElementSibling).toBe(host);
+    expect(host.nextElementSibling?.id).toBe('th-2');
+  });
 });
