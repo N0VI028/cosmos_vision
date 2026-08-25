@@ -348,7 +348,21 @@ export function useInlineImageGeneration(
     iconWrap.appendChild(icon);
 
     trigger.append(text, iconWrap);
-    trigger.addEventListener('click', () => {
+    // 移动端防误触：trigger 必须先收到真实 pointerdown（armed）才接受 click。
+    // 否则点击 iframe/HTML 内可交互元素时，pointerup 挂载 toolbar 后浏览器合成的 click
+    // 会命中刚挂载的 trigger 直接触发生图，绕过蒙版直接弹输入框（仅移动端）。
+    let armed = false;
+    trigger.addEventListener('pointerdown', () => {
+      armed = true;
+    }, { capture: true });
+    trigger.addEventListener('click', e => {
+      if (!armed) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.warn('[CosmosVision Debug] [Pointer] toolbar click ignored (not armed: synthetic click)');
+        return;
+      }
+      armed = false;
       const paragraphs = [...selectedParagraphs.value];
       if (paragraphs.length) void handleGenerateWithFreshPrompt(paragraphs, 'new');
     });
