@@ -187,6 +187,7 @@ export function createBaseParameters(
     negative_prompt: prompts.negativePrompt,
     tag_hint_qt: getTagHintQt(settings.qualityPreset),
     tag_hint_uc_preset: getTagHintUcPreset(settings.ucPreset),
+    deliberate_euler_ancestral_bug: false,
     prefer_brownian: true,
     ...createModelCompatibilityParameters(settings),
   };
@@ -210,12 +211,16 @@ export function createModelCompatibilityParameters(settings: NovelAISettings): R
     return { dynamic_thresholding: false, legacy: false, deliberate_euler_ancestral_bug: false };
   }
   const legacy = isNovelAIV4OnlyModel(settings.model) && settings.legacyPromptMode;
-  return {
+  const compatibility: Record<string, unknown> = {
     dynamic_thresholding: isNovelAIV3Model(settings.model) && settings.decrisp,
     legacy,
-    skip_cfg_above_sigma: calculateSkipCfgAboveSigma(settings),
-    deliberate_euler_ancestral_bug: legacy,
+    deliberate_euler_ancestral_bug: false,
   };
+  const skipCfg = calculateSkipCfgAboveSigma(settings);
+  if (skipCfg !== null) {
+    compatibility.skip_cfg_above_sigma = skipCfg;
+  }
+  return compatibility;
 }
 
 /**
@@ -242,17 +247,53 @@ export function applyV4Prompts(
   model: NovelAIModel,
 ): void {
   const promptCharacters = prompts.characterPrompts ?? [];
-  const characters = promptCharacters.map(createV4CharacterPrompt);
+  const charCaptions: Array<{ char_caption: string; centers: Array<{ x: number; y: number }> }> = [];
+  const charNegativeCaptions: Array<{ char_caption: string; centers: Array<{ x: number; y: number }> }> = [];
+  const characterPromptsArray: Array<{
+    prompt: string;
+    uc: string;
+    center: { x: number; y: number };
+    enabled: boolean;
+  }> = [];
+
+  for (const item of promptCharacters) {
+    const center = {
+      x: toNovelAICoordinate(item.position.x),
+      y: toNovelAICoordinate(item.position.y),
+    };
+    const positive = item.positivePrompt?.trim() || '';
+    const negative = item.negativePrompt?.trim() || '';
+
+    if (positive) {
+      charCaptions.push({
+        char_caption: positive,
+        centers: [center],
+      });
+    }
+    if (negative) {
+      charNegativeCaptions.push({
+        char_caption: negative,
+        centers: [center],
+      });
+    }
+    characterPromptsArray.push({
+      prompt: positive,
+      uc: negative,
+      center,
+      enabled: true,
+    });
+  }
+
   const useCoords = prompts.useCharacterCoords ?? resolveUseCoords(promptCharacters.length, autoCharacterCoords, model);
-  parameters.characterPrompts = characters.map(character => character.parameter);
+  parameters.characterPrompts = characterPromptsArray;
   parameters.use_coords = useCoords;
   parameters.v4_prompt = {
-    caption: { base_caption: prompts.positivePrompt, char_captions: characters.map(character => character.positiveCaption) },
+    caption: { base_caption: prompts.positivePrompt, char_captions: charCaptions },
     use_coords: useCoords,
     use_order: true,
   };
   parameters.v4_negative_prompt = {
-    caption: { base_caption: prompts.negativePrompt, char_captions: characters.map(character => character.negativeCaption) },
+    caption: { base_caption: prompts.negativePrompt, char_captions: charNegativeCaptions },
     use_coords: useCoords,
     use_order: true,
     legacy_uc: false,
@@ -269,10 +310,12 @@ export function createV4CharacterPrompt(item: CharacterPromptItem) {
     x: toNovelAICoordinate(item.position.x),
     y: toNovelAICoordinate(item.position.y),
   };
+  const positive = item.positivePrompt?.trim() || '';
+  const negative = item.negativePrompt?.trim() || '';
   return {
-    parameter: { prompt: item.positivePrompt, uc: item.negativePrompt, center, enabled: true },
-    positiveCaption: { char_caption: item.positivePrompt, centers: [center] },
-    negativeCaption: { char_caption: item.negativePrompt, centers: [center] },
+    parameter: { prompt: positive, uc: negative, center, enabled: true },
+    positiveCaption: { char_caption: positive, centers: [center] },
+    negativeCaption: { char_caption: negative, centers: [center] },
   };
 }
 

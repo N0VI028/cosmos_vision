@@ -203,6 +203,82 @@ describe('NovelAI V5 Protocol & Params v4', () => {
     });
   });
 
+  describe('Alignment with Official / nai-webui Request Specification', () => {
+    it('always forces deliberate_euler_ancestral_bug: false across all models even with legacyPromptMode', () => {
+      const v4Settings = {
+        ...createBaseSettings('nai-diffusion-4-full'),
+        legacyPromptMode: true,
+      };
+      const v4Params = buildParameters(v4Settings, createPrompts(), 12345, 1);
+      expect(v4Params.deliberate_euler_ancestral_bug).toBe(false);
+      expect(v4Params.legacy).toBe(true);
+
+      const v3Settings = {
+        ...createBaseSettings('nai-diffusion-3'),
+        legacyPromptMode: true,
+      };
+      const v3Params = buildParameters(v3Settings, createPrompts(), 12345, 1);
+      expect(v3Params.deliberate_euler_ancestral_bug).toBe(false);
+
+      const v5Settings = {
+        ...createBaseSettings('nai-diffusion-5-curated'),
+        legacyPromptMode: true,
+      };
+      const v5Params = buildParameters(v5Settings, createPrompts(), 12345, 1);
+      expect(v5Params.deliberate_euler_ancestral_bug).toBe(false);
+    });
+
+    it('omits skip_cfg_above_sigma when varietyPlus is false', () => {
+      const v45Settings = {
+        ...createBaseSettings('nai-diffusion-4-5-full'),
+        varietyPlus: false,
+      };
+      const v45Params = buildParameters(v45Settings, createPrompts(), 12345, 1);
+      expect(v45Params).not.toHaveProperty('skip_cfg_above_sigma');
+
+      const v3Settings = {
+        ...createBaseSettings('nai-diffusion-3'),
+        varietyPlus: false,
+      };
+      const v3Params = buildParameters(v3Settings, createPrompts(), 12345, 1);
+      expect(v3Params).not.toHaveProperty('skip_cfg_above_sigma');
+    });
+
+    it('includes skip_cfg_above_sigma when varietyPlus is true for V3 and V4.5', () => {
+      const v45Settings = {
+        ...createBaseSettings('nai-diffusion-4-5-full'),
+        varietyPlus: true,
+      };
+      const v45Params = buildParameters(v45Settings, createPrompts(), 12345, 1);
+      expect(v45Params.skip_cfg_above_sigma).toBeGreaterThan(0);
+
+      const v3Settings = {
+        ...createBaseSettings('nai-diffusion-3'),
+        varietyPlus: true,
+      };
+      const v3Params = buildParameters(v3Settings, createPrompts(), 12345, 1);
+      expect(v3Params.skip_cfg_above_sigma).toBeGreaterThan(0);
+    });
+
+    it('filters out empty character captions from v4_prompt and v4_negative_prompt', () => {
+      const character: CharacterPromptItem = {
+        positivePrompt: '   ',
+        negativePrompt: 'bad anatomy',
+        position: { x: 0.5, y: 0.5 },
+      };
+      const settings = createBaseSettings('nai-diffusion-5-curated');
+      const prompts = createPrompts({ characterPrompts: [character] });
+      const payload = buildPayload(settings, prompts, 12345, 1);
+
+      const v4Prompt = payload.parameters.v4_prompt as any;
+      const v4NegativePrompt = payload.parameters.v4_negative_prompt as any;
+
+      expect(v4Prompt.caption.char_captions).toHaveLength(0);
+      expect(v4NegativePrompt.caption.char_captions).toHaveLength(1);
+      expect(v4NegativePrompt.caption.char_captions[0].char_caption).toBe('bad anatomy');
+    });
+  });
+
   describe('V5 Specific Parameters & Dirty Field Cleaning', () => {
     it('includes straight_alpha: true and standard tag hints for V5', () => {
       const settings = createBaseSettings('nai-diffusion-5-full');
