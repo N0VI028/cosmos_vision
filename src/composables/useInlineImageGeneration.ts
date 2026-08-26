@@ -14,7 +14,7 @@ import {
   generateNovelAIImagesFromResolvedRequest,
 } from '@/services/novelai/api';
 import { createSelectionShellController } from '@/composables/inlineSelectionShell';
-import { nextParagraphSelection } from '@/composables/inlineParagraphSelection';
+import { hasMixedRoute, nextParagraphSelection } from '@/composables/inlineParagraphSelection';
 import {
   buildPromptLlmContextFromParagraphs,
   findChatParagraph,
@@ -252,13 +252,21 @@ export function useInlineImageGeneration(
         const p = findChatParagraph(target);
         if (p) {
           e.preventDefault();
-          setSelection(nextParagraphSelection(selectedParagraphs.value, p));
+          if (hasMixedRoute(selectedParagraphs.value, p)) {
+            setSelection([p]);
+          } else {
+            setSelection(nextParagraphSelection(selectedParagraphs.value, p));
+          }
           return;
         }
       } else {
         const bubble = resolveFrontendBubbleRoot(target);
         e.preventDefault();
-        setSelection(selectedParagraphs.value.includes(bubble) ? [] : [bubble]);
+        if (hasMixedRoute(selectedParagraphs.value, bubble)) {
+          setSelection([bubble]);
+        } else {
+          setSelection(nextParagraphSelection(selectedParagraphs.value, bubble));
+        }
         return;
       }
     } catch (error) {

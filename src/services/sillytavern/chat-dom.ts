@@ -85,7 +85,7 @@ export function getVisibleChatParagraphElements(): HTMLElement[] {
 }
 
 /**
- * 读取段落在当前聊天可见段落中的全局索引
+ * 读取段落当前聊天可见段落中的全局索引
  * @param paragraph 段落元素
  * @returns 全局段落索引,未找到返回 -1
  */
@@ -191,6 +191,16 @@ function getMessageTextBlockElements(targetP: HTMLElement): HTMLElement[] {
   }
 
   return allBlocks;
+}
+
+/**
+ * 获取消息内全部可选单元（含 iframe 内部块），按 DOM 序排列
+ * 前端型多选的邻接/连续/排序基准序列
+ * @param target 目标段落或气泡 DOM 元素
+ * @returns 同一条消息内按 DOM 顺序排列的可选单元数组
+ */
+export function getMessageSelectableUnits(target: HTMLElement): HTMLElement[] {
+  return getMessageTextBlockElements(target);
 }
 
 /**
@@ -313,22 +323,22 @@ export function extractMessageParagraphsUntil(targetP: HTMLElement): string[] {
  * @returns 清理后的文本块数组
  */
 function extractMessageTextBlockTexts(elements: HTMLElement[]): string[] {
-  return elements.map(extractMessageTextBlockText).filter(Boolean);
+  return elements.map(readSelectableUnitText).filter(Boolean);
 }
 
 /**
- * 提取语义文本块内的纯净文本（支持普通段落和前端型气泡）
- * @param element 语义文本块元素
- * @returns 规范化后的文本
+ * 读取可选单元纯净文本（支持 iframe 内部、显式气泡与普通段落）
+ * @param element 语义文本块或气泡元素
+ * @returns 清理后的纯文本
  */
-function extractMessageTextBlockText(element: HTMLElement): string {
+export function readSelectableUnitText(element: HTMLElement): string {
   if (isIframeElementNode(element)) {
     const doc = tryAccessIframeDocument(element);
     return doc?.body ? extractFrontendText(doc.body) : '';
   }
   return element.hasAttribute('data-cv-selectable')
     ? extractFrontendText(element)
-    : normalizeMessageTextBlock(readMessageTextNode(element));
+    : extractCleanParagraphText(element);
 }
 
 /**
@@ -415,12 +425,12 @@ export function buildPromptLlmContextFromParagraph(
 }
 
 /**
- * 将连续段落合并为焦点段落文本
- * @param paragraphs 按 DOM 顺序的段落元素
+ * 将连续段落或气泡合并为焦点段落文本
+ * @param paragraphs 按 DOM 顺序的段落或气泡元素
  * @returns 以单换行拼接的焦点文本
  */
 export function mergeFocusParagraphText(paragraphs: HTMLElement[]): string {
-  return paragraphs.map(extractCleanParagraphText).filter(Boolean).join('\n');
+  return paragraphs.map(readSelectableUnitText).filter(Boolean).join('\n');
 }
 
 /**
@@ -447,53 +457,72 @@ export async function buildPromptLlmContextFromParagraphs(
 }
 
 /**
- * 获取目标段落所属消息内的聊天段落列表
- * @param targetP 目标段落
- * @returns 同消息 `.mes_text p` 元素（DOM 序）
+ * 获取目标段落所属消息内的叶子语义文本块列表（DOM 序）
+ * @param targetP 目标段落或语义块
+ * @returns 同消息叶子语义块元素数组
  */
 export function getMessageChatParagraphs(targetP: HTMLElement): HTMLElement[] {
   const mesBlock = (getHostIframe(targetP) ?? targetP).closest('[mesid]');
   if (!isHTMLElementNode(mesBlock)) return [];
-  return Array.from(mesBlock.querySelectorAll('.mes_text p')).filter(isHTMLElementNode);
+  const selector = `.mes_text :is(${MESSAGE_TEXT_BLOCK_SELECTOR})`;
+  return Array.from(mesBlock.querySelectorAll(selector))
+    .filter(isHTMLElementNode)
+    .filter(isLeafMessageTextBlock);
 }
 
 /**
- * 判断两段落是否在同一消息内索引相邻
- * @param a 段落 A
- * @param b 段落 B
+ * 获取选区的基准序列
+ * 全部元素均在叶子语义块兄弟表中时走兄弟表（保持 classic-p 行为），否则走消息内可选单元序列
+ * @param paragraphs 选区元素数组
+ * @returns 基准序列数组
+ */
+function getSelectionBaseList(paragraphs: HTMLElement[]): HTMLElement[] {
+  if (paragraphs.length === 0) return [];
+  const first = paragraphs[0]!;
+  const siblings = getMessageChatParagraphs(first);
+  if (paragraphs.every(p => siblings.indexOf(p) >= 0)) {
+    return siblings;
+  }
+  return getMessageSelectableUnits(first);
+}
+
+/**
+ * 判断两段落或气泡是否在同一消息内索引相邻
+ * @param a 段落/气泡 A
+ * @param b 段落/气泡 B
  * @returns 是否相邻
  */
 export function areChatParagraphsAdjacent(a: HTMLElement, b: HTMLElement): boolean {
   if (findMessageId(a) !== findMessageId(b)) return false;
-  const siblings = getMessageChatParagraphs(a);
-  const indexA = siblings.indexOf(a);
-  const indexB = siblings.indexOf(b);
+  const baseList = getSelectionBaseList([a, b]);
+  const indexA = baseList.indexOf(a);
+  const indexB = baseList.indexOf(b);
   return indexA >= 0 && indexB >= 0 && Math.abs(indexA - indexB) === 1;
 }
 
 /**
- * 判断段落列表是否为同一消息内的连续块
- * @param paragraphs 段落列表
+ * 判断段落或气泡列表是否为同一消息内的连续块
+ * @param paragraphs 段落/气泡列表
  * @returns 是否连续
  */
 export function areChatParagraphsContiguous(paragraphs: HTMLElement[]): boolean {
   if (paragraphs.length <= 1) return true;
   const sorted = sortChatParagraphsByDomOrder(paragraphs);
-  const siblings = getMessageChatParagraphs(sorted[0]!);
-  const indexes = sorted.map(p => siblings.indexOf(p));
+  const baseList = getSelectionBaseList(sorted);
+  const indexes = sorted.map(p => baseList.indexOf(p));
   if (indexes.some(index => index < 0)) return false;
   return indexes.every((index, i) => i === 0 || index === indexes[i - 1]! + 1);
 }
 
 /**
- * 按消息内 DOM 顺序排列段落
- * @param paragraphs 段落列表
+ * 按消息内 DOM 顺序排列段落或气泡
+ * @param paragraphs 段落/气泡列表
  * @returns 排序后的新数组
  */
 export function sortChatParagraphsByDomOrder(paragraphs: HTMLElement[]): HTMLElement[] {
   if (paragraphs.length <= 1) return [...paragraphs];
-  const siblings = getMessageChatParagraphs(paragraphs[0]!);
-  return [...paragraphs].sort((a, b) => siblings.indexOf(a) - siblings.indexOf(b));
+  const baseList = getSelectionBaseList(paragraphs);
+  return [...paragraphs].sort((a, b) => baseList.indexOf(a) - baseList.indexOf(b));
 }
 
 /**
@@ -687,12 +716,12 @@ export function createInlineTextHash(value: string): string {
  * 规则：
  * 1. 必须在主文档中（非 iframe）
  * 2. 属于 .mes_text 的子孙节点
- * 3. 自身为 <p> 元素，且无作者自定义 style 属性
- * 4. 从 <p> 到 .mes_text 之间的所有父级节点，只能是标准 Markdown 容器标签（blockquote, li, ul, ol），且无自定义 style 或标记
+ * 3. 自身为 <p> 或 <li> 元素，且无作者自定义 style 属性
+ * 4. 从目标元素到 .mes_text 之间的所有父级节点，只能是标准 Markdown 容器标签（blockquote, li, ul, ol），且无自定义 style 或标记
  *
  * 凡是不满足上述条件的（如自定义 div/card、details、summary、带 style 的段落、iframe 内元素等），一律返回 null（由上层判定为 frontend 路由）。
  * @param el 点击目标元素
- * @returns 所属的纯 Markdown `<p>` 元素，非纯 Markdown 段落返回 null
+ * @returns 所属的纯 Markdown `<p>` 或 `<li>` 元素，非纯 Markdown 段落返回 null
  */
 export function findChatParagraph(el: HTMLElement): HTMLElement | null {
   if (el.ownerDocument !== document) {
@@ -704,17 +733,17 @@ export function findChatParagraph(el: HTMLElement): HTMLElement | null {
     return null;
   }
 
-  const p = el.closest<HTMLElement>('p');
+  const p = el.closest<HTMLElement>('p, li');
   if (!p || !mesText.contains(p)) {
     return null;
   }
 
-  // 检查 <p> 自身是否带有内联样式（纯 Markdown 渲染器不会生成 style 属性）
+  // 检查自身是否带有内联样式（纯 Markdown 渲染器不会生成 style 属性）
   if (p.hasAttribute('style')) {
     return null;
   }
 
-  // 严格检查从 <p> 到 .mes_text 之间的父级链路
+  // 严格检查从目标元素到 .mes_text 之间的父级链路
   let current: HTMLElement | null = p.parentElement;
   while (current && current !== mesText) {
     const tagName = current.tagName.toUpperCase();

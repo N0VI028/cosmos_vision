@@ -4,6 +4,20 @@ import {
   sortChatParagraphsByDomOrder,
 } from '@/services/sillytavern/chat-dom';
 import { getHostIframe, getViewportRect } from '@/services/inline-image/iframe-utils';
+import { resolveInlineRoute } from '@/services/inline-image/route-resolve';
+
+/**
+ * 判断当前选区与新目标元素是否属于不同路由类型（类型互斥守卫）
+ * 选区为空时返回 false（无冲突）
+ * @param current 当前选区元素数组
+ * @param incoming 即将点击的目标元素
+ * @returns 是否存在路由类型混合
+ */
+export function hasMixedRoute(current: HTMLElement[], incoming: HTMLElement): boolean {
+  if (!current.length) return false;
+  const targetRoute = resolveInlineRoute(incoming);
+  return current.some(el => resolveInlineRoute(el) !== targetRoute);
+}
 
 /**
  * 判断目标段是否可邻接扩展当前选区
