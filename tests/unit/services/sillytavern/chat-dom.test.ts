@@ -7,7 +7,7 @@ import {
 } from '@/services/sillytavern/chat-dom';
 
 describe('chat-dom 前端型楼层文本提取', () => {
-  it('只保留嵌套隐式容器中最内层的文本气泡', () => {
+  it('前端型楼层全量收集气泡文本，按换行扁平化', () => {
     document.body.innerHTML = `
       <div mesid="1">
         <div class="mes_text">
@@ -22,10 +22,10 @@ describe('chat-dom 前端型楼层文本提取', () => {
     `;
     const bubble = document.querySelector<HTMLElement>('.custom-bubble')!;
 
-    expect(extractMessageParagraphs(bubble)).toEqual(['普通段落', '气泡文本']);
+    expect(extractMessageParagraphs(bubble)).toEqual(['普通段落\n\n气泡文本']);
   });
 
-  it('排除显式气泡内外的隐式重复层级', () => {
+  it('前端型楼层收集显式气泡与隐式气泡全部文本', () => {
     document.body.innerHTML = `
       <div mesid="2">
         <div class="mes_text">
@@ -40,10 +40,10 @@ describe('chat-dom 前端型楼层文本提取', () => {
     `;
     const explicitBubble = document.querySelector<HTMLElement>('[data-cv-selectable]')!;
 
-    expect(extractMessageParagraphs(explicitBubble)).toEqual(['显式气泡', '隐式气泡']);
+    expect(extractMessageParagraphs(explicitBubble)).toEqual(['显式气泡\n\n隐式气泡']);
   });
 
-  it('按元素身份排除焦点且不在空结果时回退', () => {
+  it('前端型楼层全量收集不按元素排除焦点，仍收整层', () => {
     document.body.innerHTML = `
       <div mesid="3">
         <div class="mes_text">
@@ -55,8 +55,9 @@ describe('chat-dom 前端型楼层文本提取', () => {
     const focus = document.querySelector<HTMLElement>('.focus')!;
     const other = document.querySelector<HTMLElement>('.other')!;
 
-    expect(extractMessageParagraphs(focus, [focus])).toEqual(['同楼层气泡']);
-    expect(extractMessageParagraphs(other, [focus, other])).toEqual([]);
+    // 前端型全量收集暂不支持按元素排除，整层文本均收入；兄弟气泡边界以双换行分隔
+    expect(extractMessageParagraphs(focus, [focus])).toEqual(['焦点气泡\n\n同楼层气泡']);
+    expect(extractMessageParagraphs(other, [focus, other])).toEqual(['焦点气泡\n\n同楼层气泡']);
   });
 
   it('截断到焦点气泡并包含焦点，不包含后续内容', () => {
@@ -71,7 +72,8 @@ describe('chat-dom 前端型楼层文本提取', () => {
     `;
     const focus = document.querySelector<HTMLElement>('.focus')!;
 
-    expect(extractMessageParagraphsUntil(focus)).toEqual(['前置内容', '焦点内容']);
+    // 焦点气泡为其所在块的末尾，与前置块间以双换行分隔
+    expect(extractMessageParagraphsUntil(focus)).toEqual(['前置内容\n\n焦点内容']);
   });
 
   it('iframe 焦点历史排除宿主 HTML 源码并保留可见文本', () => {
@@ -91,7 +93,7 @@ describe('chat-dom 前端型楼层文本提取', () => {
     iframe.contentDocument!.body.innerHTML = '<div class="bubble">iframe 气泡文本</div>';
     const focus = iframe.contentDocument!.querySelector<HTMLElement>('.bubble')!;
 
-    expect(extractMessageParagraphsUntil(focus)).toEqual(['正常文章上下文', 'iframe 气泡文本']);
+    expect(extractMessageParagraphsUntil(focus)).toEqual(['正常文章上下文\n\niframe 气泡文本']);
   });
 
   it('iframe 内包含多个气泡时，截断到焦点气泡，严格排除后续气泡', () => {
@@ -116,10 +118,10 @@ describe('chat-dom 前端型楼层文本提取', () => {
     const b2 = iframe.contentDocument!.querySelector<HTMLElement>('.bubble-2')!;
 
     // 选中第一句时，排除第二句与第三句
-    expect(extractMessageParagraphsUntil(b1)).toEqual(['宿主前置段落', '第一句对话']);
+    expect(extractMessageParagraphsUntil(b1)).toEqual(['宿主前置段落\n\n第一句对话']);
 
-    // 选中第二句时，包含第一句与第二句，排除第三句
-    expect(extractMessageParagraphsUntil(b2)).toEqual(['宿主前置段落', '第一句对话', '第二句对话（焦点）']);
+    // 选中第二句时，包含第一句与第二句，排除第三句；iframe 内兄弟气泡以双换行分隔
+    expect(extractMessageParagraphsUntil(b2)).toEqual(['宿主前置段落\n\n第一句对话\n\n第二句对话（焦点）']);
   });
 
   it('iframe 位于父文档段落中间时，正确按 DOM 序截断', () => {
@@ -143,8 +145,74 @@ describe('chat-dom 前端型楼层文本提取', () => {
 
     const inner = iframe.contentDocument!.querySelector<HTMLElement>('.bubble-inner')!;
 
-    expect(extractMessageParagraphsUntil(inner)).toEqual(['前置文章', 'iframe 气泡']);
-    expect(extractMessageParagraphsUntil(pAfter)).toEqual(['前置文章', 'iframe 气泡', '后置文章']);
+    expect(extractMessageParagraphsUntil(inner)).toEqual(['前置文章\n\niframe 气泡']);
+    // 后置段落与 iframe 内容紧邻，块边界以双换行分隔
+    expect(extractMessageParagraphsUntil(pAfter)).toEqual(['前置文章\n\niframe 气泡\n\n后置文章']);
+  });
+
+  it('混合楼层：普通文本 + details 小剧场 + iframe 文本，全部命中不漏', () => {
+    document.body.innerHTML = `
+      <div mesid="7">
+        <div class="mes_text">
+          <p>这是普通开场白。</p>
+          <details open>
+            <summary>小剧场标题</summary>
+            <ol>
+              <li>第一句对白</li>
+              <li>第二句<del>删除</del><strong>强调</strong>对白</li>
+            </ol>
+          </details>
+        </div>
+      </div>
+    `;
+    const mesText = document.querySelector<HTMLElement>('.mes_text')!;
+    const iframe = document.createElement('iframe');
+    mesText.appendChild(iframe);
+    iframe.contentDocument!.body.innerHTML = '<span>iframe 内可见文本</span>';
+    const iframeText = iframe.contentDocument!.querySelector<HTMLElement>('span')!;
+
+    const result = extractMessageParagraphsUntil(iframeText)[0];
+    expect(result).toContain('这是普通开场白。');
+    expect(result).toContain('小剧场标题');
+    expect(result).toContain('第一句对白');
+    expect(result).toContain('删除');
+    expect(result).toContain('强调');
+    expect(result).toContain('iframe 内可见文本');
+  });
+
+  it('cv 插件按钮与楼层尾挂载容器被剔除', () => {
+    document.body.innerHTML = `
+      <div mesid="8">
+        <div class="mes_text">
+          <p>正文段落</p>
+          <button class="image-tag-button">不应收集的按钮</button>
+          <div class="cv-floor-tail">
+            <div class="cv-floor-tail-slot">不应收集的挂载槽</div>
+          </div>
+          <div class="cv-inline-decoration">不应收集的装饰</div>
+          <p>尾部正文</p>
+        </div>
+      </div>
+    `;
+    const focus = document.querySelector<HTMLElement>('.mes_text p:last-of-type')!;
+
+    expect(extractMessageParagraphsUntil(focus)).toEqual(['正文段落\n\n尾部正文']);
+  });
+
+  it('纯 markdown 楼层走白名单分块，不回归', () => {
+    document.body.innerHTML = `
+      <div mesid="9">
+        <div class="mes_text">
+          <blockquote>引用块</blockquote>
+          <p>第一段</p>
+          <p>第二段</p>
+        </div>
+      </div>
+    `;
+    const last = document.querySelector<HTMLElement>('.mes_text p:last-of-type')!;
+
+    // 纯 markdown 无 [style]/details/div[class]，走白名单分块路径
+    expect(extractMessageParagraphsUntil(last)).toEqual(['引用块', '第一段', '第二段']);
   });
 
   it('清理历史中的完整 HTML 文档源码并保留源码外文本', () => {

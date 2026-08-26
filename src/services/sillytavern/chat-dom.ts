@@ -3,7 +3,12 @@ import { chat } from '@sillytavern/script';
 import { stripSlotShortcodes } from '@/services/inline-image/slot-shortcode';
 import { readPromptLlmHistoryMessages } from '@/services/tavern-helper/chat-history';
 import { buildRegexedHistory } from '@/services/tavern-helper/history-builder';
-import { extractFrontendText } from '@/services/inline-image/frontend-text-extract';
+import {
+  collectVisibleTextUntil,
+  extractFrontendText,
+  isFrontendFloor,
+  resolveFrontendCollectFocus,
+} from '@/services/inline-image/frontend-text-extract';
 import { getHostIframe, isHTMLElementNode, tryAccessIframeDocument } from '@/services/inline-image/iframe-utils';
 
 const MESSAGE_TEXT_BLOCK_SELECTOR = 'p, li, blockquote, pre, h1, h2, h3, h4, h5, h6';
@@ -247,11 +252,21 @@ function compareDomOrder(left: HTMLElement, right: HTMLElement): number {
 
 /**
  * 提取目标段落所属 mes 的全部语义文本块
+ * 前端型楼层改用全量可见文本收集，略去控件/插件装饰与隐藏节点，保留全部用户可见文本
  * @param targetP 目标段落 DOM 元素
- * @param excludedElements 需按元素身份排除的文本块
+ * @param excludedElements 需按元素身份排除的文本块（前端型楼层暂不支持按元素排除）
  * @returns 整层历史文本块数组
  */
 export function extractMessageParagraphs(targetP: HTMLElement, excludedElements?: HTMLElement[]): string[] {
+  // 前端型楼层：全量收集整层可见文本（含同源 iframe），并剥离被渲染器保留的 HTML 源码字面量
+  const mesBlock = (getHostIframe(targetP) ?? targetP).closest<HTMLElement>('[mesid]');
+  if (mesBlock) {
+    const root = getContainerRoot(mesBlock);
+    if (isFrontendFloor(root)) {
+      const fullText = stripFrontendSourceMarkup(collectVisibleTextUntil(root, null));
+      return fullText ? [fullText] : [];
+    }
+  }
   const excluded = new Set(excludedElements);
   const elements = getMessageTextBlockElements(targetP).filter(
     element => !excluded.has(element) && !Array.from(excluded).some(ex => element.contains(ex) || ex.contains(element)),
@@ -265,10 +280,21 @@ export function extractMessageParagraphs(targetP: HTMLElement, excludedElements?
 
 /**
  * 提取从消息开头到目标焦点段落的语义文本块
+ * 前端型楼层改用全量可见文本收集并按焦点截断，焦点之后内容不收入历史
  * @param targetP 目标焦点段落 DOM 元素
  * @returns 截断后的历史文本块数组
  */
 export function extractMessageParagraphsUntil(targetP: HTMLElement): string[] {
+  const mesBlock = (getHostIframe(targetP) ?? targetP).closest<HTMLElement>('[mesid]');
+  // 前端型楼层：全量收集至焦点（含 iframe 内焦点），焦点之后不收
+  if (mesBlock) {
+    const root = getContainerRoot(mesBlock);
+    if (isFrontendFloor(root)) {
+      const focus = resolveFrontendCollectFocus(targetP, root);
+      const text = stripFrontendSourceMarkup(collectVisibleTextUntil(root, focus));
+      return text ? [text] : [];
+    }
+  }
   const messageBlocks = getMessageTextBlockElements(targetP);
   const hostIframe = getHostIframe(targetP);
   const targetIndex = messageBlocks.findIndex(
