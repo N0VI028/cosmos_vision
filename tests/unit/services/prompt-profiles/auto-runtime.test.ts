@@ -9,9 +9,7 @@ import {
   safeRenderPromptTemplate,
   scanAutoWorldInfo,
 } from '@/services/prompt-profiles/auto-runtime';
-import * as promptProfilesContext from '@/services/tavern-helper/prompt-profiles-context';
 import * as promptProfilesSources from '@/services/tavern-helper/prompt-profiles-sources';
-import * as promptProfilesContext from '@/services/tavern-helper/prompt-profiles-context';
 import * as wiModule from '@sillytavern/scripts/world-info';
 import { buildPromptLlmRuntimeContent } from '@/services/prompt-profiles/runtime';
 import type { PromptLlmContext, PromptLlmSettings, PromptProfilesSettings } from '@/constants/novelai';
@@ -227,13 +225,13 @@ describe('auto-runtime service', () => {
     });
 
     it('emits empty <person> body when only name is provided', () => {
-      const output = buildAutoParticipantContext({ personaName: 'Alice' });
-      expect(output).toBe('<person name="Alice"></person>');
+      expect(buildAutoParticipantContext({ personaName: 'Alice' })).toBe('<person name="Alice"></person>');
     });
 
     it('emits unnamed <person> when only description is provided', () => {
-      const output = buildAutoParticipantContext({ personaDescription: 'Anonymous traveler' });
-      expect(output).toBe('<person>\nAnonymous traveler\n</person>');
+      expect(buildAutoParticipantContext({ personaDescription: 'Anonymous traveler' })).toBe(
+        '<person>\nAnonymous traveler\n</person>',
+      );
     });
 
     it('omits empty sections', () => {
