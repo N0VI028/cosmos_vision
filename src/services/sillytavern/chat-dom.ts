@@ -449,10 +449,14 @@ export async function buildPromptLlmContextFromParagraphs(
   if (!focusParagraph) throw new Error('未找到目标段落文本');
   const anchor = paragraphs.at(-1);
   if (!anchor) throw new Error('未找到目标段落文本');
+  const rawId = findMessageId(anchor);
+  const parsedIndex = rawId ? parseInt(rawId, 10) : NaN;
+  const messageIndex = Number.isInteger(parsedIndex) && parsedIndex >= 0 ? parsedIndex : null;
   return {
     historyParagraphs: await buildPromptLlmHistoryParagraphsWithRegex(anchor, settings),
     focusParagraph,
     specialRequest: '',
+    messageIndex,
   };
 }
 

@@ -6,6 +6,7 @@ describe('prompt-llm settings schema and recovery', () => {
   it('validates default prompt-llm settings schema', () => {
     const result = promptLlmSettingsSchema.safeParse(DEFAULT_SETTINGS.promptLlm);
     expect(result.success).toBe(true);
+    expect(DEFAULT_SETTINGS.promptLlm.autoCharacterInfo).toBe(false);
   });
 
   it('recovers corrupted settings gracefully with fallback defaults', () => {
@@ -13,12 +14,19 @@ describe('prompt-llm settings schema and recovery', () => {
       temperature: 'invalid', // bad type
       historyFloorCount: -5, // bad value
       shouldStream: 'yes', // bad type
+      autoCharacterInfo: 'yes', // bad type
     };
 
     const recovered = recoverPromptLlmSettings(corrupted);
     expect(recovered.temperature).toBe(DEFAULT_SETTINGS.promptLlm.temperature);
     expect(recovered.historyFloorCount).toBe(DEFAULT_SETTINGS.promptLlm.historyFloorCount);
     expect(recovered.shouldStream).toBe(false);
+    expect(recovered.autoCharacterInfo).toBe(false);
+  });
+
+  it('preserves valid autoCharacterInfo value', () => {
+    const recovered = recoverPromptLlmSettings({ autoCharacterInfo: true });
+    expect(recovered.autoCharacterInfo).toBe(true);
   });
 
   it('migrates legacy single account fields into the first account', () => {

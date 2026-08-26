@@ -77,6 +77,7 @@ export default defineConfig(({ mode }) => ({
             '@sillytavern/scripts/extensions': path.resolve(__dirname, 'tests/helpers/sillytavern-extensions-mock.ts'),
             '@sillytavern/scripts/utils': path.resolve(__dirname, 'tests/helpers/sillytavern-utils-mock.ts'),
             '@sillytavern/scripts/openai': path.resolve(__dirname, 'tests/helpers/sillytavern-openai-mock.ts'),
+            '@sillytavern/scripts/world-info': path.resolve(__dirname, 'tests/helpers/sillytavern-world-info-mock.ts'),
             '@sillytavern/lib/jszip.min': path.resolve(__dirname, 'tests/helpers/sillytavern-jszip-mock.ts'),
           }
         : {}),

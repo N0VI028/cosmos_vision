@@ -4,6 +4,17 @@
     <div class="cv-section-body">
       <div>
         <div class="flex flex-col gap-(--cv-space-5xl)">
+          <div class="cv-field" data-cv-tutorial="prompt-llm-builder-auto-character-info">
+            <div class="cv-field-control">
+              <label class="cv-field-inline" style="margin-bottom: 0">
+                <span>自动获取人物信息</span>
+                <ToggleSwitch v-model="settings.promptLlm.autoCharacterInfo" />
+              </label>
+              <div class="cv-field-hint">
+                开启后将自动读取当前角色卡描述、用户人设与本次实际触发的世界书内容一起发送给 AI；同时人物 Tab 中的内容将追加在其后。
+              </div>
+            </div>
+          </div>
           <label class="cv-field">
             <span>发送的历史楼层数</span>
             <div class="cv-field-control">

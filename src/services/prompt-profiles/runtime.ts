@@ -3,6 +3,7 @@ import { uuidv4 } from '@sillytavern/scripts/utils';
 import { PROMPT_LLM_FIXED_TAGS_TOKEN, PROMPT_LLM_TRIGGER_NAMES_TOKEN } from '@/constants/default-settings';
 import type {
   PromptLlmContext,
+  PromptLlmSettings,
   PromptPerson,
   PromptPersonKind,
   PromptPersonTemplateEntry,
@@ -10,6 +11,7 @@ import type {
 } from '@/constants/novelai';
 import { getPromptPersonTemplateEntryKind } from '@/constants/novelai';
 import type { PromptLlmRuntimeContent } from '@/services/prompt-llm/message-preset';
+import { buildAutoParticipantRuntimeContent, safeRenderPromptTemplate } from '@/services/prompt-profiles/auto-runtime';
 import { resolvePromptPersonTemplateEntry } from '@/services/tavern-helper/prompt-profiles-sources';
 
 interface PromptPersonMatchContext {
@@ -58,16 +60,9 @@ export function createDefaultPromptPersonTemplateEntries(): PromptPersonTemplate
   return [
     createCustomPromptPersonTemplateEntry(
       '人物开始',
-      `<person name="${PROMPT_LLM_TRIGGER_NAMES_TOKEN}">
-  <fixed_tags>以下固定tag为角色特性，必须原样体现在最终正向提示词中：${PROMPT_LLM_FIXED_TAGS_TOKEN}</fixed_tags>。
-  [人物属性冲突解决规则]：
-  1. 若不同输入源的角色特征（如发色、瞳色、服装等特征锚点）出现矛盾冲突，必须按以下权重优先级覆盖：<main_scene> (最高) > <fixed_tags> > <references> (最低)。
-  2. 同一特征锚点在最终提示词中绝对不可重复或冲突出现（例如：若 <fixed_tags> 规定了“蓝色眼睛”，则 <references> 中得出的“红色眼睛”结论必须被覆盖忽略，只保留高优先级的设定）。
-  <references>
-  `,
+      `<person name="${PROMPT_LLM_TRIGGER_NAMES_TOKEN}">\n  <fixed_tags>以下固定tag为角色特性，必须原样体现在最终正向提示词中：${PROMPT_LLM_FIXED_TAGS_TOKEN}</fixed_tags>。\n  [人物属性冲突解决规则]：\n  1. 若不同输入源的角色特征（如发色、瞳色、服装等特征锚点）出现矛盾冲突，必须按以下权重优先级覆盖：<main_scene> (最高) > <fixed_tags> (次之) > 其他补充资料 (最低)。\n  2. 同一特征锚点在最终提示词中绝对不可重复或冲突出现（例如：若 <fixed_tags> 规定了“蓝色眼睛”，则其他补充资料中得出的“红色眼睛”结论必须被覆盖忽略，只保留高优先级的设定）。\n`,
     ),
-    createCustomPromptPersonTemplateEntry('人物结束', `  </references>
-</person>`),
+    createCustomPromptPersonTemplateEntry('人物结束', `</person>`),
   ];
 }
 
@@ -110,12 +105,36 @@ export async function buildPromptProfilesRuntimeContent(
  * 构建 LLM 运行时替换内容
  * @param context Prompt LLM 运行时上下文
  * @param promptProfiles 提示词Profile设置
+ * @param settings 可选配置项（含 autoCharacterInfo 与 historyFloorCount）
  * @returns 供消息预设替换的运行时内容
  */
 export async function buildPromptLlmRuntimeContent(
   context: PromptLlmContext,
   promptProfiles: PromptProfilesSettings,
+  settings?: Pick<PromptLlmSettings, 'historyFloorCount' | 'ignoreUserMessagesInHistory' | 'autoCharacterInfo'>,
 ): Promise<PromptLlmRuntimeContent> {
+  if (settings?.autoCharacterInfo) {
+    const [autoResult, profilesResult] = await Promise.all([
+      buildAutoParticipantRuntimeContent(context, settings),
+      buildPromptProfilesRuntimeContent(context, promptProfiles),
+    ]);
+
+    const combinedParticipantContent = [
+      autoResult.participantContent,
+      profilesResult.participantContent,
+    ]
+      .map(content => content.trim())
+      .filter(Boolean)
+      .join('\n\n');
+
+    return {
+      historyContent: autoResult.historyContent,
+      participantContent: combinedParticipantContent,
+      focusParagraphContent: autoResult.focusParagraphContent,
+      specialRequestContent: buildSpecialRequestContent(context.specialRequest),
+    };
+  }
+
   const result = await buildPromptProfilesRuntimeContent(context, promptProfiles);
   return {
     historyContent: result.historyContent,
@@ -222,11 +241,13 @@ async function renderPromptPersonTemplateEntry(
   entry: PromptPersonTemplateEntry,
 ): Promise<string> {
   if (getPromptPersonTemplateEntryKind(entry) === 'custom') {
-    return replacePromptPersonTemplateTokens(entry.content, person);
+    const rendered = replacePromptPersonTemplateTokens(entry.content, person);
+    return safeRenderPromptTemplate(rendered);
   }
   const resolvedEntry = await resolvePromptPersonTemplateEntry(entry);
   if (resolvedEntry.status !== 'ready') return '';
-  return replacePromptPersonTemplateTokens(resolvedEntry.content, person);
+  const rendered = replacePromptPersonTemplateTokens(resolvedEntry.content, person);
+  return safeRenderPromptTemplate(rendered);
 }
 
 /**

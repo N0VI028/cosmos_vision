@@ -62,7 +62,8 @@ const NOVELAI_STEPS: readonly TutorialStep[] = [
   {
     id: 'novelai-connection',
     title: '连接 NovelAI',
-    description: '在这里选择路由模式、维护账号，如果需要查看剩余点数，需要配置可信的 CORS 代理，留空并不会影响生图功能。',
+    description:
+      '在这里选择路由模式、维护账号，如果需要查看剩余点数，需要配置可信的 CORS 代理，留空并不会影响生图功能。',
     scene: { kind: 'settings', tab: 'novelai', subTab: 'api' },
     target: {
       selectors: ['[data-cv-tutorial="novelai-connection"]'],
@@ -86,7 +87,7 @@ const COMFYUI_STEPS: readonly TutorialStep[] = [
     id: 'comfyui-connection',
     title: '连接 ComfyUI',
     description:
-      '填写 ComfyUI 服务地址并测试连接，需要确保 Comfyui 监听端口并且启用 CORS 头，设置为 * 允许所有域，或填写具体域名。',
+      '填写 ComfyUI 服务地址并测试连接，需要确保 Comfyui 监听端口并且开启 CORS 头，设置为 * 允许所有域，或填写具体域名。',
     scene: { kind: 'settings', tab: 'comfyui', subTab: 'api' },
     target: {
       selectors: ['[data-cv-tutorial="comfyui-connection"]'],
@@ -193,10 +194,21 @@ const SHARED_STEPS: readonly TutorialStep[] = [
     },
   },
   {
+    id: 'prompt-llm-auto-character-info',
+    title: '自动人物信息',
+    description:
+      '开启后将自动读取当前角色卡描述、用户人设与本次实际触发的世界书内容发送给 AI；可能会混入许多与人设无关的内容。需要精确的人物信息，请在人物 Tab 配置',
+    scene: { kind: 'settings', tab: 'prompt-llm', subTab: 'builder' },
+    target: {
+      selectors: ['[data-cv-tutorial="prompt-llm-builder-auto-character-info"]'],
+      missingText: '自动人物信息开关暂不可见，你仍可继续教程。',
+    },
+  },
+  {
     id: 'prompt-profiles-overview',
     title: '角色配置概述',
     description:
-      '插件仅拾取最近几条聊天记录生成提示词，无法捕捉角色的完整特质。建议在此处为当前角色卡和用户各创建一个人物，发送角色信息给 LLM。',
+      '在此处可以为当前角色卡和用户配置更精确的特征设定与模板条目。可以关闭“自动获取人物信息”，在此处配置精确人物内容，以精炼发送给 LLM 的上下文内容。',
     scene: { kind: 'settings', tab: 'prompt-profiles', subTab: 'character' },
     target: {
       selectors: ['[data-cv-tutorial="prompt-profiles-overview"]'],
@@ -276,12 +288,12 @@ const SHARED_STEPS: readonly TutorialStep[] = [
   {
     id: 'inline-gallery',
     title: '管理生成结果',
-    description: '图像生成结果会显示在段落下方，你可以在这里查看、重新生成、编辑提示词或下载图片。',
+    description: '图像生成结果会显示在段落下方面板，你可以在这里查看、重新生成、编辑提示词或下载图片。',
     tip: '生成的临时结果会在更换浏览器时丢失。喜欢的图片请务必点击右下角的“★”图标收藏到本地。',
     scene: { kind: 'chat' },
     target: {
       selectors: ['.cv-render', '.mes_text p', '#chat'],
-      missingText: '当前没有图片结果；生成完成后它会出现在目标段落下方。',
+      missingText: '当前没有图片结果；生成完成后它会出现在目标段落下方面板。',
     },
     needsMockGallery: true,
   },

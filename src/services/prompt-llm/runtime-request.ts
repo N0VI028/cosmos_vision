@@ -110,7 +110,7 @@ export async function buildPromptLlmRuntimeRequestFromContext(
   triggerContext?: PromptLlmTriggerContext,
   account?: PromptLlmAccount,
 ): Promise<TavernHelperGenerateRawConfig> {
-  const runtimeContent = await buildPromptLlmRuntimeContent(context, promptProfiles);
+  const runtimeContent = await buildPromptLlmRuntimeContent(context, promptProfiles, settings);
   return buildPromptLlmRuntimeRequest(settings, presetSettings, runtimeContent, schemaFields, triggerContext, account);
 }
 

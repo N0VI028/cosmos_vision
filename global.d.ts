@@ -54,6 +54,23 @@ declare global {
   }
 
   /**
+   * ST-Prompt-Template 插件注入的全局 EJS 模板引擎对象
+   */
+  interface EjsTemplateInterface {
+    evalTemplate(
+      code: string,
+      context?: Record<string, unknown> | null,
+      options?: Record<string, unknown>,
+    ): Promise<string>;
+    prepareContext?(
+      context?: Record<string, unknown>,
+      end?: number,
+    ): Promise<Record<string, unknown>>;
+  }
+
+  const EjsTemplate: EjsTemplateInterface | undefined;
+
+  /**
    * JS-Slash-Runner 注入的全局入口
    * 提供 generateRaw 等方法用于调用 LLM
    */

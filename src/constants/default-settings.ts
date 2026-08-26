@@ -72,7 +72,7 @@ export const DEFAULT_POSITIVE_PROMPT_EXTRACT_PATTERN =
   '/<output>\\s*\\{[\\s\\S]*?"positivePrompt"\\s*:\\s*"([^"]*)"[\\s\\S]*?<\\/output>/i';
 export const DEFAULT_NEGATIVE_PROMPT_EXTRACT_PATTERN =
   '/<output>\\s*\\{[\\s\\S]*?"negativePrompt"\\s*:\\s*"([^"]*)"[\\s\\S]*?<\\/output>/i';
-/** 角色对象片段可全局重复匹配，避免 <output>…</output> 一次吞掉整块导致只命中第一个角色 */
+/** 角色对象片段可全局重复匹配，避免 <output>… </output> 一次吞掉整块导致只命中第一个角色 */
 export const DEFAULT_CHARACTER_POSITIVE_PROMPT_EXTRACT_PATTERN =
   '/\\{\\s*"positivePrompt"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"\\s*,\\s*"negativePrompt"\\s*:\\s*"(?:\\\\.|[^"\\\\])*"\\s*,\\s*"position"\\s*:/g';
 export const DEFAULT_CHARACTER_NEGATIVE_PROMPT_EXTRACT_PATTERN =
@@ -167,6 +167,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     shouldStream: false,
     historyFloorCount: 2,
     ignoreUserMessagesInHistory: false,
+    autoCharacterInfo: false,
     preferJsonSchemaExtraction: false,
     positivePromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.positive,
     negativePromptJsonField: DEFAULT_PROMPT_LLM_OUTPUT_FIELDS.negative,

@@ -96,6 +96,8 @@ export interface PromptLlmSettings {
   historyFloorCount: number;
   /** 追溯历史时是否忽略 user 楼层 */
   ignoreUserMessagesInHistory: boolean;
+  /** 是否自动收集角色与世界书信息注入 participant_context */
+  autoCharacterInfo: boolean;
   /** 是否优先 JSON Schema 解析(公共:所有生图渠道共享) */
   preferJsonSchemaExtraction: boolean;
   /** 正面提示词 JSON 字段名 */
@@ -136,6 +138,8 @@ export interface PromptLlmContext {
   focusParagraph: string;
   /** 用户仅针对本次生图的特别要求 */
   specialRequest: string;
+  /** 当前焦点消息在完整 chat[] 中的索引（可选，用于自动世界书扫描等定位） */
+  messageIndex?: number | null;
 }
 
 /** 提示词 LLM 输出字段名(单侧留空表示该侧不参与 JSON 提取,交给固定预设) */

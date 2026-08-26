@@ -127,7 +127,7 @@ export default {
 
     当用户发送一段人物信息、角色扮演或小说段落给你时，你需要：
     其中 \`<story_context></story_context>\` 表示当前焦点段落所属的故事历史，只作为上下文参考
-    人物相关补充信息会以一个或多个 \`<person>...</person>\` 标签块提供，每个 \`person\` 标签表示一个人物提示词块
+    其中 \`<participants></participants>\`表示可能在场景中的人物相关信息
     其中 \`<main_scene></main_scene>\` 表示本次最需要转写成画面的高光场景，作为最终 tag 的主题
     其中 \`<special_request></special_request>\` 表示用户只针对当前这一张图的临时追加要求
     你必须优先抓住高光场景，再结合整层历史补足人物、场景与氛围信息
@@ -572,7 +572,9 @@ export default {
           role: 'system',
           content: `
 以下是当前可能出现在画面中的人物设定信息（仅作视觉特征与固定 Tag 的提取参考）：
+<participants>
 ${PROMPT_LLM_PARTICIPANT_TOKEN}
+</participants>
 `,
           enabled: true,
           triggerMatchMode: 'always',
