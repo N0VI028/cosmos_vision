@@ -110,6 +110,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
   enabled: true,
   temporaryImageLimit: 50,
   imageSource: DEFAULT_IMAGE_SOURCE,
+  inlineQuickPhrases: ['只绘制{{user}}', '只绘制{{char}}'],
   imagePromptPresets: createImagePromptPresetSettings(
     DEFAULT_POSITIVE_PROMPT_PRESET_ID,
     DEFAULT_POSITIVE_PROMPT_PRESET_NAME,

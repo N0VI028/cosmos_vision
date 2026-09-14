@@ -104,6 +104,7 @@ function createSectionBuilders(
       enabled: settings.enabled,
       temporaryImageLimit: settings.temporaryImageLimit,
       imageSource: settings.imageSource,
+      inlineQuickPhrases: settings.inlineQuickPhrases,
     }),
     novelAISettings: () => stripNovelAISecrets(settings.novelai),
     novelAISecrets: () => ({ accounts: settings.novelai.accounts.map(account => ({ ...account })) }),

@@ -34,7 +34,9 @@
     :cancel-label="textInputDialogState.cancelLabel"
     :dark-mode="darkMode"
     :enable-characters="textInputDialogState.enableCharacters"
+    :quick-phrases="textInputDialogState.quickPhrases"
     @submit="handleTextInputDialog"
+    @update-quick-phrases="handleQuickPhrasesUpdate"
   />
   <ImageDownloadDialog
     v-model:visible="imageDownloadDialogVisible"
@@ -177,6 +179,7 @@ interface TextInputDialogState {
   cancelLabel: string;
   enableCharacters: boolean;
   characters: TextInputCharacterDraft[];
+  quickPhrases?: string[];
   resolve: (value: TextInputDialogSubmitValue | null) => void;
 }
 
@@ -221,6 +224,7 @@ const textInputDialogState = ref<TextInputDialogState>({
   cancelLabel: '取消',
   enableCharacters: false,
   characters: [],
+  quickPhrases: undefined,
   resolve: () => {},
 });
 const imageDownloadDialogOptions = ref(createDefaultInlineImageDownloadOptions());
@@ -382,6 +386,7 @@ function showTextInputDialog(options: InlineTextInputOptions): Promise<string | 
       cancelLabel: options.cancelLabel ?? '取消',
       enableCharacters: false,
       characters: [],
+      quickPhrases: [...savedSettings.inlineQuickPhrases],
       resolve: result => resolve(result?.value ?? null),
     };
     textInputDialogVisible.value = true;
@@ -472,6 +477,18 @@ function showImageDownloadDialog(): Promise<InlineImageDownloadOptions | null> {
  */
 function handleTextInputDialog(value: TextInputDialogSubmitValue | null): void {
   textInputDialogState.value.resolve(value);
+}
+
+/**
+ * 更新常用短语设置并持久化
+ * @param phrases 新的常用短语列表
+ */
+function handleQuickPhrasesUpdate(phrases: string[]): void {
+  // 运行配置与设置面板草稿必须持有独立拷贝,避免共享 reactive 数组互相串改
+  savedSettings.inlineQuickPhrases = [...phrases];
+  settingsStore.settings.inlineQuickPhrases = [...phrases];
+  textInputDialogState.value.quickPhrases = [...phrases];
+  settingsStore.persistSavedSettings();
 }
 
 /**

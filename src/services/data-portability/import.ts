@@ -255,7 +255,7 @@ function createSectionImporters(result: DataImportResult): Record<DataPortabilit
     basicSettings: payload => assignObjectSection(
       result.settings,
       payload,
-      ['enabled', 'temporaryImageLimit', 'imageSource'],
+      ['enabled', 'temporaryImageLimit', 'imageSource', 'inlineQuickPhrases'],
       result,
     ),
     novelAISettings: payload => mergeNovelAISettings(result.settings.novelai, payload, result),

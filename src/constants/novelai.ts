@@ -256,6 +256,7 @@ export interface CosmosVisionSettings {
   enabled: boolean;
   temporaryImageLimit: number;
   imageSource: ImageSource;
+  inlineQuickPhrases: string[];
   imagePromptPresets: ImagePromptPresetSettings;
   novelai: NovelAISettings;
   comfyui: ComfyUISettings;
