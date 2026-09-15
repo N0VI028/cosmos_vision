@@ -1,11 +1,10 @@
 import type { ImageSource } from '@/constants/comfyui';
 import type { CharacterPromptItem } from '@/constants/novelai';
 import type { ImagePromptVibeRef } from '@/constants/novelai-vibe';
-import { buildInlineActionHostClass } from '@/composables/inlineImageDom';
 import type { ComfyUIRequestSnapshot } from '@/services/comfyui/types';
 import type { NovelAIFinalPrompts } from '@/services/novelai/api';
 import type { NovelAIVibeParameters } from '@/services/novelai/vibe-types';
-import { useSettingsStore } from '@/store/settings';
+import { reactive } from 'vue';
 
 /** 内联生图提示词快照 */
 export interface InlinePromptSnapshot {
@@ -18,6 +17,40 @@ export interface InlinePromptSnapshot {
 
 export interface InlineLightboxActions {
   onDownload?: () => void | Promise<void>;
+}
+
+/** 灯箱响应式状态（模块级单例，组件与命令式调用方共享） */
+export interface InlineLightboxState {
+  open: boolean;
+  src: string;
+  snapshot?: InlinePromptSnapshot;
+  onDownload?: () => void | Promise<void>;
+}
+
+export const inlineLightboxState = reactive<InlineLightboxState>({ open: false, src: '' });
+
+/**
+ * 打开 Lightbox 大图预览弹窗（由 InlineImageLightbox 组件渲染）
+ * @param src 图片地址
+ * @param snapshot 提示词快照
+ * @param actions Lightbox 操作集合
+ */
+export function openInlineImageLightbox(
+  src: string,
+  snapshot?: InlinePromptSnapshot,
+  actions?: InlineLightboxActions,
+): void {
+  inlineLightboxState.src = src;
+  inlineLightboxState.snapshot = snapshot;
+  inlineLightboxState.onDownload = actions?.onDownload;
+  inlineLightboxState.open = true;
+}
+
+/**
+ * 关闭 Lightbox 大图预览弹窗
+ */
+export function closeInlineImageLightbox(): void {
+  inlineLightboxState.open = false;
 }
 
 /**
@@ -165,373 +198,4 @@ function dismissActiveInlineImages(event: PointerEvent): void {
     document.removeEventListener('pointerdown', dismissActiveInlineImages, true);
     inlineImageOutsideDismissBound = false;
   }
-}
-
-/**
- * 复制文本并更新按钮状态
- * @param text 复制的文本
- * @param btn 触发复制的按钮
- */
-async function copyText(text: string, btn: HTMLElement): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(text);
-    markCopyButtonSuccess(btn);
-  } catch {
-    toastr.error('复制失败');
-  }
-}
-
-/**
- * 标记复制按钮成功状态
- * @param btn 触发复制的按钮
- */
-function markCopyButtonSuccess(btn: HTMLElement): void {
-  const originalHTML = btn.innerHTML;
-  btn.innerHTML = '<i class="fa-solid fa-check"></i> 已复制';
-  btn.classList.add('copied');
-  window.setTimeout(() => {
-    btn.innerHTML = originalHTML;
-    btn.classList.remove('copied');
-  }, 1500);
-}
-
-/**
- * 创建 Lightbox 的 DOM 结构（挂 body，需自带 cosmos-vision-root + dark class）
- * @param src 图片地址
- * @param snapshot 提示词快照
- * @param actions Lightbox 操作集合
- * @returns Lightbox 根元素
- */
-function createLightboxDOM(src: string, snapshot?: InlinePromptSnapshot, actions?: InlineLightboxActions): HTMLElement {
-  const overlay = document.createElement('div');
-  overlay.className = buildInlineActionHostClass('cv-lightbox-overlay', useSettingsStore().darkMode);
-  overlay.innerHTML = buildLightboxMarkup(src, snapshot, actions);
-  return overlay;
-}
-
-/**
- * 构建 Lightbox HTML
- * @param src 图片地址
- * @param snapshot 提示词快照
- * @returns HTML 字符串
- */
-function buildLightboxMarkup(src: string, snapshot?: InlinePromptSnapshot, actions?: InlineLightboxActions): string {
-  return `
-    ${buildLightboxToolbarMarkup(actions)}
-    <div class="cv-lightbox-wrapper">
-      <div class="cv-lightbox-img-box">
-        <img class="cv-lightbox-preview-img" src="${escapeHtml(src)}" alt="放大图片" draggable="false" />
-      </div>
-      <div class="cv-lightbox-info cv-info-collapsed">
-        ${buildLightboxHeaderMarkup()}
-        <div class="cv-lightbox-info-body">
-          ${buildPromptGroupMarkup('pos', '正向提示词', snapshot?.positivePrompt || '无正向提示词')}
-          ${buildPromptGroupMarkup('neg', '负面提示词', snapshot?.negativePrompt || '无负面提示词')}
-          ${buildCharacterPromptsMarkup(snapshot)}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * 构建 Lightbox 顶部操作栏
- * @param actions Lightbox 操作集合
- * @returns HTML 字符串
- */
-function buildLightboxToolbarMarkup(actions?: InlineLightboxActions): string {
-  return `
-    <div class="cv-lightbox-toolbar">
-      ${actions?.onDownload
-        ? '<button class="cv-lightbox-download" title="下载图片" aria-label="下载图片"><i class="fa-solid fa-download"></i></button>'
-        : ''}
-      <button class="cv-lightbox-close" title="关闭" aria-label="关闭"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-  `;
-}
-
-/**
- * 构建 Lightbox 头部 HTML
- * @returns HTML 字符串
- */
-function buildLightboxHeaderMarkup(): string {
-  return `
-    <div class="cv-lightbox-info-header">
-      <span class="cv-lightbox-info-title">提示词详情</span>
-      <button class="cv-lightbox-toggle-btn" title="隐藏/显示提示词">
-        <i class="fa-solid fa-eye"></i> <span>显示提示词</span>
-      </button>
-    </div>
-  `;
-}
-
-/**
- * 构建提示词分组 HTML
- * @param kind 提示词类型
- * @param title 分组标题
- * @param text 提示词内容
- * @returns HTML 字符串
- */
-function buildPromptGroupMarkup(kind: 'pos' | 'neg', title: string, text: string): string {
-  return `
-    <div class="cv-lightbox-prompt-group">
-      <div class="cv-lightbox-prompt-header">
-        <span class="cv-lightbox-prompt-title cv-lightbox-title-${kind}">${title}</span>
-        <button class="cv-lightbox-copy-btn cv-copy-${kind}"><i class="fa-solid fa-copy"></i> 复制</button>
-      </div>
-      <div class="cv-lightbox-prompt-content">${escapeHtml(text)}</div>
-    </div>
-  `;
-}
-
-/**
- * 构建角色提示词区域 HTML（有角色时才渲染）
- * @param snapshot 提示词快照
- * @returns HTML 字符串
- */
-function buildCharacterPromptsMarkup(snapshot?: InlinePromptSnapshot): string {
-  const characters = snapshot?.novelai?.characterPrompts ?? [];
-  if (!characters.length) return '';
-  return `
-    <div class="cv-lightbox-prompt-group cv-lightbox-character-section">
-      <div class="cv-lightbox-prompt-header">
-        <span class="cv-lightbox-prompt-title cv-lightbox-title-char">角色提示词（${characters.length}）</span>
-      </div>
-      <div class="cv-lightbox-character-list">
-        ${characters.map((item, index) => buildCharacterItemMarkup(item, index, characters.length, snapshot?.novelai?.useCharacterCoords)).join('')}
-      </div>
-    </div>
-  `;
-}
-
-/**
- * 构建单个角色提示词折叠项 HTML（默认折叠）
- * @param item 角色提示词
- * @param index 角色序号（从 0 起）
- * @param characterCount 角色总数
- * @param useCharacterCoords 是否使用手动坐标
- * @returns HTML 字符串
- */
-function buildCharacterItemMarkup(
-  item: CharacterPromptItem,
-  index: number,
-  characterCount: number,
-  useCharacterCoords?: boolean,
-): string {
-  return `
-    <div class="cv-lightbox-character-item cv-char-collapsed" data-char-index="${index}">
-      <button type="button" class="cv-lightbox-character-toggle" aria-expanded="false">
-        <i class="fa-solid fa-chevron-right cv-lightbox-character-chevron"></i>
-        <span class="cv-lightbox-character-title">${escapeHtml(getCharacterItemTitle(item, index))}</span>
-      </button>
-      <div class="cv-lightbox-character-body">
-        <div class="cv-lightbox-character-field">
-          <div class="cv-lightbox-character-label-row">
-            <span class="cv-lightbox-character-label">角色正面</span>
-            <button class="cv-lightbox-copy-btn cv-copy-char-pos" data-char-index="${index}"><i class="fa-solid fa-copy"></i> 复制</button>
-          </div>
-          <div class="cv-lightbox-prompt-content">${escapeHtml(item.positivePrompt || '(空)')}</div>
-        </div>
-        <div class="cv-lightbox-character-field">
-          <div class="cv-lightbox-character-label-row">
-            <span class="cv-lightbox-character-label">角色负面</span>
-            <button class="cv-lightbox-copy-btn cv-copy-char-neg" data-char-index="${index}"><i class="fa-solid fa-copy"></i> 复制</button>
-          </div>
-          <div class="cv-lightbox-prompt-content">${escapeHtml(item.negativePrompt || '(空)')}</div>
-        </div>
-        <div class="cv-lightbox-character-field">
-          <span class="cv-lightbox-character-label">坐标</span>
-          <div class="cv-lightbox-prompt-content">${escapeHtml(formatCharacterPosition(item, characterCount, useCharacterCoords))}</div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * 生成角色折叠标题（序号 + 正面提示词预览）
- * @param item 角色提示词
- * @param index 角色序号
- * @returns 标题文本
- */
-function getCharacterItemTitle(item: CharacterPromptItem, index: number): string {
-  const preview = item.positivePrompt.trim() || '(空)';
-  const short = preview.length > 36 ? `${preview.slice(0, 36)}…` : preview;
-  return `角色 ${index + 1} · ${short}`;
-}
-
-/**
- * 格式化角色坐标展示文本
- * @param item 角色提示词
- * @param characterCount 角色总数
- * @param useCharacterCoords 是否使用手动坐标
- * @returns 坐标文本
- */
-function formatCharacterPosition(item: CharacterPromptItem, characterCount: number, useCharacterCoords?: boolean): string {
-  if (characterCount < 2 || useCharacterCoords === false) return 'Auto';
-  return `x: ${item.position.x.toFixed(2)}, y: ${item.position.y.toFixed(2)}`;
-}
-
-/**
- * 转义 Lightbox 内插文本
- * @param value 原始文本
- * @returns 安全 HTML 文本
- */
-function escapeHtml(value: string): string {
-  const node = document.createElement('span');
-  node.textContent = value;
-  return node.innerHTML;
-}
-
-/**
- * 绑定 Lightbox 相关的事件
- * @param overlay Lightbox 根元素
- * @param snapshot 提示词快照
- */
-function bindLightboxEvents(overlay: HTMLElement, snapshot?: InlinePromptSnapshot, actions?: InlineLightboxActions): void {
-  const close = () => closeLightbox(overlay, handleEsc);
-  const handleEsc = (e: KeyboardEvent) => e.key === 'Escape' && close();
-  document.addEventListener('keydown', handleEsc);
-  overlay.addEventListener('click', e => handleOverlayClick(e, overlay, close));
-  overlay.querySelector('.cv-lightbox-close')?.addEventListener('click', close);
-  bindLightboxDownload(overlay, actions);
-  bindLightboxToggle(overlay);
-  bindLightboxCopyButtons(overlay, snapshot);
-  bindCharacterItemToggles(overlay);
-}
-
-/**
- * 绑定 Lightbox 下载按钮
- * @param overlay Lightbox 根元素
- * @param actions Lightbox 操作集合
- */
-function bindLightboxDownload(overlay: HTMLElement, actions?: InlineLightboxActions): void {
-  if (!actions?.onDownload) return;
-  overlay.querySelector('.cv-lightbox-download')?.addEventListener('click', () => {
-    void Promise.resolve(actions.onDownload?.()).catch(error => {
-      console.error('[CosmosVision] 下载图片失败', error);
-    });
-  });
-}
-
-/**
- * 关闭 Lightbox 并解绑键盘事件
- * @param overlay Lightbox 根元素
- * @param handleEsc ESC 事件处理器
- */
-function closeLightbox(overlay: HTMLElement, handleEsc: (e: KeyboardEvent) => void): void {
-  overlay.classList.remove('cv-lightbox-active');
-  window.setTimeout(() => overlay.remove(), 250);
-  document.removeEventListener('keydown', handleEsc);
-}
-
-/**
- * 处理 Lightbox 背景点击
- * @param e 点击事件
- * @param overlay Lightbox 根元素
- * @param close 关闭方法
- */
-function handleOverlayClick(e: MouseEvent, overlay: HTMLElement, close: () => void): void {
-  if (e.target === overlay || e.target === overlay.querySelector('.cv-lightbox-img-box')) close();
-}
-
-/**
- * 绑定提示词详情折叠按钮
- * @param overlay Lightbox 根元素
- */
-function bindLightboxToggle(overlay: HTMLElement): void {
-  const info = overlay.querySelector('.cv-lightbox-info') as HTMLElement | null;
-  const toggleBtn = overlay.querySelector('.cv-lightbox-toggle-btn') as HTMLElement | null;
-  toggleBtn?.addEventListener('click', () => togglePromptInfo(info, toggleBtn));
-}
-
-/**
- * 切换提示词详情显示状态
- * @param info 提示词面板
- * @param toggleBtn 切换按钮
- */
-function togglePromptInfo(info: HTMLElement | null, toggleBtn: HTMLElement): void {
-  const isCollapsed = Boolean(info?.classList.toggle('cv-info-collapsed'));
-  const icon = isCollapsed ? 'fa-eye' : 'fa-eye-slash';
-  const text = isCollapsed ? '显示' : '隐藏';
-  toggleBtn.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${text}</span>`;
-}
-
-/**
- * 绑定提示词复制按钮
- * @param overlay Lightbox 根元素
- * @param snapshot 提示词快照
- */
-function bindLightboxCopyButtons(overlay: HTMLElement, snapshot?: InlinePromptSnapshot): void {
-  const copyPos = overlay.querySelector('.cv-copy-pos');
-  const copyNeg = overlay.querySelector('.cv-copy-neg');
-  copyPos?.addEventListener('click', e => copyText(snapshot?.positivePrompt || '', e.currentTarget as HTMLElement));
-  copyNeg?.addEventListener('click', e => copyText(snapshot?.negativePrompt || '', e.currentTarget as HTMLElement));
-
-  const characters = snapshot?.novelai?.characterPrompts ?? [];
-  overlay.querySelectorAll<HTMLElement>('.cv-copy-char-pos').forEach(btn => {
-    btn.addEventListener('click', e => {
-      const idxStr = btn.dataset.charIndex;
-      const idx = idxStr !== undefined ? parseInt(idxStr, 10) : -1;
-      const text = characters[idx]?.positivePrompt || '';
-      void copyText(text, e.currentTarget as HTMLElement);
-    });
-  });
-
-  overlay.querySelectorAll<HTMLElement>('.cv-copy-char-neg').forEach(btn => {
-    btn.addEventListener('click', e => {
-      const idxStr = btn.dataset.charIndex;
-      const idx = idxStr !== undefined ? parseInt(idxStr, 10) : -1;
-      const text = characters[idx]?.negativePrompt || '';
-      void copyText(text, e.currentTarget as HTMLElement);
-    });
-  });
-}
-
-/**
- * 绑定角色提示词单项折叠按钮（默认折叠）
- * @param overlay Lightbox 根元素
- */
-function bindCharacterItemToggles(overlay: HTMLElement): void {
-  overlay.querySelectorAll('.cv-lightbox-character-item').forEach(node => {
-    const item = node as HTMLElement;
-    const toggle = item.querySelector('.cv-lightbox-character-toggle') as HTMLElement | null;
-    toggle?.addEventListener('click', e => {
-      e.stopPropagation();
-      toggleCharacterItem(item, toggle);
-    });
-  });
-}
-
-/**
- * 切换单个角色提示词的折叠状态
- * @param item 角色项容器
- * @param toggle 折叠按钮
- */
-function toggleCharacterItem(item: HTMLElement, toggle: HTMLElement): void {
-  const collapsed = item.classList.toggle('cv-char-collapsed');
-  toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-  const chevron = toggle.querySelector('.cv-lightbox-character-chevron');
-  if (chevron) {
-    chevron.classList.toggle('fa-chevron-right', collapsed);
-    chevron.classList.toggle('fa-chevron-down', !collapsed);
-  }
-}
-
-/**
- * 打开 Lightbox 大图预览弹窗
- * @param src 图片地址
- * @param snapshot 提示词快照
- */
-export function openInlineImageLightbox(
-  src: string,
-  snapshot?: InlinePromptSnapshot,
-  actions?: InlineLightboxActions,
-): void {
-  const overlay = createLightboxDOM(src, snapshot, actions);
-  document.body.appendChild(overlay);
-  requestAnimationFrame(() => {
-    overlay.classList.add('cv-lightbox-active');
-  });
-  bindLightboxEvents(overlay, snapshot, actions);
 }

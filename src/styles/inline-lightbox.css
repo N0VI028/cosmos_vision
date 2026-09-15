@@ -3,20 +3,19 @@
 /**
  * 内联生图大图预览与提示词详情
  *
- * Batch B3 残留：`inlineImageLightbox.ts` 以 innerHTML/createElement 挂 body
+ * 由 `InlineImageLightbox.vue` 组件渲染（Teleport 挂 body），
+ * 图片缩放/平移手势由 PrimeVue Gallery 提供。
  *
- * 为何不迁 Tailwind 行内：
- * 1. 节点树由字符串模板拼装，class 名是 JS 选择器契约（toggle / copy / collapse），
- *    改工具类需同步重写 composable 全部 querySelector 与状态 class。
- * 2. 伪元素：`.cv-lightbox-title-pos|neg|char::before` 色点指示器。
- * 3. 滚动条：`::-webkit-scrollbar*` 自定义。
- * 4. 布局特例：`100dvh` / `env(safe-area-inset-*)` / `max-height: min(70vh, 70dvh)` /
+ * 为何保留独立 CSS：
+ * 1. 伪元素：`.cv-lightbox-title-pos|neg|char::before` 色点指示器。
+ * 2. 滚动条：`::-webkit-scrollbar*` 自定义。
+ * 3. 布局特例：`100dvh` / `env(safe-area-inset-*)` / `max-height: min(70vh, 70dvh)` /
  *    sticky 角色标题 / collapsed max-height 动画态。
- * 5. `@media (max-width: 640px)` 全屏图与 info 面板响应。
- * 6. 固定深色毛玻璃叠层（与 `--cv-*` 设置壳无关的独立视觉语言）。
+ * 4. `@media (max-width: 640px)` 全屏图与 info 面板响应。
+ * 5. 固定深色毛玻璃叠层（与 `--cv-*` 设置壳无关的独立视觉语言）。
  *
- * 迁移条件：Lightbox 改为 Vue 组件模板渲染后，可再评估布局子集行内化；
- * 伪元素与 scrollbar 仍须 CSS。
+ * 注意：图片尺寸由 Gallery 的 calculateItemSize 按容器尺寸计算显式像素宽高，
+ * 此处不得再对图片设置 max-width/max-height。
  */
 
 .cv-lightbox-overlay {
@@ -29,14 +28,19 @@
   height: 100dvh;
   background-color: rgba(10, 10, 12, 0.85);
   font-family: var(--mainFontFamily, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
-  opacity: 0;
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
+}
+
+/* Vue Transition 淡入淡出（0.25s） */
+.cv-lightbox-enter-active,
+.cv-lightbox-leave-active {
   transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.cv-lightbox-overlay.cv-lightbox-active {
-  opacity: 1;
+.cv-lightbox-enter-from,
+.cv-lightbox-leave-to {
+  opacity: 0;
 }
 
 .cv-lightbox-toolbar {
@@ -47,15 +51,23 @@
   gap: 0.75rem;
 }
 
+/* 工具栏四键共享视觉（缩放键为 PrimeVue Gallery action，下载/关闭为原生按钮）；
+   尺寸单一来源：gallery action token 变量（含移动端缩小覆盖，见 preset gallery css）；
+   前缀 cosmos-vision-root 抬高特异性以盖过官方 .p-gallery-action 的 background: transparent */
+.cosmos-vision-root .cv-lightbox-gallery-action,
+.cosmos-vision-root .cv-lightbox-download,
+.cosmos-vision-root .cv-lightbox-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
 .cv-lightbox-download,
 .cv-lightbox-close {
   @apply flex items-center justify-center rounded-full;
-  width: 2.5rem;
-  height: 2.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.1);
+  width: var(--cvp-gallery-action-size, 2.5rem);
+  height: var(--cvp-gallery-action-size, 2.5rem);
+  font-size: var(--cvp-gallery-action-icon-size, 1.25rem);
   color: #ffffff;
-  font-size: 1.25rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -69,16 +81,15 @@
   transform: rotate(90deg);
 }
 
-.cv-lightbox-wrapper {
-  @apply flex h-full w-full flex-col items-center justify-center;
-  position: relative;
-  gap: 0;
-  transform: scale(0.95);
+/* 进入/离开：图片区轻微缩放（原 wrapper 已移除，动画挂在 img-box 上） */
+.cv-lightbox-enter-active .cv-lightbox-img-box,
+.cv-lightbox-leave-active .cv-lightbox-img-box {
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.cv-lightbox-overlay.cv-lightbox-active .cv-lightbox-wrapper {
-  transform: scale(1);
+.cv-lightbox-enter-from .cv-lightbox-img-box,
+.cv-lightbox-leave-to .cv-lightbox-img-box {
+  transform: scale(0.95);
 }
 
 .cv-lightbox-img-box {
@@ -88,13 +99,15 @@
   z-index: 1;
 }
 
-.cv-lightbox-img-box img {
-  max-width: 100%;
-  max-height: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-  object-fit: contain;
+/* Gallery 根容器布局由官方 .p-gallery 默认样式提供（100%/relative/flex），无需覆盖 */
+
+/* GalleryContent 布局锚点：居中 + 铺满，GalleryItem 依赖 contentEl 尺寸计算图片大小 */
+.cv-lightbox-gallery-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 .cv-lightbox-info {
@@ -395,21 +408,6 @@
 }
 
 @media (max-width: 640px) {
-  .cv-lightbox-wrapper {
-    width: 100%;
-    height: 100%;
-    max-height: 100%;
-    max-width: 100%;
-  }
-
-  .cv-lightbox-img-box img {
-    max-width: 100vw;
-    max-height: 100vh;
-    max-height: 100dvh;
-    border: none;
-    border-radius: 0;
-  }
-
   .cv-lightbox-info {
     bottom: env(safe-area-inset-bottom);
     max-height: min(70dvh, calc(100dvh - env(safe-area-inset-top) - 4rem));
@@ -417,5 +415,12 @@
 
   .cv-lightbox-info-body {
     padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  }
+
+  /* 工具栏间距收紧；四键尺寸缩小由 gallery token 变量覆盖统一处理 */
+  .cv-lightbox-toolbar {
+    top: max(1rem, env(safe-area-inset-top));
+    right: max(1rem, env(safe-area-inset-right));
+    gap: 0.5rem;
   }
 }

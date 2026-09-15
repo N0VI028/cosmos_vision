@@ -44,6 +44,7 @@
     :dark-mode="darkMode"
     @submit="handleImageDownloadDialog"
   />
+  <InlineImageLightbox />
   <Teleport to="body">
     <!-- 顶部生图模式提示蒙版 -->
     <Transition name="cv-fade">
@@ -133,6 +134,7 @@ import { storeToRefs } from 'pinia';
 import { DARK_CLASS } from '@/constants/default-settings';
 import SettingsDialog from '@/panel/SettingsDialog.vue';
 import ImageDownloadDialog from '@/panel/components/ImageDownloadDialog.vue';
+import InlineImageLightbox from '@/panel/components/InlineImageLightbox.vue';
 import TextInputDialog from '@/panel/components/TextInputDialog.vue';
 import { useSettingsStore } from '@/store/settings';
 import {

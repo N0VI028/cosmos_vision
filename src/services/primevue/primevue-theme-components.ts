@@ -399,6 +399,26 @@ export const cosmosPrimeComponents = {
       dark: accordionColor,
     },
   },
+  gallery: {
+    css: `
+      /* 移动端工具栏按钮缩小：覆盖官方 action token 变量，官方 .p-gallery-action
+         与消费同名变量的原生按钮（下载/关闭，见 inline-lightbox.css）自动跟随 */
+      @media (max-width: 640px) {
+        .cosmos-vision-root .p-gallery {
+          --cvp-gallery-action-size: 2rem;
+          --cvp-gallery-action-icon-size: 1rem;
+        }
+      }
+    `,
+    action: {
+      size: '2.5rem',
+      icon: { size: '1.25rem' },
+      color: '#ffffff',
+      hoverBackground: 'rgba(255, 255, 255, 0.25)',
+      hoverColor: '#ffffff',
+      transitionDuration: '0.2s',
+    },
+  },
   galleria: {
     root: {
       borderWidth: '0',
