@@ -261,6 +261,7 @@ export function useInlineImageGeneration(
         }
       } else {
         const bubble = resolveFrontendBubbleRoot(target);
+        if (!bubble || bubble === bubble.closest('.mes_text')) return;
         e.preventDefault();
         if (hasMixedRoute(selectedParagraphs.value, bubble)) {
           setSelection([bubble]);
