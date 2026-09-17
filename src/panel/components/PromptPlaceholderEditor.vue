@@ -1,11 +1,11 @@
 <template>
   <div class="block">
     <div
-      ref="editorEl"
       class="min-h-24 rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cvp-content-border-color) bg-(--cvp-inputtext-background) p-(--cv-space-3xl) leading-[1.5] wrap-break-word whitespace-pre-wrap text-(--cvp-inputtext-color) outline-none focus-within:border-(--cvp-primary-color) focus-within:shadow-[0_0_0_1px_color-mix(in_srgb,var(--cvp-primary-color)_45%,transparent)]"
       :class="{ 'is-dragging': isDragging }"
       role="textbox"
       aria-multiline="true"
+      @pointerdown="handleContainerPointerDown"
     >
       <span
         ref="beforeEl"
@@ -68,7 +68,6 @@ type CaretDocument = Document & {
 const props = defineProps<{ modelValue: PromptPlaceholderValue }>();
 const emit = defineEmits<{ 'update:modelValue': [PromptPlaceholderValue] }>();
 
-const editorEl = ref<HTMLElement | null>(null);
 const beforeEl = ref<HTMLElement | null>(null);
 const afterEl = ref<HTMLElement | null>(null);
 const tokenEl = ref<HTMLElement | null>(null);
@@ -152,7 +151,6 @@ function pastePlainText(event: ClipboardEvent): void {
  * @param event 指针事件
  */
 function startMove(event: PointerEvent): void {
-  event.preventDefault();
   pointerId.value = event.pointerId;
   startPoint.value = { x: event.clientX, y: event.clientY };
   dragText.value = readFullText();
@@ -169,7 +167,9 @@ function movePlaceholder(event: PointerEvent): void {
   if (!isDragging.value && !hasMovedEnough(event, startPoint.value)) return;
   event.preventDefault();
   isDragging.value = true;
-  draftOffset.value = getOffsetFromPoint(event.clientX, event.clientY);
+  const nextOffset = getOffsetFromPoint(event.clientX, event.clientY);
+  if (nextOffset === null || nextOffset === draftOffset.value) return;
+  draftOffset.value = nextOffset;
   renderValue({ text: dragText.value, placeholderOffset: draftOffset.value });
 }
 
@@ -179,9 +179,11 @@ function movePlaceholder(event: PointerEvent): void {
  */
 function finishMove(event: PointerEvent): void {
   if (event.pointerId !== pointerId.value) return;
-  const nextOffset = isDragging.value ? draftOffset.value : normalizeValue(props.modelValue).placeholderOffset;
+  const wasDragging = isDragging.value;
+  const nextOffset = wasDragging ? draftOffset.value : normalizeValue(props.modelValue).placeholderOffset;
   tokenEl.value?.releasePointerCapture(event.pointerId);
   resetPointerState();
+  if (!wasDragging) focusEditableByTokenSide(event.clientX);
   emitValue({ text: dragText.value || readFullText(), placeholderOffset: nextOffset });
 }
 
@@ -217,6 +219,99 @@ function hasMovedEnough(event: PointerEvent, point: Point): boolean {
 }
 
 /**
+ * 容器兜底聚焦：仅点击落在空白区域时把光标交给相邻可编辑区
+ * @param event 指针事件
+ */
+function handleContainerPointerDown(event: PointerEvent): void {
+  if (eventPathHits(event, isInsideEditable) || eventPathHits(event, isInsideToken)) return;
+  event.preventDefault();
+  const caret = getCaretFromPoint(event.clientX, event.clientY);
+  if (caret && focusEditableAtCaret(caret)) return;
+  focusEditableByTokenSide(event.clientX);
+}
+
+/**
+ * 判断事件路径中是否有节点满足命中条件
+ * @param event 指针事件
+ * @param hit 命中判定
+ * @returns 是否命中
+ */
+function eventPathHits(event: PointerEvent, hit: (node: Node) => boolean): boolean {
+  return event.composedPath().some((node) => node instanceof Node && hit(node));
+}
+
+/**
+ * 判断命中节点是否为可编辑区
+ * @param node 命中节点
+ * @returns 是否属于可编辑区
+ */
+function isInsideEditable(node: Node): boolean {
+  return resolveEditableSpan(node) !== null;
+}
+
+/**
+ * 判断命中节点是否为徽章（含其内部子元素）
+ * @param node 命中节点
+ * @returns 是否属于徽章
+ */
+function isInsideToken(node: Node): boolean {
+  return !!tokenEl.value?.contains(node);
+}
+
+/**
+ * 定位节点所属的可编辑区
+ * @param node 命中节点
+ * @returns 可编辑区元素
+ */
+function resolveEditableSpan(node: Node): HTMLElement | null {
+  if (beforeEl.value?.contains(node)) return beforeEl.value;
+  if (afterEl.value?.contains(node)) return afterEl.value;
+  return null;
+}
+
+/**
+ * 按浏览器光标位置聚焦对应可编辑区
+ * @param caret 浏览器光标位置
+ * @returns 是否命中可编辑区
+ */
+function focusEditableAtCaret(caret: CaretPoint): boolean {
+  const target = resolveEditableSpan(caret.offsetNode);
+  if (!target) return false;
+  target.focus();
+  const range = document.createRange();
+  range.setStart(caret.offsetNode, caret.offset);
+  range.collapse(true);
+  applySelection(range);
+  return true;
+}
+
+/**
+ * 按点击位置与徽章的关系聚焦相邻可编辑区
+ * @param x 屏幕 X
+ */
+function focusEditableByTokenSide(x: number): void {
+  const rect = tokenEl.value?.getBoundingClientRect();
+  const onLeft = rect ? x < rect.left : false;
+  const target = onLeft ? beforeEl.value : afterEl.value;
+  if (!target) return;
+  target.focus();
+  const range = document.createRange();
+  range.selectNodeContents(target);
+  range.collapse(!onLeft);
+  applySelection(range);
+}
+
+/**
+ * 应用光标选区
+ * @param range 目标选区
+ */
+function applySelection(range: Range): void {
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+}
+
+/**
  * 读取完整固定文本
  * @returns 固定文本
  */
@@ -228,14 +323,13 @@ function readFullText(): string {
  * 根据屏幕坐标计算占位符位置
  * @param x 屏幕 X
  * @param y 屏幕 Y
- * @returns 占位符 offset
+ * @returns 占位符 offset，命中点无法解析时为 null
  */
-function getOffsetFromPoint(x: number, y: number): number {
+function getOffsetFromPoint(x: number, y: number): number | null {
   const caret = getCaretFromPoint(x, y);
-  if (caret) {
-    return clampImagePromptPlaceholderOffset(dragText.value, getOffsetFromNode(caret.offsetNode, caret.offset, x));
-  }
-  return fallbackOffsetFromPoint(x);
+  if (!caret) return null;
+  const offset = getOffsetFromNode(caret.offsetNode, caret.offset);
+  return offset === null ? null : clampImagePromptPlaceholderOffset(dragText.value, offset);
 }
 
 /**
@@ -256,15 +350,14 @@ function getCaretFromPoint(x: number, y: number): CaretPoint | null {
  * 把 DOM 节点位置换算为逻辑 offset
  * @param node DOM 节点
  * @param offset 节点内 offset
- * @param x 屏幕 X
- * @returns 逻辑 offset
+ * @returns 逻辑 offset，节点不在可编辑区内时为 null
  */
-function getOffsetFromNode(node: Node, offset: number, x = 0): number {
+function getOffsetFromNode(node: Node, offset: number): number | null {
   const before = beforeEl.value;
   const after = afterEl.value;
   if (before?.contains(node)) return getLocalOffset(before, node, offset);
   if (after?.contains(node)) return getBeforeLength() + getLocalOffset(after, node, offset);
-  return fallbackOffsetFromPoint(x);
+  return null;
 }
 
 /**
@@ -279,17 +372,6 @@ function getLocalOffset(root: HTMLElement, node: Node, offset: number): number {
     return clampImagePromptPlaceholderOffset(root.textContent ?? '', offset);
   }
   return offset <= 0 ? 0 : (root.textContent ?? '').length;
-}
-
-/**
- * 粗粒度回退落点
- * @param x 屏幕 X
- * @returns 逻辑 offset
- */
-function fallbackOffsetFromPoint(x: number): number {
-  const rect = editorEl.value?.getBoundingClientRect();
-  if (!rect) return normalizeValue(props.modelValue).placeholderOffset;
-  return x < rect.left + rect.width / 2 ? 0 : readFullText().length;
 }
 
 /**
