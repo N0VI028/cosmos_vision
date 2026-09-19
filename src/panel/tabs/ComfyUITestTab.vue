@@ -187,6 +187,7 @@ import { useFocusedParagraphInput } from '@/composables/useFocusedParagraphInput
 import { useTestActionButton } from '@/composables/useTestActionButton';
 import { useTestRequestSession, type TestRequestSession } from '@/composables/useTestRequestSession';
 import type { PromptLlmAccount } from '@/constants/prompt-llm';
+import { getPromptLlmRequestAccounts } from '@/services/prompt-llm/router';
 import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue';
 import TestImageGallery from '@/panel/components/TestImageGallery.vue';
 
@@ -208,11 +209,9 @@ import {
   extractPromptLlmResult,
 } from '@/services/prompt-llm/runtime-request';
 import {
-  buildPromptLlmLogParams,
-  buildPromptLlmParamRows,
+  buildPromptLlmAccountParamRows,
   formatPromptLlmRequestLog,
   requestPromptLlmRaw,
-  type PromptLlmLogParams,
 } from '@/services/tavern-helper/prompt-llm-test';
 
 type TestMode = 'direct' | 'llm';
@@ -240,7 +239,7 @@ const directNegativePrompt = ref('');
 const requestSnapshot = ref<ComfyUIRequestSnapshot | null>(null);
 const llmRawResponse = ref('');
 const llmSentPromptLog = ref('');
-const llmLogParams = ref<PromptLlmLogParams | null>(null);
+const routedAccount = ref<PromptLlmAccount | undefined>(undefined);
 
 const isRunning = computed(() => testStatus.value === 'running');
 const useLlmMode = computed({
@@ -286,9 +285,6 @@ const previewPromptSnapshot = computed<InlinePromptSnapshot | undefined>(() => {
     comfyui: snapshot,
   };
 });
-const displayLlmLogParams = computed(() => {
-  return llmLogParams.value ?? buildPromptLlmLogParams(settings.promptLlm);
-});
 
 const snapshotRows = computed<ParamRow[]>(() => {
   if (!requestSnapshot.value) return [];
@@ -310,7 +306,9 @@ const snapshotRows = computed<ParamRow[]>(() => {
   ];
 });
 
-const llmParamRows = computed(() => buildPromptLlmParamRows(displayLlmLogParams.value));
+const llmParamRows = computed(() =>
+  buildPromptLlmAccountParamRows(routedAccount.value ?? getPromptLlmRequestAccounts(settings.promptLlm)[0]),
+);
 
 /**
  * 格式化快照中的 LoRA 列表
@@ -411,7 +409,6 @@ function runDirectModeTest(): ComfyUIResolvedRequest {
  * @returns 已解析的 ComfyUI 请求
  */
 async function runLlmModeTest(session: TestRequestSession): Promise<ComfyUIResolvedRequest> {
-  llmLogParams.value = buildPromptLlmLogParams(settings.promptLlm);
   const requestError = getPromptLlmRequestError(settings.promptLlm);
   if (requestError) throw new Error(requestError);
 
@@ -419,6 +416,7 @@ async function runLlmModeTest(session: TestRequestSession): Promise<ComfyUIResol
   const result = await requestPromptLlmRaw(
     settings.promptLlm,
     async account => {
+      routedAccount.value = account;
       const request = await buildLlmModeRequest(schemaFields, account);
       if (requestSession.isCurrent(session)) llmSentPromptLog.value = formatPromptLlmRequestLog(request);
       return request;
@@ -463,7 +461,7 @@ function resetTestResult(): void {
   requestSnapshot.value = null;
   llmRawResponse.value = '';
   llmSentPromptLog.value = '';
-  llmLogParams.value = null;
+  routedAccount.value = undefined;
   previewBlobs.value = [];
 }
 

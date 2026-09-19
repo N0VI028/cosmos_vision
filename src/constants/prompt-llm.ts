@@ -35,6 +35,16 @@ export interface PromptLlmAccount {
   customExcludeBody: string;
   /** 自定义源附加请求头(YAML 文本) */
   customIncludeHeaders: string;
+  /** 生成参数按账号配置：温度 */
+  temperature: number;
+  /** 生成参数按账号配置：最大输出令牌数 */
+  maxTokens: number;
+  /** 生成参数按账号配置：Top P */
+  topP: number;
+  /** 生成参数按账号配置：Top K */
+  topK: number;
+  /** 是否启用流式请求（按账号配置） */
+  shouldStream: boolean;
   enabled: boolean;
 }
 
@@ -58,12 +68,17 @@ export function createPromptLlmAccount(id: string, apiUrl = '', apiKey = '', nam
     customIncludeBody: '',
     customExcludeBody: '',
     customIncludeHeaders: '',
+    temperature: 0.7,
+    maxTokens: 32000,
+    topP: 1.0,
+    topK: 0,
+    shouldStream: false,
     enabled: true,
   };
 }
 
 /**
- * 获取 LLM 账号在账号列表 Header 上显示的展示名称
+ * 获取 LLM 账号在账号列表 Header 上展示的展示名称
  * 始终使用用户设置的账号名，未设置时统一回退为“未命名账号”，
  * 避免在测试页等场景暴露账号 id 或索引顺序
  * @param account 账号对象；可缺省
@@ -82,16 +97,6 @@ export interface PromptLlmSettings {
   routingMode: PromptLlmRoutingMode;
   /** 超时时间 */
   timeout: number;
-  /** 温度(可选) */
-  temperature: number;
-  /** 最大 token(可选) */
-  maxTokens: number;
-  /** top_p(可选) */
-  topP: number;
-  /** top_k(可选) */
-  topK: number;
-  /** 是否启用流式请求 */
-  shouldStream: boolean;
   /** 向前追溯的历史楼层数，不含当前焦点楼层 */
   historyFloorCount: number;
   /** 追溯历史时是否忽略 user 楼层 */
@@ -134,7 +139,7 @@ export interface PromptLlmSettings {
 export interface PromptLlmContext {
   /** 按时间顺序拼装的历史上下文，末尾包含当前焦点楼层文本 */
   historyParagraphs: string[];
-  /** 当前选中的高光段落 */
+  /** 当前选中的高亮段落 */
   focusParagraph: string;
   /** 用户仅针对本次生图的特别要求 */
   specialRequest: string;

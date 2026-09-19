@@ -286,6 +286,7 @@ import { useTestActionButton } from '@/composables/useTestActionButton';
 import { useTestRequestSession, type TestRequestSession } from '@/composables/useTestRequestSession';
 import type { CharacterPromptItem } from '@/constants/novelai';
 import type { PromptLlmAccount } from '@/constants/prompt-llm';
+import { getPromptLlmRequestAccounts } from '@/services/prompt-llm/router';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
@@ -307,11 +308,9 @@ import {
   extractPromptLlmResult,
 } from '@/services/prompt-llm/runtime-request';
 import {
-  buildPromptLlmLogParams,
-  buildPromptLlmParamRows,
+  buildPromptLlmAccountParamRows,
   formatPromptLlmRequestLog,
   requestPromptLlmRaw,
-  type PromptLlmLogParams,
 } from '@/services/tavern-helper/prompt-llm-test';
 
 type NovelAITestMode = 'direct' | 'llm';
@@ -359,7 +358,7 @@ const novelaiSnapshot = ref<NovelAIRequestSnapshot | null>(null);
 const expandedCharacterIndexes = ref(new Set<number>());
 const llmRawResponse = ref('');
 const llmSentPromptLog = ref('');
-const llmLogParams = ref<PromptLlmLogParams | null>(null);
+const routedAccount = ref<PromptLlmAccount | undefined>(undefined);
 
 const isRunning = computed(() => testStatus.value === 'running');
 const useLlmMode = computed({
@@ -409,9 +408,6 @@ const previewPromptSnapshot = computed<InlinePromptSnapshot | undefined>(() => {
     negativePrompt: novelaiSnapshot.value.negativePrompt,
   };
 });
-const displayLlmLogParams = computed(() => {
-  return llmLogParams.value ?? buildPromptLlmLogParams(settings.promptLlm);
-});
 
 const novelaiParamRows = computed<ParamRow[]>(() => {
   if (!novelaiSnapshot.value) return [];
@@ -438,7 +434,9 @@ const novelaiParamRows = computed<ParamRow[]>(() => {
   ];
 });
 
-const llmParamRows = computed(() => buildPromptLlmParamRows(displayLlmLogParams.value));
+const llmParamRows = computed(() =>
+  buildPromptLlmAccountParamRows(routedAccount.value ?? getPromptLlmRequestAccounts(settings.promptLlm)[0]),
+);
 
 /**
  * 主操作按钮点击：运行中终止，否则启动测试
@@ -502,13 +500,13 @@ async function runDirectModeTest(session: TestRequestSession): Promise<void> {
  * @param session 当前测试会话
  */
 async function runLlmModeTest(session: TestRequestSession): Promise<void> {
-  llmLogParams.value = buildPromptLlmLogParams(settings.promptLlm);
   const requestError = getPromptLlmRequestError(settings.promptLlm);
   if (requestError) throw new Error(requestError);
 
   const result = await requestPromptLlmRaw(
     settings.promptLlm,
     async account => {
+      routedAccount.value = account;
       const request = await buildLlmModeRequest(account);
       if (requestSession.isCurrent(session)) llmSentPromptLog.value = formatPromptLlmRequestLog(request);
       return request;
@@ -703,7 +701,7 @@ function resetTestResult(): void {
   expandedCharacterIndexes.value = new Set();
   llmRawResponse.value = '';
   llmSentPromptLog.value = '';
-  llmLogParams.value = null;
+  routedAccount.value = undefined;
   previewBlobs.value = [];
 }
 

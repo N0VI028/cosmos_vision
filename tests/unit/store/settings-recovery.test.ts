@@ -73,8 +73,8 @@ describe('settings store recovery and state management', () => {
     expect(promptLlm.accounts[0].source).toBe('deepseek');
     expect(promptLlm.accounts[0].customIncludeBody).toBe('reasoning_effort: high');
     expect(promptLlm.timeout).toBe(90);
-    expect(promptLlm.temperature).toBe(0.5);
-    expect(promptLlm.shouldStream).toBe(true);
+    expect(promptLlm.accounts[0].temperature).toBe(0.5);
+    expect(promptLlm.accounts[0].shouldStream).toBe(true);
   });
 
   it('keeps fresh default account when no legacy connection fields exist', () => {
@@ -88,6 +88,6 @@ describe('settings store recovery and state management', () => {
     expect(promptLlm.accounts).toHaveLength(1);
     expect(promptLlm.accounts[0].id).toBe('prompt-llm-account-1');
     expect(promptLlm.accounts[0].apiUrl).toBe('');
-    expect(promptLlm.temperature).toBe(0.9);
+    expect(promptLlm.accounts[0].temperature).toBe(0.9);
   });
 });

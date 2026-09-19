@@ -59,8 +59,35 @@
   font-size: 1.1em;
 }
 
+/* 悬浮球红点（进行中的 LLM 会话提示）：次级菜单按钮与主悬浮球共用 */
+.cv-speed-dial-menu > button .cv-fab-menu-dot,
+.cv-inline-mode-fab .cv-fab-menu-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 50%;
+  background: var(--cvp-red-500, #e75a5a);
+  animation: cv-llm-inspector-pulse 1.6s ease-out infinite;
+}
+
+@keyframes cv-llm-inspector-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--cvp-red-500, #e75a5a) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 0.45em transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
 /* 主悬浮按钮 */
 .cv-inline-mode-fab {
+  /* 作为红点（.cv-fab-menu-dot）的绝对定位锚；拖拽定位在祖先 .cv-speed-dial-container 上，互不影响 */
+  position: relative;
   @apply inline-flex cursor-pointer items-center justify-center p-0;
   width: 3.2em;
   height: 3.2em;
@@ -101,6 +128,12 @@
 
 .cv-inline-mode-fab i {
   font-size: 1.35em;
+}
+
+/* 主悬浮球（3.2em）相对次级按钮更大，红点按比例放大 */
+.cv-inline-mode-fab .cv-fab-menu-dot {
+  width: 0.7em;
+  height: 0.7em;
 }
 
 /* 移动端悬浮球与子菜单响应式按比例微调 */
@@ -437,7 +470,7 @@ body.dark .cv-inline-toolbar {
   }
 }
 
-/* 画廊外框：明暗模式共用同一底色变量，圆角统一裁切子元素，临时去除边框排查问题 */
+/* 画廊外框：明暗模式共用同一底色变量，圆角统一裁剪子元素，临时去除边框排查问题 */
 .cv-inline-favorite-content {
   width: 100%;
   border-radius: var(--cv-radius-sm);
@@ -792,7 +825,7 @@ body.dark .cv-inline-toolbar {
   }
 }
 
-/* 段落下方生成状态条容器 */
+/* 段落下方的生成状态条容器 */
 .cv-inline-generation-status {
   display: block;
   width: 100%;

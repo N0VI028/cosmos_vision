@@ -18,6 +18,7 @@
 
 .cosmos-vision-root .cv-shell {
   @apply flex;
+  position: relative;
   height: 100%;
   background: var(--cv-background);
   color: var(--cv-on-surface);
@@ -26,12 +27,119 @@
   line-height: 1.5;
 }
 
+/* 侧栏收起/展开圆形切换钮：骑跨分界线，位于商标区与首个导航项之间 */
+.cosmos-vision-root .cv-rail-toggle {
+  --icon-size: calc(var(--cv-font-size-xs) * 0.85);
+  position: absolute;
+  top: 6.9em;
+  left: var(--cv-sidebar-width);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6em;
+  height: 1.6em;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: var(--cv-border-width) solid var(--cv-surface-variant);
+  border-radius: var(--cv-radius-full);
+  background: var(--cv-background);
+  color: var(--cv-surface-variant);
+  cursor: pointer;
+  transition:
+    top 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    left 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+/* 收起态：商标区收缩为 4.5em，按钮跟随上移 */
+.cosmos-vision-root .cv-shell--rail-collapsed .cv-rail-toggle {
+  top: 4.9em;
+}
+
+.cosmos-vision-root .cv-rail-toggle i {
+  font-size: var(--icon-size, calc(var(--cv-font-size-xs) * 0.85));
+}
+
+.cosmos-vision-root .cv-rail-toggle:hover {
+  background: var(--cv-surface-container-high);
+  color: var(--cv-on-surface);
+}
+
+/* 侧栏收起态（桌面手动切换 / 窄屏同表现）：竖排单图标栏 */
+.cosmos-vision-root .cv-shell--rail-collapsed {
+  --cv-sidebar-width: 2.6em;
+}
+
+.cosmos-vision-root .cv-shell--rail-collapsed .cv-brand {
+  height: 4.5em;
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+}
+
+.cosmos-vision-root .cv-shell--rail-collapsed .cv-brand-icon {
+  width: 1.75em;
+  height: 1.75em;
+  font-size: var(--cv-font-size-base);
+}
+
+.cosmos-vision-root .cv-shell--rail-collapsed .cv-brand-text {
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  margin: 0;
+}
+
+.cosmos-vision-root .cv-shell--rail-collapsed .cv-nav {
+  align-items: center;
+  gap: var(--cv-space-lg);
+  /* 顶部为骑跨分界线的切换钮腾位（按钮位于商标与首项之间） */
+  padding: 2em 0 var(--cv-space-4xl);
+}
+
+.cosmos-vision-root .cv-shell--rail-collapsed .cv-nav-label {
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  margin: 0;
+}
+
+.cosmos-vision-root .cv-shell--rail-collapsed .cv-nav-item {
+  width: 2em;
+  height: 2em;
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+  border-radius: var(--cv-radius-full);
+}
+
+.cosmos-vision-root .cv-shell--rail-collapsed .cv-nav-icon {
+  font-size: var(--cv-font-size-base);
+}
+
+.cosmos-vision-root .cv-shell--rail-collapsed .cv-nav-item--active {
+  transform: none;
+}
+
 .cosmos-vision-root .cv-sidebar {
   @apply flex flex-col p-0;
   flex: 0 0 var(--cv-sidebar-width);
   width: var(--cv-sidebar-width);
+  min-width: 0;
+  overflow: hidden;
   background: var(--cv-surface-container-low);
   border-right: var(--cv-border-width) solid var(--cv-surface-variant);
+  transition:
+    width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    flex-basis 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cosmos-vision-root .cv-brand {
@@ -39,6 +147,12 @@
   height: 6.4em;
   gap: var(--cv-space-3xl);
   padding: 0 var(--cv-space-8xl);
+  overflow: hidden;
+  white-space: nowrap;
+  transition:
+    height 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    gap 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cosmos-vision-root .cv-brand-icon {
@@ -48,10 +162,24 @@
   background: var(--cv-surface-container-low);
   color: var(--cv-on-surface);
   font-size: var(--cv-font-size-lg);
+  transition:
+    width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    font-size 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cosmos-vision-root .cv-brand-text {
   @apply flex flex-col;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 0;
+  max-width: 10em;
+  overflow: hidden;
+  opacity: 1;
+  transition:
+    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cosmos-vision-root .cv-brand-title {
@@ -66,15 +194,29 @@
   flex: 1;
   gap: var(--cv-space-lg);
   padding: var(--cv-space-5xl);
+  overflow-x: hidden;
+  transition: padding 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cosmos-vision-root .cv-nav-item {
   @apply flex cursor-pointer items-center border-0 bg-transparent text-left;
+  width: 100%;
+  height: 2.7em;
   gap: var(--cv-space-3xl);
   padding: var(--cv-space-3xl) var(--cv-space-5xl);
   border-radius: var(--cv-radius-full);
   color: var(--cv-on-surface-variant);
-  transition: all 0.15s;
+  overflow: hidden;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition:
+    width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    gap 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .cosmos-vision-root .cv-nav-item:hover {
@@ -94,6 +236,7 @@
   font-size: var(--cv-font-size-lg);
   width: 1.1em;
   height: 1.1em;
+  transition: font-size 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cosmos-vision-root .cv-nav-label {
@@ -101,6 +244,16 @@
   font-size: var(--cv-font-size-xs);
   font-weight: 500;
   letter-spacing: 0.05em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 0;
+  max-width: 8em;
+  overflow: hidden;
+  opacity: 1;
+  transition:
+    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cosmos-vision-root .cv-main {
@@ -471,50 +624,9 @@
 }
 
 @media (max-width: 87.5em) {
-  .cosmos-vision-root {
-    --cv-sidebar-width: 2.6em;
-  }
-
-  .cosmos-vision-root .cv-brand {
-    height: 4.5em;
-    padding: 0;
-    justify-content: center;
-  }
-
-  .cosmos-vision-root .cv-brand-icon {
-    width: 1.75em;
-    height: 1.75em;
-    font-size: var(--cv-font-size-base);
-  }
-
-  .cosmos-vision-root .cv-brand-text {
+  /* 侧栏收起由 .cv-shell--rail-collapsed 驱动（JS 同断点强制应用），此处只保留主区适配 */
+  .cosmos-vision-root .cv-rail-toggle {
     display: none;
-  }
-
-  .cosmos-vision-root .cv-nav {
-    padding: var(--cv-space-4xl) 0;
-    align-items: center;
-    gap: var(--cv-space-lg);
-  }
-
-  .cosmos-vision-root .cv-nav-label {
-    display: none;
-  }
-
-  .cosmos-vision-root .cv-nav-item {
-    width: 2em;
-    height: 2em;
-    padding: 0;
-    justify-content: center;
-    border-radius: var(--cv-radius-full);
-  }
-
-  .cosmos-vision-root .cv-nav-icon {
-    font-size: var(--cv-font-size-base);
-  }
-
-  .cosmos-vision-root .cv-nav-item--active {
-    transform: none;
   }
 
   .cosmos-vision-root .cv-header {

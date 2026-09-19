@@ -37,7 +37,7 @@ describe('tavern-helper prompt-llm helper', () => {
     const settings = { ...DEFAULT_SETTINGS.promptLlm, accounts: [account] };
     expect(getPromptLlmRequestError(settings)).toBeNull();
 
-    const customApi = buildCustomApi(settings, settings.accounts[0]);
+    const customApi = buildCustomApi(settings.accounts[0]);
     expect(customApi.model).toBe('gpt-4o');
     expect(customApi.apiurl).toBe('http://localhost:8000/v1');
     expect(customApi.key).toBe('sk-test');

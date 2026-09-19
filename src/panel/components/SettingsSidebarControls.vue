@@ -1,6 +1,7 @@
 <template>
   <div
-    class="flex shrink-0 flex-col gap-(--cv-space-lg) p-(--cv-space-8xl) max-[87.5em]:items-center max-[87.5em]:px-0 max-[87.5em]:py-(--cv-space-4xl)"
+    class="flex shrink-0 flex-col gap-(--cv-space-lg) overflow-hidden transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)]"
+    :class="mobile ? 'items-center px-0 py-(--cv-space-4xl)' : 'p-(--cv-space-8xl)'"
   >
     <Button
       :class="[SIDEBAR_CONTROL_CLASS, SIDEBAR_ACTION_CLASS, mobile ? SIDEBAR_ICON_SIZE_CLASS : SIDEBAR_FULL_SIZE_CLASS]"

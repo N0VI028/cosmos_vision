@@ -9,7 +9,9 @@
     :content-style="contentStyle"
     @show="handleShow"
   >
-    <div class="cv-shell">
+    <div class="cv-shell" :class="{ 'cv-shell--rail-collapsed': railCollapsed }">
+      <!-- 侧栏收起/展开切换钮（骑跨分界线） -->
+      <SidebarRailToggle :collapsed="railCollapsed" @toggle="toggleRail" />
       <!-- 侧边栏导航 -->
       <nav class="cv-sidebar">
         <!-- Logo/品牌区 -->
@@ -101,7 +103,7 @@
         </div>
 
         <!-- 底部操作 -->
-        <SettingsSidebarControls v-model="darkMode" :mobile="isMobile" @start-tutorial="tutorial.start" />
+        <SettingsSidebarControls v-model="darkMode" :mobile="railCollapsed" @start-tutorial="tutorial.start" />
       </nav>
 
       <!-- 主内容区 -->
@@ -278,13 +280,14 @@
 </template>
 
 <script setup lang="ts">
-import { onClickOutside, useEventListener, useMediaQuery, useLocalStorage } from '@vueuse/core';
+import { onClickOutside, useEventListener, useLocalStorage } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 
 import { DARK_CLASS } from '@/constants/default-settings';
 import '@/panel/styles/settings-dialog.css';
 import OnboardingTutorial from '@/panel/components/onboarding/OnboardingTutorial.vue';
 import SettingsSidebarControls from '@/panel/components/SettingsSidebarControls.vue';
+import SidebarRailToggle from '@/panel/components/SidebarRailToggle.vue';
 import ComfyUITab from '@/panel/tabs/ComfyUITab.vue';
 import MainTab from '@/panel/tabs/MainTab.vue';
 import NovelAITab from '@/panel/tabs/NovelAITab.vue';
@@ -292,6 +295,7 @@ import PromptLlmTab from '@/panel/tabs/PromptLlmTab.vue';
 import PromptProfilesTab from '@/panel/tabs/PromptProfilesTab.vue';
 import SubTabNav from '@/panel/components/SubTabNav.vue';
 import { useSettingsOnboardingTutorial } from '@/panel/composables/useSettingsOnboardingTutorial';
+import { useShellDialogStyle } from '@/composables/useShellDialogStyle';
 import { useSettingsStore } from '@/store/settings';
 import {
   FOCUSED_PARAGRAPH_ELEMENTS_KEY,
@@ -352,10 +356,20 @@ const { darkMode } = storeToRefs(settingsStore);
 const settingsDialogClass = computed(() => ({ [DARK_CLASS]: darkMode.value }));
 const confirmDialogClass = computed(() => ['cv-confirm-dialog', settingsDialogClass.value]);
 
-const isMobile = useMediaQuery('(max-width: 87.5em)');
-const dialogStyle = computed(() =>
-  isMobile.value ? { width: '95vw', height: '95vh' } : { width: '40vw', height: '70vh', maxHeight: '80vh' },
-);
+const { isMobile, dialogStyle } = useShellDialogStyle();
+
+/** 用户手动收起侧栏标记 */
+const railManuallyCollapsed = ref(false);
+/** 侧栏收起态：窄屏强制图标栏（同移动端表现），桌面端手动切换 */
+const railCollapsed = computed(() => railManuallyCollapsed.value || isMobile.value);
+
+/**
+ * 切换侧栏收起/展开状态
+ */
+function toggleRail(): void {
+  railManuallyCollapsed.value = !railManuallyCollapsed.value;
+}
+
 const confirmDialogStyle = computed(() =>
   isMobile.value
     ? { width: 'calc(100vw - 2rem)', maxWidth: '26rem' }
@@ -405,7 +419,10 @@ const PROMPT_PROFILES_SUB_TABS = [
 const novelaiSubTab = useLocalStorage<NovelAISubTab>('cosmos-vision:settings-novelai-sub-tab', 'api');
 const comfyuiSubTab = useLocalStorage<ComfyUISubTab>('cosmos-vision:settings-comfyui-sub-tab', 'api');
 const promptLlmSubTab = useLocalStorage<PromptLlmSubTab>('cosmos-vision:settings-prompt-llm-sub-tab', 'settings');
-const promptProfilesSubTab = useLocalStorage<PromptProfilesSubTab>('cosmos-vision:settings-prompt-profiles-sub-tab', 'character');
+const promptProfilesSubTab = useLocalStorage<PromptProfilesSubTab>(
+  'cosmos-vision:settings-prompt-profiles-sub-tab',
+  'character',
+);
 const mainSubTab = useLocalStorage<MainSubTab>('cosmos-vision:settings-main-sub-tab', 'general');
 
 const sections = ref<SectionInfo[]>([]);
@@ -527,10 +544,22 @@ function showCustomPrompt(options: CustomPromptOptions): Promise<string | null> 
 
 provide('showConfirm', showCustomConfirm);
 provide('showPrompt', showCustomPrompt);
-provide(FOCUSED_PARAGRAPH_MESSAGE_ID_KEY, computed(() => props.initialFocusMessageId));
-provide(FOCUSED_PARAGRAPH_MESSAGE_PARAGRAPHS_KEY, computed(() => props.initialFocusMessageParagraphs));
-provide(FOCUSED_PARAGRAPH_TEXT_KEY, computed(() => props.initialFocusParagraphText));
-provide(FOCUSED_PARAGRAPH_ELEMENTS_KEY, computed(() => props.initialFocusParagraphElements));
+provide(
+  FOCUSED_PARAGRAPH_MESSAGE_ID_KEY,
+  computed(() => props.initialFocusMessageId),
+);
+provide(
+  FOCUSED_PARAGRAPH_MESSAGE_PARAGRAPHS_KEY,
+  computed(() => props.initialFocusMessageParagraphs),
+);
+provide(
+  FOCUSED_PARAGRAPH_TEXT_KEY,
+  computed(() => props.initialFocusParagraphText),
+);
+provide(
+  FOCUSED_PARAGRAPH_ELEMENTS_KEY,
+  computed(() => props.initialFocusParagraphElements),
+);
 
 const dialogVisible = computed({
   get: () => visible.value,
@@ -717,7 +746,8 @@ function scrollToSection(section: SectionInfo): void {
   if (!container) return;
 
   currentSection.value = section.title;
-  const targetTop = section.element.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+  const targetTop =
+    section.element.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
   container.scrollTop = targetTop;
   showSectionMenu.value = false;
 }

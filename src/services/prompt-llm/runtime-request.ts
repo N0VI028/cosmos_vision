@@ -40,6 +40,20 @@ export interface PromptLlmGenerateOptions {
   generationId?: string;
   /** 显式触发上下文；缺省时仅 history，模型/来源为空 */
   triggerContext?: PromptLlmTriggerContext;
+  /** 请求监视钩子（仅内联生图路径传入；测试页与人物标签解析不捕获） */
+  inspector?: PromptLlmInspectorHooks;
+}
+
+/** Prompt LLM 请求监视钩子 */
+export interface PromptLlmInspectorHooks {
+  /** 每次账号尝试构建完请求体后调用（多账号故障转移时按次触发） */
+  onRequestBuilt?: (request: TavernHelperGenerateRawConfig, account?: PromptLlmAccount) => void;
+  /** 请求成功后调用 */
+  onSucceeded?: (rawText: string, accountName: string) => void;
+  /** 多账号故障转移中单次账号尝试失败后调用（后续仍会切换下一个账号） */
+  onAttemptFailed?: (error: unknown) => void;
+  /** 全部账号尝试失败或请求异常后调用 */
+  onFailed?: (error: unknown) => void;
 }
 
 /**
@@ -135,7 +149,8 @@ export async function buildPromptLlmRuntimeRequest(
   const orderedPrompts = await buildPromptLlmOrderedPrompts(presetSettings, runtimeContent, triggerContext);
   const schema = schemaFields ? buildJsonSchema(schemaFields) : undefined;
   const requestAccount = account ?? getAvailablePromptLlmAccounts(settings)[0];
-  return buildGenerateRawMessagesRequest(orderedPrompts, buildCustomApi(settings, requestAccount), schema, settings.shouldStream);
+  const shouldStream = requestAccount?.shouldStream ?? false;
+  return buildGenerateRawMessagesRequest(orderedPrompts, buildCustomApi(requestAccount), schema, shouldStream);
 }
 
 /**
@@ -203,9 +218,9 @@ async function generatePromptTextFromRuntimeContext(
     const result = await requestPromptLlmWithAccounts(
       tavernHelper,
       settings,
-      options,
-      account =>
-        buildPromptLlmRuntimeRequestFromContext(
+      { ...options, onAttemptFailed: error => options.inspector?.onAttemptFailed?.(error) },
+      async account => {
+        const request = await buildPromptLlmRuntimeRequestFromContext(
           context,
           settings,
           presetSettings,
@@ -213,10 +228,15 @@ async function generatePromptTextFromRuntimeContext(
           schemaFields,
           options.triggerContext,
           account,
-        ),
+        );
+        options.inspector?.onRequestBuilt?.(request, account);
+        return request;
+      },
     );
+    options.inspector?.onSucceeded?.(result.rawText, result.accountName);
     return result.rawText;
   } catch (error) {
+    options.inspector?.onFailed?.(error);
     throw new Error(`提示词生成失败: ${(error as Error).message}`);
   }
 }
@@ -225,6 +245,8 @@ async function generatePromptTextFromRuntimeContext(
 export interface PromptLlmAccountsRequestContext {
   generationId?: string;
   timeoutSeconds?: number;
+  /** 单次账号尝试失败回调（故障转移切换下一个账号前调用） */
+  onAttemptFailed?: (error: unknown) => void;
 }
 
 /** 提示词 LLM 多账号请求结果 */
@@ -261,6 +283,7 @@ export async function requestPromptLlmWithAccounts(
       });
       return { rawText, accountName: getPromptLlmAccountDisplayName(account) };
     } catch (error) {
+      context.onAttemptFailed?.(error);
       errors.push(formatPromptLlmAccountError(account, error));
       if (index < accounts.length - 1) {
         console.warn(`[PromptLlm] ${getPromptLlmAccountDisplayName(account)} 请求失败，尝试下一个账号`, error);

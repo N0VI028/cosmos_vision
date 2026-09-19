@@ -170,6 +170,48 @@
               </div>
             </label>
           </template>
+
+          <label class="cv-field-inline">
+            <span>启用流式请求</span>
+            <ToggleSwitch v-model="account.shouldStream" />
+          </label>
+
+          <div class="cv-field-grid">
+            <label class="cv-field">
+              <span>温度</span>
+              <InputNumber
+                v-model="account.temperature"
+                :min="0"
+                :max="2"
+                :step="0.1"
+                :min-fraction-digits="1"
+              />
+            </label>
+            <label class="cv-field">
+              <span>最大输出令牌数</span>
+              <InputNumber v-model="account.maxTokens" :min="1" show-buttons />
+            </label>
+          </div>
+          <div class="cv-field-grid">
+            <div class="cv-field">
+              <div class="cv-field-header">
+                <span>Top P</span>
+                <span class="text-(length:--cv-font-size-base) font-medium text-(--cv-on-surface-variant)">
+                  {{ account.topP.toFixed(2) }}
+                </span>
+              </div>
+              <Slider v-model="account.topP" :min="0" :max="1" :step="0.01" />
+            </div>
+            <div class="cv-field">
+              <div class="cv-field-header">
+                <span>Top K</span>
+                <span class="text-(length:--cv-font-size-base) font-medium text-(--cv-on-surface-variant)">
+                  {{ account.topK }}
+                </span>
+              </div>
+              <Slider v-model="account.topK" :min="0" :max="100" :step="1" />
+            </div>
+          </div>
         </div>
       </CollapsiblePanelItem>
     </div>

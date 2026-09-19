@@ -1,0 +1,629 @@
+@reference '../../global.css';
+
+/**
+ * LLM 请求监视窗（LlmInspectorDrawer）样式规范
+ *
+ * 契约：
+ * 1. 禁止 .p-* 选择器与 :deep() hack，全部选择器带 cv-llm-inspector 前缀
+ * 2. 纯 CSS 变量驱动（--cv-*），状态色使用 --cvp-* 并提供稳妥回退
+ * 3. 告别生硬横线分割：以大标题+小标题字阶、留白节奏与圆角卡片构建视觉层级
+ * 4. 640px 断点适配 PC 端与移动端
+ * 5. 小节壳（.cv-llm-inspector-section 等）已抽离至 llm-inspector-requests.css
+ */
+
+.cv-llm-inspector {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  font-family: var(--cv-font-body);
+  background: var(--cv-background);
+  color: var(--cv-on-surface);
+}
+
+/* ==========================================================================
+   会话侧栏（内联头部：折叠开关 + 标题 + 计数 + 清空）
+   ========================================================================== */
+.cv-llm-inspector-rail {
+  display: flex;
+  /* 设置页侧栏宽度基准再加宽 3.2em；收起态由下方覆盖回 2.6em 图标栏 */
+  width: calc(var(--cv-sidebar-width) + 3.2em);
+  flex-shrink: 0;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border-right: var(--cv-border-width) solid var(--cv-surface-variant);
+  background: var(--cv-surface-container-low);
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 侧栏内容容器：统一提供顶部与左右内边距（顶部给骑跨切换按钮腾位，左右与设置页侧栏 8xl 同源），header/list 裸排 */
+.cv-llm-inspector-rail-inner {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  padding: 2em var(--cv-space-8xl) 0;
+  transition: padding 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cv-llm-inspector--rail-collapsed .cv-llm-inspector-rail-inner {
+  /* 收起态：水平归零（图标栏居中），顶部给切换按钮与删除图标入口留出合适纵向间距 */
+  padding: 2.3em 0 0;
+}
+
+.cv-llm-inspector-rail-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--cv-space-xs);
+  padding: var(--cv-space-sm) 0 var(--cv-space-xs);
+  overflow: hidden;
+  white-space: nowrap;
+  max-height: 3em;
+  opacity: 1;
+  transition:
+    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    gap 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cv-llm-inspector--rail-collapsed .cv-llm-inspector-rail-header {
+  justify-content: center;
+  gap: 0;
+  max-height: 2.2em;
+  padding: 0;
+}
+
+.cv-llm-inspector-rail-title {
+  overflow: hidden;
+  font-family: var(--cv-font-headline);
+  font-size: var(--cv-font-size-xs);
+  font-weight: 700;
+  color: var(--cv-on-surface);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 10em;
+  opacity: 1;
+  transition:
+    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cv-llm-inspector--rail-collapsed .cv-llm-inspector-rail-title {
+  max-width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cv-llm-inspector-rail-count {
+  flex-shrink: 0;
+  padding: 0 0.55em;
+  border-radius: var(--cv-radius-full);
+  background: color-mix(in srgb, var(--cv-surface-container-high) 80%, transparent);
+  font-family: var(--cv-font-label);
+  font-size: var(--cv-font-size-xs);
+  font-weight: 600;
+  color: var(--cv-on-surface-variant);
+  line-height: 1.6;
+  max-width: 6em;
+  opacity: 1;
+  transition:
+    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    margin 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cv-llm-inspector--rail-collapsed .cv-llm-inspector-rail-count {
+  max-width: 0;
+  padding: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cv-llm-inspector-rail-clear {
+  margin-left: auto;
+  transition:
+    margin 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.cv-llm-inspector--rail-collapsed .cv-llm-inspector-rail-clear {
+  margin-left: 0;
+  margin-inline: auto;
+}
+
+/* 清空按钮图标：红色警告色 + 缩小（ST 宿主 .fa-solid:not(#load-spinner) 权重高，必须 !important 压制） */
+.cv-llm-inspector-rail-clear i,
+.cv-llm-inspector-rail-clear:hover:not(:disabled) i {
+  font-size: 0.7em !important;
+  color: var(--cvp-red-500, #ef4444);
+}
+
+/* 收起态与设置页窄屏图标栏（--cv-sidebar-width: 2.6em）对齐 */
+/* 收起态与设置页窄屏图标栏同宽（切换按钮 left 与 rail 宽度同源跟随） */
+.cv-llm-inspector--rail-collapsed {
+  --cv-sidebar-width: 2.6em;
+}
+
+.cv-llm-inspector--rail-collapsed .cv-llm-inspector-rail {
+  width: var(--cv-sidebar-width);
+}
+
+/* 统一轻量图标按钮 */
+.cv-llm-inspector-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2em;
+  height: 2em;
+  padding: 0;
+  border: none;
+  border-radius: var(--cv-radius-sm);
+  background: transparent;
+  color: var(--cv-on-surface-variant);
+  font-size: var(--cv-font-size-base);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.cv-llm-inspector-icon-btn:hover:not(:disabled) {
+  background: var(--cv-surface-container-high);
+  color: var(--cv-on-surface);
+}
+
+.cv-llm-inspector-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   主体容器：左侧栏 + 右详情
+   ========================================================================== */
+.cv-llm-inspector-body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   会话列表滚动区（横向溢出一律省略号，禁止横向滚动条）
+   ========================================================================== */
+.cv-llm-inspector-list {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* 顶部从 2em 缩到 xs 拉近 header；水平由容器提供 */
+  padding: var(--cv-space-xs) 0 var(--cv-space-sm);
+  transition: padding 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 切换按钮位置：left 跟随加宽后的 rail 右缘，top 对齐矮 header（收起态 header 归零，按钮贴顶） */
+.cv-llm-inspector .cv-rail-toggle {
+  top: 3.2em;
+  left: calc(var(--cv-sidebar-width) + 3.2em);
+}
+
+.cv-llm-inspector--rail-collapsed .cv-rail-toggle {
+  top: 1em;
+  left: var(--cv-sidebar-width);
+}
+
+.cv-llm-inspector--rail-collapsed .cv-llm-inspector-list {
+  padding: var(--cv-space-xs) 0 var(--cv-space-sm);
+}
+
+/* 侧栏条目：左信息 + 右状态指示器 */
+.cv-llm-inspector-list-item {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 3.2em;
+  align-items: center;
+  gap: var(--cv-space-sm);
+  padding: var(--cv-space-sm) var(--cv-space-md);
+  margin-inline: auto;
+  border: none;
+  border-radius: var(--cv-radius);
+  /* 非激活会话的低调底色，激活态由下方纯主题色覆盖 */
+  background: color-mix(in srgb, var(--cv-surface-container-high) 45%, transparent);
+  color: var(--cv-on-surface-variant);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition:
+    width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    gap 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    border-radius 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    margin 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.cv-llm-inspector--rail-collapsed .cv-llm-inspector-list-item {
+  width: 2em;
+  height: 2em;
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+  margin-inline: auto;
+  border-radius: var(--cv-radius-full);
+}
+
+/* margin-left:auto 会压过容器的 justify-content:center，收起态需归零以保证指示器居中 */
+.cv-llm-inspector--rail-collapsed .cv-llm-inspector-list-status {
+  margin-left: 0;
+}
+
+.cv-llm-inspector-list-item:hover {
+  background: color-mix(in srgb, var(--cv-surface-container-high) 75%, transparent);
+  color: var(--cv-on-surface);
+}
+
+/* 激活态：纯主题色底（不加透明度、无竖线指示条） */
+.cv-llm-inspector-list-item--active,
+.cv-llm-inspector-list-item--active:hover {
+  background: var(--cv-primary-container);
+  color: var(--cv-on-primary-container);
+}
+
+@keyframes cv-llm-inspector-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 左侧信息区：可收缩，标签与模型名过长均省略号 */
+.cv-llm-inspector-list-text {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.15rem;
+  white-space: nowrap;
+  opacity: 1;
+  transition:
+    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cv-llm-inspector--rail-collapsed .cv-llm-inspector-list-text {
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  margin: 0;
+}
+
+.cv-llm-inspector-list-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--cv-font-body);
+  font-size: var(--cv-font-size-xs);
+  font-weight: 600;
+  color: var(--cv-on-surface);
+  line-height: 1.35;
+}
+
+.cv-llm-inspector-list-item--active .cv-llm-inspector-list-label {
+  color: var(--cv-on-primary-container);
+  font-weight: 700;
+}
+
+.cv-llm-inspector-list-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--cv-font-label);
+  font-size: var(--cv-font-size-xs);
+  color: var(--cv-on-surface-variant);
+  opacity: 0.85;
+  line-height: 1.25;
+}
+
+.cv-llm-inspector-list-item--active .cv-llm-inspector-list-meta {
+  color: var(--cv-on-primary-container);
+  opacity: 0.8;
+}
+
+/* ==========================================================================
+   右侧状态指示器：浅底填充圆 + 内部勾/感叹号，运行中为主题色转动圆环
+   ========================================================================== */
+.cv-llm-inspector-list-status {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.5em;
+  height: 1.5em;
+  margin-left: auto;
+  border: 1.5px solid transparent;
+  border-radius: var(--cv-radius-full);
+  font-size: var(--cv-font-size-xs);
+  box-sizing: border-box;
+}
+
+/* ST 宿主以 (1,1,0) 权重的 .fa-solid:not(#load-spinner) 强制 font-size: var(--icon-size)，
+   font-size 永远打不过，改为定义 --icon-size 变量让宿主规则自行取值（同 .cv-rail-toggle 模式） */
+.cv-llm-inspector-list-status {
+  --icon-size: 0.58em;
+}
+
+/* 成功：中性色勾（深灰） + 浅灰底圆（明确灰圆） */
+.cv-llm-inspector-list-status--completed {
+  background: color-mix(in srgb, var(--cv-on-surface-variant) 20%, transparent);
+  color: var(--cv-on-surface);
+}
+
+/* 失败：深红感叹号 + 浅红底圆 */
+.cv-llm-inspector-list-status--failed {
+  background: color-mix(in srgb, var(--cvp-red-500, #ef4444) 18%, transparent);
+  color: color-mix(in srgb, var(--cvp-red-500, #ef4444) 75%, black);
+}
+
+/* 运行中：主题色转动圆环（无内部图标，纯圆环动画） */
+.cv-llm-inspector-list-status--running {
+  border-color: color-mix(in srgb, var(--cv-primary-container) 22%, transparent);
+  border-top-color: var(--cv-primary-container);
+  animation: cv-llm-inspector-rotate 1.1s linear infinite;
+}
+
+/* 激活态：运行中指示器保持前景色彩对比度（completed/failed 与非激活态保持完全同色） */
+.cv-llm-inspector-list-item--active .cv-llm-inspector-list-status--running {
+  border-color: color-mix(in srgb, var(--cv-on-primary-container) 30%, transparent);
+  border-top-color: var(--cv-on-primary-container);
+}
+
+/* ==========================================================================
+   详情区主容器
+   ========================================================================== */
+.cv-llm-inspector-detail {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--cv-space-5xl);
+  overflow: hidden;
+  background: var(--cv-background);
+  padding: 0 var(--cv-space-8xl);
+}
+
+/* 小节滚动区：三个小节（请求消息 / AI 回复 / 账号请求列表）整体滚动，元信息区置顶不滚 */
+.cv-llm-inspector-sections {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--cv-space-5xl);
+  overflow-y: auto;
+}
+
+/* 抽屉内小节高度策略：各节上限 45%，超高后内部滚动 */
+.cv-llm-inspector-sections .cv-llm-inspector-section {
+  max-height: 45%;
+}
+
+/* ==========================================================================
+   元信息区（大标题 + 小标题副说明 + 胶囊 Chips）
+   ========================================================================== */
+.cv-llm-inspector-meta {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: var(--cv-space-sm);
+  /* 顶部留距与右上角关闭按钮（--cv-space-10xl）平齐，标题不高过按钮；区块间距由 detail 的 gap 提供 */
+  padding: var(--cv-space-10xl) 0 0;
+  background: transparent;
+  /* 告别硬边框线，靠视觉留白与自然层级流动 */
+  border-bottom: none;
+}
+
+.cv-llm-inspector-meta-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--cv-space-md);
+}
+
+.cv-llm-inspector-meta-title-group {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* 大标题：醒目大字号，明确的视觉重心 */
+.cv-llm-inspector-meta-title {
+  margin: 0;
+  /* 右侧预留右上角关闭按钮位（按钮左缘 = 10xl 偏移 + 按钮宽），超长省略号不再盖住按钮 */
+  padding-right: calc(var(--cv-space-10xl) + var(--cv-space-lg));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--cv-font-headline);
+  font-size: var(--cv-font-size-xl);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  color: var(--cv-on-surface);
+}
+
+/* 小标题/辅助副标题：弱化辅助信息，构建强烈层级节奏 */
+.cv-llm-inspector-meta-subtitle {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--cv-space-xs);
+  font-family: var(--cv-font-label);
+  font-size: var(--cv-font-size-xs);
+  font-weight: 500;
+  color: var(--cv-on-surface-variant);
+  line-height: 1.4;
+}
+
+.cv-llm-inspector-meta-status-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  font-weight: 600;
+}
+
+.cv-llm-inspector-meta-sep {
+  opacity: 0.35;
+  font-size: 0.8em;
+}
+
+.cv-llm-inspector-meta-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+}
+
+.cv-llm-inspector-meta-attempts-hint {
+  opacity: 0.9;
+}
+
+/* Chips 标签栏（极轻胶囊形态） */
+.cv-llm-inspector-meta-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cv-space-xs) var(--cv-space-sm);
+  margin-top: 0.15rem;
+}
+
+.cv-llm-inspector-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  padding: 0.18em 0.7em;
+  border-radius: var(--cv-radius-full);
+  background: color-mix(in srgb, var(--cv-surface-container-high) 65%, transparent);
+  border: var(--cv-border-width) solid color-mix(in srgb, var(--cv-surface-variant) 45%, transparent);
+  font-family: var(--cv-font-label);
+  font-size: var(--cv-font-size-xs);
+  font-weight: 500;
+  color: var(--cv-on-surface-variant);
+  transition: all 0.15s ease;
+}
+
+/* chips 图标缩小（宿主 .fa-solid 权重高，须 !important） */
+.cv-llm-inspector-chip i {
+  font-size: 0.72em !important;
+}
+
+/* ==========================================================================
+   账号请求列表（尾部次级区块，卡片与行条目复用请求消息的样式）
+   ========================================================================== */
+/* 时间徽标：随时长文本自适应宽度的普通徽标 */
+.cv-llm-inspector-attempt-time {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 0.18em var(--cv-space-sm);
+  border-radius: var(--cv-radius-sm);
+  background: color-mix(in srgb, var(--cv-on-surface-variant) 12%, var(--cv-surface-container-high));
+  color: var(--cv-on-surface-variant);
+  font-family: var(--cv-font-label);
+  font-size: var(--cv-font-size-xs);
+  line-height: 1.2;
+}
+
+/* 失败尝试：时间徽标转错误色 */
+.cv-llm-inspector-attempt-time--error {
+  background: color-mix(in srgb, var(--cvp-red-500, #ef4444) 14%, var(--cv-surface-container-high));
+  color: var(--cvp-red-500, #ef4444);
+}
+
+.cv-llm-inspector-attempt-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--cv-on-surface);
+}
+
+/* 空状态 */
+.cv-llm-inspector-empty {
+  display: flex;
+  width: 100%;
+  margin: auto;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--cv-space-xs);
+  /* 收窄水平内边距，避免窄侧栏内图文被边缘截断 */
+  padding: var(--cv-space-xl) var(--cv-space-sm);
+  color: var(--cv-on-surface-variant);
+  font-size: var(--cv-font-size-xs);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.cv-llm-inspector-empty i {
+  font-size: var(--cv-font-size-2xl);
+  opacity: 0.6;
+}
+
+.cv-llm-inspector-rail .cv-llm-inspector-empty {
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cv-llm-inspector--rail-collapsed .cv-llm-inspector-rail .cv-llm-inspector-empty {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   响应式断点：640px 窄屏/移动端适配
+   ========================================================================== */
+@media (max-width: 640px) {
+  .cv-llm-inspector-detail {
+    padding: 0 var(--cv-space-5xl);
+    gap: var(--cv-space-lg);
+  }
+
+  .cv-llm-inspector-meta {
+    /* 窄屏关闭按钮 top 为 4xl，标题顶距不高过按钮 */
+    padding: var(--cv-space-5xl) 0 0;
+    gap: var(--cv-space-xs);
+  }
+
+  .cv-llm-inspector-sections {
+    gap: var(--cv-space-lg);
+  }
+
+  .cv-llm-inspector-chip {
+    padding: 0.15em 0.55em;
+  }
+}

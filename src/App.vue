@@ -94,6 +94,15 @@
           >
             <i class="fa-solid fa-gear" />
           </button>
+          <button
+            type="button"
+            aria-label="打开 LLM 请求监视"
+            @pointerdown.stop
+            @click="openLlmInspector"
+          >
+            <i class="fa-solid fa-comments" />
+            <span v-if="hasRunningLlmSession" class="cv-fab-menu-dot" aria-hidden="true" />
+          </button>
         </div>
       </Transition>
 
@@ -121,11 +130,14 @@
             <circle cx="25" cy="79" r="5" />
           </g>
         </svg>
+        <span v-if="hasRunningLlmSession" class="cv-fab-menu-dot" aria-hidden="true" />
       </button>
     </div>
   </Teleport>
   <!-- 短码 / 临时画廊：Teleport 到聊天内 cv-render -->
   <InlineGalleryRuntimeHost />
+  <!-- LLM 请求监视弹窗：由悬浮球次级菜单打开，实时查看内联生图的指令与模型响应 -->
+  <LlmInspectorDrawer v-model:open="llmInspectorOpen" />
 </template>
 
 <script setup lang="ts">
@@ -145,6 +157,8 @@ import {
   type InlineTextInputOptions,
 } from '@/composables/useInlineImageGeneration';
 import InlineGalleryRuntimeHost from '@/panel/components/InlineGalleryRuntimeHost.vue';
+import LlmInspectorDrawer from '@/panel/components/LlmInspectorDrawer.vue';
+import { useLlmInspectorStore } from '@/store/llm-inspector';
 import {
   extractMessageParagraphs,
   findMessageId,
@@ -206,6 +220,21 @@ const settingsFocusParagraphElements = ref<HTMLElement[]>([]);
 
 /** Speed Dial 菜单展开状态 */
 const speedDialOpen = ref(false);
+
+/** LLM 请求监视弹窗开合状态 */
+const llmInspectorOpen = ref(false);
+/** 是否存在进行中的 LLM 会话（次级菜单红点提示） */
+const { hasRunningSession: hasRunningLlmSession } = storeToRefs(useLlmInspectorStore());
+
+/**
+ * 从悬浮球次级菜单打开 LLM 请求监视弹窗并收起菜单
+ * 与 openSettings 同逻辑：打开时退出段落生图选择态
+ */
+function openLlmInspector(): void {
+  speedDialOpen.value = false;
+  exitSelectionMode();
+  llmInspectorOpen.value = true;
+}
 
 const settingsStore = useSettingsStore();
 const { savedSettings } = settingsStore;
@@ -506,6 +535,9 @@ function handleImageDownloadDialog(value: InlineImageDownloadOptions | null): vo
 // 段落短码 prompt 剥离正则：load 注册；关插件保持开启
 void ensurePromptStripRegex();
 
+// LLM 请求监视：订阅 TavernHelper 流式事件（幂等）
+useLlmInspectorStore().start();
+
 // 载入时检测一次扩展更新，失败静默
 onMounted(async () => {
   const result = await checkExtensionUpdate();
@@ -539,6 +571,7 @@ watch(settingsVisible, visible => {
 onBeforeUnmount(() => {
   if (textInputDialogVisible.value) textInputDialogState.value.resolve(null);
   if (imageDownloadDialogVisible.value) imageDownloadDialogState.value.resolve(null);
+  useLlmInspectorStore().stop();
   cleanup();
 });
 </script>

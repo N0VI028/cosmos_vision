@@ -1,24 +1,12 @@
 import { getPromptLlmAccountDisplayName, type PromptLlmAccount, type PromptLlmSettings } from '@/constants/prompt-llm';
-import { getPromptLlmRequestAccounts } from '@/services/prompt-llm/router';
 import { requestPromptLlmWithAccounts, type PromptLlmRawRequestResult } from '@/services/prompt-llm/runtime-request';
 import { findProxyPreset } from '@/services/sillytavern/openai-config';
 import { getTavernHelper } from '@/services/tavern-helper/availability';
 import { buildGenerateRawRequestPreview } from '@/services/tavern-helper/generate-raw';
 import { type TavernHelperGenerateRawConfig } from '@/services/tavern-helper/prompt-llm';
+import { maskApiKey } from '@/utils/secret';
 
-export interface PromptLlmLogParams {
-  connectionType: string;
-  apiUrl: string;
-  apiKey: string;
-  source: string;
-  model: string;
-  temperature: number;
-  maxTokens: number;
-  topP: number;
-  topK: number;
-}
-
-/** 测试页参数展示行 */
+/** 测试页与监视器账号参数展示行 */
 export interface PromptLlmParamRow {
   label: string;
   value: string;
@@ -57,52 +45,46 @@ export async function requestPromptLlmRaw(
   return requestPromptLlmWithAccounts(tavernHelper, settings, options, buildRequest);
 }
 
-/**
- * 构建当前 LLM 参数日志
- * 连接信息展示路由后首个可用账号（测试请求与实际首试账号一致）
- * @param settings LLM 配置
- * @returns 日志字段
- */
-export function buildPromptLlmLogParams(settings: PromptLlmSettings): PromptLlmLogParams {
-  const firstAccount = getPromptLlmRequestAccounts(settings)[0];
-  const proxyPreset = findProxyPreset(firstAccount?.proxyPreset ?? '');
-  const apiUrl = proxyPreset?.url ?? firstAccount?.apiUrl ?? '';
-  const apiKey = proxyPreset?.password ?? firstAccount?.apiKey ?? '';
-  const accountName = getPromptLlmAccountDisplayName(firstAccount);
-
-  return {
-    connectionType: firstAccount
-      ? proxyPreset
-        ? `${accountName}（酒馆代理预设 ${proxyPreset.name}）`
-        : `${accountName}（自定义接口）`
-      : '无可用账号',
-    apiUrl: apiUrl.trim() || '(未填写)',
-    apiKey: maskApiKey(apiKey),
-    source: firstAccount?.source.trim() || '(未填写)',
-    model: firstAccount?.model.trim() || '(未选择/未填写)',
-    temperature: settings.temperature,
-    maxTokens: settings.maxTokens,
-    topP: settings.topP,
-    topK: settings.topK,
-  };
-}
+/** 无账号时的空参数展示行 */
+const EMPTY_ACCOUNT_PARAM_ROWS: PromptLlmParamRow[] = [
+  { label: '连接方式', value: '无可用账号' },
+  { label: '接口地址', value: '(未填写)', code: true },
+  { label: '接口密钥', value: '(未配置)', code: true },
+  { label: '来源标识', value: '(未填写)' },
+  { label: '使用模型', value: '(未选择/未填写)', code: true },
+  { label: '温度', value: '--' },
+  { label: '最大输出令牌数', value: '--' },
+  { label: 'Top P', value: '--' },
+  { label: 'Top K', value: '--' },
+  { label: '流式请求', value: '--' },
+];
 
 /**
- * 构建 LLM 参数配置展示行
- * @param params 日志参数
- * @returns 参数行列表
+ * 按单个账号构建参数行列表
+ * @param account 提示词 LLM 账号条目
+ * @returns 参数展示行列表
  */
-export function buildPromptLlmParamRows(params: PromptLlmLogParams): PromptLlmParamRow[] {
+export function buildPromptLlmAccountParamRows(account?: PromptLlmAccount): PromptLlmParamRow[] {
+  if (!account) return EMPTY_ACCOUNT_PARAM_ROWS;
+  const proxyPreset = findProxyPreset(account.proxyPreset);
+  const apiUrl = (proxyPreset?.url ?? account.apiUrl ?? '').trim() || '(未填写)';
+  const apiKey = proxyPreset?.password ?? account.apiKey ?? '';
+  const accountName = getPromptLlmAccountDisplayName(account);
+  const connectionType = proxyPreset
+    ? `${accountName}（酒馆代理预设 ${proxyPreset.name}）`
+    : `${accountName}（自定义接口）`;
+
   return [
-    { label: '连接方式', value: params.connectionType },
-    { label: '接口地址', value: params.apiUrl, code: true },
-    { label: '接口密钥', value: params.apiKey, code: true },
-    { label: '来源标识', value: params.source },
-    { label: '使用模型', value: params.model, code: true },
-    { label: '温度', value: String(params.temperature) },
-    { label: '最大输出令牌数', value: String(params.maxTokens) },
-    { label: 'Top P', value: String(params.topP) },
-    { label: 'Top K', value: String(params.topK) },
+    { label: '连接方式', value: connectionType },
+    { label: '接口地址', value: apiUrl, code: true },
+    { label: '接口密钥', value: maskApiKey(apiKey), code: true },
+    { label: '来源标识', value: account.source.trim() || '(未填写)' },
+    { label: '使用模型', value: account.model.trim() || '(未选择/未填写)', code: true },
+    { label: '温度', value: String(account.temperature) },
+    { label: '最大输出令牌数', value: String(account.maxTokens) },
+    { label: 'Top P', value: String(account.topP) },
+    { label: 'Top K', value: String(account.topK) },
+    { label: '流式请求', value: account.shouldStream ? '开启' : '关闭' },
   ];
 }
 
@@ -131,16 +113,4 @@ function buildRequestLogSnapshot(request: TavernHelperGenerateRawConfig): Tavern
         }
       : undefined,
   };
-}
-
-/**
- * 脱敏显示 API Key
- * @param apiKey 原始密钥
- * @returns 脱敏后的密钥
- */
-function maskApiKey(apiKey: string): string {
-  const trimmed = apiKey.trim();
-  if (!trimmed) return '(未配置)';
-  if (trimmed.length <= 8) return '********';
-  return `${trimmed.slice(0, 4)}...${trimmed.slice(-4)}`;
 }
