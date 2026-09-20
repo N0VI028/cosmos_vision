@@ -7,6 +7,7 @@ import {
   buildComfyUIResolvedRequestFromPrompts,
 } from '@/services/comfyui/request';
 import { normalizeComfyUIUrl } from '@/services/comfyui/parse';
+import { resolveActiveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
 import { extractHistoryImages, type ComfyUIHistoryEntry } from '@/services/comfyui/history';
 import { createRequestTimeoutController, throwIfRequestTimedOut } from '@/services/request-timeout';
 import { readAvatarFile } from '@/services/tavern-helper/avatar';
@@ -59,9 +60,10 @@ export async function generateComfyUIImages(
   prompts: ImagePromptPair,
   options: ComfyUIRequestOptions = {},
 ): Promise<Blob[]> {
+  const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings);
   return generateComfyUIImagesFromResolvedRequest(
     settings,
-    buildComfyUIResolvedRequest(settings, presetSettings, prompts),
+    buildComfyUIResolvedRequest(settings, presetSettings, prompts, loraTriggerWords),
     options,
   );
 }
@@ -78,9 +80,10 @@ export async function generateComfyUIImagesFromPrompts(
   prompts: ImagePromptPair,
   options: ComfyUIRequestOptions = {},
 ): Promise<Blob[]> {
+  const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings);
   return generateComfyUIImagesFromResolvedRequest(
     settings,
-    buildComfyUIResolvedRequestFromPrompts(settings, prompts),
+    buildComfyUIResolvedRequestFromPrompts(settings, prompts, loraTriggerWords),
     options,
   );
 }

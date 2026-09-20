@@ -192,6 +192,8 @@ import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue'
 import TestImageGallery from '@/panel/components/TestImageGallery.vue';
 
 import { generateComfyUIImagesFromResolvedRequest } from '@/services/comfyui/api';
+import { formatLoraDisplayName } from '@/services/comfyui/lora-presets';
+import { resolveActiveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
 import {
   buildComfyUIResolvedRequest,
   type ComfyUILoraSnapshot,
@@ -317,7 +319,7 @@ const llmParamRows = computed(() =>
  */
 function formatSnapshotLoras(loras: ComfyUILoraSnapshot[]): string {
   if (!loras.length) return '无';
-  return loras.map(lora => `${lora.name} (${lora.strength})`).join(', ');
+  return loras.map(lora => `${formatLoraDisplayName(lora.name)} (${lora.strength})`).join(', ');
 }
 
 /**
@@ -358,7 +360,7 @@ async function runTest(): Promise<void> {
 
   await requestSession.run(
     async session => {
-      const request = currentMode.value === 'llm' ? await runLlmModeTest(session) : runDirectModeTest();
+      const request = currentMode.value === 'llm' ? await runLlmModeTest(session) : await runDirectModeTest();
       if (!requestSession.isCurrent(session)) return;
       requestSnapshot.value = request.snapshot;
       const blobs = await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request, {
@@ -396,11 +398,17 @@ function markAborted(): void {
  * 执行直接提示词测试
  * @returns 已解析的 ComfyUI 请求
  */
-function runDirectModeTest(): ComfyUIResolvedRequest {
-  return buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, {
-    positivePrompt: directPositivePrompt.value,
-    negativePrompt: directNegativePrompt.value,
-  });
+async function runDirectModeTest(): Promise<ComfyUIResolvedRequest> {
+  const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings.comfyui);
+  return buildComfyUIResolvedRequest(
+    settings.comfyui,
+    settings.imagePromptPresets,
+    {
+      positivePrompt: directPositivePrompt.value,
+      negativePrompt: directNegativePrompt.value,
+    },
+    loraTriggerWords,
+  );
 }
 
 /**
@@ -430,7 +438,8 @@ async function runLlmModeTest(session: TestRequestSession): Promise<ComfyUIResol
 
   llmRawResponse.value = result.rawText;
   const { output } = extractPromptLlmResult(result.rawText, settings.promptLlm, schemaFields);
-  return buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, output);
+  const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings.comfyui);
+  return buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, output, loraTriggerWords);
 }
 
 /**

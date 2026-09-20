@@ -55,18 +55,15 @@
           :presets="workflowPresetOptions"
           :active-preset-id="settings.comfyui.workflowPresets.activePresetId"
           :default-preset-id="DEFAULT_COMFYUI_WORKFLOW_PRESET_ID"
+          :show-portability="true"
+          rename-title="编辑当前预设"
           @update:active-preset-id="updateWorkflowPresetId"
           @create="createWorkflowPreset"
           @clone="cloneWorkflowPreset"
-          @rename="renameWorkflowPreset"
+          @rename="isWorkflowEditDialogOpen = true"
+          @export-preset="handleWorkflowPresetExport"
+          @import-presets="handleWorkflowFileImport"
           @delete-preset="deleteWorkflowPreset"
-        />
-        <input
-          ref="workflowFileInput"
-          type="file"
-          accept="application/json,.json"
-          class="hidden"
-          @change="handleWorkflowFileChange"
         />
         <ComfyUIWorkflowEditor
           v-model="workflowEditorJson"
@@ -78,10 +75,15 @@
           :tutorial-selected-node-id="tutorialNodeId"
           @update:favorite-node-ids="updateFavoriteNodeIds"
           @update:lora-preset-settings="settings.comfyui.loraPresets = $event"
-          @import="triggerWorkflowImport"
           @refresh-lora-options="fetchLoraOptions"
         />
         <div v-if="workflowValidationError" class="cv-field-warn">{{ workflowValidationError }}</div>
+        <ComfyUIWorkflowEditDialog
+          v-model:visible="isWorkflowEditDialogOpen"
+          :preset-name="activeWorkflow?.name ?? ''"
+          :workflow-json="activeWorkflow?.workflowJson ?? ''"
+          @confirm="onWorkflowEditConfirm"
+        />
       </div>
 
       <h2 class="cv-section-title">生图提示词</h2>
@@ -112,9 +114,18 @@ import {
 } from '@/constants/comfyui';
 import { fetchComfyUILoraNames } from '@/services/comfyui/api';
 import { fetchComfyUIObjectInfo } from '@/services/comfyui/object-info';
-import { applyActiveLoraPresetToWorkflowJson, getActiveComfyUILoras } from '@/services/comfyui/lora-presets';
+import {
+  applyActiveLoraPresetToWorkflowJson,
+  formatLoraDisplayName,
+  getActiveComfyUILoras,
+} from '@/services/comfyui/lora-presets';
 import { getComfyUIWorkflowValidationError } from '@/services/comfyui/parse';
-import { findComfyUIWorkflowPreset, importComfyUIWorkflowPreset } from '@/services/comfyui/workflow-presets';
+import {
+  exportComfyUIWorkflowPreset,
+  findComfyUIWorkflowPreset,
+  importComfyUIWorkflowPreset,
+} from '@/services/comfyui/workflow-presets';
+import ComfyUIWorkflowEditDialog from '@/panel/components/comfyui/ComfyUIWorkflowEditDialog.vue';
 import ComfyUIWorkflowEditor from '@/panel/components/comfyui/ComfyUIWorkflowEditor.vue';
 import PresetSelector from '@/panel/components/PresetSelector.vue';
 import { useSettingsStore } from '@/store/settings';
@@ -128,7 +139,7 @@ type PresetOption = { id: string; name: string };
 
 const { settings } = useSettingsStore();
 const syncCacheStore = useSyncCacheStore();
-const workflowFileInput = ref<HTMLInputElement | null>(null);
+const isWorkflowEditDialogOpen = ref(false);
 
 const props = withDefaults(defineProps<{ subTab: ComfyUISubTab; tutorialNodeId?: string | null }>(), {
   tutorialNodeId: null,
@@ -243,7 +254,7 @@ const loraOptions = computed(() =>
     (settings.comfyui.loraPresets.presets.length ? getActiveComfyUILoras(settings.comfyui.loraPresets) : []).map(
       lora => lora.name,
     ),
-  ),
+  ).map(option => ({ value: option.value, label: formatLoraDisplayName(option.value) })),
 );
 
 const workflowValidationError = computed(() => {
@@ -313,13 +324,6 @@ async function cloneWorkflowPreset(): Promise<void> {
 function updateFavoriteNodeIds(ids: string[]): void {
   if (!activeWorkflow.value) return;
   activeWorkflow.value.favoriteNodeIds = [...ids];
-}
-
-/** 重命名当前工作流预设 */
-async function renameWorkflowPreset(): Promise<void> {
-  if (!activeWorkflow.value) return;
-  const name = await askWorkflowPresetName('重命名工作流', '请输入新的工作流名称：', activeWorkflow.value.name);
-  if (name) activeWorkflow.value.name = name;
 }
 
 /**
@@ -394,21 +398,23 @@ async function fetchLoraOptions(): Promise<void> {
 }
 
 /**
- * 触发工作流文件导入
+ * 导出当前 ComfyUI 工作流预设
  */
-function triggerWorkflowImport(): void {
-  workflowFileInput.value?.click();
+function handleWorkflowPresetExport(): void {
+  if (!activeWorkflow.value) return;
+  try {
+    exportComfyUIWorkflowPreset(activeWorkflow.value);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '导出工作流预设失败';
+    toastr.error(message);
+  }
 }
 
 /**
- * 读取导入的工作流文件
- * @param event 文件选择事件
+ * 读取并导入工作流文件到新预设
+ * @param file 选中的工作流 JSON 文件
  */
-async function handleWorkflowFileChange(event: Event): Promise<void> {
-  const input = event.target as HTMLInputElement;
-  const file = input.files?.[0];
-  if (!file) return;
-
+async function handleWorkflowFileImport(file: File): Promise<void> {
   try {
     const preset = importComfyUIWorkflowPreset(
       settings.comfyui.workflowPresets,
@@ -420,8 +426,16 @@ async function handleWorkflowFileChange(event: Event): Promise<void> {
   } catch (error) {
     const message = error instanceof Error ? error.message : '读取工作流文件失败';
     toastr.error(message);
-  } finally {
-    input.value = '';
   }
+}
+
+/**
+ * 保存工作流编辑弹窗确认的数据
+ * @param payload 编辑后的预设名称与工作流 JSON
+ */
+function onWorkflowEditConfirm(payload: { name: string; workflowJson: string }): void {
+  if (!activeWorkflow.value) return;
+  activeWorkflow.value.name = payload.name;
+  activeWorkflow.value.workflowJson = payload.workflowJson;
 }
 </script>

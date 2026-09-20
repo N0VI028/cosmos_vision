@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildComfyUIWorkflowExportJson,
   findComfyUIWorkflowPreset,
   getActiveComfyUIWorkflowPreset,
   importComfyUIWorkflowPreset,
@@ -45,5 +46,40 @@ describe('comfyui workflow-presets helper', () => {
     expect(preset).toMatchObject({ id: 'imported', name: 'flux-api', workflowJson: 'new-json', favoriteNodeIds: [] });
     expect(settings.activePresetId).toBe('imported');
     expect(settings.presets[0]).toMatchObject({ workflowJson: 'old-json', favoriteNodeIds: ['node-1'] });
+  });
+
+  it('builds formatted export json with 2 spaces indentation and equivalent content', () => {
+    const rawWorkflow = {
+      '1': {
+        class_type: 'KSampler',
+        inputs: {
+          seed: 123456,
+        },
+      },
+    };
+    const preset = {
+      id: 'p1',
+      name: 'Test Workflow',
+      workflowJson: JSON.stringify(rawWorkflow),
+      favoriteNodeIds: [],
+    };
+
+    const exported = buildComfyUIWorkflowExportJson(preset);
+    expect(exported).toBe(JSON.stringify(rawWorkflow, null, 2));
+    expect(JSON.parse(exported)).toEqual(rawWorkflow);
+  });
+
+  it('throws error when building export json for invalid workflow json', () => {
+    const invalidPresets = [
+      { id: 'p2', name: 'Bad 1', workflowJson: '', favoriteNodeIds: [] },
+      { id: 'p3', name: 'Bad 2', workflowJson: '{ invalid json', favoriteNodeIds: [] },
+      { id: 'p4', name: 'Bad 3', workflowJson: '{}', favoriteNodeIds: [] },
+      { id: 'p5', name: 'Bad 4', workflowJson: '[]', favoriteNodeIds: [] },
+      { id: 'p6', name: 'Bad 5', workflowJson: JSON.stringify({ '1': { inputs: {} } }), favoriteNodeIds: [] },
+    ];
+
+    for (const preset of invalidPresets) {
+      expect(() => buildComfyUIWorkflowExportJson(preset)).toThrow();
+    }
   });
 });

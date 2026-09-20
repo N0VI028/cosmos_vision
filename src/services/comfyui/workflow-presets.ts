@@ -1,5 +1,8 @@
 import { createComfyUIWorkflowPreset, type ComfyUIWorkflowPreset, type ComfyUIWorkflowPresetSettings } from '@/constants/comfyui';
+import { triggerBrowserDownload } from '@/services/browser-download';
 import { readNodeDisplayName } from '@/services/comfyui/layout';
+import { normalizeFileNamePart } from '@/services/comfyui/lora-recipes';
+import { parseComfyUIWorkflow } from '@/services/comfyui/parse';
 import type { ComfyUIWorkflow } from '@/services/comfyui/types';
 
 /**
@@ -119,4 +122,24 @@ export function buildFavoriteLocateOptions(
       };
     })
     .sort((a, b) => a.label.localeCompare(b.label, 'zh-CN', { numeric: true }));
+}
+
+/**
+ * 构建用于导出的 ComfyUI API 工作流 JSON 文本（2 空格缩进）
+ * @param preset 工作流预设
+ * @returns 美化后的 API 工作流 JSON 文本
+ */
+export function buildComfyUIWorkflowExportJson(preset: ComfyUIWorkflowPreset): string {
+  const parsed = parseComfyUIWorkflow(preset.workflowJson);
+  return JSON.stringify(parsed, null, 2);
+}
+
+/**
+ * 导出 ComfyUI 工作流预设为 JSON 文件并触发下载
+ * @param preset 工作流预设
+ */
+export function exportComfyUIWorkflowPreset(preset: ComfyUIWorkflowPreset): void {
+  const json = buildComfyUIWorkflowExportJson(preset);
+  const blob = new Blob([json], { type: 'application/json' });
+  triggerBrowserDownload(blob, `${normalizeFileNamePart(preset.name)}.json`);
 }

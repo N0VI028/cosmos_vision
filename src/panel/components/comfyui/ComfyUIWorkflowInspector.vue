@@ -73,6 +73,7 @@
             :preset-settings="loraPresetSettings"
             :lora-options="loraOptions"
             :is-loading-loras="isLoadingLoras"
+            :comfyui-url="comfyuiUrl"
             @update:preset-settings="emit('update:lora-preset-settings', $event)"
             @refresh-options="emit('refresh-lora-options')"
           />

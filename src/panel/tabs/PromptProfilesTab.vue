@@ -16,7 +16,7 @@
           @toggle="togglePerson(person.id)"
         >
           <template #title>
-            <div v-if="editingPersonId === person.id" class="flex h-8 min-w-0 flex-1 items-center gap-(--cv-space-md)">
+            <div v-if="editingPersonId === person.id" class="flex h-full min-w-0 flex-1 items-center gap-(--cv-space-md)">
               <InputText
                 v-model="editingDraft"
                 class="h-8 min-w-0 flex-1"
@@ -28,9 +28,9 @@
               />
               <CvMiniButton icon="fa-regular fa-check" aria-label="完成" @click.stop="finishEditing(person)" />
             </div>
-            <div v-else class="flex h-8 min-w-0 items-center gap-(--cv-space-sm)">
+            <div v-else class="flex h-full min-w-0 items-center gap-(--cv-space-sm)">
               <span
-                class="block min-w-0 flex-[0_1_auto] overflow-hidden leading-8 font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
+                class="block min-w-0 flex-[0_1_auto] overflow-hidden text-(length:--cv-font-size-xs) font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
               >
                 {{ person.name || '未命名人物' }}
               </span>

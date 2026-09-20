@@ -7,6 +7,7 @@ import { preventInlineEventBubbling } from '@/composables/inlineImageDom';
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { useGalleryRuntimesStore, type GalleryGenerationContext } from '@/store/gallery-runtimes';
 import { generateComfyUIImagesFromResolvedRequest } from '@/services/comfyui/api';
+import { resolveActiveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
 import { buildComfyUIResolvedRequest, getComfyUIRequestError } from '@/services/comfyui/workflow';
 import {
   buildNovelAIResolvedRequest,
@@ -775,7 +776,13 @@ export function useInlineImageGeneration(
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
   ): Promise<InlineGenerationBatchResult> {
     const { output } = await generateRuntimePrompt(context, session, 'comfyui');
-    const request = buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, output);
+    const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings.comfyui);
+    const request = buildComfyUIResolvedRequest(
+      settings.comfyui,
+      settings.imagePromptPresets,
+      output,
+      loraTriggerWords,
+    );
     return runImageStep(
       session,
       createComfyUISnapshot(request.snapshot),

@@ -1,7 +1,8 @@
 import type { ComfyUISettings } from '@/constants/comfyui';
 import type { ImagePromptPresetSettings } from '@/constants/image-prompt';
 import { buildImagePromptPair, type ImagePromptPair } from '@/services/image-prompt/presets';
-import { readLoraSnapshotsFromWorkflow } from '@/services/comfyui/lora-adapter';
+import { readLoraSnapshotsFromWorkflow, writeLoraPresetToNode, isSupportedLoraNode } from '@/services/comfyui/lora-adapter';
+import { getActiveComfyUILoraPreset, prependLoraTriggerWords } from '@/services/comfyui/lora-presets';
 import {
   readImageBindings,
   readImageOutputNodeId,
@@ -26,31 +27,46 @@ import type {
  * @param settings ComfyUI 设置
  * @param presetSettings 共享生图提示词预设
  * @param prompts 正负提示词覆写
+ * @param loraTriggerWords 当前激活 LoRA 的触发词
  * @returns 可直接发送的工作流与快照
  */
 export function buildComfyUIResolvedRequest(
   settings: ComfyUISettings,
   presetSettings: ImagePromptPresetSettings,
   prompts: ImagePromptPair,
+  loraTriggerWords: readonly string[] = [],
 ): ComfyUIResolvedRequest {
-  return buildComfyUIResolvedRequestFromPrompts(settings, buildImagePromptPair(presetSettings, settings, prompts));
+  return buildComfyUIResolvedRequestFromPrompts(
+    settings,
+    buildImagePromptPair(presetSettings, settings, prompts),
+    loraTriggerWords,
+  );
 }
 
 /**
  * 使用最终正负提示词构建 ComfyUI 请求
  * @param settings ComfyUI 设置
  * @param prompts 已完成拼接的正负提示词
+ * @param loraTriggerWords 当前激活 LoRA 的触发词
  * @returns 可直接发送的工作流与快照
  */
 export function buildComfyUIResolvedRequestFromPrompts(
   settings: ComfyUISettings,
   prompts: ImagePromptPair,
+  loraTriggerWords: readonly string[] = [],
 ): ComfyUIResolvedRequest {
   const workflowJson = getActiveComfyUIWorkflowJson(settings.workflowPresets);
   const source = parseAndValidateWorkflow(settings, workflowJson);
   const { positivePrompt, negativePrompt } = requirePromptPair(prompts);
   const workflow = structuredClone(source) as ComfyUIWorkflow;
-  applyPromptBindings(workflow, positivePrompt, negativePrompt);
+  // 激活 LoRA 预设是唯一事实源：每次请求覆写工作流中的兼容节点，
+  // 保证切组/改强度后立即生效，不依赖面板是否曾写入工作流草稿
+  const hasLoraNode = applyActiveLoraPreset(workflow, settings.loraPresets);
+  // 仅当工作流确实承载了激活 LoRA 时才前置触发词，避免未加载的 LoRA 污染提示词
+  const triggeredPositivePrompt = hasLoraNode
+    ? prependLoraTriggerWords(positivePrompt, loraTriggerWords)
+    : positivePrompt;
+  applyPromptBindings(workflow, triggeredPositivePrompt, negativePrompt);
   const seedValues = applySeedModes(workflow, workflowJson);
   const imageOutputNodeId = readImageOutputNodeId(workflow)!;
   const promptBindings = readPromptBindings(workflow);
@@ -63,7 +79,7 @@ export function buildComfyUIResolvedRequestFromPrompts(
     imageOutputNodeId,
     snapshot: {
       endpoint: normalizeComfyUIUrl(settings.url),
-      positivePrompt,
+      positivePrompt: triggeredPositivePrompt,
       negativePrompt,
       imageOutputNodeId,
       promptBindings,
@@ -96,6 +112,19 @@ function parseAndValidateWorkflow(
   const outputError = validateImageOutput(source);
   if (outputError) throw new Error(outputError);
   return source;
+}
+
+/**
+ * 将激活 LoRA 预设写入工作流副本中的首个兼容节点
+ * @param workflow 工作流副本
+ * @param loraPresets LoRA 预设组集合
+ * @returns 工作流是否存在兼容 LoRA 节点（false 表示 LoRA 未被注入工作流）
+ */
+function applyActiveLoraPreset(workflow: ComfyUIWorkflow, loraPresets: ComfyUISettings['loraPresets']): boolean {
+  const node = Object.values(workflow).find(isSupportedLoraNode);
+  if (!node) return false;
+  writeLoraPresetToNode(node, getActiveComfyUILoraPreset(loraPresets));
+  return true;
 }
 
 /**

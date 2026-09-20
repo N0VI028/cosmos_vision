@@ -15,7 +15,7 @@
         <section
           v-for="entry in entries"
           :key="entry.id"
-          class="cv-message-row group/row grid grid-cols-[auto_minmax(0,1fr)] items-stretch overflow-hidden rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) transition-[border-color,box-shadow] duration-150 ease-in-out [contain-intrinsic-block-size:47px] [content-visibility:auto] group-[.is-dragging]/list:transition-none hover:border-(--cv-outline) hover:shadow-[0_var(--cv-space-sm)_var(--cv-space-3xl)_color-mix(in_srgb,var(--cv-on-surface)_12%,transparent)]"
+          class="cv-message-row group/row grid grid-cols-[auto_minmax(0,1fr)] items-stretch overflow-hidden rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) transition-[border-color,box-shadow] duration-150 ease-in-out [contain-intrinsic-block-size:40px] [content-visibility:auto] group-[.is-dragging]/list:transition-none hover:border-(--cv-outline) hover:shadow-[0_var(--cv-space-sm)_var(--cv-space-3xl)_color-mix(in_srgb,var(--cv-on-surface)_12%,transparent)]"
           :class="{
             'is-disabled bg-[color-mix(in_srgb,var(--cv-surface-container-low)_60%,transparent)] opacity-55 [&_.cv-indicator]:bg-[color-mix(in_srgb,var(--cv-on-surface)_20%,transparent)] [&_.cv-indicator]:shadow-none':
               entry.enabled === false,
@@ -30,8 +30,8 @@
           >
             <i class="fa-solid fa-grip-vertical" />
           </button>
-          <div class="cv-message-item flex min-w-0 items-center justify-between gap-(--cv-space-xl) p-(--cv-space-xl)">
-            <div class="cv-message-main flex min-w-0 flex-1 items-center gap-(--cv-space-xl)">
+          <div class="cv-message-item flex min-w-0 items-center justify-between gap-(--cv-space-md) px-(--cv-space-md) py-(--cv-space-sm)">
+            <div class="cv-message-main flex min-w-0 flex-1 items-center gap-(--cv-space-md)">
               <slot name="main" :entry="entry" />
             </div>
             <div

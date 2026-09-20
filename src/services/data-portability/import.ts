@@ -24,7 +24,12 @@ import {
 } from '@/services/novelai/vibe-file';
 import { importNovelAIVibePayloadsAsPreset } from '@/services/novelai/vibe-import';
 import type { NovelAIVibeCacheRecord } from '@/services/novelai/vibe-types';
-import { DATA_PORTABILITY_SECTIONS, isDataPortabilitySectionId, type DataPortabilitySectionId } from './sections';
+import {
+  DATA_PORTABILITY_LEGACY_SECTION_LABELS,
+  DATA_PORTABILITY_SECTIONS,
+  isDataPortabilitySectionId,
+  type DataPortabilitySectionId,
+} from './sections';
 import { isOtherPluginExport, parseOtherPluginExport } from './other-plugin';
 import {
   COSMOS_VISION_EXPORT_FORMAT,
@@ -180,7 +185,7 @@ function buildPreviewSection(id: DataPortabilitySectionId, payload: unknown, war
  * @returns 标签
  */
 function getSectionLabel(id: DataPortabilitySectionId): string {
-  return DATA_PORTABILITY_SECTIONS.find(section => section.id === id)?.label ?? id;
+  return DATA_PORTABILITY_SECTIONS.find(section => section.id === id)?.label ?? DATA_PORTABILITY_LEGACY_SECTION_LABELS[id] ?? id;
 }
 
 /**
@@ -261,6 +266,14 @@ function createSectionImporters(result: DataImportResult): Record<DataPortabilit
     novelAISettings: payload => mergeNovelAISettings(result.settings.novelai, payload, result),
     novelAISecrets: payload => mergeObject(result.settings.novelai, payload, result),
     comfyUISettings: payload => mergeObject(result.settings.comfyui, payload, result),
+    comfyUIBasicSettings: payload => assignObjectSection(
+      result.settings.comfyui,
+      payload,
+      ['url', 'timeout', 'positivePromptPresetId', 'negativePromptPresetId'],
+      result,
+    ),
+    comfyUIWorkflowPresets: payload => mergeObject(result.settings.comfyui.workflowPresets, payload, result),
+    comfyUILoraPresets: payload => mergeObject(result.settings.comfyui.loraPresets, payload, result),
     imagePromptPresets: payload => importImagePromptPresets(result.settings, payload, result),
     novelAIVibeBundle: payload => importNovelAIVibeBundle(result.settings, payload, result),
     promptLlmSettings: payload => mergeObject(result.settings.promptLlm, payload, result),

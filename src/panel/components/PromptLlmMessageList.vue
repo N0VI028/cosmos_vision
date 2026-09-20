@@ -24,7 +24,7 @@
         {{ getMessageSourceLabel(entry as PromptLlmMessage) }}
       </span>
       <span
-        class="min-w-0 overflow-hidden text-(length:--cv-font-size-base) font-medium text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
+        class="min-w-0 overflow-hidden text-(length:--cv-font-size-xs) font-medium text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
         >{{ getMessageTitle(entry as PromptLlmMessage) }}</span
       >
       <Tag

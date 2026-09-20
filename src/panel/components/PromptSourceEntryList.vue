@@ -13,7 +13,7 @@
         class="text-(length:--cv-font-size-xs) font-semibold tracking-normal whitespace-nowrap text-(--cv-on-surface-variant) uppercase"
         >{{ getEntrySourceLabel(entry as PromptPersonTemplateEntry) }}</span
       >
-      <span class="min-w-0 overflow-hidden font-medium text-ellipsis whitespace-nowrap text-(--cv-on-surface)">{{
+      <span class="min-w-0 overflow-hidden text-(length:--cv-font-size-xs) font-medium text-ellipsis whitespace-nowrap text-(--cv-on-surface)">{{
         getEntryTitle(entry as PromptPersonTemplateEntry)
       }}</span>
     </template>

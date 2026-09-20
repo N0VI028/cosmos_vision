@@ -23,8 +23,8 @@
       <CvMiniButton icon="fa-regular fa-copy" title="克隆当前预设" aria-label="克隆当前预设" @click="$emit('clone')" />
       <CvMiniButton
         icon="fa-regular fa-pen"
-        title="重命名当前预设"
-        aria-label="重命名当前预设"
+        :title="renameTitle"
+        :aria-label="renameTitle"
         @click="$emit('rename')"
       />
       <CvMiniButton
@@ -39,7 +39,7 @@
         icon="fa-regular fa-file-import"
         title="导入预设"
         aria-label="导入预设"
-        @click="openFilePicker"
+        @click="handleImportClick"
       />
       <CvMiniButton
         icon="fa-regular fa-trash"
@@ -68,10 +68,14 @@ const props = withDefaults(
     defaultPresetId: string;
     showPortability?: boolean;
     importAccept?: string;
+    importViaDialog?: boolean;
+    renameTitle?: string;
   }>(),
   {
     showPortability: false,
     importAccept: 'application/json,.json',
+    importViaDialog: false,
+    renameTitle: '重命名当前预设',
   },
 );
 
@@ -82,6 +86,7 @@ const emit = defineEmits<{
   rename: [];
   'export-preset': [];
   'import-presets': [file: File];
+  'import-click': [];
   'delete-preset': [id: string];
 }>();
 const PRESET_SELECT_DT = {
@@ -118,6 +123,17 @@ const showConfirm =
     }) => Promise<boolean>
   >('showConfirm');
 const fileInput = ref<HTMLInputElement | null>(null);
+
+/**
+ * 触发导入预设操作：若配置为弹窗导入则向外抛出事件，否则调起本地文件选择器
+ */
+function handleImportClick(): void {
+  if (props.importViaDialog) {
+    emit('import-click');
+    return;
+  }
+  openFilePicker();
+}
 
 /**
  * 打开预设文件选择器
