@@ -218,25 +218,19 @@ async function generatePromptTextFromRuntimeContext(
     const result = await requestPromptLlmWithAccounts(
       tavernHelper,
       settings,
-      { ...options, onAttemptFailed: error => options.inspector?.onAttemptFailed?.(error) },
-      async account => {
-        const request = await buildPromptLlmRuntimeRequestFromContext(
-          context,
-          settings,
-          presetSettings,
-          promptProfiles,
-          schemaFields,
-          options.triggerContext,
-          account,
-        );
-        options.inspector?.onRequestBuilt?.(request, account);
-        return request;
-      },
+      { ...options, inspector: options.inspector },
+      account => buildPromptLlmRuntimeRequestFromContext(
+        context,
+        settings,
+        presetSettings,
+        promptProfiles,
+        schemaFields,
+        options.triggerContext,
+        account,
+      ),
     );
-    options.inspector?.onSucceeded?.(result.rawText, result.accountName);
     return result.rawText;
   } catch (error) {
-    options.inspector?.onFailed?.(error);
     throw new Error(`提示词生成失败: ${(error as Error).message}`);
   }
 }
@@ -245,6 +239,8 @@ async function generatePromptTextFromRuntimeContext(
 export interface PromptLlmAccountsRequestContext {
   generationId?: string;
   timeoutSeconds?: number;
+  /** 请求监视钩子 */
+  inspector?: PromptLlmInspectorHooks;
   /** 单次账号尝试失败回调（故障转移切换下一个账号前调用） */
   onAttemptFailed?: (error: unknown) => void;
 }
@@ -278,19 +274,24 @@ export async function requestPromptLlmWithAccounts(
   for (const [index, account] of accounts.entries()) {
     try {
       const request = await buildRequest(account);
-      const rawText = await requestTavernHelperGenerateRaw(tavernHelper, buildSilentGenerateRawRequest(request, context), {
+      context.inspector?.onRequestBuilt?.(request, account);
+      const { text } = await requestTavernHelperGenerateRaw(tavernHelper, buildSilentGenerateRawRequest(request, context), {
         timeoutSeconds: context.timeoutSeconds ?? settings.timeout,
       });
-      return { rawText, accountName: getPromptLlmAccountDisplayName(account) };
+      context.inspector?.onSucceeded?.(text, getPromptLlmAccountDisplayName(account));
+      return { rawText: text, accountName: getPromptLlmAccountDisplayName(account) };
     } catch (error) {
       context.onAttemptFailed?.(error);
+      context.inspector?.onAttemptFailed?.(error);
       errors.push(formatPromptLlmAccountError(account, error));
       if (index < accounts.length - 1) {
         console.warn(`[PromptLlm] ${getPromptLlmAccountDisplayName(account)} 请求失败，尝试下一个账号`, error);
       }
     }
   }
-  throw new Error(`已尝试多组账号但均失败: ${errors.join('； ')}`);
+  const finalError = new Error(`已尝试多组账号但均失败: ${errors.join('； ')}`);
+  context.inspector?.onFailed?.(finalError);
+  throw finalError;
 }
 
 /**

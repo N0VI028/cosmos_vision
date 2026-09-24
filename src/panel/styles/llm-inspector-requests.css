@@ -10,7 +10,7 @@
 /* ==========================================================================
    小节壳（三个小节共用：请求消息 / AI 回复 / 账号请求列表）
    ========================================================================== */
-/* 小节统一高度策略：默认按内容收紧，达到最大高度后内部滚动；
+/* 小节统一高度策略：各小节按内容自然撑开，不再有节内滚动，行头 sticky 改为相对外层滚动区吸顶；
    禁止 flex-shrink，否则多节超总高时会互相压缩挤占，外层滚动容器将永远不触发滚动 */
 .cv-llm-inspector-section {
   display: flex;
@@ -53,14 +53,13 @@
   opacity: 0.7;
 }
 
-/* 内容滚动区 */
+/* 内容区 */
 .cv-llm-inspector-section-body {
   display: flex;
   min-height: 0;
   flex: 1 1 auto;
   flex-direction: column;
   gap: var(--cv-space-sm);
-  overflow-y: auto;
   padding: 0 0 var(--cv-space-md);
   background: transparent;
 }
@@ -68,10 +67,9 @@
 /* ==========================================================================
    行式条目分组面板
    ========================================================================== */
-/* 分组面板：单卡片包裹所有消息行（overflow 用 clip：只裁剪圆角溢出、不产生滚动窗口，不破坏行头 sticky 吸顶） */
+/* 分组面板：单卡片包裹所有消息行（不设 overflow 保持 visible，否则会裁剪吸顶于外层滚动区的行头；面板与行头同底色 surface-container-low，无圆角溢出毛边风险） */
 .cv-llm-inspector-requests {
   flex-shrink: 0;
-  overflow: clip;
   border: var(--cv-border-width) solid color-mix(in srgb, var(--cv-surface-variant) 45%, transparent);
   border-radius: var(--cv-radius);
   background: var(--cv-surface-container-low);
@@ -98,8 +96,9 @@
   transition: background-color 0.15s ease;
 }
 
+/* 吸顶行头必须实色遮挡下穿文字，禁止向 transparent 混色 */
 .cv-llm-inspector-request-header:hover {
-  background: color-mix(in srgb, var(--cv-surface-container-high) 55%, transparent);
+  background: color-mix(in srgb, var(--cv-surface-container-high) 55%, var(--cv-surface-container-low));
 }
 
 /* chevron：行尾折叠控件，折叠朝右，展开朝下（字号经 --icon-size 定义，绕过 ST 宿主 .fa-solid 强制规则） */
@@ -207,6 +206,11 @@
 .cv-llm-inspector-request .cv-llm-inspector-role-badge {
   background: color-mix(in srgb, var(--cv-on-surface-variant) 12%, var(--cv-surface-container-high));
   color: var(--cv-on-surface-variant);
+}
+
+/* badge 内图标（流式转圈）对齐会话信息 chip 图标尺寸；ST 宿主 .fa-solid:not(#load-spinner) 强制 --icon-size，须 !important 压制 */
+.cv-llm-inspector-role-badge i {
+  font-size: 0.72em !important;
 }
 
 /* 全部展开/收起（section header 右侧文字钮，中性色） */

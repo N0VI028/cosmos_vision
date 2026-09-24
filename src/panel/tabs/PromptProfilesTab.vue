@@ -207,6 +207,7 @@ import {
   parsePromptPersonStaticTags,
   parsePromptPersonStaticTagsFromText,
 } from '@/services/tavern-helper/prompt-profiles-tags';
+import { copyWithToast } from '@/utils/clipboard';
 
 type TagParseMode = 'template' | 'custom' | 'image';
 
@@ -552,12 +553,7 @@ function showTagParseError(message: string): void {
  * @param draft 用户编辑后的草稿
  */
 async function copyTagDraft(draft: string): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(draft);
-    toastr.success('tag 草稿已复制');
-  } catch {
-    toastr.error('复制失败，请手动复制');
-  }
+  await copyWithToast(draft, 'tag 草稿已复制');
 }
 
 /**

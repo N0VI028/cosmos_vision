@@ -1,4 +1,4 @@
-import type { TavernHelperGenerateRawConfig } from '@/services/tavern-helper/prompt-llm';
+import type { TavernHelperGenerateRawConfig, TavernHelperGenerateRawResult } from '@/services/tavern-helper/prompt-llm';
 
 // 全局类型声明扩展(按需补充 SillyTavern 注入的全局对象/常量)
 
@@ -79,9 +79,9 @@ declare global {
         /**
          * 调用 LLM 生成文本,使用对象式 generateRaw 配置
          * @param config generateRaw 请求配置
-         * @returns LLM 返回的字符串
+         * @returns LLM 返回的结果（无元数据时为字符串；有思维链/工具调用时为详情对象）
          */
-        generateRaw(config: TavernHelperGenerateRawConfig): Promise<string>;
+        generateRaw(config: TavernHelperGenerateRawConfig): Promise<string | TavernHelperGenerateRawResult>;
         /**
          * 向指定的 API 地址请求获取模型列表
          * @param custom_api 接口配置对象

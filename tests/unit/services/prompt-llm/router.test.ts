@@ -127,7 +127,7 @@ describe('requestPromptLlmWithAccounts', () => {
   const buildRequest = async () => ({});
 
   it('首个账号成功时直接返回其原始文本与账号名', async () => {
-    requestTavernHelperGenerateRaw.mockResolvedValue('raw-ok');
+    requestTavernHelperGenerateRaw.mockResolvedValue({ text: 'raw-ok' });
     const { requestPromptLlmWithAccounts } = await loadRuntimeRequest();
     const settings = buildSettings([{ ...createEnabledAccount('a'), name: '主账号' }]);
 
@@ -138,7 +138,9 @@ describe('requestPromptLlmWithAccounts', () => {
   });
 
   it('前序账号失败时自动切换到下一个账号', async () => {
-    requestTavernHelperGenerateRaw.mockRejectedValueOnce(new Error('超时')).mockResolvedValueOnce('raw-fallback');
+    requestTavernHelperGenerateRaw
+      .mockRejectedValueOnce(new Error('超时'))
+      .mockResolvedValueOnce({ text: 'raw-fallback' });
     const { requestPromptLlmWithAccounts } = await loadRuntimeRequest();
     const settings = buildSettings([createEnabledAccount('a'), { ...createEnabledAccount('b'), name: '备用' }]);
     const attempted: (string | undefined)[] = [];
@@ -153,7 +155,9 @@ describe('requestPromptLlmWithAccounts', () => {
   });
 
   it('无名账号回退为默认展示名而非序号', async () => {
-    requestTavernHelperGenerateRaw.mockRejectedValueOnce(new Error('失败')).mockResolvedValueOnce('raw-ok');
+    requestTavernHelperGenerateRaw
+      .mockRejectedValueOnce(new Error('失败'))
+      .mockResolvedValueOnce({ text: 'raw-ok' });
     const { requestPromptLlmWithAccounts } = await loadRuntimeRequest();
     const settings = buildSettings([createEnabledAccount('a'), createEnabledAccount('b')]);
 
@@ -162,14 +166,55 @@ describe('requestPromptLlmWithAccounts', () => {
     expect(result.accountName).toBe('未命名账号');
   });
 
-  it('全部账号失败时抛出聚合错误', async () => {
-    requestTavernHelperGenerateRaw.mockRejectedValue(new Error('连接失败'));
+  it('触发 context.inspector 钩子（onRequestBuilt, onSucceeded, onAttemptFailed, onFailed）', async () => {
+    requestTavernHelperGenerateRaw
+      .mockRejectedValueOnce(new Error('首次失败'))
+      .mockResolvedValueOnce({ text: 'ok-text' });
+    const { requestPromptLlmWithAccounts } = await loadRuntimeRequest();
+    const settings = buildSettings([createEnabledAccount('a'), { ...createEnabledAccount('b'), name: '账号B' }]);
+
+    const onRequestBuilt = vi.fn();
+    const onSucceeded = vi.fn();
+    const onAttemptFailed = vi.fn();
+    const onFailed = vi.fn();
+
+    const result = await requestPromptLlmWithAccounts(
+      tavernHelper,
+      settings,
+      {
+        inspector: { onRequestBuilt, onSucceeded, onAttemptFailed, onFailed },
+      },
+      async () => ({ user_input: 'hi' }),
+    );
+
+    expect(result).toEqual({ rawText: 'ok-text', accountName: '账号B' });
+    expect(onRequestBuilt).toHaveBeenCalledTimes(2);
+    expect(onAttemptFailed).toHaveBeenCalledTimes(1);
+    expect(onSucceeded).toHaveBeenCalledWith('ok-text', '账号B');
+    expect(onFailed).not.toHaveBeenCalled();
+  });
+
+  it('全部账号失败时抛出聚合错误并触发 onFailed 钩子', async () => {
+    const error1 = new Error('连接失败1');
+    const error2 = new Error('连接失败2');
+    requestTavernHelperGenerateRaw
+      .mockRejectedValueOnce(error1)
+      .mockRejectedValueOnce(error2);
     const { requestPromptLlmWithAccounts } = await loadRuntimeRequest();
     const settings = buildSettings([createEnabledAccount('a'), createEnabledAccount('b')]);
 
-    await expect(requestPromptLlmWithAccounts(tavernHelper, settings, {}, buildRequest)).rejects.toThrow(
-      /已尝试多组账号但均失败.*未命名账号.*未命名账号/s,
-    );
+    const onFailed = vi.fn();
+    await expect(
+      requestPromptLlmWithAccounts(
+        tavernHelper,
+        settings,
+        { inspector: { onFailed } },
+        buildRequest,
+      ),
+    ).rejects.toThrow(/已尝试多组账号但均失败.*未命名账号.*未命名账号/s);
+
+    expect(onFailed).toHaveBeenCalledTimes(1);
+    expect(onFailed).toHaveBeenCalledWith(expect.any(Error));
   });
 
   it('没有可用账号时直接抛错且不发起请求', async () => {

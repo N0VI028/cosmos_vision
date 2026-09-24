@@ -4,7 +4,6 @@ import {
   buildGenerateRawMessagesRequest,
   buildJsonSchema,
   extractOutputBlock,
-  formatPromptLlmRawResult,
   getPromptLlmRequestError,
   parsePromptLlmOutput,
   readPromptLlmOutput,
@@ -18,10 +17,9 @@ describe('tavern-helper prompt-llm helper', () => {
     expect(extractOutputBlock('```json\n{"positive":"cat"}\n```')).toBe('{"positive":"cat"}');
   });
 
-  it('formats raw result and parses output JSON', () => {
-    const raw = { positive: 'masterpiece', negative: 'worst quality' };
-    const formatted = formatPromptLlmRawResult(raw);
-    const parsed = parsePromptLlmOutput(formatted, { positive: 'positive', negative: 'negative' });
+  it('parses output JSON', () => {
+    const raw = JSON.stringify({ positive: 'masterpiece', negative: 'worst quality' });
+    const parsed = parsePromptLlmOutput(raw, { positive: 'positive', negative: 'negative' });
     expect(parsed).toEqual({ positivePrompt: 'masterpiece', negativePrompt: 'worst quality' });
   });
 

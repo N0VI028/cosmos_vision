@@ -109,6 +109,15 @@ describe('useLlmInspectorStore', () => {
     expect(store.hasRunningSession).toBe(false);
   });
 
+  it('结束事件携带 reasoning 时思考区立即写入', () => {
+    const store = useLlmInspectorStore();
+    store.recordRequest(buildSnapshot('gen-1'));
+    eventSource.emit('js_generation_ended', '正文内容', 'gen-1', '结束时的思考');
+    expect(store.sessions[0]!.status).toBe('completed');
+    expect(store.sessions[0]!.thinkingText).toBe('结束时的思考');
+    expect(store.sessions[0]!.contentText).toBe('正文内容');
+  });
+
   it('markSucceeded / markFailed 更新状态与账号信息', () => {
     const store = useLlmInspectorStore();
     store.recordRequest(buildSnapshot('gen-1'));
@@ -177,5 +186,55 @@ describe('useLlmInspectorStore', () => {
       error: '全部账号均失败',
       durationMs: expect.any(Number),
     });
+  });
+
+  it('reasoning 事件无条件写入思考区且独立字段优先于无标签正文', () => {
+    const store = useLlmInspectorStore();
+    store.recordRequest(buildSnapshot('gen-1'));
+
+    // 1. 独立 reasoning 事件到达，写入思考过程
+    eventSource.emit('js_reasoning_token_received_fully', '模型正在思考中...', 'gen-1');
+    expect(store.sessions[0]!.thinkingText).toBe('模型正在思考中...');
+    expect(store.sessions[0]!.thinkingStreaming).toBe(true);
+
+    // 2. 正文流式到达（无 think 标签），不应将 thinkingText 冲刷为空
+    eventSource.emit('js_stream_token_received_fully', '1girl, solo', 'gen-1');
+    expect(store.sessions[0]!.thinkingText).toBe('模型正在思考中...');
+    expect(store.sessions[0]!.contentText).toBe('1girl, solo');
+
+    // 3. reasoning 事件继续增量更新
+    eventSource.emit('js_reasoning_token_received_fully', '模型正在思考中...完成', 'gen-1');
+    expect(store.sessions[0]!.thinkingText).toBe('模型正在思考中...完成');
+
+    // 4. 结束事件完成
+    eventSource.emit('js_generation_ended', '1girl, solo, masterpiece', 'gen-1');
+    expect(store.sessions[0]!.status).toBe('completed');
+    expect(store.sessions[0]!.thinkingStreaming).toBe(false);
+    expect(store.sessions[0]!.thinkingText).toBe('模型正在思考中...完成');
+    expect(store.sessions[0]!.contentText).toBe('1girl, solo, masterpiece');
+  });
+
+  it('stop 之后不再接收 reasoning 事件', () => {
+    const store = useLlmInspectorStore();
+    store.recordRequest(buildSnapshot('gen-1'));
+    store.stop();
+
+    eventSource.emit('js_reasoning_token_received_fully', '思考内容', 'gen-1');
+    expect(store.sessions[0]!.thinkingText).toBe('');
+  });
+
+  it('空 reasoning 事件无副作用（内联标签模型不受干扰）', () => {
+    const store = useLlmInspectorStore();
+    store.recordRequest(buildSnapshot('gen-1'));
+
+    // 内联标签模型：正文流式分离出未闭合思考 → 思考中
+    eventSource.emit('js_stream_token_received_fully', '<think>推理中', 'gen-1');
+    expect(store.sessions[0]!.thinkingText).toBe('推理中');
+    expect(store.sessions[0]!.thinkingStreaming).toBe(true);
+
+    // 普通模型每帧 emit 的空 reasoning 事件不得覆盖思考区
+    eventSource.emit('js_reasoning_token_received_fully', '', 'gen-1');
+    expect(store.sessions[0]!.thinkingText).toBe('推理中');
+    expect(store.sessions[0]!.thinkingStreaming).toBe(true);
   });
 });

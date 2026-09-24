@@ -2,7 +2,11 @@ import { eventSource } from '@sillytavern/script';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
-import type { LlmInspectorRequestSnapshot } from '@/services/prompt-llm/llm-inspector';
+import {
+  buildLlmInspectorRequestSnapshot,
+  type LlmInspectorRequestSnapshot,
+} from '@/services/prompt-llm/llm-inspector';
+import type { PromptLlmInspectorHooks } from '@/services/prompt-llm/runtime-request';
 import { isThinkingStreaming, splitThinkingContent } from '@/services/prompt-llm/thinking-stream-parser';
 import type { PromptLlmParamRow } from '@/services/tavern-helper/prompt-llm-test';
 
@@ -11,6 +15,7 @@ const MAX_SESSIONS = 50;
 
 /** TavernHelper 流式事件名（js_generation_started 对账靠快照侧，无需订阅） */
 const STREAM_TOKEN_EVENT = 'js_stream_token_received_fully';
+const REASONING_TOKEN_EVENT = 'js_reasoning_token_received_fully';
 const GENERATION_ENDED_EVENT = 'js_generation_ended';
 
 /** 监视会话状态 */
@@ -149,6 +154,7 @@ export const useLlmInspectorStore = defineStore('cosmos_vision_llm_inspector', (
     if (subscribed) return;
     subscribed = true;
     eventSource.on(STREAM_TOKEN_EVENT, handleStreamToken);
+    eventSource.on(REASONING_TOKEN_EVENT, handleReasoningToken);
     eventSource.on(GENERATION_ENDED_EVENT, handleGenerationEnded);
   }
 
@@ -159,6 +165,7 @@ export const useLlmInspectorStore = defineStore('cosmos_vision_llm_inspector', (
     if (!subscribed) return;
     subscribed = false;
     eventSource.removeListener(STREAM_TOKEN_EVENT, handleStreamToken);
+    eventSource.removeListener(REASONING_TOKEN_EVENT, handleReasoningToken);
     eventSource.removeListener(GENERATION_ENDED_EVENT, handleGenerationEnded);
   }
 
@@ -178,20 +185,38 @@ export const useLlmInspectorStore = defineStore('cosmos_vision_llm_inspector', (
     const session = findSession(generationId);
     if (!session || session.status !== 'running') return;
     const { thinking, content } = splitThinkingContent(text);
-    session.thinkingText = thinking;
+    // 独立字段优先：内联标签分离结果为空时不动思考区（reasoning 事件在写）
+    if (thinking) {
+      session.thinkingText = thinking;
+      session.thinkingStreaming = isThinkingStreaming(text);
+    }
     session.contentText = content;
-    session.thinkingStreaming = isThinkingStreaming(text);
+  }
+
+  /**
+   * 处理思维链流式增量事件：独立字段 reasoning 写入（独立字段优先于内联标签）
+   * @param reasoning 累积思维链全文
+   * @param generationId 请求标识
+   */
+  function handleReasoningToken(reasoning: string, generationId: string): void {
+    const session = findSession(generationId);
+    if (!session || session.status !== 'running') return;
+    // 空事件无副作用：普通/内联标签模型每帧 emit 空串，不得干扰思考区状态
+    if (!reasoning) return;
+    session.thinkingText = reasoning;
+    session.thinkingStreaming = true;
   }
 
   /**
    * 处理生成结束事件：写入最终全文并标记完成
    * @param message 最终消息
    * @param generationId 请求标识
+   * @param reasoning 独立字段思维链（新版结束事件携带）
    */
-  function handleGenerationEnded(message: string, generationId: string): void {
+  function handleGenerationEnded(message: string, generationId: string, reasoning?: string): void {
     const session = findSession(generationId);
     if (!session || session.status !== 'running') return;
-    completeSession(session, message);
+    completeSession(session, message, undefined, reasoning);
   }
 
   /**
@@ -199,15 +224,17 @@ export const useLlmInspectorStore = defineStore('cosmos_vision_llm_inspector', (
    * @param session 目标会话
    * @param rawText 响应全文
    * @param accountName 实际成功的账号名（ended 事件侧无此信息则不覆盖）
+   * @param reasoning 独立字段思维链（由 handleGenerationEnded 传入）
    */
-  function completeSession(session: LlmInspectorSession, rawText: string, accountName?: string): void {
+  function completeSession(session: LlmInspectorSession, rawText: string, accountName?: string, reasoning?: string): void {
     const { thinking, content } = splitThinkingContent(rawText);
     session.status = 'completed';
     session.finishedAt = Date.now();
     if (accountName) session.accountName = accountName;
     session.thinkingStreaming = false;
-    // 空文本不覆盖，保留事件/钩子中信息更全的一次
-    if (thinking) session.thinkingText = thinking;
+    // 独立字段优先，内联标签分离结果回退；空值不覆盖（ended 事件与成功钩子先后到达取更全的一次）
+    if (reasoning) session.thinkingText = reasoning;
+    else if (thinking) session.thinkingText = thinking;
     if (content) session.contentText = content;
     sealLlmInspectorAttempt(session.attempts, session.finishedAt);
   }
@@ -240,3 +267,24 @@ export const useLlmInspectorStore = defineStore('cosmos_vision_llm_inspector', (
     clearSessions,
   };
 });
+
+/**
+ * 构建绑定本 store 的请求监视钩子四件套（生图与测试页共用）
+ * @param generationId 请求标识
+ * @param label 会话标签（快照侧展示用）
+ * @returns 请求监视钩子
+ */
+export function buildLlmInspectorStoreHooks(
+  generationId: string,
+  label: string,
+): PromptLlmInspectorHooks {
+  const store = useLlmInspectorStore();
+  return {
+    onRequestBuilt: (request, account) =>
+      store.recordRequest(buildLlmInspectorRequestSnapshot(generationId, request, account, label)),
+    onSucceeded: (rawText, accountName) => store.markSucceeded(generationId, rawText, accountName),
+    onAttemptFailed: error => store.appendAttemptError(generationId, error),
+    onFailed: error => store.markFailed(generationId, error),
+  };
+}
+

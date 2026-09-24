@@ -115,13 +115,37 @@ interface PromptExtractRule {
   flags: string;
 }
 
+/** TavernHelper 新版 generateRaw 详情对象形态（无元数据时直接返回 string） */
+export interface TavernHelperGenerateRawResult {
+  readonly content: string;
+  readonly reasoning?: string;
+  readonly reasoning_signature?: string;
+  readonly tool_calls?: unknown[];
+}
+
+/** generateRaw 返回值的统一读取结果 */
+export interface TavernHelperGenerateRawOutcome {
+  /** 正文（纯字符串值或详情对象的 content） */
+  text: string;
+}
+
 /**
- * 格式化 generateRaw 返回值为可提取文本
+ * 读取 generateRaw 返回值：兼容旧版纯字符串与新版详情对象（String 子类 / plain object）
  * @param rawResult generateRaw 原始返回
- * @returns 可用于正则提取的响应文本
+ * @returns 正文读取结果
  */
-export function formatPromptLlmRawResult(rawResult: unknown): string {
-  return typeof rawResult === 'string' ? rawResult : JSON.stringify(rawResult, null, 2);
+export function readGenerateRawOutcome(rawResult: unknown): TavernHelperGenerateRawOutcome {
+  if (typeof rawResult === 'string') {
+    return { text: rawResult };
+  }
+  if (!rawResult || typeof rawResult !== 'object') {
+    return { text: '' };
+  }
+  const rawObj = rawResult as Record<string, unknown>;
+  const text = typeof rawObj.content === 'string'
+    ? rawObj.content
+    : (rawResult instanceof String ? String(rawResult) : '');
+  return { text };
 }
 
 /**

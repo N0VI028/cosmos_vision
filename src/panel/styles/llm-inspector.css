@@ -411,7 +411,7 @@
   padding: 0 var(--cv-space-8xl);
 }
 
-/* 小节滚动区：三个小节（请求消息 / AI 回复 / 账号请求列表）整体滚动，元信息区置顶不滚 */
+/* 小节滚动区：各小节按内容自然撑开，超高由 sections 外层统一滚动；条目内容框（24rem）保留内部滚动，元信息区置顶不滚 */
 .cv-llm-inspector-sections {
   display: flex;
   min-height: 0;
@@ -419,11 +419,6 @@
   flex-direction: column;
   gap: var(--cv-space-5xl);
   overflow-y: auto;
-}
-
-/* 抽屉内小节高度策略：各节上限 45%，超高后内部滚动 */
-.cv-llm-inspector-sections .cv-llm-inspector-section {
-  max-height: 45%;
 }
 
 /* ==========================================================================
@@ -625,5 +620,21 @@
 
   .cv-llm-inspector-chip {
     padding: 0.15em 0.55em;
+  }
+}
+
+/* ==========================================================================
+   窄屏侧栏浮层（≤87.5em 与 useShellDialogStyle isMobile 同断点）
+   ========================================================================== */
+/* 窄屏展开态：会话侧栏浮层覆盖详情区（不挤宽度；桌面仍为 inline 挤压布局）；
+   骑跨切换钮 z-index 100 恒在浮层之上 */
+@media (max-width: 87.5em) {
+  .cv-llm-inspector:not(.cv-llm-inspector--rail-collapsed) .cv-llm-inspector-rail {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+    box-shadow: 0.5em 0 1.5em rgba(0, 0, 0, 0.35);
   }
 }

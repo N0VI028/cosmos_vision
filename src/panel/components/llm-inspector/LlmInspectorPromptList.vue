@@ -34,7 +34,7 @@
               class="cv-llm-inspector-copy-btn"
               title="复制指令"
               aria-label="复制指令"
-              @click.stop="copyToClipboard(prompt.content)"
+              @click.stop="copyWithToast(prompt.content)"
             >
               <i class="fa-regular fa-copy" aria-hidden="true" />
             </button>
@@ -68,7 +68,7 @@ import { computed, ref } from 'vue';
 import '@/panel/styles/llm-inspector-requests.css';
 import '@/panel/styles/llm-inspector-bubbles.css';
 import type { LlmInspectorPromptEntry } from '@/services/prompt-llm/llm-inspector';
-import { copyToClipboard } from '@/utils/clipboard';
+import { copyWithToast } from '@/utils/clipboard';
 
 const props = defineProps<{
   prompts: LlmInspectorPromptEntry[];

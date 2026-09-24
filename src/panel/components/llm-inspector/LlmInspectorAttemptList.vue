@@ -26,7 +26,7 @@
               class="cv-llm-inspector-copy-btn"
               title="复制错误信息"
               aria-label="复制错误信息"
-              @click.stop="copyToClipboard(attempt.error)"
+              @click.stop="copyWithToast(attempt.error)"
             >
               <i class="fa-regular fa-copy" aria-hidden="true" />
             </button>
@@ -77,7 +77,7 @@ import { ref } from 'vue';
 import '@/panel/styles/llm-inspector-requests.css';
 import '@/panel/styles/llm-inspector-bubbles.css';
 import type { LlmInspectorAttempt } from '@/store/llm-inspector';
-import { copyToClipboard } from '@/utils/clipboard';
+import { copyWithToast } from '@/utils/clipboard';
 import { formatDurationMs } from '@/utils/duration';
 
 defineProps<{

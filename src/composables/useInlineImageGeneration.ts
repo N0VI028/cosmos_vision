@@ -26,10 +26,9 @@ import {
 import {
   buildPromptLlmTriggerContext,
   generatePromptFromRuntimeContext,
-  type PromptLlmInspectorHooks,
 } from '@/services/prompt-llm/runtime-request';
-import { buildLlmInspectorLabel, buildLlmInspectorRequestSnapshot } from '@/services/prompt-llm/llm-inspector';
-import { useLlmInspectorStore } from '@/store/llm-inspector';
+import { buildLlmInspectorLabel } from '@/services/prompt-llm/llm-inspector';
+import { buildLlmInspectorStoreHooks } from '@/store/llm-inspector';
 import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
 import { useSettingsStore } from '@/store/settings';
 import { getCurrentInstance, ref } from 'vue';
@@ -84,8 +83,6 @@ export function useInlineImageGeneration(
   const requestPromptPairInput = options.requestPromptPairInput;
   const requestImageDownloadOptions = options.requestImageDownloadOptions;
   const settingsStore = useSettingsStore();
-  /** LLM 请求监视 store（仅内联生图路径写入会话记录） */
-  const llmInspectorStore = useLlmInspectorStore();
   /** 当前组件实例上下文,用于把 PrimeVue Button 渲染到聊天内联 DOM */
   const appContext = getCurrentInstance()?.appContext;
   /** 生成会话与取消控制 */
@@ -817,26 +814,9 @@ export function useInlineImageGeneration(
       {
         generationId: session.promptGenerationId,
         triggerContext: buildPromptLlmTriggerContext(settings, imageSource),
-        inspector: buildLlmInspectorHooks(context, session.promptGenerationId),
+        inspector: buildLlmInspectorStoreHooks(session.promptGenerationId, buildLlmInspectorLabel(context)),
       },
     ));
-  }
-
-  /**
-   * 构建内联生图路径的 LLM 请求监视钩子（把请求快照与终态写入监视 store）
-   * @param context Prompt LLM 运行时上下文
-   * @param generationId 请求标识，用于与流式事件对账
-   * @returns 监视钩子集合
-   */
-  function buildLlmInspectorHooks(context: PromptLlmContext, generationId: string): PromptLlmInspectorHooks {
-    return {
-      onRequestBuilt: (request, account) => llmInspectorStore.recordRequest(
-        buildLlmInspectorRequestSnapshot(generationId, request, account, buildLlmInspectorLabel(context)),
-      ),
-      onSucceeded: (rawText, accountName) => llmInspectorStore.markSucceeded(generationId, rawText, accountName),
-      onAttemptFailed: error => llmInspectorStore.appendAttemptError(generationId, error),
-      onFailed: error => llmInspectorStore.markFailed(generationId, error),
-    };
   }
 
   /**

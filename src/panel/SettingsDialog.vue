@@ -353,21 +353,27 @@ const visible = defineModel<boolean>('visible', { default: false });
 const settingsStore = useSettingsStore();
 const { darkMode } = storeToRefs(settingsStore);
 
-const settingsDialogClass = computed(() => ({ [DARK_CLASS]: darkMode.value }));
+const settingsDialogClass = computed(() => ['cv-settings-dialog', { [DARK_CLASS]: darkMode.value }]);
 const confirmDialogClass = computed(() => ['cv-confirm-dialog', settingsDialogClass.value]);
 
 const { isMobile, dialogStyle } = useShellDialogStyle();
 
-/** 用户手动收起侧栏标记 */
+/** 桌面端手动收起侧栏标记 */
 const railManuallyCollapsed = ref(false);
-/** 侧栏收起态：窄屏强制图标栏（同移动端表现），桌面端手动切换 */
-const railCollapsed = computed(() => railManuallyCollapsed.value || isMobile.value);
+/** 窄屏侧栏收起标记（默认收起，可展开为浮层） */
+const narrowRailCollapsed = ref(true);
+/** 侧栏收起态：桌面手动切换；窄屏默认收起、可点切换钮展开（浮层不挤主区） */
+const railCollapsed = computed(() => (isMobile.value ? narrowRailCollapsed.value : railManuallyCollapsed.value));
 
 /**
- * 切换侧栏收起/展开状态
+ * 切换侧栏收起/展开状态（按当前断点翻转对应标记）
  */
 function toggleRail(): void {
-  railManuallyCollapsed.value = !railManuallyCollapsed.value;
+  if (isMobile.value) {
+    narrowRailCollapsed.value = !narrowRailCollapsed.value;
+  } else {
+    railManuallyCollapsed.value = !railManuallyCollapsed.value;
+  }
 }
 
 const confirmDialogStyle = computed(() =>

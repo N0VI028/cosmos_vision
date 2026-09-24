@@ -1,5 +1,9 @@
 import { getPromptLlmAccountDisplayName, type PromptLlmAccount, type PromptLlmSettings } from '@/constants/prompt-llm';
-import { requestPromptLlmWithAccounts, type PromptLlmRawRequestResult } from '@/services/prompt-llm/runtime-request';
+import {
+  requestPromptLlmWithAccounts,
+  type PromptLlmInspectorHooks,
+  type PromptLlmRawRequestResult,
+} from '@/services/prompt-llm/runtime-request';
 import { findProxyPreset } from '@/services/sillytavern/openai-config';
 import { getTavernHelper } from '@/services/tavern-helper/availability';
 import { buildGenerateRawRequestPreview } from '@/services/tavern-helper/generate-raw';
@@ -17,6 +21,7 @@ export interface PromptLlmParamRow {
 export interface PromptLlmRawRequestOptions {
   generationId?: string;
   timeoutSeconds?: number;
+  inspector?: PromptLlmInspectorHooks;
 }
 
 /** Prompt LLM 测试请求结果 */

@@ -26,7 +26,7 @@
               class="cv-llm-inspector-copy-btn"
               title="复制思考过程"
               aria-label="复制思考过程"
-              @click.stop="copyToClipboard(thinkingText)"
+              @click.stop="copyWithToast(thinkingText)"
             >
               <i class="fa-regular fa-copy" aria-hidden="true" />
             </button>
@@ -62,7 +62,7 @@
               class="cv-llm-inspector-copy-btn"
               title="复制回复"
               aria-label="复制回复"
-              @click.stop="copyToClipboard(contentText)"
+              @click.stop="copyWithToast(contentText)"
             >
               <i class="fa-regular fa-copy" aria-hidden="true" />
             </button>
@@ -94,7 +94,7 @@
               class="cv-llm-inspector-copy-btn"
               title="复制错误信息"
               aria-label="复制错误信息"
-              @click.stop="copyToClipboard(error)"
+              @click.stop="copyWithToast(error)"
             >
               <i class="fa-regular fa-copy" aria-hidden="true" />
             </button>
@@ -120,7 +120,7 @@
 import { computed, nextTick, ref, watch } from 'vue';
 import '@/panel/styles/llm-inspector-requests.css';
 import '@/panel/styles/llm-inspector-bubbles.css';
-import { copyToClipboard } from '@/utils/clipboard';
+import { copyWithToast } from '@/utils/clipboard';
 
 const props = defineProps<{
   thinkingText: string;
