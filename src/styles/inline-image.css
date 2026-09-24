@@ -189,6 +189,10 @@
 .cv-inline-selected {
   @apply relative;
   box-shadow: none !important;
+}
+
+/* 仅对非滚动型段落放开溢出，保留 pre/textarea 等自带滚动元素的裁剪 */
+.cv-inline-selected:not(pre):not([role="textbox"]):not(textarea) {
   overflow: visible !important;
 }
 

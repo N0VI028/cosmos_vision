@@ -39,7 +39,7 @@ import {
   createNovelAISnapshot,
 } from '@/composables/inlineGenerationSnapshot';
 import { resolveInlineRoute } from '@/services/inline-image/route-resolve';
-import { resolveFrontendBubbleRoot } from '@/services/inline-image/frontend-text-extract';
+import { locateFrontendParagraphFromPoint } from '@/services/inline-image/frontend-paragraph-locate';
 import { ensureFloorTailHost } from '@/services/inline-image/floor-tail-host';
 import { writeFloorTailSlot, findFloorTailSlotByTarget } from '@/services/inline-image/floor-tail-slot';
 import { newSlotId } from '@/services/inline-image/slot-shortcode';
@@ -263,15 +263,16 @@ export function useInlineImageGeneration(
           return;
         }
       } else {
-        const bubble = resolveFrontendBubbleRoot(target);
-        if (!bubble || bubble === bubble.closest('.mes_text')) return;
-        e.preventDefault();
-        if (hasMixedRoute(selectedParagraphs.value, bubble)) {
-          setSelection([bubble]);
-        } else {
-          setSelection(nextParagraphSelection(selectedParagraphs.value, bubble));
+        const bubble = locateFrontendParagraphFromPoint(target.ownerDocument, e.clientX, e.clientY);
+        if (bubble && bubble !== bubble.closest('.mes_text')) {
+          e.preventDefault();
+          if (hasMixedRoute(selectedParagraphs.value, bubble)) {
+            setSelection([bubble]);
+          } else {
+            setSelection(nextParagraphSelection(selectedParagraphs.value, bubble));
+          }
+          return;
         }
-        return;
       }
     } catch (error) {
       toastr?.warning?.(error instanceof Error ? error.message : '选段失败');
