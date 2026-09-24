@@ -624,7 +624,7 @@
 }
 
 @media (max-width: 87.5em) {
-  /* 窄屏弹窗贴合 #chat 聊天区（fixed 对齐见 useShellDialogStyle）：四边圆角清零完全贴合；
+  /* 窄屏弹窗贴合 #chat 聊天区（absolute 对齐见 useShellDialogStyle）：四边圆角清零完全贴合；
      !important 压制 PrimeVue theme token 生成的 .p-dialog 圆角 */
   .cv-settings-dialog,
   .cv-llm-inspector-dialog {

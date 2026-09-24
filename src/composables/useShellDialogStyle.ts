@@ -5,7 +5,7 @@ import { computed, onMounted, ref } from 'vue';
  * 壳级 Dialog 共享尺寸与定位（设置窗 / LLM 请求监视窗等全屏业务弹窗统一使用）
  *
  * - 桌面端（>87.5em）：40vw × 70vh（上限 80vh）；
- * - 窄屏（≤87.5em）：弹窗 fixed 对齐宿主 #chat 矩形（#chat 为滚动容器不可直接挂载子元素），
+ * - 窄屏（≤87.5em）：弹窗 absolute 对齐宿主 #chat 矩形（#chat 为滚动容器不可直接挂载子元素），
  *   矩形响应式跟随窗口尺寸；若未能获取 #chat 元素则回退 95vw × 95vh 全屏居中。
  *
  * 断点与侧栏宽度（--cv-sidebar-width 窄屏 2.6em 图标栏）同源，见 settings-dialog.css。
@@ -27,7 +27,8 @@ export function useShellDialogStyle() {
       return { width: '95vw', height: '95vh' };
     }
     return {
-      position: 'fixed',
+      // 移动端用 absolute：fixed 在部分移动端布局下不可见
+      position: 'absolute',
       top: `${rect.top.value}px`,
       left: `${rect.left.value}px`,
       width: `${rect.width.value}px`,
