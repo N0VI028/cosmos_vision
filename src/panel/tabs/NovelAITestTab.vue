@@ -126,21 +126,21 @@
           class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-primary-color)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-primary-color)_10%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-primary-color)"
         >
           <i class="fa-solid fa-spinner fa-spin" />
-          <span class="whitespace-normal break-all">{{ runningStateText }}</span>
+          <span class="break-all whitespace-normal">{{ runningStateText }}</span>
         </div>
         <div
           v-else-if="testStatus === 'success'"
           class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-green-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-green-500)"
         >
           <i class="fa-solid fa-circle-check" />
-          <span class="whitespace-normal break-all">{{ successStateText }}</span>
+          <span class="break-all whitespace-normal">{{ successStateText }}</span>
         </div>
         <div
           v-else-if="testStatus === 'error'"
           class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-red-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-red-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-red-500)"
         >
           <i class="fa-solid fa-circle-exclamation" />
-          <span class="whitespace-normal break-all">{{ errorMessage }}</span>
+          <span class="break-all whitespace-normal">{{ errorMessage }}</span>
         </div>
         <TestImageGallery
           :image-blobs="previewBlobs"
@@ -428,7 +428,7 @@ const novelaiParamRows = computed<ParamRow[]>(() => {
     { label: '旧版提示词条件模式', value: novelaiSnapshot.value.legacyPromptMode ? '开启' : '关闭' },
     { label: '提示词引导重缩放', value: String(novelaiSnapshot.value.promptGuidanceRescale) },
     { label: '噪声调度', value: novelaiSnapshot.value.noiseSchedule, code: true },
-    { label: '负向提示词程度', value: novelaiSnapshot.value.ucPreset },
+    { label: '负面提示词程度', value: novelaiSnapshot.value.ucPreset },
     { label: '正面质量词预设', value: novelaiSnapshot.value.qualityPreset },
     ...buildVibeParamRows(novelaiSnapshot.value.vibes),
   ];
@@ -519,7 +519,11 @@ async function runLlmModeTest(session: TestRequestSession): Promise<void> {
   if (!requestSession.isCurrent(session)) return;
 
   llmRawResponse.value = result.rawText;
-  const { output, characterPrompts } = extractPromptLlmResult(result.rawText, settings.promptLlm, buildPromptLlmSchemaFields(settings.promptLlm));
+  const { output, characterPrompts } = extractPromptLlmResult(
+    result.rawText,
+    settings.promptLlm,
+    buildPromptLlmSchemaFields(settings.promptLlm),
+  );
   await runNovelAIWithOverrides(buildNovelAIPromptOverrides(output, characterPrompts), session);
 }
 

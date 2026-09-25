@@ -2,11 +2,14 @@ import type { CosmosVisionSettings, PromptLlmContext } from '@/constants/novelai
 import type { PromptLlmSettings } from '@/constants/prompt-llm';
 import type { InlineGenerationBatchResult } from '@/composables/inlineGenerationInput';
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
+import { resolveEditedImagePrompt } from '@/composables/inlineEditablePromptSnapshot';
 import { extractFrontendText } from '@/services/inline-image/frontend-text-extract';
 import type { GalleryGenerationContext } from '@/store/gallery-runtimes';
 import { getHostIframe } from '@/services/inline-image/iframe-utils';
 import { generateComfyUIImagesFromPrompts } from '@/services/comfyui/api';
+import { resolveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
 import { generateNovelAIImageFromPrompts } from '@/services/novelai/api';
+import type { ImagePromptPair } from '@/services/image-prompt/presets';
 import {
   buildPromptLlmHistoryExcludingFocusFloor,
   extractMessageParagraphsUntil,
@@ -14,10 +17,13 @@ import {
 
 /**
  * 使用快照记录的图像源重新请求图片
+ * ComfyUI 分支：回放快照 loras，有 parts 按 parts+新触发词 重建串，无 parts 回退原样；
+ * 成功后提交由请求实际快照 + 编辑 parts 构成的新快照；失败/中止不提交。
+ * NovelAI 分支：保持现状回放。
  * @param settings 扩展设置
  * @param snapshot 提示词快照
  * @param signal 取消信号
- * @returns 图片与原提示词快照
+ * @returns 图片与生成后的提示词快照
  */
 export async function generateImagesFromSnapshot(
   settings: CosmosVisionSettings,
@@ -26,13 +32,75 @@ export async function generateImagesFromSnapshot(
 ): Promise<InlineGenerationBatchResult> {
   const imageSource = snapshot.imageSource ?? settings.imageSource;
   if (imageSource === 'comfyui') {
-    const prompts = snapshot.comfyui ?? snapshot;
-    const imageBlobs = await generateComfyUIImagesFromPrompts(settings.comfyui, prompts, { signal });
-    return { promptSnapshot: snapshot, imageBlobs };
+    return generateComfyUIImagesFromSnapshot(settings, snapshot, signal);
   }
   const prompts = snapshot.novelai ?? snapshot;
   const imageBlob = await generateNovelAIImageFromPrompts(settings.novelai, prompts, { signal });
   return { promptSnapshot: snapshot, imageBlobs: [imageBlob] };
+}
+
+/**
+ * 按快照记录回放生成 ComfyUI 图片并构建新快照
+ * @param settings 扩展设置
+ * @param snapshot 提示词快照
+ * @param signal 取消信号
+ * @returns 图片与更新后的提示词快照
+ */
+async function generateComfyUIImagesFromSnapshot(
+  settings: CosmosVisionSettings,
+  snapshot: InlinePromptSnapshot,
+  signal: AbortSignal,
+): Promise<InlineGenerationBatchResult> {
+  const snapshotLoras = snapshot.comfyui?.loras ?? [];
+  const prompts = resolveComfyUIPlaybackPrompts(settings, snapshot);
+  const loraTriggerWords = snapshot.promptParts
+    ? await resolveComfyUILoraTriggerWords(settings.comfyui.url, snapshotLoras.map(l => l.name), signal)
+    : [];
+
+  const result = await generateComfyUIImagesFromPrompts(settings.comfyui, prompts, {
+    signal,
+    loras: snapshotLoras,
+    loraTriggerWords,
+  });
+
+  const promptSnapshot: InlinePromptSnapshot = {
+    imageSource: 'comfyui',
+    positivePrompt: result.requestSnapshot.positivePrompt,
+    negativePrompt: result.requestSnapshot.negativePrompt,
+    comfyui: result.requestSnapshot,
+    ...(snapshot.promptParts ? { promptParts: snapshot.promptParts } : {}),
+  };
+  return { promptSnapshot, imageBlobs: result.imageBlobs };
+}
+
+/**
+ * 解析 ComfyUI 回放提示词
+ * 有 parts 时按 parts 重建；无 parts 时回退为快照旧串
+ * @param settings 扩展设置
+ * @param snapshot 提示词快照
+ * @returns 回放基础正负提示词
+ */
+function resolveComfyUIPlaybackPrompts(
+  settings: CosmosVisionSettings,
+  snapshot: InlinePromptSnapshot,
+): ImagePromptPair {
+  if (snapshot.promptParts) {
+    return {
+      positivePrompt: resolveEditedImagePrompt(
+        settings.imagePromptPresets.positive,
+        snapshot.promptParts.positive,
+      ),
+      negativePrompt: resolveEditedImagePrompt(
+        settings.imagePromptPresets.negative,
+        snapshot.promptParts.negative,
+      ),
+    };
+  }
+  // 旧快照原样回放：不做任何拼接，空白交给请求构建层统一 trim
+  return {
+    positivePrompt: snapshot.comfyui?.positivePrompt ?? snapshot.positivePrompt ?? '',
+    negativePrompt: snapshot.comfyui?.negativePrompt ?? snapshot.negativePrompt ?? '',
+  };
 }
 
 /**

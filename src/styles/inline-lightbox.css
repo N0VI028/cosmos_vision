@@ -61,6 +61,15 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
+/* 缩放键图标偏上修复：ST 宿主 .fa-solid:not(#load-spinner) 的 font-size(var(--icon-size))
+   特异性高于官方 .p-gallery-action i，字号被压到 0.85em 而官方强制的
+   width/height(--cvp-gallery-action-icon-size) 仍生效，矮行盒只在块盒顶部排布致字形偏上；
+   取消强制宽高让图标回归自然尺寸，与下载/关闭键一致由按钮 flex 居中 */
+.cosmos-vision-root .cv-lightbox-gallery-action i {
+  width: auto;
+  height: auto;
+}
+
 .cv-lightbox-download,
 .cv-lightbox-close {
   @apply flex items-center justify-center rounded-full;

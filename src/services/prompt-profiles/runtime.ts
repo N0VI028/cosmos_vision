@@ -60,7 +60,7 @@ export function createDefaultPromptPersonTemplateEntries(): PromptPersonTemplate
   return [
     createCustomPromptPersonTemplateEntry(
       '人物开始',
-      `<person name="${PROMPT_LLM_TRIGGER_NAMES_TOKEN}">\n  <fixed_tags>以下固定tag为角色特性，必须原样体现在最终正向提示词中：${PROMPT_LLM_FIXED_TAGS_TOKEN}</fixed_tags>。\n  [人物属性冲突解决规则]：\n  1. 若不同输入源的角色特征（如发色、瞳色、服装等特征锚点）出现矛盾冲突，必须按以下权重优先级覆盖：<main_scene> (最高) > <fixed_tags> (次之) > 其他补充资料 (最低)。\n  2. 同一特征锚点在最终提示词中绝对不可重复或冲突出现（例如：若 <fixed_tags> 规定了“蓝色眼睛”，则其他补充资料中得出的“红色眼睛”结论必须被覆盖忽略，只保留高优先级的设定）。\n`,
+      `<person name="${PROMPT_LLM_TRIGGER_NAMES_TOKEN}">\n  <fixed_tags>以下固定tag为角色特性，必须原样体现在最终正面提示词中：${PROMPT_LLM_FIXED_TAGS_TOKEN}</fixed_tags>。\n  [人物属性冲突解决规则]：\n  1. 若不同输入源的角色特征（如发色、瞳色、服装等特征锚点）出现矛盾冲突，必须按以下权重优先级覆盖：<main_scene> (最高) > <fixed_tags> (次之) > 其他补充资料 (最低)。\n  2. 同一特征锚点在最终提示词中绝对不可重复或冲突出现（例如：若 <fixed_tags> 规定了“蓝色眼睛”，则其他补充资料中得出的“红色眼睛”结论必须被覆盖忽略，只保留高优先级的设定）。\n`,
     ),
     createCustomPromptPersonTemplateEntry('人物结束', `</person>`),
   ];
@@ -119,10 +119,7 @@ export async function buildPromptLlmRuntimeContent(
       buildPromptProfilesRuntimeContent(context, promptProfiles),
     ]);
 
-    const combinedParticipantContent = [
-      autoResult.participantContent,
-      profilesResult.participantContent,
-    ]
+    const combinedParticipantContent = [autoResult.participantContent, profilesResult.participantContent]
       .map(content => content.trim())
       .filter(Boolean)
       .join('\n\n');

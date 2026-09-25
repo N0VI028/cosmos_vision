@@ -35,8 +35,8 @@
       </div>
     </template>
 
-    <!-- 配置 Tab -->
-    <template v-else-if="subTab === 'config'">
+    <!-- 工作流 Tab -->
+    <template v-else-if="subTab === 'workflow'">
       <h2 class="cv-section-title inline-flex items-center gap-(--cv-space-sm)">
         <span>工作流</span>
         <button
@@ -85,7 +85,10 @@
           @confirm="onWorkflowEditConfirm"
         />
       </div>
+    </template>
 
+    <!-- 预设 Tab -->
+    <template v-else-if="subTab === 'preset'">
       <h2 class="cv-section-title">生图提示词</h2>
       <div class="cv-section-body">
         <ImagePromptPresetPanel
@@ -96,6 +99,11 @@
           @update:positive-preset-id="settings.comfyui.positivePromptPresetId = $event"
           @update:negative-preset-id="settings.comfyui.negativePromptPresetId = $event"
         />
+      </div>
+
+      <h2 class="cv-section-title">随机预设池</h2>
+      <div class="cv-section-body">
+        <RandomPresetPoolPanel source="comfyui" />
       </div>
     </template>
 
@@ -131,9 +139,10 @@ import PresetSelector from '@/panel/components/PresetSelector.vue';
 import { useSettingsStore } from '@/store/settings';
 import { useSyncCacheStore } from '@/store/sync-cache';
 import ImagePromptPresetPanel from '@/panel/components/ImagePromptPresetPanel.vue';
+import RandomPresetPoolPanel from '@/panel/components/RandomPresetPoolPanel.vue';
 import ComfyUITestTab from './ComfyUITestTab.vue';
 
-type ComfyUISubTab = 'api' | 'config' | 'test';
+type ComfyUISubTab = 'api' | 'workflow' | 'preset' | 'test';
 type TextOption = { value: string; label: string };
 type PresetOption = { id: string; name: string };
 

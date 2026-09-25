@@ -5,8 +5,10 @@ import {
   type InlineCharacterPromptDraft,
 } from '@/composables/inlineEditableCharacterPrompt';
 import {
+  buildEditableDisplayText,
   createEditedPromptSnapshot,
   readEditablePromptInput,
+  resolveStrippedPromptPart,
 } from '@/composables/inlineEditablePromptSnapshot';
 import type { InlineGenerationSession } from '@/composables/inlineGenerationSession';
 import type { InlineImageDownloadOptions } from '@/services/inline-image/download-options';
@@ -30,6 +32,10 @@ export interface InlinePromptPairInputOptions {
   negativeLabel?: string;
   positiveDefaultValue?: string;
   negativeDefaultValue?: string;
+  /** 原始正面 core，供弹窗切换预设时重建整体文本 */
+  positiveCore?: string;
+  /** 原始负面 core，供弹窗切换预设时重建整体文本 */
+  negativeCore?: string;
   positiveRows?: number;
   negativeRows?: number;
   acceptLabel?: string;
@@ -38,12 +44,22 @@ export interface InlinePromptPairInputOptions {
   enableCharacters?: boolean;
   /** 角色提示词初始值 */
   charactersDefaultValue?: InlineCharacterPromptDraft[];
+  /** 正面预设选择器初始值；'' = 原提示词*/
+  positivePresetId?: string;
+  /** 负面预设选择器初始值；'' = 原提示词*/
+  negativePresetId?: string;
 }
 
 export interface InlinePromptPairInputValue {
+  /** 用户所见的正面整体文本 */
   positive: string;
+  /** 用户所见的负面整体文本 */
   negative: string;
   characters: InlineCharacterPromptDraft[];
+  /** 弹窗选择的正面预设 ID；'' = 原提示词。未提供时沿用初始值 */
+  positivePresetId?: string;
+  /** 弹窗选择的负面预设 ID；'' = 原提示词。未提供时沿用初始值 */
+  negativePresetId?: string;
 }
 
 export interface InlineImageGenerationOptions {
@@ -72,7 +88,7 @@ export type InlineGenerationTask = (
 ) => Promise<InlineGenerationBatchResult>;
 
 /**
- * 请求用户编辑当前图片保存的正负提示词（含角色）
+ * 请求用户编辑当前图片保存的正负提示词（含角色与预设选择）
  * @param settings 设置项
  * @param snapshot 当前图片保存的提示词快照
  * @param requestPromptPairInput 弹窗请求回调
@@ -83,24 +99,52 @@ export async function requestEditedPromptSnapshot(
   snapshot: InlinePromptSnapshot,
   requestPromptPairInput: (options: InlinePromptPairInputOptions) => Promise<InlinePromptPairInputValue | null>,
 ): Promise<InlinePromptSnapshot | null> {
-  const initialPrompts = readEditablePromptInput(settings.novelai, snapshot);
+  const initialPrompts = readEditablePromptInput(settings, snapshot);
   const canEditCharacters = canEditInlineCharacterPrompts(settings.novelai.model);
   const prompts = await requestPromptPairInput({
     title: '编辑提示词后生图',
     message: canEditCharacters
       ? '直接编辑当前图片保存的全局提示词与角色提示词，确认后生成图片'
       : '直接编辑当前图片保存的提示词，确认后生成图片',
-    positiveLabel: '正向提示词',
-    negativeLabel: '负向提示词',
-    positiveDefaultValue: initialPrompts.positive,
-    negativeDefaultValue: initialPrompts.negative,
+    positiveLabel: '正面提示词',
+    negativeLabel: '负面提示词',
+    positiveDefaultValue: buildEditableDisplayText(
+      settings.imagePromptPresets.positive,
+      initialPrompts.positivePresetId,
+      initialPrompts.positive,
+    ),
+    negativeDefaultValue: buildEditableDisplayText(
+      settings.imagePromptPresets.negative,
+      initialPrompts.negativePresetId,
+      initialPrompts.negative,
+    ),
+    positiveCore: initialPrompts.positive,
+    negativeCore: initialPrompts.negative,
     positiveRows: 6,
     negativeRows: 4,
     enableCharacters: canEditCharacters,
     charactersDefaultValue: initialPrompts.characters,
+    positivePresetId: initialPrompts.positivePresetId,
+    negativePresetId: initialPrompts.negativePresetId,
   });
   if (!prompts) return null;
-  return createEditedPromptSnapshot(settings.novelai, snapshot, prompts);
+  const positivePart = resolveStrippedPromptPart(
+    settings.imagePromptPresets.positive,
+    prompts.positivePresetId ?? initialPrompts.positivePresetId,
+    prompts.positive,
+  );
+  const negativePart = resolveStrippedPromptPart(
+    settings.imagePromptPresets.negative,
+    prompts.negativePresetId ?? initialPrompts.negativePresetId,
+    prompts.negative,
+  );
+  return createEditedPromptSnapshot(settings, snapshot, {
+    positive: positivePart.core,
+    negative: negativePart.core,
+    characters: prompts.characters,
+    positivePresetId: positivePart.presetId,
+    negativePresetId: negativePart.presetId,
+  });
 }
 
 /**

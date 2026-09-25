@@ -7,13 +7,18 @@ import {
   buildComfyUIResolvedRequestFromPrompts,
 } from '@/services/comfyui/request';
 import { normalizeComfyUIUrl } from '@/services/comfyui/parse';
-import { resolveActiveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
+import {
+  resolveActiveComfyUILoraTriggerWords,
+  resolveComfyUILoraTriggerWords,
+} from '@/services/comfyui/lora-trigger-words';
 import { extractHistoryImages, type ComfyUIHistoryEntry } from '@/services/comfyui/history';
 import { createRequestTimeoutController, throwIfRequestTimedOut } from '@/services/request-timeout';
 import { readAvatarFile } from '@/services/tavern-helper/avatar';
 import type {
   ComfyUIHistoryImage,
   ComfyUIImageBindingTarget,
+  ComfyUILoraSnapshot,
+  ComfyUIRequestSnapshot,
   ComfyUIResolvedRequest,
   ComfyUIUploadImageOptions,
   ComfyUIUploadImageResponse,
@@ -28,7 +33,7 @@ interface ComfyUIPromptResponse {
 interface ComfyUICheckpointLoaderInfo {
   input?: {
     required?: {
-      ckpt_name?: unknown;
+      ckpt_name?: [string[]];
     };
   };
 }
@@ -46,13 +51,26 @@ export interface ComfyUIRequestOptions {
   signal?: AbortSignal;
 }
 
+export interface ComfyUIPromptsRequestOptions extends ComfyUIRequestOptions {
+  /** 回放或显式指定的 LoRA 快照列表；若提供则按此列表写入工作流，不再读取面板激活组 */
+  loras?: readonly ComfyUILoraSnapshot[];
+  /** 显式覆写的 LoRA 触发词；若提供则不再从远端解析 */
+  loraTriggerWords?: readonly string[];
+}
+
+export interface ComfyUIPromptsGenerationResult {
+  imageBlobs: Blob[];
+  requestSnapshot: ComfyUIRequestSnapshot;
+  resolvedRequest: ComfyUIResolvedRequest;
+}
+
 /**
- * 使用共享生图预设与正负提示词请求 ComfyUI 图片列表
+ * 按共享预设解析提示词并请求 ComfyUI 图片列表
  * @param settings ComfyUI 设置
  * @param presetSettings 共享生图提示词预设
  * @param prompts 正负提示词覆写
  * @param options 请求控制选项
- * @returns 指定输出节点的全部图片 Blob，按返回顺序
+ * @returns 指定输出节点的全部图片 Blob
  */
 export async function generateComfyUIImages(
   settings: ComfyUISettings,
@@ -60,7 +78,7 @@ export async function generateComfyUIImages(
   prompts: ImagePromptPair,
   options: ComfyUIRequestOptions = {},
 ): Promise<Blob[]> {
-  const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings);
+  const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings, options.signal);
   return generateComfyUIImagesFromResolvedRequest(
     settings,
     buildComfyUIResolvedRequest(settings, presetSettings, prompts, loraTriggerWords),
@@ -69,23 +87,39 @@ export async function generateComfyUIImages(
 }
 
 /**
- * 使用最终正负提示词请求 ComfyUI 图片列表
+ * 使用最终正负提示词请求 ComfyUI 图片列表并返回请求快照
  * @param settings ComfyUI 设置
  * @param prompts 已完成拼接的正负提示词
- * @param options 请求控制选项
- * @returns 指定输出节点的全部图片 Blob
+ * @param options 请求控制选项（支持显式指定 LoRA 快照与触发词）
+ * @returns 生成的图片 Blob 列表与实际请求快照
  */
 export async function generateComfyUIImagesFromPrompts(
   settings: ComfyUISettings,
   prompts: ImagePromptPair,
-  options: ComfyUIRequestOptions = {},
-): Promise<Blob[]> {
-  const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings);
-  return generateComfyUIImagesFromResolvedRequest(
+  options: ComfyUIPromptsRequestOptions = {},
+): Promise<ComfyUIPromptsGenerationResult> {
+  const loraTriggerWords = options.loraTriggerWords !== undefined
+    ? options.loraTriggerWords
+    : (options.loras !== undefined
+        ? await resolveComfyUILoraTriggerWords(settings.url, options.loras.map(l => l.name), options.signal)
+        : await resolveActiveComfyUILoraTriggerWords(settings, options.signal));
+
+  const resolvedRequest = buildComfyUIResolvedRequestFromPrompts(
     settings,
-    buildComfyUIResolvedRequestFromPrompts(settings, prompts, loraTriggerWords),
+    prompts,
+    loraTriggerWords,
+    options.loras,
+  );
+  const imageBlobs = await generateComfyUIImagesFromResolvedRequest(
+    settings,
+    resolvedRequest,
     options,
   );
+  return {
+    imageBlobs,
+    requestSnapshot: resolvedRequest.snapshot,
+    resolvedRequest,
+  };
 }
 
 /**
@@ -156,10 +190,10 @@ export async function generateComfyUIImage(
 export async function generateComfyUIImageFromPrompts(
   settings: ComfyUISettings,
   prompts: ImagePromptPair,
-  options: ComfyUIRequestOptions = {},
+  options: ComfyUIPromptsRequestOptions = {},
 ): Promise<Blob> {
-  const blobs = await generateComfyUIImagesFromPrompts(settings, prompts, options);
-  return requireFirstBlob(blobs);
+  const result = await generateComfyUIImagesFromPrompts(settings, prompts, options);
+  return requireFirstBlob(result.imageBlobs);
 }
 
 /**

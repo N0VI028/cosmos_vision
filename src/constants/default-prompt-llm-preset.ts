@@ -1,7 +1,7 @@
 /* ATRI棠梨预设地址：
-* https://discord.com/channels/1134557553011998840/1500838412314218556
-* https://discord.com/channels/1291925535324110879/1443091905490714745
-*/
+ * https://discord.com/channels/1134557553011998840/1500838412314218556
+ * https://discord.com/channels/1291925535324110879/1443091905490714745
+ */
 
 import type { PromptLlmMessagePresetSettings } from '@/constants/novelai';
 import {
@@ -516,7 +516,7 @@ export default {
 你必须输出以下 JSON 格式。其中，最终的 JSON 结果必须且只能被 \`<output>\` 与 \`</output>\` 标签完全包裹，在包裹区域之外不要附加任何无关的解释、闲聊或 Markdown 代码块标记（如 \`\`\`json）：
 
 {
-  "positivePrompt": "正向提示词：英文逗号分隔，多角色使用 BREAK 强制块分离，推荐连字符写法（禁止包含质量词）",
+  "positivePrompt": "正面提示词：英文逗号分隔，多角色使用 BREAK 强制块分离，推荐连字符写法（禁止包含质量词）",
   "negativePrompt": "画面不应出现的物体/元素（禁止质量词），英文逗号分隔"
 }
 

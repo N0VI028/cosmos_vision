@@ -12,6 +12,7 @@ export const DATA_PORTABILITY_SECTION_IDS = [
   'promptLlmSettings',
   'promptLlmMessagePresets',
   'promptProfiles',
+  'randomPresetPools',
   'inlineFavoritesBundle',
   'uiPreferences',
 ] as const;
@@ -40,6 +41,7 @@ export const DATA_PORTABILITY_SECTIONS: DataPortabilitySectionDefinition[] = [
   { id: 'promptLlmSettings', label: 'LLM 配置', description: '来源、模型参数、API Key 与提取规则', defaultSelected: true, sensitive: true },
   { id: 'promptLlmMessagePresets', label: 'LLM 生成TAG预设', description: '用于生成图片TAG的预设', defaultSelected: true },
   { id: 'promptProfiles', label: '人物资料', description: '用户/角色资料与触发词', defaultSelected: true },
+  { id: 'randomPresetPools', label: '随机预设池', description: '按条件随机抽取提示词预设的池配置', defaultSelected: true },
   { id: 'inlineFavoritesBundle', label: '收藏图片', description: '收藏记录、提示词与图片', defaultSelected: true, media: true },
   { id: 'uiPreferences', label: '界面偏好', description: '暗色模式等本地 UI 偏好', defaultSelected: true },
 ];

@@ -16,10 +16,7 @@ import {
   resolvePromptLlmMessageContent,
   type PromptLlmRuntimeContent,
 } from '@/services/prompt-llm/message-preset';
-import {
-  shouldSendPromptLlmMessage,
-  type PromptLlmTriggerContext,
-} from '@/services/prompt-llm/message-trigger';
+import { shouldSendPromptLlmMessage, type PromptLlmTriggerContext } from '@/services/prompt-llm/message-trigger';
 import { buildPromptLlmRuntimeContent } from '@/services/prompt-profiles/runtime';
 import { getTavernHelper } from '@/services/tavern-helper/availability';
 import { requestTavernHelperGenerateRaw } from '@/services/tavern-helper/generate-raw';
@@ -190,7 +187,10 @@ function canSendPromptLlmMessage(
   triggerContext?: PromptLlmTriggerContext,
 ): boolean {
   if (message.enabled === false) return false;
-  return shouldSendPromptLlmMessage(message, mergePromptLlmTriggerContext(runtimeContent.historyContent, triggerContext));
+  return shouldSendPromptLlmMessage(
+    message,
+    mergePromptLlmTriggerContext(runtimeContent.historyContent, triggerContext),
+  );
 }
 
 /**
@@ -322,7 +322,7 @@ function buildSilentGenerateRawRequest(
 
 /**
  * 从 LLM 原始文本提取并校验提示词,所有生图渠道共用的统一入口
- * 空输出、无法解析、正向提示词为空时均抛出结构化提取错误
+ * 空输出、无法解析、正面提示词为空时均抛出结构化提取错误
  * @param rawText LLM 原始响应文本
  * @param settings LLM 配置
  * @param schemaFields JSON Schema 字段配置

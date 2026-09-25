@@ -177,6 +177,46 @@ describe('comfyui request builder', () => {
     expect(resolved.snapshot.loras).toEqual([{ name: 'fresh_lora', strength: 0.8 }]);
   });
 
+  it('overwrites workflow lora node and snapshot when loraPreset passed', () => {
+    const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
+    settings.workflowPresets.presets = [
+      {
+        id: 'preset-1',
+        name: 'SDXL Workflow',
+        workflowJson: JSON.stringify({
+          '6': {
+            class_type: 'CLIPTextEncode',
+            inputs: { text: 'positive placeholder' },
+            _meta: { cosmosVision: { promptBindings: { text: 'positive' }, imageOutput: true } },
+          },
+          '10': {
+            class_type: 'Lora Loader (LoraManager)',
+            inputs: { text: '', loras: { __value__: [] } },
+          },
+        }),
+        favoriteNodeIds: [],
+      },
+    ];
+    settings.workflowPresets.activePresetId = 'preset-1';
+    const loraPreset = {
+      id: 'lora-preset-random',
+      name: 'random',
+      loras: [{ id: 'lora-1', name: 'test-lora.safetensors', strength: 0.8, enabled: true }],
+    };
+
+    const resolved = buildComfyUIResolvedRequest(
+      settings,
+      DEFAULT_SETTINGS.imagePromptPresets,
+      { positivePrompt: '1girl', negativePrompt: '' },
+      [],
+      undefined,
+      loraPreset,
+    );
+
+    expect(resolved.workflow['10'].inputs.text).toBe('<lora:test-lora:0.8>');
+    expect(resolved.snapshot.loras).toEqual([{ name: 'test-lora', strength: 0.8 }]);
+  });
+
   it('does not prepend trigger words when the workflow has no lora node', () => {
     const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
     settings.workflowPresets.presets = [
@@ -204,6 +244,84 @@ describe('comfyui request builder', () => {
     );
 
     expect(resolved.snapshot.positivePrompt).toBe('masterpiece, 1girl');
+    expect(resolved.snapshot.loras).toEqual([]);
+  });
+
+  it('overwrites workflow with explicit snapshot loras array on playback', () => {
+    const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
+    settings.workflowPresets.presets = [
+      {
+        id: 'preset-1',
+        name: 'SDXL Workflow',
+        workflowJson: JSON.stringify({
+          '6': {
+            class_type: 'CLIPTextEncode',
+            inputs: { text: 'positive placeholder' },
+            _meta: { cosmosVision: { promptBindings: { text: 'positive' }, imageOutput: true } },
+          },
+          '10': {
+            class_type: 'Lora Loader (LoraManager)',
+            inputs: { text: '<lora:old_panel:1.0>', loras: { __value__: [] } },
+          },
+        }),
+        favoriteNodeIds: [],
+      },
+    ];
+    settings.workflowPresets.activePresetId = 'preset-1';
+    // 面板激活组为 other_lora
+    settings.loraPresets = createLoraPreset('other_lora.safetensors');
+
+    // 显式传入快照 LoRA 列表，回放特定 LoRA
+    const resolved = buildComfyUIResolvedRequest(
+      settings,
+      DEFAULT_SETTINGS.imagePromptPresets,
+      { positivePrompt: '1girl', negativePrompt: '' },
+      ['playTrigger'],
+      undefined,
+      [{ name: 'playback_lora', strength: 0.6 }],
+    );
+
+    expect(resolved.workflow['10'].inputs.text).toBe('<lora:playback_lora:0.6>');
+    expect(resolved.snapshot.loras).toEqual([{ name: 'playback_lora', strength: 0.6 }]);
+    expect(resolved.snapshot.positivePrompt).toBe('playTrigger, 1girl');
+  });
+
+  it('explicit empty loras array clears node and does not leak panel active preset', () => {
+    const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
+    settings.workflowPresets.presets = [
+      {
+        id: 'preset-1',
+        name: 'SDXL Workflow',
+        workflowJson: JSON.stringify({
+          '6': {
+            class_type: 'CLIPTextEncode',
+            inputs: { text: 'positive placeholder' },
+            _meta: { cosmosVision: { promptBindings: { text: 'positive' }, imageOutput: true } },
+          },
+          '10': {
+            class_type: 'Lora Loader (LoraManager)',
+            inputs: { text: '<lora:leftover:1.0>', loras: { __value__: [] } },
+          },
+        }),
+        favoriteNodeIds: [],
+      },
+    ];
+    settings.workflowPresets.activePresetId = 'preset-1';
+    // 面板激活组包含 active_lora
+    settings.loraPresets = createLoraPreset('active_lora.safetensors');
+
+    // 显式传入 []（快照中没有 LoRA）
+    const resolved = buildComfyUIResolvedRequest(
+      settings,
+      DEFAULT_SETTINGS.imagePromptPresets,
+      { positivePrompt: '1girl', negativePrompt: '' },
+      [],
+      undefined,
+      [],
+    );
+
+    // 节点被清空，快照记录为空，面板激活组未混入
+    expect(resolved.workflow['10'].inputs.text).toBe('');
     expect(resolved.snapshot.loras).toEqual([]);
   });
 });

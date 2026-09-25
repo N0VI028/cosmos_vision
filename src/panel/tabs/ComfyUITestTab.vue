@@ -192,7 +192,7 @@ import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue'
 import TestImageGallery from '@/panel/components/TestImageGallery.vue';
 
 import { generateComfyUIImagesFromResolvedRequest } from '@/services/comfyui/api';
-import { formatLoraDisplayName } from '@/services/comfyui/lora-presets';
+import { formatLoraDisplayName, getActiveComfyUILoraPreset } from '@/services/comfyui/lora-presets';
 import { resolveActiveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
 import {
   buildComfyUIResolvedRequest,
@@ -360,7 +360,7 @@ async function runTest(): Promise<void> {
 
   await requestSession.run(
     async session => {
-      const request = currentMode.value === 'llm' ? await runLlmModeTest(session) : await runDirectModeTest();
+      const request = currentMode.value === 'llm' ? await runLlmModeTest(session) : await runDirectModeTest(session);
       if (!requestSession.isCurrent(session)) return;
       requestSnapshot.value = request.snapshot;
       const blobs = await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request, {
@@ -396,10 +396,12 @@ function markAborted(): void {
 
 /**
  * 执行直接提示词测试
+ * @param session 当前测试会话
  * @returns 已解析的 ComfyUI 请求
  */
-async function runDirectModeTest(): Promise<ComfyUIResolvedRequest> {
-  const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings.comfyui);
+async function runDirectModeTest(session: TestRequestSession): Promise<ComfyUIResolvedRequest> {
+  const effectiveLoraPreset = getActiveComfyUILoraPreset(settings.comfyui.loraPresets);
+  const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings.comfyui, session.signal);
   return buildComfyUIResolvedRequest(
     settings.comfyui,
     settings.imagePromptPresets,
@@ -408,6 +410,8 @@ async function runDirectModeTest(): Promise<ComfyUIResolvedRequest> {
       negativePrompt: directNegativePrompt.value,
     },
     loraTriggerWords,
+    undefined,
+    effectiveLoraPreset,
   );
 }
 
@@ -438,8 +442,16 @@ async function runLlmModeTest(session: TestRequestSession): Promise<ComfyUIResol
 
   llmRawResponse.value = result.rawText;
   const { output } = extractPromptLlmResult(result.rawText, settings.promptLlm, schemaFields);
-  const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings.comfyui);
-  return buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, output, loraTriggerWords);
+  const effectiveLoraPreset = getActiveComfyUILoraPreset(settings.comfyui.loraPresets);
+  const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings.comfyui, session.signal);
+  return buildComfyUIResolvedRequest(
+    settings.comfyui,
+    settings.imagePromptPresets,
+    output,
+    loraTriggerWords,
+    undefined,
+    effectiveLoraPreset,
+  );
 }
 
 /**

@@ -44,6 +44,11 @@ import {
 } from '@/constants/novelai';
 import { normalizePromptLlmMessagePresets } from '@/services/prompt-llm/message-preset';
 import {
+  RANDOM_PRESET_POOL_SIDES,
+  RANDOM_PRESET_POOL_TRIGGER_MODES,
+  type RandomPresetPoolSettings,
+} from '@/constants/random-preset-pool';
+import {
   normalizePromptLlmMessageImageSources,
   normalizePromptLlmMessageKeywordGroups,
   normalizePromptLlmMessageModels,
@@ -223,6 +228,23 @@ const promptProfilesSettingsSchema = z.object({
   profiles: z.array(promptPersonSchema),
 });
 
+const randomPresetPoolSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().default(DEFAULT_PRESET_NAME),
+  side: z.enum(RANDOM_PRESET_POOL_SIDES),
+  enabled: z.boolean(),
+  triggerMode: z.enum(RANDOM_PRESET_POOL_TRIGGER_MODES),
+  triggerModels: z.array(novelAIModelSchema),
+  triggerWorkflowIds: z.array(z.string()),
+  presetIds: z.array(z.string()),
+});
+
+const randomPresetPoolSettingsSchema = z.object({
+  // default(true)：旧数据缺 enabled 字段时恢复为开启
+  enabled: z.boolean().default(true),
+  pools: z.array(randomPresetPoolSchema),
+});
+
 const promptLlmMessageSchema = z.object({
   id: z.string().min(1),
   title: z.string().default(DEFAULT_PROMPT_LLM_MESSAGE_TITLE),
@@ -263,6 +285,7 @@ const cosmosVisionSettingsSchema = z.object({
   promptLlm: promptLlmSettingsSchema,
   promptLlmMessagePresets: promptLlmMessagePresetSettingsSchema,
   promptProfiles: promptProfilesSettingsSchema,
+  randomPresetPools: randomPresetPoolSettingsSchema,
 });
 
 /**
@@ -398,6 +421,7 @@ function recoverSettings(value: unknown): CosmosVisionSettings {
     promptLlm: recoverPromptLlmSettings(record.promptLlm),
     promptLlmMessagePresets: recoverPromptLlmMessagePresets(record.promptLlmMessagePresets),
     promptProfiles: recoverPromptProfilesSettings(record.promptProfiles),
+    randomPresetPools: recoverRandomPresetPoolsSettings(record.randomPresetPools),
   };
 }
 
@@ -562,6 +586,15 @@ function recoverPromptLlmMessagePresets(value: unknown): PromptLlmMessagePresetS
  */
 function recoverPromptProfilesSettings(value: unknown): PromptProfilesSettings {
   return parseField(promptProfilesSettingsSchema, value, DEFAULT_SETTINGS.promptProfiles);
+}
+
+/**
+ * 从异常配置中恢复随机预设池设置
+ * @param value 原始随机预设池设置
+ * @returns 可安全使用的随机预设池设置
+ */
+function recoverRandomPresetPoolsSettings(value: unknown): RandomPresetPoolSettings {
+  return parseField(randomPresetPoolSettingsSchema, value, DEFAULT_SETTINGS.randomPresetPools);
 }
 
 /**

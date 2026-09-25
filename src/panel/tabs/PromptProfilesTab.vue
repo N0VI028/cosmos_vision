@@ -23,8 +23,8 @@
                 size="small"
                 autofocus
                 @click.stop
-                @keydown.enter="finishEditing(person)"
-                @keydown.esc="finishEditing(person)"
+                @keydown.enter.stop.prevent="finishEditing(person)"
+                @keydown.esc.stop.prevent="finishEditing(person)"
               />
               <CvMiniButton icon="fa-regular fa-check" aria-label="完成" @click.stop="finishEditing(person)" />
             </div>

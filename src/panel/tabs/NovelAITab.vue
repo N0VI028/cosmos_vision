@@ -215,7 +215,7 @@
           </div>
         </div>
         <label class="cv-field">
-          <span>负向提示词程度</span>
+          <span>负面提示词程度</span>
           <Select
             v-model="settings.novelai.ucPreset"
             :options="ucPresetOptions"
@@ -285,6 +285,10 @@
         @update:positive-preset-id="settings.novelai.positivePromptPresetId = $event"
         @update:negative-preset-id="settings.novelai.negativePromptPresetId = $event"
       />
+      <h2 class="cv-section-title">随机预设池</h2>
+      <div class="cv-section-body">
+        <RandomPresetPoolPanel source="novelai" />
+      </div>
       <h2 class="cv-section-title">Vibe Transfer</h2>
       <div class="cv-section-body">
         <div
@@ -327,6 +331,7 @@ import {
 } from '@/constants/novelai';
 import ImagePromptPresetPanel from '@/panel/components/ImagePromptPresetPanel.vue';
 import NovelAIVibePresetPanel from '@/panel/components/NovelAIVibePresetPanel.vue';
+import RandomPresetPoolPanel from '@/panel/components/RandomPresetPoolPanel.vue';
 import SubscriptionCard from '@/panel/components/SubscriptionCard.vue';
 import { buildProxiedUrl } from '@/services/novelai/subscription';
 import { getSupportedQualityPresets, getSupportedUcPresets } from '@/services/novelai/prompt-presets';

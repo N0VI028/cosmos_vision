@@ -122,6 +122,7 @@ function createSectionBuilders(
     promptLlmSettings: () => _.cloneDeep(settings.promptLlm),
     promptLlmMessagePresets: () => _.cloneDeep(settings.promptLlmMessagePresets),
     promptProfiles: () => _.cloneDeep(settings.promptProfiles),
+    randomPresetPools: () => _.cloneDeep(settings.randomPresetPools),
     inlineFavoritesBundle: () => buildInlineFavoritesBundle(),
     uiPreferences: () => ({ darkMode }),
   };

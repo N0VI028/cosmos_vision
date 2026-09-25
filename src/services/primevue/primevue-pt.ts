@@ -88,6 +88,8 @@ export const cosmosPrimePt = {
     overlay,
     option,
   },
+  // MultiSelect：overlay 必须 cosmos-vision-root（Teleport 到 body），否则宿主 input[type=checkbox] 样式入侵把复选框压成竖条
+  multiselect: { overlay },
   // Chip：锚点供 bridge 补描边结构（token 无 border*）
   chip: {
     root: { class: 'cv-prime-chip' },

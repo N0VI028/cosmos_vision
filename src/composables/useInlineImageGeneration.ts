@@ -8,6 +8,7 @@ import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { useGalleryRuntimesStore, type GalleryGenerationContext } from '@/store/gallery-runtimes';
 import { generateComfyUIImagesFromResolvedRequest } from '@/services/comfyui/api';
 import { resolveActiveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
+import { findComfyUILoraPreset, getActiveComfyUILoraPreset } from '@/services/comfyui/lora-presets';
 import { buildComfyUIResolvedRequest, getComfyUIRequestError } from '@/services/comfyui/workflow';
 import {
   buildNovelAIResolvedRequest,
@@ -31,6 +32,7 @@ import { buildLlmInspectorLabel } from '@/services/prompt-llm/llm-inspector';
 import { buildLlmInspectorStoreHooks } from '@/store/llm-inspector';
 import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
 import { useSettingsStore } from '@/store/settings';
+import { resolveFreshPresetIdOverrides } from '@/services/image-prompt/random-preset-pool';
 import { getCurrentInstance, ref } from 'vue';
 import { downloadInlineImageBlob } from '@/services/inline-image/image-download-transform';
 import {
@@ -721,7 +723,13 @@ export function useInlineImageGeneration(
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
   ): Promise<InlineGenerationBatchResult> {
     const { output, characterPrompts } = await generateRuntimePrompt(context, session, 'novelai');
-    const overrides = buildNovelAIPromptOverrides(output, characterPrompts);
+    // 随机预设池：新鲜生图掷一次，抽中则覆写面板当前预设（编辑再生链路不进入此处）
+    const presetOverrides = resolveFreshPresetIdOverrides(settings, 'novelai');
+    const overrides = {
+      ...buildNovelAIPromptOverrides(output, characterPrompts),
+      positivePresetIdOverride: presetOverrides.positive,
+      negativePresetIdOverride: presetOverrides.negative,
+    };
     const request = buildNovelAIResolvedRequest(
       settings.novelai,
       settings.imagePromptPresets,
@@ -774,18 +782,41 @@ export function useInlineImageGeneration(
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
   ): Promise<InlineGenerationBatchResult> {
     const { output } = await generateRuntimePrompt(context, session, 'comfyui');
-    const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings.comfyui);
+    // 随机预设池：抽中则覆写面板当前预设，并把部件写入快照供编辑链路使用
+    const randomPresetIds = resolveFreshPresetIdOverrides(settings, 'comfyui');
+    const presetIds = {
+      positive: randomPresetIds.positive ?? settings.comfyui.positivePromptPresetId,
+      negative: randomPresetIds.negative ?? settings.comfyui.negativePromptPresetId,
+    };
+    // 随机预设池：lora 侧抽中则覆写面板当前激活组
+    const loraPreset = randomPresetIds.lora
+      ? findComfyUILoraPreset(settings.comfyui.loraPresets.presets, randomPresetIds.lora)
+      : undefined;
+    // 捕获不可变有效 LoRA 预设组，避免 await 期间面板切组导致触发词与工作流 LoRA 错配
+    const effectiveLoraPreset = loraPreset ?? getActiveComfyUILoraPreset(settings.comfyui.loraPresets);
+    // 触发词按本次实际生效的 LoRA 组解析（传递 signal 支持中断）
+    const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(
+      { url: settings.comfyui.url, loraPresets: { ...settings.comfyui.loraPresets, activePresetId: effectiveLoraPreset.id } },
+      session.controller.signal,
+    );
+    generationSession.ensureActive(session);
     const request = buildComfyUIResolvedRequest(
       settings.comfyui,
       settings.imagePromptPresets,
       output,
       loraTriggerWords,
+      presetIds,
+      effectiveLoraPreset,
     );
+    const promptParts = {
+      positive: { core: output.positivePrompt, presetId: presetIds.positive },
+      negative: { core: output.negativePrompt, presetId: presetIds.negative },
+    };
     return runImageStep(
       session,
-      createComfyUISnapshot(request.snapshot),
+      createComfyUISnapshot(request.snapshot, promptParts),
       async () => ({
-        promptSnapshot: createComfyUISnapshot(request.snapshot),
+        promptSnapshot: createComfyUISnapshot(request.snapshot, promptParts),
         imageBlobs: await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request, {
           signal: session.controller.signal,
         }),

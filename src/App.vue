@@ -24,6 +24,10 @@
     v-model:value="textInputDialogState.value"
     v-model:secondary-value="textInputDialogState.secondaryValue"
     v-model:characters="textInputDialogState.characters"
+    v-model:positive-preset-id="textInputDialogState.positivePresetId"
+    v-model:negative-preset-id="textInputDialogState.negativePresetId"
+    v-model:positive-core="textInputDialogState.positiveCore"
+    v-model:negative-core="textInputDialogState.negativeCore"
     :title="textInputDialogState.title"
     :message="textInputDialogState.message"
     :primary-label="textInputDialogState.primaryLabel"
@@ -34,6 +38,7 @@
     :cancel-label="textInputDialogState.cancelLabel"
     :dark-mode="darkMode"
     :enable-characters="textInputDialogState.enableCharacters"
+    :enable-preset-selector="textInputDialogState.enablePresetSelector"
     :quick-phrases="textInputDialogState.quickPhrases"
     @submit="handleTextInputDialog"
     @update-quick-phrases="handleQuickPhrasesUpdate"
@@ -82,24 +87,11 @@
     >
       <!-- Speed Dial 菜单 -->
       <Transition name="cv-speed-dial-menu">
-        <div
-          v-if="speedDialOpen"
-          class="cv-speed-dial-menu"
-        >
-          <button
-            type="button"
-            aria-label="打开设置"
-            @pointerdown.stop
-            @click="openSettings"
-          >
+        <div v-if="speedDialOpen" class="cv-speed-dial-menu">
+          <button type="button" aria-label="打开设置" @pointerdown.stop @click="openSettings">
             <i class="fa-solid fa-gear" />
           </button>
-          <button
-            type="button"
-            aria-label="打开 LLM 请求监视"
-            @pointerdown.stop
-            @click="openLlmInspector"
-          >
+          <button type="button" aria-label="打开 LLM 请求监视" @pointerdown.stop @click="openLlmInspector">
             <i class="fa-solid fa-comments" />
             <span v-if="hasRunningLlmSession" class="cv-fab-menu-dot" aria-hidden="true" />
           </button>
@@ -174,13 +166,7 @@ import {
 } from '@/services/inline-image/download-options';
 import { ensurePromptStripRegex } from '@/services/inline-image/prompt-strip-regex';
 import { checkExtensionUpdate, updateDetected } from '@/services/version-check/st-update';
-import type { TextInputCharacterDraft } from '@/panel/components/TextInputDialog.vue';
-
-interface TextInputDialogSubmitValue {
-  value: string;
-  secondaryValue: string;
-  characters: TextInputCharacterDraft[];
-}
+import type { TextInputCharacterDraft, TextInputDialogSubmitValue } from '@/panel/components/TextInputDialog.vue';
 
 interface TextInputDialogState {
   title: string;
@@ -194,6 +180,11 @@ interface TextInputDialogState {
   acceptLabel: string;
   cancelLabel: string;
   enableCharacters: boolean;
+  enablePresetSelector: boolean;
+  positivePresetId: string;
+  negativePresetId: string;
+  positiveCore: string;
+  negativeCore: string;
   characters: TextInputCharacterDraft[];
   quickPhrases?: string[];
   resolve: (value: TextInputDialogSubmitValue | null) => void;
@@ -254,6 +245,11 @@ const textInputDialogState = ref<TextInputDialogState>({
   acceptLabel: '确定',
   cancelLabel: '取消',
   enableCharacters: false,
+  enablePresetSelector: false,
+  positivePresetId: '',
+  negativePresetId: '',
+  positiveCore: '',
+  negativeCore: '',
   characters: [],
   quickPhrases: undefined,
   resolve: () => {},
@@ -264,16 +260,14 @@ const imageDownloadDialogState = ref<ImageDownloadDialogState>({
 });
 
 /** 段落生图运行时控制器 */
-const { isSelectionMode, toggleSelectionMode, exitSelectionMode, refreshGalleryTheme, cleanup } = useInlineImageGeneration(
-  savedSettings,
-  {
+const { isSelectionMode, toggleSelectionMode, exitSelectionMode, refreshGalleryTheme, cleanup } =
+  useInlineImageGeneration(savedSettings, {
     isRuntimeEnabled: () => savedSettings.enabled,
     requestTextInput: showTextInputDialog,
     requestPromptPairInput: showPromptPairDialog,
     requestImageDownloadOptions: showImageDownloadDialog,
     getDarkMode: () => darkMode.value,
-  },
-);
+  });
 
 provide(IMAGE_DOWNLOAD_OPTIONS_REQUEST_KEY, showImageDownloadDialog);
 
@@ -416,6 +410,11 @@ function showTextInputDialog(options: InlineTextInputOptions): Promise<string | 
       acceptLabel: options.acceptLabel ?? '确定',
       cancelLabel: options.cancelLabel ?? '取消',
       enableCharacters: false,
+      enablePresetSelector: false,
+      positivePresetId: '',
+      negativePresetId: '',
+      positiveCore: '',
+      negativeCore: '',
       characters: [],
       quickPhrases: [...savedSettings.inlineQuickPhrases],
       resolve: result => resolve(result?.value ?? null),
@@ -434,15 +433,20 @@ function showPromptPairDialog(options: InlinePromptPairInputOptions): Promise<In
     textInputDialogState.value = {
       title: options.title ?? '编辑提示词',
       message: options.message,
-      primaryLabel: options.positiveLabel ?? '正向提示词',
+      primaryLabel: options.positiveLabel ?? '正面提示词',
       value: options.positiveDefaultValue ?? '',
-      secondaryLabel: options.negativeLabel ?? '负向提示词',
+      secondaryLabel: options.negativeLabel ?? '负面提示词',
       secondaryValue: options.negativeDefaultValue ?? '',
       rows: options.positiveRows ?? 6,
       secondaryRows: options.negativeRows ?? 4,
       acceptLabel: options.acceptLabel ?? '确定',
       cancelLabel: options.cancelLabel ?? '取消',
       enableCharacters: Boolean(options.enableCharacters),
+      enablePresetSelector: true,
+      positivePresetId: options.positivePresetId ?? '',
+      negativePresetId: options.negativePresetId ?? '',
+      positiveCore: options.positiveCore ?? '',
+      negativeCore: options.negativeCore ?? '',
       characters: toTextInputCharacterDrafts(options.charactersDefaultValue ?? []),
       resolve: result =>
         resolve(
@@ -451,6 +455,8 @@ function showPromptPairDialog(options: InlinePromptPairInputOptions): Promise<In
                 positive: result.value,
                 negative: result.secondaryValue,
                 characters: result.characters.map(toInlineCharacterDraft),
+                positivePresetId: result.positivePresetId,
+                negativePresetId: result.negativePresetId,
               }
             : null,
         ),

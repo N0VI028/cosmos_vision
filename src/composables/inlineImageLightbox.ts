@@ -6,6 +6,14 @@ import type { NovelAIFinalPrompts } from '@/services/novelai/api';
 import type { NovelAIVibeParameters } from '@/services/novelai/vibe-types';
 import { reactive } from 'vue';
 
+/** 单侧提示词部件：可变（core）与不可变（模板）分离 */
+export interface InlinePromptParts {
+  /** LLM 输出或用户编辑后的核心文本（不含预设模板、不含质量词） */
+  core: string;
+  /** 实际使用的预设 ID；'' = 原样（无模板） */
+  presetId: string;
+}
+
 /** 内联生图提示词快照 */
 export interface InlinePromptSnapshot {
   positivePrompt: string;
@@ -13,6 +21,8 @@ export interface InlinePromptSnapshot {
   imageSource?: ImageSource;
   novelai?: NovelAIFinalPrompts;
   comfyui?: ComfyUIRequestSnapshot;
+  /** 部件分解；新链路必写，旧快照无此字段时编辑回退原样 */
+  promptParts?: { positive: InlinePromptParts; negative: InlinePromptParts };
 }
 
 export interface InlineLightboxActions {
@@ -65,7 +75,17 @@ export function cloneInlinePromptSnapshot(snapshot: InlinePromptSnapshot): Inlin
     imageSource: snapshot.imageSource,
     novelai: snapshot.novelai ? cloneNovelAIFinalPrompts(snapshot.novelai) : undefined,
     comfyui: snapshot.comfyui ? cloneComfyUIRequestSnapshot(snapshot.comfyui) : undefined,
+    promptParts: snapshot.promptParts ? cloneInlinePromptParts(snapshot.promptParts) : undefined,
   };
+}
+
+/**
+ * 克隆提示词部件
+ * @param parts 原始正负部件
+ * @returns 纯对象部件
+ */
+function cloneInlinePromptParts(parts: NonNullable<InlinePromptSnapshot['promptParts']>): NonNullable<InlinePromptSnapshot['promptParts']> {
+  return { positive: { ...parts.positive }, negative: { ...parts.negative } };
 }
 
 /**

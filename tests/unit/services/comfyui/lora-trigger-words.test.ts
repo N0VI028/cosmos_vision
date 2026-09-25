@@ -64,7 +64,7 @@ describe('resolveActiveComfyUILoraTriggerWords', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the batch alive when a single lora fails', async () => {
+  it('keeps the batch alive when a single lora fails and retries on next call', async () => {
     const fetchMock = createMockFetch(url => (url.includes('name=b') ? { status: 500 } : { json: { success: true, trigger_words: ['triggerA'] } }));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -73,9 +73,68 @@ describe('resolveActiveComfyUILoraTriggerWords', () => {
 
     expect(await resolve(settings)).toEqual(['triggerA']);
     expect(console.warn).toHaveBeenCalled();
-    // 失败条目也被缓存，不再重复请求
+    // 失败条目不永久缓存，下次调用重试失败条目
     await resolve(settings);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('caches empty trigger words on successful response and does not re-fetch', async () => {
+    const fetchMock = createMockFetch(() => ({ json: { success: true, trigger_words: [] } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const resolve = await importResolve();
+    const settings = createSettings(['empty.safetensors']);
+
+    expect(await resolve(settings)).toEqual([]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(await resolve(settings)).toEqual([]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('rethrows AbortError and does not cache when aborted', async () => {
+    const controller = new AbortController();
+    let aborted = true;
+    const fetchMock = vi.fn().mockImplementation(() => {
+      if (aborted) {
+        const error = new Error('The operation was aborted');
+        error.name = 'AbortError';
+        return Promise.reject(error);
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, trigger_words: ['triggerA'] }) });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const resolve = await importResolve();
+    const settings = createSettings(['a.safetensors']);
+
+    await expect(resolve(settings, controller.signal)).rejects.toThrow('The operation was aborted');
+    // 中断结果不得写入缓存：下次调用应重新发起 fetch 并拿到新结果
+    aborted = false;
+    expect(await resolve(settings, controller.signal)).toEqual(['triggerA']);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('separates cache by ComfyUI URL', async () => {
+    const fetchMock = createMockFetch(() => ({ json: { success: true, trigger_words: ['triggerA'] } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const resolve = await importResolve();
+    const settings1 = createSettings(['a.safetensors']);
+    const settings2 = { ...createSettings(['a.safetensors']), url: 'http://127.0.0.1:8189' };
+
+    await resolve(settings1);
+    await resolve(settings2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('resolves trigger words directly by lora names list', async () => {
+    const fetchMock = createMockFetch(() => ({ json: { success: true, trigger_words: ['testTrigger'] } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const module = await import('@/services/comfyui/lora-trigger-words');
+    const words = await module.resolveComfyUILoraTriggerWords('http://127.0.0.1:8188', ['custom.safetensors']);
+    expect(words).toEqual(['testTrigger']);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('returns an empty list when the whole batch throws', async () => {

@@ -15,7 +15,9 @@ export interface LoraManagerRequestOptions {
   unavailableMessage: string;
   /** 查询串（含前导 ?），默认不带 */
   query?: string;
-  /** !ok 分支的自定义处理（默认抛「请求失败 (状态码)」），实现须抛出 */
+  /** 取消信号 */
+  signal?: AbortSignal;
+  /** !ok 分支的自定义处理（默认抛「请求失败 (状态码)」，实现须抛出 */
   handleHttpError?: (response: Response) => Promise<never>;
 }
 
@@ -29,12 +31,14 @@ export async function requestLoraManagerPayload(
   baseUrl: string,
   options: LoraManagerRequestOptions,
 ): Promise<Record<string, unknown>> {
-  const { path, featureLabel, notFoundMessage, unavailableMessage, query = '', handleHttpError } = options;
+  const { path, featureLabel, notFoundMessage, unavailableMessage, query = '', signal, handleHttpError } = options;
 
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}${path}${query}`);
+    const url = `${baseUrl}${path}${query}`;
+    response = await (signal ? fetch(url, { signal }) : fetch(url));
   } catch (error) {
+    if ((error as Error).name === 'AbortError' || signal?.aborted) throw error;
     throw new Error(`[ComfyUI ${path}] ${(error as Error).message}`);
   }
 

@@ -69,7 +69,7 @@ describe('InlineImageLightbox 组件', () => {
     openInlineImageLightbox('https://example.com/a.png', snapshot);
     await wrapper.vm.$nextTick();
 
-    // 面板默认折叠，先展开再点击正向提示词复制按钮
+    // 面板默认折叠，先展开再点击正面提示词复制按钮
     await wrapper.find('.cv-lightbox-toggle-btn').trigger('click');
     const copyBtns = wrapper.findAll('.cv-lightbox-copy-btn');
     await copyBtns[0].trigger('click');

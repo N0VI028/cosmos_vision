@@ -1,27 +1,13 @@
 import type { ImagePromptPresetSettings } from '@/constants/image-prompt';
-import type {
-  NovelAIAccount,
-  CharacterPromptItem,
-  NovelAISettings,
-} from '@/constants/novelai';
-import {
-  NOVELAI_MAX_SEED,
-  NOVELAI_IMAGE_COUNT_LIMITS,
-  isNovelAIV5Model,
-} from '@/constants/novelai';
-import {
-  buildNegativePrompt,
-  buildPositivePrompt,
-} from './prompt-presets';
+import type { NovelAIAccount, CharacterPromptItem, NovelAISettings } from '@/constants/novelai';
+import { NOVELAI_MAX_SEED, NOVELAI_IMAGE_COUNT_LIMITS, isNovelAIV5Model } from '@/constants/novelai';
+import { buildNegativePromptParts, buildPositivePromptParts } from './prompt-presets';
 import type { PromptLlmExtractSettings, PromptLlmOutput } from '@/services/tavern-helper/prompt-llm';
 import { extractNovelAIJsonImages } from './response-images';
 import { extractImages } from './zip';
 import { getNovelAIRequestAccounts } from './router';
 import { createRequestTimeoutController, throwIfRequestTimedOut } from '@/services/request-timeout';
-import {
-  getActiveNovelAIVibePresetRefs,
-  resolveNovelAIVibeParameters,
-} from './vibe-parameters';
+import { getActiveNovelAIVibePresetRefs, resolveNovelAIVibeParameters } from './vibe-parameters';
 import type { NovelAIVibeParameters, NovelAIVibeSnapshot } from './vibe-types';
 import {
   buildPayload,
@@ -253,7 +239,7 @@ function buildRequestSnapshot(
  */
 function validatePrompts(prompts: NovelAIFinalPrompts): void {
   if (!prompts.positivePrompt.trim() && !prompts.negativePrompt.trim()) {
-    throw new Error('正向提示词或负向提示词至少填写一个');
+    throw new Error('正面提示词或负面提示词至少填写一个');
   }
 }
 
@@ -298,27 +284,34 @@ function resolveFinalPrompts(
   overrides?: NovelAIPromptOverrides,
 ): NovelAIFinalPrompts {
   const characterPrompts = overrides?.characterPrompts ?? [];
-  const positivePrompt = buildPositivePrompt(
+  const positive = buildPositivePromptParts(
     settings,
     imagePromptPresets,
     extractSettings,
     overrides?.positiveLLMPrompt ?? '',
     overrides?.positivePromptMode ?? 'extract',
+    overrides?.positivePresetIdOverride,
+  );
+  const negative = buildNegativePromptParts(
+    settings,
+    imagePromptPresets,
+    extractSettings,
+    overrides?.negativeLLMPrompt ?? '',
+    overrides?.negativePromptMode ?? 'extract',
+    positive.prompt,
+    overrides?.negativePresetIdOverride,
   );
   const isV5 = isNovelAIV5Model(settings.model);
   return {
-    positivePrompt,
-    negativePrompt: buildNegativePrompt(
-      settings,
-      imagePromptPresets,
-      extractSettings,
-      overrides?.negativeLLMPrompt ?? '',
-      overrides?.negativePromptMode ?? 'extract',
-      positivePrompt,
-    ),
+    positivePrompt: positive.prompt,
+    negativePrompt: negative.prompt,
     useCharacterCoords: resolveUseCoords(characterPrompts.length, settings.autoCharacterCoords, settings.model),
     characterPrompts,
     vibeReferences: isV5 ? [] : getActiveNovelAIVibePresetRefs(settings.novelAIVibePresets),
+    promptParts: {
+      positive: { core: positive.core, presetId: positive.presetId },
+      negative: { core: negative.core, presetId: negative.presetId },
+    },
   };
 }
 

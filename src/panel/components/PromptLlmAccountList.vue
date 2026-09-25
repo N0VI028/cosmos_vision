@@ -25,8 +25,8 @@
               size="small"
               autofocus
               @click.stop
-              @keydown.enter="finishEditing(account)"
-              @keydown.esc="finishEditing(account)"
+              @keydown.enter.stop.prevent="finishEditing(account)"
+              @keydown.esc.stop.prevent="finishEditing(account)"
             />
             <CvMiniButton
               icon="fa-regular fa-check"

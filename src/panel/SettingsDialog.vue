@@ -387,7 +387,7 @@ const contentStyle = { padding: '0', overflow: 'hidden' } as const;
 const activeTab = useLocalStorage<NavValue>('cosmos-vision:settings-active-tab', 'main');
 
 type NovelAISubTab = 'api' | 'config' | 'preset' | 'test';
-type ComfyUISubTab = 'api' | 'config' | 'test';
+type ComfyUISubTab = 'api' | 'workflow' | 'preset' | 'test';
 type PromptLlmSubTab = 'settings' | 'builder' | 'test';
 type PromptProfilesSubTab = 'user' | 'character';
 type MainSubTab = 'general' | 'data' | 'portability';
@@ -407,7 +407,8 @@ const NOVELAI_SUB_TABS = [
 
 const COMFYUI_SUB_TABS = [
   { value: 'api', label: 'API' },
-  { value: 'config', label: '配置' },
+  { value: 'workflow', label: '工作流' },
+  { value: 'preset', label: '预设' },
   { value: 'test', label: '测试' },
 ] as const;
 
@@ -424,6 +425,8 @@ const PROMPT_PROFILES_SUB_TABS = [
 
 const novelaiSubTab = useLocalStorage<NovelAISubTab>('cosmos-vision:settings-novelai-sub-tab', 'api');
 const comfyuiSubTab = useLocalStorage<ComfyUISubTab>('cosmos-vision:settings-comfyui-sub-tab', 'api');
+// 旧版存储值 'config' 已拆分为 工作流/预设 两个子页签，一次性迁移到工作流
+if ((comfyuiSubTab.value as string) === 'config') comfyuiSubTab.value = 'workflow';
 const promptLlmSubTab = useLocalStorage<PromptLlmSubTab>('cosmos-vision:settings-prompt-llm-sub-tab', 'settings');
 const promptProfilesSubTab = useLocalStorage<PromptProfilesSubTab>(
   'cosmos-vision:settings-prompt-profiles-sub-tab',

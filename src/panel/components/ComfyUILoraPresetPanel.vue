@@ -178,6 +178,8 @@ import {
   parseLoraRecipeFilePayload,
   type ComfyUILoraRecipe,
 } from '@/services/comfyui/lora-recipes';
+import { removePresetReferences } from '@/services/image-prompt/random-preset-pool';
+import { useSettingsStore } from '@/store/settings';
 
 interface TextOption {
   value: string;
@@ -207,6 +209,8 @@ const emit = defineEmits<{
   'update:preset-settings': [settings: ComfyUILoraPresetSettings];
   'refresh-options': [];
 }>();
+
+const { settings } = useSettingsStore();
 
 const showPrompt =
   inject<(options: { title?: string; message: string; defaultValue?: string }) => Promise<string | null>>('showPrompt');
@@ -307,6 +311,8 @@ async function renamePreset(): Promise<void> {
 function deletePreset(id: string): void {
   const presets = props.presetSettings.presets.filter(preset => preset.id !== id);
   emitPresetSettings(presets, getFallbackPresetId(presets, props.presetSettings.activePresetId));
+  // 级联清理：移除随机预设池 lora 侧对该预设组的引用
+  settings.randomPresetPools.pools = removePresetReferences(settings.randomPresetPools.pools, 'lora', id);
   toastr.success('预设组已删除');
 }
 

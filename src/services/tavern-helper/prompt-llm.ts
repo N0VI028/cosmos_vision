@@ -155,7 +155,9 @@ export function readGenerateRawOutcome(rawResult: unknown): TavernHelperGenerate
  */
 function collectPromptOutputFields(fields: PromptLlmOutputFields | null): string[] {
   if (!fields) return [];
-  return [fields.positive, fields.negative, fields.characterPrompts].filter((name): name is string => Boolean(name?.trim()));
+  return [fields.positive, fields.negative, fields.characterPrompts].filter((name): name is string =>
+    Boolean(name?.trim()),
+  );
 }
 
 /**
@@ -186,7 +188,8 @@ export function buildJsonSchema(
  * @returns Schema 属性定义
  */
 function buildPromptOutputProperty(name: string, fields: PromptLlmOutputFields): Record<string, unknown> {
-  if (name !== fields.characterPrompts) return { type: 'string', description: name === fields.positive ? '正向提示词' : '负向提示词' };
+  if (name !== fields.characterPrompts)
+    return { type: 'string', description: name === fields.positive ? '正面提示词' : '负面提示词' };
   const xKey = fields.characterPositionX ?? 'x';
   const yKey = fields.characterPositionY ?? 'y';
   return {
@@ -384,7 +387,7 @@ export function parsePromptLlmOutput(
   }
 
   const output = fields ? normalizePromptLlmOutput(parsed, fields) : null;
-  if (!output) throw new Error('LLM 返回值缺少正向或负向提示词字段');
+  if (!output) throw new Error('LLM 返回值缺少正面或负面提示词字段');
   return output;
 }
 

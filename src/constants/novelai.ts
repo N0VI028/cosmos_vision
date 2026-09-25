@@ -2,6 +2,7 @@ import type { ComfyUISettings, ImageSource } from '@/constants/comfyui';
 import type { ImagePromptPresetReferences, ImagePromptPresetSettings } from '@/constants/image-prompt';
 import type { NovelAIVibePresetSettings } from '@/constants/novelai-vibe';
 import type { PromptLlmMessagePresetSettings, PromptLlmSettings, PromptProfilesSettings } from '@/constants/prompt-llm';
+import type { RandomPresetPoolSettings } from '@/constants/random-preset-pool';
 
 export * from './prompt-llm';
 
@@ -43,7 +44,7 @@ export const NOVELAI_NOISE_SCHEDULES = [
 /** NovelAI V3 噪声调度固定列表 */
 export const NOVELAI_V3_NOISE_SCHEDULES = [{ value: 'native', label: 'native' }, ...NOVELAI_NOISE_SCHEDULES] as const;
 
-/** NovelAI 负向提示词程度固定列表 */
+/** NovelAI 负面提示词程度固定列表 */
 export const NOVELAI_UC_PRESETS = [
   { value: 'Heavy', label: 'Heavy' },
   { value: 'Light', label: 'Light' },
@@ -103,7 +104,7 @@ export type NovelAIQualityPreset = (typeof NOVELAI_QUALITY_PRESETS)[number]['val
 /** NovelAI 噪声调度 value 联合类型 */
 export type NovelAINoiseSchedule = (typeof NOVELAI_V3_NOISE_SCHEDULES)[number]['value'];
 
-/** NovelAI 负向提示词程度 value 联合类型 */
+/** NovelAI 负面提示词程度 value 联合类型 */
 export type NovelAIUcPreset = (typeof NOVELAI_UC_PRESETS)[number]['value'];
 
 /** NovelAI 图像尺寸预设 value 联合类型 */
@@ -263,4 +264,5 @@ export interface CosmosVisionSettings {
   promptLlm: PromptLlmSettings;
   promptLlmMessagePresets: PromptLlmMessagePresetSettings;
   promptProfiles: PromptProfilesSettings;
+  randomPresetPools: RandomPresetPoolSettings;
 }

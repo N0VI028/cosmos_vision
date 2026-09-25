@@ -159,13 +159,7 @@
           aria-label="上传本地图片"
           @click="fileInputRef?.click()"
         />
-        <input
-          ref="fileInputRef"
-          type="file"
-          accept="image/*"
-          class="hidden"
-          @change="onLocalFileSelected"
-        />
+        <input ref="fileInputRef" type="file" accept="image/*" class="hidden" @change="onLocalFileSelected" />
       </div>
 
       <!-- 图片缩略图预览卡片 -->
@@ -176,7 +170,7 @@
         <img
           :src="effectivePreviewUrl"
           alt="预览"
-          class="h-12 w-12 rounded-full object-cover border border-solid border-(--cv-outline-variant)"
+          class="h-12 w-12 rounded-full border border-solid border-(--cv-outline-variant) object-cover"
           @error="handlePreviewError"
         />
         <div class="flex min-w-0 flex-1 flex-col text-(length:--cv-font-size-xs)">
@@ -284,11 +278,7 @@ import Popover from 'primevue/popover';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { COMFYUI_DIMENSION_PRESETS } from '@/constants/comfyui';
 import { MACRO_POPOVER_BASE_Z_INDEX, type MacroPopoverInstance } from '@/panel/components/prompt-llm-macro-popover';
-import type {
-  ComfyUIInputControlDesc,
-  PromptBinding,
-  SeedMode,
-} from '@/services/comfyui/types';
+import type { ComfyUIInputControlDesc, PromptBinding, SeedMode } from '@/services/comfyui/types';
 import type { TavernAvatarSource } from '@/services/tavern-helper/avatar';
 import { fetchComfyUICheckpointNames, uploadComfyUIImage } from '@/services/comfyui/api';
 import { normalizeComfyUIUrl } from '@/services/comfyui/parse';
@@ -308,8 +298,8 @@ interface PromptBindingOption {
 
 const BINDING_OPTIONS: PromptBindingOption[] = [
   { value: null, label: '不绑定', icon: 'fa-solid fa-link-slash' },
-  { value: 'positive', label: '正向提示词', icon: 'fa-solid fa-circle-plus' },
-  { value: 'negative', label: '负向提示词', icon: 'fa-solid fa-circle-minus' },
+  { value: 'positive', label: '正面提示词', icon: 'fa-solid fa-circle-plus' },
+  { value: 'negative', label: '负面提示词', icon: 'fa-solid fa-circle-minus' },
 ];
 
 interface ImageBindingOption {
@@ -416,7 +406,7 @@ const chipRootClass = computed(() => {
   return base.join(' ');
 });
 
-/** Image Chip 根 class（与正向绑定一致，使用主题色） */
+/** Image Chip 根 class（与正面绑定一致，使用主题色） */
 const imageChipRootClass = computed(() => {
   const base = [
     'cv-workflow-action-chip',
@@ -470,10 +460,7 @@ const isValueDisabled = computed(
 const selectOptions = computed(() => (props.control.options ?? []).map(value => ({ value, label: value })));
 
 const imageOptions = computed(() => {
-  const values = [
-    ...(props.control.value ? [String(props.control.value)] : []),
-    ...(props.control.options ?? []),
-  ];
+  const values = [...(props.control.value ? [String(props.control.value)] : []), ...(props.control.options ?? [])];
   return Array.from(new Set(values)).map(value => ({ value, label: value }));
 });
 

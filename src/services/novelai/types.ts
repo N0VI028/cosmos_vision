@@ -18,6 +18,22 @@ export interface NovelAIPromptOverrides {
   positivePromptMode?: NovelAIPromptMode;
   negativePromptMode?: NovelAIPromptMode;
   characterPrompts?: CharacterPromptItem[];
+  /** 正面预设 ID 覆写（随机池抽中时传入） */
+  positivePresetIdOverride?: string;
+  /** 负面预设 ID 覆写（随机池抽中时传入） */
+  negativePresetIdOverride?: string;
+}
+
+/** 单侧提示词部件：可变 core 与实际使用的预设 ID */
+export interface NovelAIPromptPart {
+  core: string;
+  presetId: string;
+}
+
+/** NovelAI 最终提示词的部件分解（快照编辑链路使用） */
+export interface NovelAIPromptParts {
+  positive: NovelAIPromptPart;
+  negative: NovelAIPromptPart;
 }
 
 export interface NovelAIFinalPrompts {
@@ -27,6 +43,8 @@ export interface NovelAIFinalPrompts {
   vibeReferences?: ImagePromptVibeRef[];
   vibeParameters?: NovelAIVibeParameters;
   characterPrompts?: CharacterPromptItem[];
+  /** 部件分解（core + 实际预设 ID）；新鲜生图链路必写 */
+  promptParts?: NovelAIPromptParts;
 }
 
 export interface NovelAIRequestSnapshot {

@@ -15,12 +15,24 @@
       class="flex max-h-[min(68vh,34rem)] w-full flex-col gap-(--cv-space-3xl) overflow-x-hidden overflow-y-auto overscroll-contain *:shrink-0"
     >
       <div class="cv-confirm-message mb-2">{{ message }}</div>
-      <div class="flex min-h-0 flex-col gap-(--cv-space-sm)">
-        <label
-          v-if="primaryLabel"
-          class="text-(length:--cv-font-size-xs) leading-[1.4] font-semibold text-(--cv-on-surface)"
-          >{{ primaryLabel }}</label
-        >
+      <div class="flex min-h-0 flex-col gap-(--cv-space-lg)">
+        <div class="flex items-center justify-between gap-(--cv-space-md)">
+          <label
+            v-if="primaryLabel"
+            class="text-(length:--cv-font-size-xs) leading-[1.4] font-semibold text-(--cv-on-surface)"
+            >{{ primaryLabel }}</label
+          >
+          <div v-if="enablePresetSelector" class="w-48 max-w-[50%]">
+            <Select
+              v-model="positivePresetId"
+              :options="positivePresetOptions"
+              option-label="name"
+              option-value="id"
+              size="small"
+              fluid
+            />
+          </div>
+        </div>
         <Textarea
           ref="inputRef"
           v-model="value"
@@ -52,8 +64,8 @@
           v-if="quickPhrases.length"
           ref="chipsContainerRef"
           class="flex flex-wrap gap-(--cv-space-xs)"
-          :class="isExpanded ? 'custom-scrollbar max-h-40 overflow-y-auto' : 'max-h-[4.75rem] overflow-hidden'"
-        >
+          :class="isExpanded ? 'custom-scrollbar max-h-40 overflow-y-auto' : 'max-h-[4.75rem] overflow-hidden'
+        ">
           <button
             v-for="(phrase, index) in quickPhrases"
             :key="index"
@@ -66,10 +78,22 @@
           </button>
         </div>
       </div>
-      <div v-if="hasSecondaryField" class="flex min-h-0 flex-col gap-(--cv-space-sm)">
-        <label class="text-(length:--cv-font-size-xs) leading-[1.4] font-semibold text-(--cv-on-surface)">{{
-          secondaryLabel
-        }}</label>
+      <div v-if="hasSecondaryField" class="flex min-h-0 flex-col gap-(--cv-space-lg)">
+        <div class="flex items-center justify-between gap-(--cv-space-md)">
+          <label class="text-(length:--cv-font-size-xs) leading-[1.4] font-semibold text-(--cv-on-surface)">{{
+            secondaryLabel
+          }}</label>
+          <div v-if="enablePresetSelector" class="w-48 max-w-[50%]">
+            <Select
+              v-model="negativePresetId"
+              :options="negativePresetOptions"
+              option-label="name"
+              option-value="id"
+              size="small"
+              fluid
+            />
+          </div>
+        </div>
         <Textarea
           v-model="secondaryValue"
           class="custom-scrollbar max-h-[min(24vh,12rem)] min-h-[5.5rem] w-full resize-none overflow-y-auto overscroll-contain"
@@ -205,6 +229,7 @@
 import { useMediaQuery } from '@vueuse/core';
 import { computed, nextTick, ref, watch } from 'vue';
 
+import { buildEditableDisplayText } from '@/composables/inlineEditablePromptSnapshot';
 import { DARK_CLASS } from '@/constants/default-settings';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
@@ -216,6 +241,7 @@ import {
   replaceTextRange,
   type TextRange,
 } from '@/panel/components/textarea-token-insert';
+import { useSettingsStore } from '@/store/settings';
 
 /** 编辑弹窗中的角色提示词草稿 */
 export interface TextInputCharacterDraft {
@@ -226,12 +252,25 @@ export interface TextInputCharacterDraft {
   y: number;
 }
 
+/** 弹窗提交返回值 */
+export interface TextInputDialogSubmitValue {
+  value: string;
+  secondaryValue: string;
+  characters: TextInputCharacterDraft[];
+  positivePresetId?: string;
+  negativePresetId?: string;
+}
+
 type TextInputRef = { $el?: HTMLElement } | HTMLElement | null;
 
 const visible = defineModel<boolean>('visible', { required: true });
 const value = defineModel<string>('value', { required: true });
 const secondaryValue = defineModel<string>('secondaryValue', { default: '' });
 const characters = defineModel<TextInputCharacterDraft[]>('characters', { default: () => [] });
+const positivePresetId = defineModel<string>('positivePresetId', { default: '' });
+const negativePresetId = defineModel<string>('negativePresetId', { default: '' });
+const positiveCore = defineModel<string>('positiveCore', { default: '' });
+const negativeCore = defineModel<string>('negativeCore', { default: '' });
 
 const props = withDefaults(
   defineProps<{
@@ -245,6 +284,7 @@ const props = withDefaults(
     cancelLabel?: string;
     darkMode?: boolean;
     enableCharacters?: boolean;
+    enablePresetSelector?: boolean;
     quickPhrases?: string[];
   }>(),
   {
@@ -256,14 +296,45 @@ const props = withDefaults(
     cancelLabel: '取消',
     darkMode: false,
     enableCharacters: false,
+    enablePresetSelector: false,
     quickPhrases: undefined,
   },
 );
 
 const emit = defineEmits<{
-  submit: [value: { value: string; secondaryValue: string; characters: TextInputCharacterDraft[] } | null];
+  submit: [value: TextInputDialogSubmitValue | null];
   updateQuickPhrases: [phrases: string[]];
 }>();
+
+const { settings } = useSettingsStore();
+
+const positivePresetOptions = computed(() => {
+  const options = [
+    { id: '', name: '原提示词' },
+    ...settings.imagePromptPresets.positive.map(preset => ({
+      id: preset.id,
+      name: preset.name?.trim() || '未命名预设',
+    })),
+  ];
+  if (positivePresetId.value && !options.some(opt => opt.id === positivePresetId.value)) {
+    options.push({ id: positivePresetId.value, name: `${positivePresetId.value} (已失效)` });
+  }
+  return options;
+});
+
+const negativePresetOptions = computed(() => {
+  const options = [
+    { id: '', name: '原提示词' },
+    ...settings.imagePromptPresets.negative.map(preset => ({
+      id: preset.id,
+      name: preset.name?.trim() || '未命名预设',
+    })),
+  ];
+  if (negativePresetId.value && !options.some(opt => opt.id === negativePresetId.value)) {
+    options.push({ id: negativePresetId.value, name: `${negativePresetId.value} (已失效)` });
+  }
+  return options;
+});
 
 const inputRef = ref<TextInputRef>(null);
 const isMobile = useMediaQuery('(max-width: 87.5em)');
@@ -297,6 +368,16 @@ watch(
     nextTick(checkOverflow);
   },
 );
+
+watch(positivePresetId, id => {
+  if (!props.enablePresetSelector) return;
+  value.value = buildEditableDisplayText(settings.imagePromptPresets.positive, id, positiveCore.value);
+});
+
+watch(negativePresetId, id => {
+  if (!props.enablePresetSelector) return;
+  secondaryValue.value = buildEditableDisplayText(settings.imagePromptPresets.negative, id, negativeCore.value);
+});
 
 /**
  * 记录主输入框当前光标选区
@@ -411,6 +492,8 @@ function submit(accept: boolean): void {
           value: value.value.trim(),
           secondaryValue: secondaryValue.value.trim(),
           characters: characters.value.map(cloneCharacterDraft),
+          positivePresetId: positivePresetId.value,
+          negativePresetId: negativePresetId.value,
         }
       : null,
   );

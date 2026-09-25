@@ -68,6 +68,7 @@ import {
   importImagePromptPresetPackageFile,
 } from '@/services/data-portability/preset-toolbar';
 import { findImagePromptPreset } from '@/services/image-prompt/presets';
+import { removePresetReferences } from '@/services/image-prompt/random-preset-pool';
 import { useSettingsStore } from '@/store/settings';
 import manifest from '../../../manifest.json';
 
@@ -224,7 +225,7 @@ async function renamePromptPreset(kind: ImagePromptPresetKind): Promise<void> {
 }
 
 /**
- * 删除指定生图固定提示词预设
+ * 删除指定生图固定提示词预设并级联清理随机预设池引用
  * @param kind 正面或负面
  * @param id 预设 ID
  * @param defaultPresetId 默认预设 ID
@@ -237,6 +238,7 @@ function deletePromptPreset(kind: ImagePromptPresetKind, id: string, defaultPres
   const presets = getPromptPresetList(kind).filter(preset => preset.id !== id);
   updatePromptPresetList(kind, presets);
   updatePromptPresetId(kind, getFallbackPromptPresetId(presets, getCurrentPresetId(kind), defaultPresetId));
+  settings.randomPresetPools.pools = removePresetReferences(settings.randomPresetPools.pools, kind, id);
   toastr.success('预设已删除');
 }
 
@@ -373,4 +375,3 @@ function getFallbackPromptPresetId(presets: ImagePromptPreset[], preferredId: st
   );
 }
 </script>
-

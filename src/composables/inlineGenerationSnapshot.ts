@@ -5,7 +5,7 @@ import { formatTimestampForFileName } from '@/services/inline-image/filename-uti
 
 /**
  * 创建 NovelAI 内联提示词快照
- * @param prompts NovelAI 最终提示词
+ * @param prompts NovelAI 最终提示词（新鲜生图链路含 promptParts 部件分解）
  * @returns 内联提示词快照
  */
 export function createNovelAISnapshot(prompts: NovelAIFinalPrompts): InlinePromptSnapshot {
@@ -14,20 +14,28 @@ export function createNovelAISnapshot(prompts: NovelAIFinalPrompts): InlinePromp
     negativePrompt: prompts.negativePrompt,
     imageSource: 'novelai',
     novelai: prompts,
+    promptParts: prompts.promptParts
+      ? { positive: { ...prompts.promptParts.positive }, negative: { ...prompts.promptParts.negative } }
+      : undefined,
   };
 }
 
 /**
  * 创建 ComfyUI 内联提示词快照
  * @param snapshot ComfyUI 请求快照
+ * @param promptParts 部件分解（新鲜生图链路由调用方组装）
  * @returns 内联提示词快照
  */
-export function createComfyUISnapshot(snapshot: ComfyUIRequestSnapshot): InlinePromptSnapshot {
+export function createComfyUISnapshot(
+  snapshot: ComfyUIRequestSnapshot,
+  promptParts?: InlinePromptSnapshot['promptParts'],
+): InlinePromptSnapshot {
   return {
     positivePrompt: snapshot.positivePrompt,
     negativePrompt: snapshot.negativePrompt,
     imageSource: 'comfyui',
     comfyui: snapshot,
+    promptParts,
   };
 }
 

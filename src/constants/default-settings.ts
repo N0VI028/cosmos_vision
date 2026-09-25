@@ -11,6 +11,7 @@ import {
   type ImageSource,
 } from '@/constants/comfyui';
 import { createImagePromptPresetSettings } from '@/constants/image-prompt';
+import { createRandomPresetPoolSettings } from '@/constants/random-preset-pool';
 import {
   createNovelAIVibePresetSettings,
   DEFAULT_NOVELAI_VIBE_PRESET_ID,
@@ -184,4 +185,5 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
   promptProfiles: {
     profiles: [],
   },
+  randomPresetPools: createRandomPresetPoolSettings(),
 };

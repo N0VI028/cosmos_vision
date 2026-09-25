@@ -64,7 +64,7 @@
           <div class="cv-lightbox-info-body">
             <div class="cv-lightbox-prompt-group">
               <div class="cv-lightbox-prompt-header">
-                <span class="cv-lightbox-prompt-title cv-lightbox-title-pos">正向提示词</span>
+                <span class="cv-lightbox-prompt-title cv-lightbox-title-pos">正面提示词</span>
                 <button type="button" class="cv-lightbox-copy-btn" @click="copyPrompt(COPY_KEY_POS, positivePrompt)">
                   <template v-if="copiedKey === COPY_KEY_POS"><i class="fa-solid fa-check" /> 已复制</template>
                   <template v-else><i class="fa-solid fa-copy" /> 复制</template>
@@ -84,7 +84,9 @@
             </div>
             <div v-if="characters.length" class="cv-lightbox-prompt-group cv-lightbox-character-section">
               <div class="cv-lightbox-prompt-header">
-                <span class="cv-lightbox-prompt-title cv-lightbox-title-char">角色提示词（{{ characters.length }}）</span>
+                <span class="cv-lightbox-prompt-title cv-lightbox-title-char"
+                  >角色提示词（{{ characters.length }}）</span
+                >
               </div>
               <div class="cv-lightbox-character-list">
                 <div
@@ -165,7 +167,7 @@ import { closeInlineImageLightbox, inlineLightboxState } from '@/composables/inl
 import { DARK_CLASS } from '@/constants/default-settings';
 import { useSettingsStore } from '@/store/settings';
 
-/** 正向提示词复制按钮的 key */
+/** 正面提示词复制按钮的 key */
 const COPY_KEY_POS = 'pos';
 
 /** 负面提示词复制按钮的 key */
@@ -189,8 +191,8 @@ const collapsedCharIndexes = ref(new Set<number>());
 /** 复制成功态还原定时器 */
 let copiedTimer = 0;
 
-/** 正向提示词文本（无快照时占位提示） */
-const positivePrompt = computed(() => inlineLightboxState.snapshot?.positivePrompt || '无正向提示词');
+/** 正面提示词文本（无快照时占位提示） */
+const positivePrompt = computed(() => inlineLightboxState.snapshot?.positivePrompt || '无正面提示词');
 
 /** 负面提示词文本（无快照时占位提示） */
 const negativePrompt = computed(() => inlineLightboxState.snapshot?.negativePrompt || '无负面提示词');
