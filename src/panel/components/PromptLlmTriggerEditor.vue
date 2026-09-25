@@ -88,19 +88,19 @@
                 @update:model-value="value => updateKeywordRow(index, value)"
               />
 
-              <!-- 模型选择 -->
+              <!-- 模型选择：AutoComplete 可输可选；Select editable+filter 会被下拉过滤框抢焦点 -->
               <div v-else-if="row.type === 'model'" class="flex min-w-0 items-center gap-(--cv-space-md)">
-                <Select
-                  :model-value="row.value || null"
-                  :options="buildModelOptions(row.value)"
-                  option-label="label"
-                  option-value="value"
-                  placeholder="选择或输入模型 ID"
-                  filter
-                  editable
-                  fluid
+                <AutoComplete
+                  :model-value="row.value"
+                  :suggestions="modelSuggestions"
+                  placeholder="选择或输入模型 ID（支持正则，如 animal.*；ComfyUI 按工作流主模型匹配）"
                   class="min-w-0 flex-1"
+                  dropdown
+                  fluid
+                  :pt="cosmosAutocompleteFieldPt"
                   @update:model-value="value => updateModelRow(index, value)"
+                  @complete="event => searchModelSuggestions(event, row.value)"
+                  @dropdown-click="showAllModelSuggestions(row.value)"
                 />
                 <Button
                   icon="fa-solid fa-rotate"
@@ -152,6 +152,7 @@ import {
   normalizePromptLlmMessageModels,
   resolvePromptLlmMessageTriggerMatchMode,
 } from '@/services/prompt-llm/message-trigger';
+import { cosmosAutocompleteFieldPt } from '@/services/primevue/primevue-pt';
 import { useSettingsStore } from '@/store/settings';
 
 type TopMode = 'always' | 'condition';
@@ -170,11 +171,6 @@ interface TypeOption {
   value: ConditionType;
 }
 
-interface TextOption {
-  label: string;
-  value: string;
-}
-
 const TOP_MODE_OPTIONS: Array<{ label: string; value: TopMode }> = [
   { label: '始终触发', value: 'always' },
   { label: '条件触发', value: 'condition' },
@@ -189,13 +185,15 @@ const CONDITION_MATCH_MODE_OPTIONS: Array<{ label: string; value: ConditionMatch
 
 const DEFAULT_CONDITION_MATCH_MODE: ConditionMatchMode = 'all_match';
 const IMAGE_SOURCE_OPTIONS = IMAGE_SOURCES.map(item => ({ label: item.label, value: item.value }));
-const NAI_MODEL_OPTIONS: TextOption[] = NOVELAI_MODELS.map(item => ({ label: item.label, value: item.value }));
+const NAI_MODEL_VALUES: string[] = NOVELAI_MODELS.map(item => item.value);
 
 const message = defineModel<PromptLlmMessage>({ required: true });
 const { settings } = useSettingsStore();
 
 const checkpointNames = ref<string[]>([]);
 const isLoadingCheckpoints = ref(false);
+/** AutoComplete 筛选后的模型建议列表 */
+const modelSuggestions = ref<string[]>([]);
 let rowIdSeed = 0;
 const conditionRows = ref<ConditionRow[]>(readConditionRowsFromMessage(message.value));
 
@@ -372,13 +370,14 @@ function updateKeywordRow(index: number, keywords: string[] | null | undefined):
 
 /**
  * 更新模型行
+ * 逐键触发，行内不 trim（避免吞掉输入中的空格），落库 trim 由 normalize 承担
  * @param index 行下标
  * @param value 模型 ID
  */
 function updateModelRow(index: number, value: string | null | undefined): void {
   const current = conditionRows.value[index];
   if (!current || current.type !== 'model') return;
-  current.value = (value ?? '').trim();
+  current.value = value ?? '';
   writeConditionRows(conditionRows.value);
 }
 
@@ -407,20 +406,38 @@ function buildTypeOptions(): TypeOption[] {
 }
 
 /**
- * 合并 NAI 内置与已同步 Comfy checkpoint 选项
- * @param selected 当前行已选值
- * @returns 选项
+ * 构建模型候选全集（NAI 内置 + 已同步 Comfy checkpoint + 当前行已填值）
+ * @param selected 当前行已填值
+ * @returns 模型候选列表
  */
-function buildModelOptions(selected: string): TextOption[] {
-  const options = new Map<string, TextOption>();
-  for (const option of NAI_MODEL_OPTIONS) options.set(option.value, option);
+function buildModelValues(selected: string): string[] {
+  const values = new Set(NAI_MODEL_VALUES);
   for (const name of checkpointNames.value) {
     const trimmed = name.trim();
-    if (trimmed) options.set(trimmed, { label: trimmed, value: trimmed });
+    if (trimmed) values.add(trimmed);
   }
   const current = selected.trim();
-  if (current && !options.has(current)) options.set(current, { label: current, value: current });
-  return [...options.values()];
+  if (current) values.add(current);
+  return [...values];
+}
+
+/**
+ * AutoComplete 输入时按前缀过滤模型建议
+ * @param event complete 事件（query 为当前输入）
+ * @param selected 当前行已填值
+ */
+function searchModelSuggestions(event: { query: string }, selected: string): void {
+  const query = event.query.toLowerCase().trim();
+  const all = buildModelValues(selected);
+  modelSuggestions.value = query ? all.filter(value => value.toLowerCase().includes(query)) : all;
+}
+
+/**
+ * 点击 AutoComplete 下拉按钮时展示全部模型候选
+ * @param selected 当前行已填值
+ */
+function showAllModelSuggestions(selected: string): void {
+  modelSuggestions.value = buildModelValues(selected);
 }
 
 /**

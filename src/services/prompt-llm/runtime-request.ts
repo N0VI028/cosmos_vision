@@ -31,6 +31,9 @@ import {
 } from '@/services/tavern-helper/prompt-llm';
 import { createExtractionError, detectExtractionFailureType } from '@/services/prompt-llm/errors';
 import { readCharacterPrompts } from '@/services/prompt-llm/character-prompt';
+import { readComfyUIMainModelNames } from '@/services/comfyui/model-loaders';
+import { parseComfyUIWorkflow } from '@/services/comfyui/parse';
+import { getActiveComfyUIWorkflowJson } from '@/services/comfyui/workflow-presets';
 
 /** Prompt LLM 运行时生成选项 */
 export interface PromptLlmGenerateOptions {
@@ -66,7 +69,7 @@ export function buildPromptLlmTriggerContext(
   return {
     historyContent: '',
     imageSource,
-    modelId: readPromptLlmTriggerModelId(settings, imageSource),
+    modelIds: readPromptLlmTriggerModelIds(settings, imageSource),
   };
 }
 
@@ -83,22 +86,28 @@ export function mergePromptLlmTriggerContext(
   return {
     historyContent,
     imageSource: triggerContext?.imageSource ?? 'novelai',
-    modelId: triggerContext?.modelId ?? '',
+    modelIds: triggerContext?.modelIds ?? [],
   };
 }
 
 /**
- * 读取当前来源对应的模型 ID
+ * 读取当前来源对应的模型列表
+ * ComfyUI 取当前激活工作流的主模型名；其他来源取 NovelAI 模型
  * @param settings 扩展设置
  * @param imageSource 生图来源
- * @returns 模型 ID
+ * @returns 模型名列表（读取失败时为空列表）
  */
-function readPromptLlmTriggerModelId(
+function readPromptLlmTriggerModelIds(
   settings: Pick<CosmosVisionSettings, 'novelai' | 'comfyui'>,
   imageSource: ImageSource,
-): string {
-  if (imageSource === 'comfyui') return '';
-  return settings.novelai.model.trim();
+): string[] {
+  if (imageSource !== 'comfyui') return [settings.novelai.model.trim()];
+  try {
+    const workflow = parseComfyUIWorkflow(getActiveComfyUIWorkflowJson(settings.comfyui.workflowPresets));
+    return readComfyUIMainModelNames(workflow);
+  } catch {
+    return [];
+  }
 }
 
 /**

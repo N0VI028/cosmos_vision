@@ -127,7 +127,7 @@
                 dropdown
                 fluid
                 input-id="model-input"
-                :pt="autocompletePt"
+                :pt="cosmosAutocompleteFieldPt"
                 @complete="searchModels($event, account)"
                 @dropdown-click="onModelDropdownClick(account)"
               />
@@ -241,6 +241,7 @@ import {
   getProxyPresets,
   type ProxyPresetOption,
 } from '@/services/sillytavern/openai-config';
+import { cosmosAutocompleteFieldPt } from '@/services/primevue/primevue-pt';
 import { useSyncCacheStore } from '@/store/sync-cache';
 
 const accounts = defineModel<PromptLlmAccount[]>({ required: true });
@@ -261,58 +262,6 @@ const editingDraft = ref<string>('');
 
 /** AutoComplete 筛选后的模型列表建议 */
 const modelSuggestions = ref<string[]>([]);
-
-/**
- * AutoComplete PT 配置
- * 容器样式与 Select 对齐，内部加载图标隐藏，移动端输入优化
- */
-const autocompletePt = {
-  root: {
-    class: 'cv-prime-autocomplete',
-    style: {
-      background: 'var(--cvp-select-background)',
-      border: '1px solid var(--cvp-select-border-color)',
-      borderRadius: 'var(--cvp-select-border-radius)',
-    },
-  },
-  pcInput: {
-    root: {
-      inputmode: 'text',
-      enterkeyhint: 'done',
-    },
-  },
-  dropdown: {
-    style: {
-      background: 'var(--cvp-select-background)',
-      border: 'none',
-    },
-  },
-  loader: {
-    style: {
-      display: 'none',
-    },
-  },
-} as const;
-
-/**
- * 为所有 AutoComplete 输入框设置移动端优化属性
- * 在组件挂载后和 DOM 更新后执行，确保动态渲染的输入框也能被处理
- */
-function applyMobileInputAttributes(): void {
-  nextTick(() => {
-    const inputs = document.querySelectorAll('.p-autocomplete-input');
-    inputs.forEach((input) => {
-      if (input instanceof HTMLInputElement) {
-        input.setAttribute('inputmode', 'text');
-        input.setAttribute('enterkeyhint', 'done');
-      }
-    });
-  });
-}
-
-onMounted(applyMobileInputAttributes);
-// 监听账号展开，确保新显示的输入框也应用属性
-watch(expandedAccountIds, applyMobileInputAttributes, { deep: true });
 
 /**
  * 获取账号标题

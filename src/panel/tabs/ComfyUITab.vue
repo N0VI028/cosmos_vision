@@ -57,6 +57,8 @@
           :default-preset-id="DEFAULT_COMFYUI_WORKFLOW_PRESET_ID"
           :show-portability="true"
           rename-title="编辑当前预设"
+          export-title="导出当前工作流"
+          import-title="导入工作流"
           @update:active-preset-id="updateWorkflowPresetId"
           @create="createWorkflowPreset"
           @clone="cloneWorkflowPreset"

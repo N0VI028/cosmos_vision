@@ -152,3 +152,35 @@ export const cosmosPrimePt = {
     handle: { class: 'cv-prime-toggleswitch-handle' },
   },
 } satisfies CosmosPrimePt;
+
+/**
+ * "可选可输"模型字段级 AutoComplete PT：容器背景/边框/圆角对齐 Select，隐藏内嵌加载图标
+ * 全局 autocomplete PT 的 root 锚点只作用 input 元素，容器视觉需此处 inline 补齐
+ */
+export const cosmosAutocompleteFieldPt = {
+  root: {
+    class: 'cv-prime-autocomplete',
+    style: {
+      background: 'var(--cvp-select-background)',
+      border: '1px solid var(--cvp-select-border-color)',
+      borderRadius: 'var(--cvp-select-border-radius)',
+    },
+  },
+  pcInputText: {
+    root: {
+      inputmode: 'text',
+      enterkeyhint: 'done',
+    },
+  },
+  dropdown: {
+    style: {
+      background: 'var(--cvp-select-background)',
+      border: 'none',
+    },
+  },
+  loader: {
+    style: {
+      display: 'none',
+    },
+  },
+} as const;

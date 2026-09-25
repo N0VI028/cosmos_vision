@@ -30,15 +30,15 @@
       <CvMiniButton
         v-if="showPortability"
         icon="fa-regular fa-file-export"
-        title="导出当前预设"
-        aria-label="导出当前预设"
+        :title="exportTitle"
+        :aria-label="exportTitle"
         @click="$emit('export-preset')"
       />
       <CvMiniButton
         v-if="showPortability"
         icon="fa-regular fa-file-import"
-        title="导入预设"
-        aria-label="导入预设"
+        :title="importTitle"
+        :aria-label="importTitle"
         @click="handleImportClick"
       />
       <CvMiniButton
@@ -70,12 +70,16 @@ const props = withDefaults(
     importAccept?: string;
     importViaDialog?: boolean;
     renameTitle?: string;
+    exportTitle?: string;
+    importTitle?: string;
   }>(),
   {
     showPortability: false,
     importAccept: 'application/json,.json',
     importViaDialog: false,
     renameTitle: '重命名当前预设',
+    exportTitle: '导出当前预设',
+    importTitle: '导入预设',
   },
 );
 

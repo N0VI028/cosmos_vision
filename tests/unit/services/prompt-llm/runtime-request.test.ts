@@ -11,6 +11,6 @@ describe('prompt-llm runtime-request helper', () => {
     };
     const ctx = buildPromptLlmTriggerContext(settings);
     expect(ctx.imageSource).toBe('novelai');
-    expect(ctx.modelId).toBe(settings.novelai.model);
+    expect(ctx.modelIds).toEqual([settings.novelai.model]);
   });
 });
