@@ -1,7 +1,7 @@
 <template>
   <div
     ref="rootEl"
-    class="relative h-full w-full cursor-grab overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-outline) bg-(--cv-surface-container-low) active:cursor-grabbing"
+    class="relative h-full w-full cursor-grab overflow-hidden rounded-(--cv-radius) border-(length:--cv-border-width) border-solid border-(--cv-outline) bg-(--cv-surface-container-low) select-none active:cursor-grabbing"
     :style="canvasStyle"
     @wheel.prevent="onWheel"
     @pointerdown="onPointerDown"

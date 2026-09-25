@@ -23,7 +23,7 @@
               />
             </span>
           </Chip>
-          <Popover ref="promptPopover" :base-z-index="MACRO_POPOVER_BASE_Z_INDEX" :pt="bindingPopoverPt">
+          <Popover ref="promptPopover" :pt="bindingPopoverPt">
             <button
               v-for="option in alternateBindings"
               :key="option.value ?? 'none'"
@@ -56,7 +56,7 @@
               />
             </span>
           </Chip>
-          <Popover ref="imagePopover" :base-z-index="MACRO_POPOVER_BASE_Z_INDEX" :pt="bindingPopoverPt">
+          <Popover ref="imagePopover" :pt="bindingPopoverPt">
             <button
               v-for="option in alternateImageBindings"
               :key="option.value ?? 'none'"
@@ -277,7 +277,7 @@ import type { PopoverPassThroughOptions } from 'primevue/popover';
 import Popover from 'primevue/popover';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { COMFYUI_DIMENSION_PRESETS } from '@/constants/comfyui';
-import { MACRO_POPOVER_BASE_Z_INDEX, type MacroPopoverInstance } from '@/panel/components/prompt-llm-macro-popover';
+import type { MacroPopoverInstance } from '@/panel/components/prompt-llm-macro-popover';
 import type { ComfyUIInputControlDesc, PromptBinding, SeedMode } from '@/services/comfyui/types';
 import type { TavernAvatarSource } from '@/services/tavern-helper/avatar';
 import { fetchComfyUICheckpointNames, uploadComfyUIImage } from '@/services/comfyui/api';

@@ -102,7 +102,8 @@
               <i class="fa-solid fa-location-crosshairs" aria-hidden="true" />
             </ReuseIconButton>
 
-            <Popover ref="locatePopover" :base-z-index="3200" :pt="locatePopoverPt">
+            <!-- 不传 base-z-index：回落全局 zIndex.overlay (100100)，高于全屏容器 z-99999 -->
+            <Popover ref="locatePopover" :pt="locatePopoverPt">
               <div class="flex w-full flex-col items-stretch gap-(--cv-space-xs) p-(--cv-space-xs)">
                 <button
                   v-for="option in bindingLocateOptions"

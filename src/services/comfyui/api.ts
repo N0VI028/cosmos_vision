@@ -238,10 +238,10 @@ export async function fetchComfyUICheckpointNames(settings: ComfyUISettings): Pr
 
 /**
  * 从 ComfyUI 获取可用 LoRA 列表
- * @param settings ComfyUI 设置
+ * @param settings ComfyUI 设置（仅使用 url 字段）
  * @returns LoRA 文件名列表
  */
-export async function fetchComfyUILoraNames(settings: ComfyUISettings): Promise<string[]> {
+export async function fetchComfyUILoraNames(settings: Pick<ComfyUISettings, 'url'>): Promise<string[]> {
   const baseUrl = normalizeComfyUIUrl(settings.url);
   let response: Response;
   try {

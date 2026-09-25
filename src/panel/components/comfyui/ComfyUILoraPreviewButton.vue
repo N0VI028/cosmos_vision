@@ -14,7 +14,7 @@
     {{ formatLoraDisplayName(props.loraName) || '未选择 LoRA' }}
   </span>
 
-  <Popover ref="previewPopoverRef" append-to="body" :base-z-index="3200" @hide="onPopoverHide">
+  <Popover ref="previewPopoverRef" append-to="body" @hide="onPopoverHide">
     <div class="flex max-h-[24rem] w-[min(20rem,80vw)] flex-col gap-(--cv-space-sm) p-(--cv-space-xs)">
       <div
         v-if="previewState === 'loading'"
@@ -35,7 +35,7 @@
         class="flex flex-col items-center justify-center gap-(--cv-space-sm) py-(--cv-space-xl) text-center text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
       >
         <i class="fa-solid fa-circle-exclamation text-(length:--cv-font-size-base) text-(--cv-on-surface-variant)" aria-hidden="true" />
-        <span class="break-words">{{ previewErrorMessage }}</span>
+        <span class="wrap-break-word">{{ previewErrorMessage }}</span>
       </div>
     </div>
   </Popover>

@@ -179,7 +179,9 @@ import {
   type ComfyUILoraRecipe,
 } from '@/services/comfyui/lora-recipes';
 import { removePresetReferences } from '@/services/image-prompt/random-preset-pool';
+import { fetchComfyUILoraNames } from '@/services/comfyui/api';
 import { useSettingsStore } from '@/store/settings';
+import { useSyncCacheStore } from '@/store/sync-cache';
 
 interface TextOption {
   value: string;
@@ -211,6 +213,7 @@ const emit = defineEmits<{
 }>();
 
 const { settings } = useSettingsStore();
+const syncCacheStore = useSyncCacheStore();
 
 const showPrompt =
   inject<(options: { title?: string; message: string; defaultValue?: string }) => Promise<string | null>>('showPrompt');
@@ -247,6 +250,24 @@ const editingLoraId = ref<string | null>(null);
 
 /** 控制导入预设弹窗的显示状态 */
 const isImportVisible = ref(false);
+
+// 打开导入弹窗时若 LoRA 库尚未拉取会导致配方映射失败（显示本地缺失），先静默拉取一次
+// 注意：不能看 loraOptions 是否为空——它并入了当前预设组里的 LoRA 名，库空时也可能非空
+watch(isImportVisible, opened => {
+  if (opened && !syncCacheStore.fetchedComfyUiLoras.length && props.comfyuiUrl.trim()) void ensureLoraOptionsLoaded();
+});
+
+/**
+ * 拉取 ComfyUI LoRA 列表并写入同步缓存（父级 loraOptions 由同一 store 派生，自动更新）
+ */
+async function ensureLoraOptionsLoaded(): Promise<void> {
+  try {
+    syncCacheStore.setComfyUiLoras(await fetchComfyUILoraNames({ url: props.comfyuiUrl }));
+  } catch (error) {
+    // 拉取失败不弹窗：导入弹窗内已有"LoRA 库尚未加载"警告兜底
+    console.error('[ComfyUILoraPresetPanel] 自动拉取 LoRA 列表失败', error);
+  }
+}
 
 /**
  * 转换预设选择器选项
