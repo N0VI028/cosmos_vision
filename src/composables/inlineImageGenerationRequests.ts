@@ -7,6 +7,7 @@ import { extractFrontendText } from '@/services/inline-image/frontend-text-extra
 import type { GalleryGenerationContext } from '@/store/gallery-runtimes';
 import { getHostIframe } from '@/services/inline-image/iframe-utils';
 import { generateComfyUIImagesFromPrompts } from '@/services/comfyui/api';
+import type { ComfyUIProgress } from '@/services/comfyui/progress-ws';
 import { resolveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
 import { generateNovelAIImageFromPrompts } from '@/services/novelai/api';
 import type { ImagePromptPair } from '@/services/image-prompt/presets';
@@ -23,16 +24,18 @@ import {
  * @param settings 扩展设置
  * @param snapshot 提示词快照
  * @param signal 取消信号
+ * @param onProgress ComfyUI 进度回调
  * @returns 图片与生成后的提示词快照
  */
 export async function generateImagesFromSnapshot(
   settings: CosmosVisionSettings,
   snapshot: InlinePromptSnapshot,
   signal: AbortSignal,
+  onProgress?: (progress: ComfyUIProgress) => void,
 ): Promise<InlineGenerationBatchResult> {
   const imageSource = snapshot.imageSource ?? settings.imageSource;
   if (imageSource === 'comfyui') {
-    return generateComfyUIImagesFromSnapshot(settings, snapshot, signal);
+    return generateComfyUIImagesFromSnapshot(settings, snapshot, signal, onProgress);
   }
   const prompts = snapshot.novelai ?? snapshot;
   const imageBlob = await generateNovelAIImageFromPrompts(settings.novelai, prompts, { signal });
@@ -44,12 +47,14 @@ export async function generateImagesFromSnapshot(
  * @param settings 扩展设置
  * @param snapshot 提示词快照
  * @param signal 取消信号
+ * @param onProgress 进度回调
  * @returns 图片与更新后的提示词快照
  */
 async function generateComfyUIImagesFromSnapshot(
   settings: CosmosVisionSettings,
   snapshot: InlinePromptSnapshot,
   signal: AbortSignal,
+  onProgress?: (progress: ComfyUIProgress) => void,
 ): Promise<InlineGenerationBatchResult> {
   const snapshotLoras = snapshot.comfyui?.loras ?? [];
   const prompts = resolveComfyUIPlaybackPrompts(settings, snapshot);
@@ -61,6 +66,7 @@ async function generateComfyUIImagesFromSnapshot(
     signal,
     loras: snapshotLoras,
     loraTriggerWords,
+    onProgress,
   });
 
   const promptSnapshot: InlinePromptSnapshot = {

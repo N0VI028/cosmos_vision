@@ -236,4 +236,37 @@ describe('generateImagesFromSnapshot 再生与回放', () => {
     );
     expect(result).toEqual({ promptSnapshot: snapshot, imageBlobs: [mockImageBlob] });
   });
+
+  it('ComfyUI 快照重放时支持透传 onProgress 回调', async () => {
+    const settings = createTestSettings();
+    const controller = new AbortController();
+    const snapshot: InlinePromptSnapshot = {
+      imageSource: 'comfyui',
+      positivePrompt: 'pos',
+      negativePrompt: 'neg',
+    };
+    const onProgress = vi.fn();
+    vi.mocked(generateComfyUIImagesFromPrompts).mockResolvedValueOnce({
+      imageBlobs: [new Blob(['comfyui-blob'])],
+      requestSnapshot: {
+        endpoint: 'http://127.0.0.1:8188',
+        positivePrompt: 'pos',
+        negativePrompt: 'neg',
+        imageOutputNodeId: '9',
+        promptBindings: [],
+        seedValues: [],
+        imageBindings: [],
+        loras: [],
+      },
+      resolvedRequest: {} as any,
+    });
+
+    await generateImagesFromSnapshot(settings, snapshot, controller.signal, onProgress);
+
+    expect(generateComfyUIImagesFromPrompts).toHaveBeenCalledWith(
+      settings.comfyui,
+      expect.anything(),
+      expect.objectContaining({ onProgress }),
+    );
+  });
 });

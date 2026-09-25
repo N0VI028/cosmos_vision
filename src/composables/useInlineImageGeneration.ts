@@ -707,7 +707,12 @@ export function useInlineImageGeneration(
     session: InlineGenerationSession,
   ): Promise<InlineGenerationBatchResult> {
     session.status.setStatus('正在生成图片...');
-    return generateImagesFromSnapshot(settings, snapshot, session.controller.signal);
+    return generateImagesFromSnapshot(
+      settings,
+      snapshot,
+      session.controller.signal,
+      p => session.status.setProgress(p),
+    );
   }
 
   /**
@@ -819,6 +824,7 @@ export function useInlineImageGeneration(
         promptSnapshot: createComfyUISnapshot(request.snapshot, promptParts),
         imageBlobs: await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request, {
           signal: session.controller.signal,
+          onProgress: p => session.status.setProgress(p),
         }),
       }),
       onSnapshotResolved,

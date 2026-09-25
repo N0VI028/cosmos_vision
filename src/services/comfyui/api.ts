@@ -24,6 +24,7 @@ import type {
   ComfyUIUploadImageResponse,
   ComfyUIWorkflow,
 } from '@/services/comfyui/types';
+import { listenComfyUIProgress, type ComfyUIProgress } from '@/services/comfyui/progress-ws';
 import type { ImagePromptPair } from '@/services/image-prompt/presets';
 
 interface ComfyUIPromptResponse {
@@ -49,6 +50,7 @@ const COMFYUI_POLL_INTERVAL_MS = 1000;
 /** ComfyUI 请求控制选项 */
 export interface ComfyUIRequestOptions {
   signal?: AbortSignal;
+  onProgress?: (progress: ComfyUIProgress) => void;
 }
 
 export interface ComfyUIPromptsRequestOptions extends ComfyUIRequestOptions {
@@ -136,13 +138,17 @@ export async function generateComfyUIImagesFromResolvedRequest(
 ): Promise<Blob[]> {
   const timeout = createRequestTimeoutController(options.signal, settings.timeout);
   const baseUrl = normalizeComfyUIUrl(settings.url);
-  let cleanupAbort: () => void = () => undefined;
+  const clientId = createClientId();
+  const cleanups: Array<() => void> = [];
   try {
     if (request.snapshot.imageBindings?.length) {
       await applyImageBindings(baseUrl, request.workflow, request.snapshot.imageBindings, timeout.signal);
     }
-    const promptId = await queueComfyUIPrompt(baseUrl, request.workflow, timeout.signal);
-    cleanupAbort = bindComfyUIAbort(baseUrl, timeout.signal);
+    const promptId = await queueComfyUIPrompt(baseUrl, request.workflow, clientId, timeout.signal);
+    cleanups.push(bindComfyUIAbort(baseUrl, timeout.signal));
+    if (options.onProgress) {
+      cleanups.push(listenComfyUIProgress(baseUrl, promptId, clientId, timeout.signal, options.onProgress));
+    }
     const historyResult = await pollComfyUIHistory(
       baseUrl,
       promptId,
@@ -157,7 +163,7 @@ export async function generateComfyUIImagesFromResolvedRequest(
     throwIfComfyUIAborted(timeout.signal);
     throw error;
   } finally {
-    cleanupAbort();
+    cleanups.forEach(cleanup => cleanup());
     timeout.dispose();
   }
 }
@@ -328,16 +334,22 @@ export async function applyImageBindings(
  * 向 ComfyUI 投递 prompt
  * @param baseUrl ComfyUI 基础地址
  * @param workflow API 工作流
+ * @param clientId 客户端 ID
  * @param signal 取消信号
  * @returns prompt_id
  */
-async function queueComfyUIPrompt(baseUrl: string, workflow: ComfyUIWorkflow, signal?: AbortSignal): Promise<string> {
+async function queueComfyUIPrompt(
+  baseUrl: string,
+  workflow: ComfyUIWorkflow,
+  clientId: string,
+  signal?: AbortSignal,
+): Promise<string> {
   let response: Response;
   try {
     response = await fetch(`${baseUrl}/prompt`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_id: createClientId(), prompt: workflow }),
+      body: JSON.stringify({ client_id: clientId, prompt: workflow }),
       signal,
     });
   } catch (error) {

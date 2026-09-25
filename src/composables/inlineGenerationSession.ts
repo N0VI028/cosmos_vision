@@ -4,6 +4,7 @@ import { stopTavernHelperGeneration } from '@/services/tavern-helper/generation-
 import type { PromptLlmExtractionError } from '@/services/prompt-llm/errors';
 import Message from 'primevue/message';
 import ProgressSpinner from 'primevue/progressspinner';
+import ProgressBar from 'primevue/progressbar';
 import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
@@ -18,6 +19,7 @@ export type InlineGenerationStatusMode = 'running' | 'error';
 export interface InlineGenerationStatusHandle {
   host: HTMLElement;
   setStatus: (text: string, mode?: InlineGenerationStatusMode, onRetry?: () => void, rawOutput?: string) => void;
+  setProgress: (progress: { value: number; max: number } | null) => void;
   remove: () => void;
 }
 
@@ -54,6 +56,7 @@ interface InlineGenerationStatusOptions {
 interface InlineGenerationStatusState {
   text: string;
   mode: InlineGenerationStatusMode;
+  progress?: { value: number; max: number };
   onRetry?: () => void;
   /** LLM 提取错误的完整原始输出（用于 Accordion 展示） */
   rawOutput?: string;
@@ -385,8 +388,14 @@ function createInlineGenerationStatus(options: InlineGenerationStatusOptions): I
     renderStatus(host, state, options, remove);
   }
 
+  function setProgress(progress: { value: number; max: number } | null): void {
+    if (removed) return;
+    state = { ...state, progress: progress ?? undefined };
+    renderStatus(host, state, options, remove);
+  }
+
   setStatus(options.initialText);
-  return { host, setStatus, remove };
+  return { host, setStatus, setProgress, remove };
 }
 
 /**
@@ -427,6 +436,92 @@ function renderStatus(
 }
 
 /**
+ * 渲染 LLM 原始输出折叠面板
+ * @param rawOutput 原始输出文本
+ * @returns Accordion 虚拟节点
+ */
+function renderRawOutputAccordion(rawOutput: string): ReturnType<typeof h> {
+  return h(
+    Accordion,
+    { class: 'cv-inline-generation-accordion' },
+    () => h(
+      AccordionPanel,
+      { value: '0' },
+      () => [
+        h(AccordionHeader, () => 'LLM 原始输出'),
+        h(AccordionContent, () => h('pre', { class: 'cv-inline-generation-raw-output' }, rawOutput)),
+      ],
+    ),
+  );
+}
+
+/**
+ * 渲染状态条操作按钮
+ * @param state 当前状态
+ * @param isRunning 是否正在运行
+ * @param remove 移除状态条回调
+ * @param onClose 关闭回调
+ * @returns 按钮虚拟节点列表
+ */
+function renderStatusButtons(
+  state: InlineGenerationStatusState,
+  isRunning: boolean,
+  remove: () => void,
+  onClose: () => void,
+): Array<ReturnType<typeof h>> {
+  const buttonTone = state.mode === 'error' ? 'error' : 'primary';
+  const buttons: Array<ReturnType<typeof h>> = [];
+  if (!isRunning && state.onRetry) {
+    buttons.push(
+      h(CvMiniButton, {
+        label: '重试',
+        tone: buttonTone,
+        onClick: () => {
+          remove();
+          state.onRetry?.();
+        },
+      }),
+    );
+  }
+  buttons.push(
+    h(CvMiniButton, {
+      label: MODE_CLOSE_LABEL[state.mode],
+      tone: buttonTone,
+      onClick: onClose,
+    }),
+  );
+  return buttons;
+}
+
+/**
+ * 格式化状态文本（运行中且包含进度时追加百分比）
+ * @param state 当前状态
+ * @param isRunning 是否正在运行
+ * @returns 状态文本
+ */
+function resolveStatusText(state: InlineGenerationStatusState, isRunning: boolean): string {
+  if (isRunning && state.progress) {
+    const percent = Math.round((state.progress.value / state.progress.max) * 100);
+    return `${state.text} ${percent}%`;
+  }
+  return state.text;
+}
+
+/**
+ * 渲染进度条组件
+ * @param progress 进度对象
+ * @returns ProgressBar 虚拟节点或 null
+ */
+function renderProgressBar(progress?: { value: number; max: number }): ReturnType<typeof h> | null {
+  if (!progress) return null;
+  return h(ProgressBar, {
+    value: Math.round((progress.value / progress.max) * 100),
+    showValue: false,
+    class: 'cv-inline-generation-progress',
+  });
+}
+
+/**
  * 构建状态条插槽
  * @param state 当前状态
  * @param isRunning 是否正在运行
@@ -440,77 +535,25 @@ function buildStatusSlots(
   remove: () => void,
   options: InlineGenerationStatusOptions,
 ): InlineGenerationStatusSlots {
-  const retry = state.onRetry;
   const onClose = isRunning ? options.onCancel : remove;
-  const closeLabel = MODE_CLOSE_LABEL[state.mode];
-  const buttonTone = state.mode === 'error' ? 'error' : 'primary';
-
   const slots: InlineGenerationStatusSlots = {
     default: () => {
-      const children: any[] = [];
-
-      // 如果有原始输出，添加可折叠的原文展示（单独成一行）
-      if (state.rawOutput) {
-        children.push(
-          h(
-            Accordion,
-            { class: 'cv-inline-generation-accordion' },
-            () => h(
-              AccordionPanel,
-              { value: '0' },
-              () => [
-                h(AccordionHeader, () => 'LLM 原始输出'),
-                h(AccordionContent, () => h('pre', { class: 'cv-inline-generation-raw-output' }, state.rawOutput)),
-              ],
-            ),
-          ),
-        );
-      }
-
-      const buttons: any[] = [];
-
-      if (!isRunning && retry) {
-        buttons.push(
-          h(
-            CvMiniButton,
-            {
-              label: '重试',
-              tone: buttonTone,
-              onClick: () => {
-                remove();
-                retry();
-              },
-            }
-          )
-        );
-      }
-
-      buttons.push(
-        h(
-          CvMiniButton,
-          {
-            label: closeLabel,
-            tone: buttonTone,
-            onClick: onClose,
-          }
-        )
-      );
-
+      const buttons = renderStatusButtons(state, isRunning, remove, onClose);
       const contentContainer = h('div', { class: 'cv-inline-generation-error-row' }, [
-        h('span', { class: 'cv-inline-generation-text' }, state.text),
-        h('span', { class: 'cv-inline-button-row' }, buttons)
+        h('span', { class: 'cv-inline-generation-text' }, resolveStatusText(state, isRunning)),
+        h('span', { class: 'cv-inline-button-row' }, buttons),
       ]);
-
+      const progressBar = isRunning ? renderProgressBar(state.progress) : null;
+      const rawOutput = state.rawOutput ? renderRawOutputAccordion(state.rawOutput) : null;
       return h('div', { class: 'cv-inline-generation-error-row-container' }, [
         contentContainer,
-        ...(children.length > 0 ? children : [])
+        ...(progressBar ? [progressBar] : []),
+        ...(rawOutput ? [rawOutput] : []),
       ]);
     },
   };
-
-  if (isRunning) {
+  if (isRunning && !state.progress) {
     slots.icon = () => h(ProgressSpinner, { class: 'cv-inline-generation-spinner', strokeWidth: 4 });
   }
-
   return slots;
 }

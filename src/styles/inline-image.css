@@ -895,6 +895,12 @@ body.dark .cv-inline-toolbar {
   flex-shrink: 0;
 }
 
+.cv-inline-generation-progress {
+  width: 100% !important;
+  height: 6px !important;
+  margin-top: 4px;
+}
+
 .cv-inline-generation-text {
   font-size: var(--cv-font-size-xs);
   line-height: 1.35;

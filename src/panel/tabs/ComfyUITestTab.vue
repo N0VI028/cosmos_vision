@@ -58,10 +58,21 @@
       >
         <div
           v-if="testStatus === 'running'"
-          class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-primary-color)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-primary-color)_10%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-primary-color)"
+          class="mb-(--cv-space-2xl) flex flex-col gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-primary-color)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-primary-color)_10%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-primary-color)"
         >
-          <i class="fa-solid fa-spinner fa-spin" />
-          <span class="whitespace-normal break-all">{{ runningStateText }}</span>
+          <div class="flex items-center justify-between gap-(--cv-space-lg)">
+            <span class="flex min-w-0 items-center gap-(--cv-space-lg)">
+              <i class="fa-solid fa-spinner fa-spin" />
+              <span class="whitespace-normal break-all">{{ runningStateText }}</span>
+            </span>
+            <span v-if="progressPercent !== null" class="shrink-0">{{ progressPercent }}%</span>
+          </div>
+          <ProgressBar
+            v-if="progressPercent !== null"
+            :value="progressPercent ?? 0"
+            :show-value="false"
+            :style="{ height: '6px' }"
+          />
         </div>
         <div
           v-else-if="testStatus === 'success'"
@@ -192,6 +203,7 @@ import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue'
 import TestImageGallery from '@/panel/components/TestImageGallery.vue';
 
 import { generateComfyUIImagesFromResolvedRequest } from '@/services/comfyui/api';
+import type { ComfyUIProgress } from '@/services/comfyui/progress-ws';
 import { formatLoraDisplayName, getActiveComfyUILoraPreset } from '@/services/comfyui/lora-presets';
 import { resolveActiveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
 import {
@@ -242,6 +254,12 @@ const requestSnapshot = ref<ComfyUIRequestSnapshot | null>(null);
 const llmRawResponse = ref('');
 const llmSentPromptLog = ref('');
 const routedAccount = ref<PromptLlmAccount | undefined>(undefined);
+const generationProgress = ref<ComfyUIProgress | null>(null);
+
+const progressPercent = computed<number | null>(() => {
+  if (!generationProgress.value) return null;
+  return Math.round((generationProgress.value.value / generationProgress.value.max) * 100);
+});
 
 const isRunning = computed(() => testStatus.value === 'running');
 const useLlmMode = computed({
@@ -365,6 +383,9 @@ async function runTest(): Promise<void> {
       requestSnapshot.value = request.snapshot;
       const blobs = await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request, {
         signal: session.signal,
+        onProgress: p => {
+          if (requestSession.isCurrent(session)) generationProgress.value = p;
+        },
       });
       if (!requestSession.isCurrent(session)) return;
       if (!blobs.length) throw new Error('段落生图结果节点未返回任何图片');
@@ -484,6 +505,7 @@ function resetTestResult(): void {
   llmSentPromptLog.value = '';
   routedAccount.value = undefined;
   previewBlobs.value = [];
+  generationProgress.value = null;
 }
 
 /**
