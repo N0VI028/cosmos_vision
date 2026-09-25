@@ -7,6 +7,7 @@ import { extractNovelAIJsonImages } from './response-images';
 import { extractImages } from './zip';
 import { getNovelAIRequestAccounts } from './router';
 import { createRequestTimeoutController, throwIfRequestTimedOut } from '@/services/request-timeout';
+import { beginImageGeneration, endImageGeneration } from '@/store/image-generation-activity';
 import { getActiveNovelAIVibePresetRefs, resolveNovelAIVibeParameters } from './vibe-parameters';
 import type { NovelAIVibeParameters, NovelAIVibeSnapshot } from './vibe-types';
 import {
@@ -85,6 +86,7 @@ export async function generateNovelAIImagesFromResolvedRequest(
   options: NovelAIRequestOptions = {},
 ): Promise<NovelAIImagesResult> {
   const timeout = createRequestTimeoutController(options.signal, request.settings.timeout);
+  beginImageGeneration();
   try {
     return await requestNovelAIImages(request, imageCount, { ...options, signal: timeout.signal });
   } catch (error) {
@@ -92,6 +94,7 @@ export async function generateNovelAIImagesFromResolvedRequest(
     throw error;
   } finally {
     timeout.dispose();
+    endImageGeneration();
   }
 }
 

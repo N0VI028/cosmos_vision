@@ -147,7 +147,7 @@
             <label class="cv-field">
               <span>包含请求体参数</span>
               <div class="cv-field-control">
-                <Textarea v-model="account.customIncludeBody" rows="3" class="w-full" />
+                <CvExpandableTextarea v-model="account.customIncludeBody" rows="3" class="w-full" />
                 <div class="cv-field-hint">
                   YAML 格式，附加到请求 body 的字段（如 reasoning_effort: high），留空则不发送
                 </div>
@@ -233,6 +233,7 @@ import { requestConfirmation, type ShowConfirm } from '@/panel/confirm-action';
 
 import { createPromptLlmAccount, getPromptLlmAccountDisplayName, type PromptLlmAccount } from '@/constants/prompt-llm';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
+import CvExpandableTextarea from '@/panel/components/CvExpandableTextarea.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import CvMiniToggleSwitch from '@/panel/components/CvMiniToggleSwitch.vue';
 import {

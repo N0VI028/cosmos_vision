@@ -1,9 +1,9 @@
 <template>
-  <div class="block">
+  <div class="relative" :class="embedded ? 'flex min-h-0 flex-1 flex-col' : 'block'">
     <div
       ref="editorEl"
       class="min-h-24 rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cvp-content-border-color) bg-(--cvp-inputtext-background) p-(--cv-space-3xl) leading-[1.5] wrap-break-word whitespace-pre-wrap text-(--cvp-inputtext-color) outline-none focus-within:border-(--cvp-primary-color) focus-within:shadow-[0_0_0_1px_color-mix(in_srgb,var(--cvp-primary-color)_45%,transparent)]"
-      :class="{ 'is-dragging': isDragging }"
+      :class="{ 'is-dragging': isDragging, 'flex-1': embedded }"
       role="textbox"
       aria-multiline="true"
     >
@@ -39,11 +39,49 @@
         @paste.prevent="pastePlainText"
       />
     </div>
+    <button
+      v-if="!embedded"
+      type="button"
+      class="cv-expandable-trigger"
+      title="全屏编辑"
+      aria-label="全屏编辑"
+      @click="fullscreenVisible = true"
+    >
+      <i class="fa-solid fa-maximize" aria-hidden="true" />
+    </button>
+    <Dialog
+      v-if="!embedded"
+      v-model:visible="fullscreenVisible"
+      modal
+      header="编辑提示词预设"
+      :style="EXPANDABLE_DIALOG_STYLE"
+      :content-style="EXPANDABLE_DIALOG_CONTENT_STYLE"
+      :pt="EXPANDABLE_DIALOG_PT"
+    >
+      <div class="flex h-full min-h-0 flex-1 flex-col p-(--cv-space-md)">
+        <PromptPlaceholderEditor
+          embedded
+          :model-value="modelValue"
+          @update:model-value="value => emit('update:modelValue', value)"
+        />
+      </div>
+      <template #footer>
+        <div class="flex w-full items-center justify-between">
+          <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">{{ modelValue.text.length }} 字</span>
+          <Button label="完成" icon="fa-solid fa-check" :fluid="false" @click="fullscreenVisible = false" />
+        </div>
+      </template>
+    </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { clampImagePromptPlaceholderOffset } from '@/constants/image-prompt';
+import {
+  EXPANDABLE_DIALOG_CONTENT_STYLE,
+  EXPANDABLE_DIALOG_PT,
+  EXPANDABLE_DIALOG_STYLE,
+} from '@/panel/components/expandable-editor-dialog';
 
 interface PromptPlaceholderValue {
   text: string;
@@ -65,8 +103,18 @@ type CaretDocument = Document & {
   caretRangeFromPoint?: (x: number, y: number) => Range | null;
 };
 
-const props = defineProps<{ modelValue: PromptPlaceholderValue }>();
+const props = withDefaults(
+  defineProps<{
+    /** 结构化值（v-model） */
+    modelValue: PromptPlaceholderValue;
+    /** 是否嵌入大窗内（嵌入实例不再渲染触发按钮，避免递归） */
+    embedded?: boolean;
+  }>(),
+  { embedded: false },
+);
 const emit = defineEmits<{ 'update:modelValue': [PromptPlaceholderValue] }>();
+
+const fullscreenVisible = ref(false);
 
 const editorEl = ref<HTMLElement | null>(null);
 const beforeEl = ref<HTMLElement | null>(null);

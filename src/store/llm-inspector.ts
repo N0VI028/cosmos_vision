@@ -189,6 +189,9 @@ export const useLlmInspectorStore = defineStore('cosmos_vision_llm_inspector', (
     if (thinking) {
       session.thinkingText = thinking;
       session.thinkingStreaming = isThinkingStreaming(text);
+    } else if (content) {
+      // 独立 reasoning 字段模型：正文 token 已流出即思考阶段结束；若模型交叉思考，后续 reasoning 事件会再次置 true，自愈
+      session.thinkingStreaming = false;
     }
     session.contentText = content;
   }

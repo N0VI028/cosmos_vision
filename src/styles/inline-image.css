@@ -898,7 +898,7 @@ body.dark .cv-inline-toolbar {
 .cv-inline-generation-progress {
   width: 100% !important;
   height: 6px !important;
-  margin-top: 4px;
+  margin-block: 4px;
 }
 
 .cv-inline-generation-text {

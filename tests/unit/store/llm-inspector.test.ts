@@ -214,6 +214,24 @@ describe('useLlmInspectorStore', () => {
     expect(store.sessions[0]!.contentText).toBe('1girl, solo, masterpiece');
   });
 
+  it('独立 reasoning 模型：正文 token 流出即结束思考标记，后续 reasoning 事件自愈回 true', () => {
+    const store = useLlmInspectorStore();
+    store.recordRequest(buildSnapshot('gen-1'));
+
+    // 1. reasoning 事件写入，思考中
+    eventSource.emit('js_reasoning_token_received_fully', '模型正在思考中...', 'gen-1');
+    expect(store.sessions[0]!.thinkingStreaming).toBe(true);
+
+    // 2. 无思考标签的正文 token 流出，思考阶段结束
+    eventSource.emit('js_stream_token_received_fully', '1girl, solo', 'gen-1');
+    expect(store.sessions[0]!.thinkingStreaming).toBe(false);
+    expect(store.sessions[0]!.thinkingText).toBe('模型正在思考中...');
+
+    // 3. 模型交叉思考：reasoning 事件再次到达，回到思考中
+    eventSource.emit('js_reasoning_token_received_fully', '模型正在思考中...继续', 'gen-1');
+    expect(store.sessions[0]!.thinkingStreaming).toBe(true);
+  });
+
   it('stop 之后不再接收 reasoning 事件', () => {
     const store = useLlmInspectorStore();
     store.recordRequest(buildSnapshot('gen-1'));

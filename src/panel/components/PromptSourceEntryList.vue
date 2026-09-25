@@ -161,12 +161,12 @@
             </Popover>
           </div>
         </div>
-        <Textarea
+        <CvExpandableTextarea
           v-if="editorDraft.kind === 'custom'"
           ref="entryContentTextarea"
           :model-value="editorDraft.content"
           rows="10"
-          class="custom-scrollbar h-48 min-h-24 w-full resize-y overflow-y-auto"
+          class="custom-scrollbar h-48 min-h-24 w-full overflow-y-auto"
           placeholder="输入模板内容..."
           @click="rememberEntrySelection"
           @focus="rememberEntrySelection"
@@ -174,12 +174,12 @@
           @select="rememberEntrySelection"
           @update:model-value="updateCustomContent"
         />
-        <Textarea
+        <CvExpandableTextarea
           v-else
           :model-value="editorPreviewPlaceholder ?? editorPreviewText"
           rows="6"
           disabled
-          class="custom-scrollbar h-48 min-h-24 w-full resize-y overflow-y-auto"
+          class="custom-scrollbar h-48 min-h-24 w-full overflow-y-auto"
         />
       </div>
     </div>
@@ -205,6 +205,7 @@ import PromptEntryList from '@/panel/components/PromptEntryList.vue';
 import { createCustomPromptPersonTemplateEntry } from '@/services/prompt-profiles/runtime';
 import { PROMPT_EDITOR_DIALOG_PT, PROMPT_EDITOR_DIALOG_STYLE } from '@/panel/components/prompt-editor-dialog';
 import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
+import CvExpandableTextarea from '@/panel/components/CvExpandableTextarea.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import CvMiniToggleSwitch from '@/panel/components/CvMiniToggleSwitch.vue';
 import {

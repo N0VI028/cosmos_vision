@@ -33,7 +33,7 @@
             />
           </div>
         </div>
-        <Textarea
+        <CvExpandableTextarea
           ref="inputRef"
           v-model="value"
           class="custom-scrollbar max-h-[min(28vh,14rem)] min-h-28 w-full resize-none overflow-y-auto overscroll-contain"
@@ -94,7 +94,7 @@
             />
           </div>
         </div>
-        <Textarea
+        <CvExpandableTextarea
           v-model="secondaryValue"
           class="custom-scrollbar max-h-[min(24vh,12rem)] min-h-[5.5rem] w-full resize-none overflow-y-auto overscroll-contain"
           :rows="secondaryRows"
@@ -125,7 +125,7 @@
                 <label class="text-(length:--cv-font-size-xs) leading-[1.4] font-semibold text-(--cv-on-surface)"
                   >角色正面</label
                 >
-                <Textarea
+                <CvExpandableTextarea
                   v-model="character.positivePrompt"
                   class="custom-scrollbar max-h-[min(18vh,9rem)] min-h-[4.5rem] w-full resize-none overflow-y-auto overscroll-contain"
                   :rows="3"
@@ -135,7 +135,7 @@
                 <label class="text-(length:--cv-font-size-xs) leading-[1.4] font-semibold text-(--cv-on-surface)"
                   >角色负面</label
                 >
-                <Textarea
+                <CvExpandableTextarea
                   v-model="character.negativePrompt"
                   class="custom-scrollbar max-h-[min(18vh,9rem)] min-h-[4.5rem] w-full resize-none overflow-y-auto overscroll-contain"
                   :rows="2"
@@ -233,6 +233,7 @@ import { buildEditableDisplayText } from '@/composables/inlineEditablePromptSnap
 import { DARK_CLASS } from '@/constants/default-settings';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
+import CvExpandableTextarea from '@/panel/components/CvExpandableTextarea.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import {
   focusTextareaAt,

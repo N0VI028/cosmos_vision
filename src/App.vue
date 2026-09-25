@@ -122,7 +122,12 @@
             <circle cx="25" cy="79" r="5" />
           </g>
         </svg>
-        <span v-if="hasRunningLlmSession" class="cv-fab-menu-dot" aria-hidden="true" />
+        <!-- 红点：LLM 阶段亮起后保持到生图整体结束 -->
+        <span
+          v-if="hasRunningLlmSession || hasRunningImageGeneration"
+          class="cv-fab-menu-dot"
+          aria-hidden="true"
+        />
       </button>
     </div>
   </Teleport>
@@ -151,6 +156,7 @@ import {
 import InlineGalleryRuntimeHost from '@/panel/components/InlineGalleryRuntimeHost.vue';
 import LlmInspectorDrawer from '@/panel/components/LlmInspectorDrawer.vue';
 import { useLlmInspectorStore } from '@/store/llm-inspector';
+import { hasRunningImageGeneration } from '@/store/image-generation-activity';
 import {
   extractMessageParagraphs,
   findMessageId,

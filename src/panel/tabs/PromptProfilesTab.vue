@@ -82,7 +82,7 @@
                 />
               </div>
               <div class="cv-field-control">
-                <Textarea v-model="person.staticTags" rows="3" auto-resize class="w-full font-mono" />
+                <CvExpandableTextarea v-model="person.staticTags" rows="3" auto-resize class="w-full font-mono" />
                 <div class="cv-field-hint">固定tag中的内容将在发送到LLM时，被强调原样保留在最终tag中</div>
               </div>
             </div>
@@ -153,11 +153,11 @@
         </button>
         <label v-if="option.value === 'custom' && tagParseMode === 'custom'" class="cv-field">
           <span>输入内容</span>
-          <Textarea
+          <CvExpandableTextarea
             v-model="tagParseInput"
             rows="6"
             auto-resize
-            class="custom-scrollbar min-h-36 w-full resize-y"
+            class="custom-scrollbar min-h-36 w-full"
             placeholder="输入人物资料、设定或描述..."
           />
         </label>

@@ -21,20 +21,20 @@
       <template v-else>
         <div class="cv-field">
           <span>正面提示词</span>
-          <Textarea
+          <CvExpandableTextarea
             v-model="directPositivePrompt"
             rows="3"
             auto-resize
-            class="w-full resize-y text-(length:--cv-font-size-base)"
+            class="w-full text-(length:--cv-font-size-base)"
           />
         </div>
         <div class="cv-field">
           <span>负面提示词</span>
-          <Textarea
+          <CvExpandableTextarea
             v-model="directNegativePrompt"
             rows="3"
             auto-resize
-            class="w-full resize-y text-(length:--cv-font-size-base)"
+            class="w-full text-(length:--cv-font-size-base)"
           />
         </div>
         <div class="flex flex-col gap-(--cv-space-xl)">
@@ -56,20 +56,20 @@
             <div class="flex flex-col gap-(--cv-space-xl) p-(--cv-space-xl)">
               <div class="cv-field">
                 <span>角色正面提示词</span>
-                <Textarea
+                <CvExpandableTextarea
                   v-model="character.positivePrompt"
                   rows="3"
                   auto-resize
-                  class="w-full resize-y text-(length:--cv-font-size-base)"
+                  class="w-full text-(length:--cv-font-size-base)"
                 />
               </div>
               <div class="cv-field">
                 <span>角色负面提示词</span>
-                <Textarea
+                <CvExpandableTextarea
                   v-model="character.negativePrompt"
                   rows="3"
                   auto-resize
-                  class="w-full resize-y text-(length:--cv-font-size-base)"
+                  class="w-full text-(length:--cv-font-size-base)"
                 />
               </div>
               <div class="cv-field-grid">
@@ -289,6 +289,7 @@ import type { PromptLlmAccount } from '@/constants/prompt-llm';
 import { getPromptLlmRequestAccounts } from '@/services/prompt-llm/router';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
+import CvExpandableTextarea from '@/panel/components/CvExpandableTextarea.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue';
 import TestImageGallery from '@/panel/components/TestImageGallery.vue';

@@ -98,6 +98,7 @@ export type ComfyUIInputControlKind =
   | 'boolean'
   | 'select'
   | 'json'
+  | 'resolution'
   | 'link';
 
 /** 参数控件描述 */

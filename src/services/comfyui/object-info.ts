@@ -213,7 +213,7 @@ function buildInputControl(
     canImageBind: online && Boolean(isImageInput || imageBinding),
     seedMode: meta.seedModes?.[inputName],
     controlAfterGenerate: Boolean(spec?.controlAfterGenerate),
-    ...resolveScalarControlFields(value, spec),
+    ...resolveScalarControlFields(inputName, value, spec),
   };
 }
 
@@ -245,14 +245,20 @@ function buildLinkControl(
 
 /**
  * 解析标量/JSON 控件字段
+ * @param inputName 输入名
  * @param value 当前值
  * @param spec 输入 schema
  * @returns kind 与附加约束
  */
 function resolveScalarControlFields(
+  inputName: string,
   value: unknown,
   spec: ComfyUIObjectInfoInputSpec | undefined,
 ): Pick<ComfyUIInputControlDesc, 'kind' | 'options' | 'min' | 'max' | 'step' | 'multiline'> {
+  // ResolutionPreset 第三方节点：resolution_json 为宽高 JSON 字符串，走分辨率快速选择控件
+  if (inputName === 'resolution_json' && typeof value === 'string') {
+    return { kind: 'resolution' };
+  }
   if (spec?.options?.length) return { kind: 'select', options: spec.options };
   if (typeof value === 'boolean') return { kind: 'boolean' };
   if (typeof value === 'number') {

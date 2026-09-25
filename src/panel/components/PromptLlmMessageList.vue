@@ -171,11 +171,11 @@
             </Popover>
           </div>
         </div>
-        <Textarea
+        <CvExpandableTextarea
           v-if="editorDraft.kind === 'custom'"
           ref="messageContentTextarea"
           :model-value="editorDraft.customContent"
-          class="custom-scrollbar h-48 min-h-24 w-full resize-y overflow-y-auto"
+          class="custom-scrollbar h-48 min-h-24 w-full overflow-y-auto"
           rows="10"
           placeholder="输入消息内容..."
           @click="rememberMessageSelection"
@@ -184,10 +184,10 @@
           @select="rememberMessageSelection"
           @update:model-value="value => updateDraftField('customContent', value ?? '')"
         />
-        <Textarea
+        <CvExpandableTextarea
           v-else
           :model-value="editorPreviewText"
-          class="custom-scrollbar h-48 min-h-24 w-full resize-y overflow-y-auto"
+          class="custom-scrollbar h-48 min-h-24 w-full overflow-y-auto"
           rows="6"
           disabled
         />
@@ -215,6 +215,7 @@ import {
 } from '@/constants/novelai';
 import PromptEntryList from '@/panel/components/PromptEntryList.vue';
 import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
+import CvExpandableTextarea from '@/panel/components/CvExpandableTextarea.vue';
 import { PROMPT_EDITOR_DIALOG_PT, PROMPT_EDITOR_DIALOG_STYLE } from '@/panel/components/prompt-editor-dialog';
 import PromptLlmTriggerEditor from '@/panel/components/PromptLlmTriggerEditor.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';

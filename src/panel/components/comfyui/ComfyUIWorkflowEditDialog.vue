@@ -20,10 +20,10 @@
       <label class="cv-field">
         <span>API 格式工作流 JSON</span>
         <div class="cv-field-control">
-          <Textarea
+          <CvExpandableTextarea
             v-model="localWorkflowJson"
             rows="10"
-            class="custom-scrollbar w-full resize-y overflow-y-auto font-mono text-(length:--cv-font-size-xs)"
+            class="custom-scrollbar w-full overflow-y-auto font-mono text-(length:--cv-font-size-xs)"
             :invalid="Boolean(validationError)"
             placeholder="{ ... }"
           />
@@ -45,6 +45,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import CvExpandableTextarea from '@/panel/components/CvExpandableTextarea.vue';
 import { getComfyUIWorkflowValidationError } from '@/services/comfyui/parse';
 
 /** 弹窗样式 */

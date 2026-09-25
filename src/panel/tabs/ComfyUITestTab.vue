@@ -21,20 +21,20 @@
       <template v-else>
         <div class="cv-field">
           <span>正面提示词</span>
-          <Textarea
+          <CvExpandableTextarea
             v-model="directPositivePrompt"
             rows="3"
             auto-resize
-            class="w-full resize-y text-(length:--cv-font-size-base)"
+            class="w-full text-(length:--cv-font-size-base)"
           />
         </div>
         <div class="cv-field">
           <span>负面提示词</span>
-          <Textarea
+          <CvExpandableTextarea
             v-model="directNegativePrompt"
             rows="3"
             auto-resize
-            class="w-full resize-y text-(length:--cv-font-size-base)"
+            class="w-full text-(length:--cv-font-size-base)"
           />
         </div>
       </template>
@@ -199,6 +199,7 @@ import { useTestActionButton } from '@/composables/useTestActionButton';
 import { useTestRequestSession, type TestRequestSession } from '@/composables/useTestRequestSession';
 import type { PromptLlmAccount } from '@/constants/prompt-llm';
 import { getPromptLlmRequestAccounts } from '@/services/prompt-llm/router';
+import CvExpandableTextarea from '@/panel/components/CvExpandableTextarea.vue';
 import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue';
 import TestImageGallery from '@/panel/components/TestImageGallery.vue';
 

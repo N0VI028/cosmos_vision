@@ -133,6 +133,26 @@ describe('comfyui object-info', () => {
     expect(candidates).toContain('3');
   });
 
+  it('maps resolution_json string inputs to the resolution control', () => {
+    const objectInfoMap = normalizeObjectInfo({
+      ResolutionPreset: {
+        display_name: 'Resolution Preset',
+        input: { required: { resolution_json: ['STRING', { default: '{"version":1,"width":1024,"height":1536}' }] } },
+        output: ['INT', 'INT'],
+        output_name: ['width', 'height'],
+      },
+    });
+    const workflow = {
+      '1': {
+        class_type: 'ResolutionPreset',
+        inputs: { resolution_json: '{"version":1,"width":1024,"height":1536}' },
+      },
+    };
+
+    const controls = listInputControls(workflow, '1', objectInfoMap);
+    expect(controls[0].kind).toBe('resolution');
+  });
+
   it('treats generic output ports as image candidates but not generic inputs', () => {
     const objectInfoMap = normalizeObjectInfo({
       SwitchNode: {

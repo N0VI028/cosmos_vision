@@ -13,6 +13,7 @@ import {
 } from '@/services/comfyui/lora-trigger-words';
 import { extractHistoryImages, type ComfyUIHistoryEntry } from '@/services/comfyui/history';
 import { createRequestTimeoutController, throwIfRequestTimedOut } from '@/services/request-timeout';
+import { beginImageGeneration, endImageGeneration } from '@/store/image-generation-activity';
 import { readAvatarFile } from '@/services/tavern-helper/avatar';
 import type {
   ComfyUIHistoryImage,
@@ -140,6 +141,7 @@ export async function generateComfyUIImagesFromResolvedRequest(
   const baseUrl = normalizeComfyUIUrl(settings.url);
   const clientId = createClientId();
   const cleanups: Array<() => void> = [];
+  beginImageGeneration();
   try {
     if (request.snapshot.imageBindings?.length) {
       await applyImageBindings(baseUrl, request.workflow, request.snapshot.imageBindings, timeout.signal);
@@ -165,6 +167,7 @@ export async function generateComfyUIImagesFromResolvedRequest(
   } finally {
     cleanups.forEach(cleanup => cleanup());
     timeout.dispose();
+    endImageGeneration();
   }
 }
 

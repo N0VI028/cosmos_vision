@@ -1,11 +1,11 @@
 <template>
   <div class="cv-field">
     <span>{{ label }}</span>
-    <Textarea
+    <CvExpandableTextarea
       v-model="model"
       rows="3"
       auto-resize
-      class="w-full resize-y text-(length:--cv-font-size-base)"
+      class="w-full text-(length:--cv-font-size-base)"
       :placeholder="placeholder"
     />
     <Message v-if="!hasFocusedParagraph" severity="warn" size="small">
@@ -15,6 +15,8 @@
 </template>
 
 <script setup lang="ts">
+import CvExpandableTextarea from '@/panel/components/CvExpandableTextarea.vue';
+
 interface Props {
   hasFocusedParagraph: boolean;
   label?: string;
