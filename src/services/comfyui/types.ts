@@ -162,6 +162,7 @@ export interface ComfyUIObjectInfoNode {
   classType: string;
   displayName?: string;
   category?: string;
+  outputNode: boolean;
   outputs: ComfyUIObjectInfoOutputSpec[];
   inputs: ComfyUIObjectInfoInputSpec[];
 }

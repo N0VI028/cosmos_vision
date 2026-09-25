@@ -223,6 +223,7 @@ import ComfyUIWorkflowInput from '@/panel/components/comfyui/ComfyUIWorkflowInpu
 import { readNodeDisplayName } from '@/services/comfyui/layout';
 import { isLoraPanelManagedInput, isSupportedLoraNode } from '@/services/comfyui/lora-adapter';
 import { readNodeMeta } from '@/services/comfyui/meta';
+import { isGenericPortType } from '@/services/comfyui/object-info-elementary';
 import type {
   ComfyUIInputControlDesc,
   ComfyUIObjectInfoOutputSpec,
@@ -292,13 +293,23 @@ const parameterControls = computed(() => visibleControls.value.filter(control =>
 const inputControls = computed(() => visibleControls.value.filter(control => control.kind === 'link'));
 const parameterCount = computed(() => parameterControls.value.length + Number(showLoraPanel.value));
 const outputEmptyText = computed(() => (props.online ? '该节点未声明输出端口' : '同步节点定义后显示输出端口'));
-const resultInputName = computed(
-  () => inputControls.value.find(control => control.dataType?.toUpperCase() === 'IMAGE')?.inputName ?? null,
+const resultOutputIndex = computed(() => findResultOutputIndex(props.outputs));
+/** 绑定按钮优先放输出行；节点无可绑输出口时才回退到首个 IMAGE 连线输入行 */
+const resultInputName = computed(() =>
+  resultOutputIndex.value === null
+    ? inputControls.value.find(control => control.dataType?.toUpperCase() === 'IMAGE')?.inputName ?? null
+    : null,
 );
-const resultOutputIndex = computed(() => {
-  if (resultInputName.value) return null;
-  return props.outputs.find(output => output.type === 'IMAGE')?.index ?? null;
-});
+
+/**
+ * 读取承载段落生图结果的输出端口序号
+ * @param outputs 节点输出端口列表
+ * @returns 优先首个 IMAGE 端口，其次首个通配/泛型端口
+ */
+function findResultOutputIndex(outputs: ComfyUIObjectInfoOutputSpec[]): number | null {
+  const output = outputs.find(item => item.type === 'IMAGE') ?? outputs.find(item => isGenericPortType(item.type));
+  return output?.index ?? null;
+}
 
 /**
  * 判断输入端口是否承载段落生图结果操作

@@ -33,6 +33,7 @@ describe('comfyui object-info', () => {
     LoadImage: {
       display_name: 'Load Image',
       category: 'image',
+      output_node: false,
       input: {
         required: {
           image: ['IMAGEUPLOAD', { image_upload: true }],
@@ -43,6 +44,7 @@ describe('comfyui object-info', () => {
     },
     PreviewImage: {
       display_name: 'Preview Image',
+      output_node: true,
       input: {
         required: {
           images: ['IMAGE'],
@@ -55,6 +57,7 @@ describe('comfyui object-info', () => {
   it('normalizes object_info payload correctly', () => {
     const normalized = normalizeObjectInfo(rawObjectInfo);
     expect(normalized.CLIPTextEncode.displayName).toBe('CLIP Text Encode');
+    expect(normalized.CLIPTextEncode.outputNode).toBe(false);
     expect(normalized.CLIPTextEncode.inputs[0]).toEqual({
       name: 'text',
       type: 'STRING',
@@ -69,7 +72,9 @@ describe('comfyui object-info', () => {
       controlAfterGenerate: false,
     });
     expect(normalized.LoadImage.inputs[0].imageUpload).toBe(true);
+    expect(normalized.LoadImage.outputNode).toBe(false);
     expect(normalized.PreviewImage.inputs[0].type).toBe('IMAGE');
+    expect(normalized.PreviewImage.outputNode).toBe(true);
   });
 
   it('fetches object_info with caching and error handling', async () => {
@@ -126,6 +131,33 @@ describe('comfyui object-info', () => {
     const candidates = listOutputCandidates(workflow, objectInfoMap);
     expect(candidates).toContain('2');
     expect(candidates).toContain('3');
+  });
+
+  it('treats generic output ports as image candidates but not generic inputs', () => {
+    const objectInfoMap = normalizeObjectInfo({
+      SwitchNode: {
+        input: { required: { input1: ['COMFY_MATCHTYPE_V3'] } },
+        output: ['COMFY_MATCHTYPE_V3'],
+      },
+      StringNode: {
+        input: { required: { text: ['STRING'] } },
+        output: ['STRING'],
+      },
+      PreviewAnyNode: {
+        input: { required: { source: ['*'] } },
+        output: ['STRING'],
+      },
+    });
+    const workflow = {
+      '1': { class_type: 'SwitchNode', inputs: {} },
+      '2': { class_type: 'StringNode', inputs: {} },
+      '3': { class_type: 'PreviewAnyNode', inputs: {} },
+    };
+
+    const candidates = listOutputCandidates(workflow, objectInfoMap);
+    expect(candidates).toContain('1');
+    expect(candidates).not.toContain('2');
+    expect(candidates).not.toContain('3');
   });
 
   it('detects image filenames and image input controls correctly', () => {

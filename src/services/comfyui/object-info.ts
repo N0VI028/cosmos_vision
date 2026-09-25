@@ -10,11 +10,11 @@ import type {
   CosmosVisionNodeMeta,
 } from '@/services/comfyui/types';
 import { isLinkRef } from '@/services/comfyui/link';
-import { isImageFilename } from '@/services/comfyui/object-info-elementary';
+import { isImageCapablePortType, isImageFilename } from '@/services/comfyui/object-info-elementary';
 import { readNodeMeta } from '@/services/comfyui/meta';
 import { normalizeComfyUIUrl } from '@/services/comfyui/parse';
 
-export { isImageFilename } from '@/services/comfyui/object-info-elementary';
+export { isGenericPortType, isImageCapablePortType, isImageFilename } from '@/services/comfyui/object-info-elementary';
 
 /** 按规范化 URL 缓存最近一次成功的 object_info */
 const objectInfoCache = new Map<string, ComfyUIObjectInfoMap>();
@@ -136,6 +136,7 @@ export function listOutputCandidates(
 
 /**
  * 判断节点是否可作为图片输出候选
+ * 输入侧仅认 IMAGE；输出侧额外接受通配/泛型端口（运行时可能流转图片）
  * @param node 工作流节点
  * @param objectInfo 节点 schema 表
  * @returns 是否候选
@@ -147,7 +148,7 @@ function isImageOutputCandidate(
   const schema = objectInfo[node.class_type];
   if (!schema) return false;
   const hasImageInput = schema.inputs.some(input => input.type === 'IMAGE');
-  const hasImageOutput = schema.outputs.some(output => output.type === 'IMAGE');
+  const hasImageOutput = schema.outputs.some(output => isImageCapablePortType(output.type));
   return hasImageInput || hasImageOutput;
 }
 
@@ -297,6 +298,7 @@ function normalizeObjectInfoNode(
     classType,
     displayName: readString(rawNode.display_name) ?? readString(rawNode.name),
     category: readString(rawNode.category),
+    outputNode: rawNode.output_node === true,
     outputs: normalizeOutputSpecs(rawNode),
     inputs,
   };

@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_SETTINGS } from '@/constants/default-settings';
 import { buildComfyUIResolvedRequest } from '@/services/comfyui/request';
+import { clearComfyUIObjectInfoCache, fetchComfyUIObjectInfo } from '@/services/comfyui/object-info';
+import { createMockFetch } from '../../../helpers/fetch-mocks';
 
 /** 构建只含 LoRA 加载节点的激活 LoRA 预设 */
 function createLoraPreset(name: string) {
@@ -11,6 +13,10 @@ function createLoraPreset(name: string) {
 }
 
 describe('comfyui request builder', () => {
+  afterEach(() => {
+    clearComfyUIObjectInfoCache();
+    vi.unstubAllGlobals();
+  });
   it('builds resolved request with workflow and prompt replacements', () => {
     const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
     settings.workflowPresets.presets = [
@@ -323,5 +329,58 @@ describe('comfyui request builder', () => {
     // 节点被清空，快照记录为空，面板激活组未混入
     expect(resolved.workflow['10'].inputs.text).toBe('');
     expect(resolved.snapshot.loras).toEqual([]);
+  });
+
+  it('injects preview export node when bound output node is non-output image node', async () => {
+    const rawObjectInfo = {
+      CLIPTextEncode: {
+        output_node: false,
+        input: { required: { text: ['STRING', { multiline: true }] } },
+        output: ['CONDITIONING'],
+      },
+      VAEDecodeTiled: {
+        output_node: false,
+        input: { required: {} },
+        output: ['IMAGE'],
+      },
+    };
+    vi.stubGlobal('fetch', createMockFetch(() => ({ json: rawObjectInfo })));
+    await fetchComfyUIObjectInfo('http://127.0.0.1:8188');
+
+    const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
+    settings.url = 'http://127.0.0.1:8188';
+    settings.workflowPresets.presets = [
+      {
+        id: 'preset-1',
+        name: 'Tiled Workflow',
+        workflowJson: JSON.stringify({
+          '6': {
+            class_type: 'CLIPTextEncode',
+            inputs: { text: 'positive placeholder' },
+            _meta: { cosmosVision: { promptBindings: { text: 'positive' } } },
+          },
+          '8': {
+            class_type: 'VAEDecodeTiled',
+            inputs: {},
+            _meta: { cosmosVision: { imageOutput: true } },
+          },
+        }),
+        favoriteNodeIds: [],
+      },
+    ];
+    settings.workflowPresets.activePresetId = 'preset-1';
+
+    const resolved = buildComfyUIResolvedRequest(
+      settings,
+      DEFAULT_SETTINGS.imagePromptPresets,
+      { positivePrompt: 'masterpiece', negativePrompt: '' },
+    );
+
+    expect(resolved.imageOutputNodeId).toBe('cosmos_vision_export');
+    expect(resolved.snapshot.imageOutputNodeId).toBe('8');
+    expect(resolved.workflow.cosmos_vision_export).toEqual({
+      class_type: 'PreviewImage',
+      inputs: { images: ['8', 0] },
+    });
   });
 });

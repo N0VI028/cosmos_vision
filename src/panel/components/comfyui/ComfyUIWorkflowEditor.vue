@@ -618,7 +618,9 @@ function tryClearParagraphResult(next: ComfyUIWorkflow, nodeId: string): boolean
  */
 function canBindParagraphResult(nodeId: string): boolean {
   if (outputCandidates.value.includes(nodeId)) return true;
-  const message = objectInfo.value ? '当前节点没有可用的 IMAGE 输入或输出端口' : '未同步节点定义，不能设置段落生图结果';
+  const message = objectInfo.value
+    ? '当前节点没有可用的图片输出（IMAGE/通配）或 IMAGE 输入端口'
+    : '未同步节点定义，不能设置段落生图结果';
   toastr.warning(message);
   return false;
 }

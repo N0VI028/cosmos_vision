@@ -16,8 +16,10 @@ import { getComfyUIWorkflowValidationError, normalizeComfyUIUrl, parseComfyUIWor
 import { applySeedModes } from '@/services/comfyui/seed-runtime';
 import { getCachedComfyUIObjectInfo } from '@/services/comfyui/object-info';
 import { getActiveComfyUIWorkflowJson } from '@/services/comfyui/workflow-presets';
+import { ensureImageExportNode } from '@/services/comfyui/export-node';
 import type {
   ComfyUILoraSnapshot,
+  ComfyUIObjectInfoMap,
   ComfyUIRequestSnapshot,
   ComfyUIResolvedRequest,
   ComfyUIWorkflow,
@@ -102,8 +104,9 @@ export function buildComfyUIResolvedRequestFromPrompts(
   loraTriggerWords: readonly string[] = [],
   loraPresetOrSnapshots?: ComfyUILoraPreset | readonly ComfyUILoraSnapshot[],
 ): ComfyUIResolvedRequest {
+  const objectInfo = getCachedComfyUIObjectInfo(settings.url);
   const workflowJson = getActiveComfyUIWorkflowJson(settings.workflowPresets);
-  const source = parseAndValidateWorkflow(settings, workflowJson);
+  const source = parseAndValidateWorkflow(workflowJson, objectInfo);
   const { positivePrompt, negativePrompt } = requirePromptPair(prompts);
   const workflow = structuredClone(source) as ComfyUIWorkflow;
   const effectiveLoraPreset = resolveEffectiveLoraPreset(settings, loraPresetOrSnapshots);
@@ -115,6 +118,7 @@ export function buildComfyUIResolvedRequestFromPrompts(
   applyPromptBindings(workflow, triggeredPositivePrompt, negativePrompt);
   const seedValues = applySeedModes(workflow, workflowJson);
   const imageOutputNodeId = readImageOutputNodeId(workflow)!;
+  const exportNodeId = ensureImageExportNode(workflow, imageOutputNodeId, objectInfo);
   const promptBindings = readPromptBindings(workflow);
   const imageBindings = readImageBindings(workflow);
   const loras = readLoraSnapshotsFromWorkflow(workflow);
@@ -122,7 +126,7 @@ export function buildComfyUIResolvedRequestFromPrompts(
 
   return {
     workflow,
-    imageOutputNodeId,
+    imageOutputNodeId: exportNodeId,
     snapshot: {
       endpoint: normalizeComfyUIUrl(settings.url),
       positivePrompt: triggeredPositivePrompt,
@@ -138,16 +142,19 @@ export function buildComfyUIResolvedRequestFromPrompts(
 
 /**
  * 解析并校验工作流绑定与输出节点
- * @param settings ComfyUI 设置
  * @param workflowJson 工作流 JSON
+ * @param objectInfo 节点 schema 表
  * @returns 已校验工作流
  */
-function parseAndValidateWorkflow(settings: Pick<ComfyUISettings, 'url'>, workflowJson: string): ComfyUIWorkflow {
+function parseAndValidateWorkflow(
+  workflowJson: string,
+  objectInfo: ComfyUIObjectInfoMap | null,
+): ComfyUIWorkflow {
   const source = parseComfyUIWorkflow(workflowJson);
   const bindingError = validatePromptBindings(source);
   if (bindingError) throw new Error(bindingError);
   // 图片绑定校验：在线时用已同步 schema 校验目标输入是图片输入；离线时只校验存在性
-  const imageBindingError = validateImageBindings(source, getCachedComfyUIObjectInfo(settings.url));
+  const imageBindingError = validateImageBindings(source, objectInfo);
   if (imageBindingError) throw new Error(imageBindingError);
   const outputError = validateImageOutput(source);
   if (outputError) throw new Error(outputError);
