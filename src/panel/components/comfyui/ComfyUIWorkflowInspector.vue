@@ -223,6 +223,7 @@ import ComfyUIWorkflowInput from '@/panel/components/comfyui/ComfyUIWorkflowInpu
 import { readNodeDisplayName } from '@/services/comfyui/layout';
 import { isLoraPanelManagedInput, isSupportedLoraNode } from '@/services/comfyui/lora-adapter';
 import { readNodeMeta } from '@/services/comfyui/meta';
+import { isModelMatchManagedInput } from '@/services/comfyui/model-loaders';
 import { isGenericPortType } from '@/services/comfyui/object-info-elementary';
 import type {
   ComfyUIInputControlDesc,
@@ -285,9 +286,13 @@ const isImageOutput = computed(() => Boolean(props.node && readNodeMeta(props.no
 const showOutputChip = computed(() => props.canSetOutput || isImageOutput.value);
 const showLoraPanel = computed(() => isSupportedLoraNode(props.node ?? undefined));
 
-/** LoRA 节点隐藏面板已托管的 text/loras */
+/** LoRA 节点隐藏面板已托管的 text/loras，modelMatch 节点隐藏自动填充的 string */
 const visibleControls = computed(() =>
-  props.controls.filter(control => !isLoraPanelManagedInput(props.node ?? undefined, control.inputName)),
+  props.controls.filter(
+    control =>
+      !isLoraPanelManagedInput(props.node ?? undefined, control.inputName) &&
+      !isModelMatchManagedInput(props.node ?? undefined, control.inputName),
+  ),
 );
 const parameterControls = computed(() => visibleControls.value.filter(control => control.kind !== 'link'));
 const inputControls = computed(() => visibleControls.value.filter(control => control.kind === 'link'));

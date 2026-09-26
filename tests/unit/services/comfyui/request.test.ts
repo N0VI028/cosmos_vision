@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_SETTINGS } from '@/constants/default-settings';
+import { DEFAULT_COMFYUI_WORKFLOW_K2_ANIMA_JSON } from '@/constants/comfyui';
 import { buildComfyUIResolvedRequest } from '@/services/comfyui/request';
 import { clearComfyUIObjectInfoCache, fetchComfyUIObjectInfo } from '@/services/comfyui/object-info';
 import { createMockFetch } from '../../../helpers/fetch-mocks';
@@ -382,5 +383,29 @@ describe('comfyui request builder', () => {
       class_type: 'PreviewImage',
       inputs: { images: ['8', 0] },
     });
+  });
+
+  it('fills modelMatch node string with the main model name and strips private meta', () => {
+    const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
+    settings.workflowPresets.presets = [
+      {
+        id: 'preset-newgen',
+        name: 'Newgen Workflow',
+        workflowJson: DEFAULT_COMFYUI_WORKFLOW_K2_ANIMA_JSON,
+        favoriteNodeIds: [],
+      },
+    ];
+    settings.workflowPresets.activePresetId = 'preset-newgen';
+
+    const resolved = buildComfyUIResolvedRequest(
+      settings,
+      DEFAULT_SETTINGS.imagePromptPresets,
+      { positivePrompt: 'masterpiece, 1girl', negativePrompt: 'low quality' },
+    );
+
+    expect(resolved.workflow['11'].inputs.string).toBe('krea2_turbo_int8_convrot.safetensors');
+    expect(resolved.workflow['11']._meta?.cosmosVision).toBeUndefined();
+    expect(resolved.workflow['33']._meta?.cosmosVision).toBeUndefined();
+    expect(resolved.workflow['20'].inputs.text).toContain('masterpiece, 1girl');
   });
 });

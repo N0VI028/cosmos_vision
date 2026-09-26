@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { extension_settings } from '@sillytavern/scripts/extensions';
+import {
+  DEFAULT_COMFYUI_WORKFLOW_JSON,
+  DEFAULT_COMFYUI_WORKFLOW_K2_ANIMA_JSON,
+  DEFAULT_COMFYUI_WORKFLOW_PRESET_ID,
+  DEFAULT_COMFYUI_WORKFLOW_PRESET_ID_K2_ANIMA,
+  DEFAULT_COMFYUI_WORKFLOW_PRESET_NAME,
+} from '@/constants/comfyui';
 import { useSettingsStore } from '@/store/settings';
 
 const extensionSettings = extension_settings as Record<string, unknown>;
@@ -100,5 +107,50 @@ describe('settings store recovery and state management', () => {
     expect(promptLlm.accounts[0].id).toBe('prompt-llm-account-1');
     expect(promptLlm.accounts[0].apiUrl).toBe('');
     expect(promptLlm.accounts[0].temperature).toBe(0.9);
+  });
+
+  it('backfills the k2-anima workflow preset for legacy settings', () => {
+    extensionSettings.cosmos_vision = {
+      comfyui: {
+        workflowPresets: {
+          activePresetId: DEFAULT_COMFYUI_WORKFLOW_PRESET_ID,
+          presets: [
+            {
+              id: DEFAULT_COMFYUI_WORKFLOW_PRESET_ID,
+              name: DEFAULT_COMFYUI_WORKFLOW_PRESET_NAME,
+              workflowJson: DEFAULT_COMFYUI_WORKFLOW_JSON,
+              favoriteNodeIds: [],
+            },
+          ],
+        },
+      },
+    };
+
+    const store = useSettingsStore();
+    const workflowPresets = store.settings.comfyui.workflowPresets;
+
+    expect(workflowPresets.presets.map(preset => preset.id)).toEqual([
+      DEFAULT_COMFYUI_WORKFLOW_PRESET_ID,
+      DEFAULT_COMFYUI_WORKFLOW_PRESET_ID_K2_ANIMA,
+    ]);
+    expect(workflowPresets.presets[1].workflowJson).toBe(DEFAULT_COMFYUI_WORKFLOW_K2_ANIMA_JSON);
+    expect(workflowPresets.activePresetId).toBe(DEFAULT_COMFYUI_WORKFLOW_PRESET_ID);
+  });
+
+  it('leaves rebuilt workflow preset lists untouched', () => {
+    extensionSettings.cosmos_vision = {
+      comfyui: {
+        workflowPresets: {
+          activePresetId: 'my-workflow',
+          presets: [{ id: 'my-workflow', name: '我的工作流', workflowJson: '{"1":{}}', favoriteNodeIds: [] }],
+        },
+      },
+    };
+
+    const store = useSettingsStore();
+    const workflowPresets = store.settings.comfyui.workflowPresets;
+
+    expect(workflowPresets.presets.map(preset => preset.id)).toEqual(['my-workflow']);
+    expect(workflowPresets.activePresetId).toBe('my-workflow');
   });
 });

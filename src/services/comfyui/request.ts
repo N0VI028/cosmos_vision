@@ -13,6 +13,7 @@ import {
   validatePromptBindings,
 } from '@/services/comfyui/meta';
 import { getComfyUIWorkflowValidationError, normalizeComfyUIUrl, parseComfyUIWorkflow } from '@/services/comfyui/parse';
+import { applyModelMatch } from '@/services/comfyui/model-loaders';
 import { applySeedModes } from '@/services/comfyui/seed-runtime';
 import { getCachedComfyUIObjectInfo } from '@/services/comfyui/object-info';
 import { getActiveComfyUIWorkflowJson } from '@/services/comfyui/workflow-presets';
@@ -111,6 +112,7 @@ export function buildComfyUIResolvedRequestFromPrompts(
   const workflow = structuredClone(source) as ComfyUIWorkflow;
   const effectiveLoraPreset = resolveEffectiveLoraPreset(settings, loraPresetOrSnapshots);
   const hasLoraNode = applyLoraPreset(workflow, effectiveLoraPreset);
+  applyModelMatch(workflow);
   // 仅当工作流确实承载了生效 LoRA 时才前置触发词，避免未加载的 LoRA 污染提示词
   const triggeredPositivePrompt = hasLoraNode
     ? prependLoraTriggerWords(positivePrompt, loraTriggerWords)

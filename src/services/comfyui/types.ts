@@ -15,6 +15,7 @@ export interface CosmosVisionNodeMeta {
   seedModes?: Record<string, SeedMode>;
   imageBindings?: Record<string, ImageBindingSource>;
   imageOutput?: boolean;
+  modelMatch?: boolean;
 }
 
 /** 工作流节点元数据 */

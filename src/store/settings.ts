@@ -2,7 +2,12 @@ import { extension_settings } from '@sillytavern/scripts/extensions';
 import { saveSettingsDebounced } from '@sillytavern/script';
 import { useLocalStorage } from '@vueuse/core';
 import { z } from 'zod';
-import { IMAGE_SOURCES } from '@/constants/comfyui';
+import {
+  createDefaultComfyUIWorkflowK2AnimaPreset,
+  DEFAULT_COMFYUI_WORKFLOW_PRESET_ID,
+  DEFAULT_COMFYUI_WORKFLOW_PRESET_ID_K2_ANIMA,
+  IMAGE_SOURCES,
+} from '@/constants/comfyui';
 import {
   DEFAULT_DARK_MODE,
   DEFAULT_PRESET_NAME,
@@ -315,7 +320,29 @@ function normalizeSettings(value: unknown): PlainRecord {
   const record = _.cloneDeep(toPlainRecord(value)) as PlainRecord;
   normalizeLegacyNovelAIGuidance(record);
   normalizeLegacyPromptLlmConnection(record);
-  return _.defaultsDeep({}, record, DEFAULT_SETTINGS);
+  const normalized = _.defaultsDeep({}, record, DEFAULT_SETTINGS);
+  normalizeComfyuiWorkflowPresets(normalized, record);
+  return normalized;
+}
+
+/**
+ * 为存量用户回填默认工作流
+ * defaultsDeep 会按下标合并数组，默认预设会混入用户自定义列表，故用原始记录还原用户列表后再决定是否追加
+ * 仅当列表仍含原默认预设且缺少新预设时追加，用户已重构预设列表（不含原默认预设）则不打扰
+ * @param settings 已补齐默认值的设置记录
+ * @param source 用户持久化的原始记录
+ */
+function normalizeComfyuiWorkflowPresets(settings: PlainRecord, source: PlainRecord): void {
+  const sourcePresets = _.get(source, 'comfyui.workflowPresets.presets');
+  if (!Array.isArray(sourcePresets) || !sourcePresets.length) return;
+  const presets = _.cloneDeep(sourcePresets) as unknown[];
+  const hasPresetId = (id: string) => presets.some(preset => _.get(preset, 'id') === id);
+  if (hasPresetId(DEFAULT_COMFYUI_WORKFLOW_PRESET_ID) && !hasPresetId(DEFAULT_COMFYUI_WORKFLOW_PRESET_ID_K2_ANIMA)) {
+    presets.push(createDefaultComfyUIWorkflowK2AnimaPreset());
+  }
+  const comfyui = toPlainRecord(settings.comfyui);
+  comfyui.workflowPresets = { ...toPlainRecord(comfyui.workflowPresets), presets };
+  settings.comfyui = comfyui;
 }
 
 /**

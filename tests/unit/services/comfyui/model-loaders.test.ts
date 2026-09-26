@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readComfyUIMainModelNames } from '@/services/comfyui/model-loaders';
+import { applyModelMatch, isModelMatchManagedInput, readComfyUIMainModelNames } from '@/services/comfyui/model-loaders';
 import type { ComfyUIWorkflow } from '@/services/comfyui/types';
 
 /** 构造仅含输入与类型的测试节点 */
@@ -55,5 +55,67 @@ describe('comfyui model-loaders', () => {
       '4': node('UNETLoader', { unet_name: null }),
     };
     expect(readComfyUIMainModelNames(workflow)).toEqual([]);
+  });
+
+  it('writes the first main model name into modelMatch node string input', () => {
+    const workflow: ComfyUIWorkflow = {
+      '10': node('UNETLoader', { unet_name: 'krea2_turbo_int8_convrot.safetensors' }),
+      '11': {
+        class_type: 'RegexMatch',
+        inputs: { string: '', regex_pattern: 'krea|k2' },
+        _meta: { cosmosVision: { modelMatch: true } },
+      },
+    };
+
+    applyModelMatch(workflow);
+
+    expect(workflow['11'].inputs.string).toBe('krea2_turbo_int8_convrot.safetensors');
+    expect(workflow['10'].inputs.unet_name).toBe('krea2_turbo_int8_convrot.safetensors');
+  });
+
+  it('writes an empty string when no main model exists', () => {
+    const workflow: ComfyUIWorkflow = {
+      '11': {
+        class_type: 'RegexMatch',
+        inputs: { string: 'stale' },
+        _meta: { cosmosVision: { modelMatch: true } },
+      },
+    };
+
+    applyModelMatch(workflow);
+
+    expect(workflow['11'].inputs.string).toBe('');
+  });
+
+  it('leaves workflows without modelMatch nodes untouched', () => {
+    const workflow: ComfyUIWorkflow = {
+      '10': node('UNETLoader', { unet_name: 'a.safetensors' }),
+      '11': node('RegexMatch', { string: 'keep me' }),
+    };
+
+    applyModelMatch(workflow);
+
+    expect(workflow['11'].inputs.string).toBe('keep me');
+  });
+});
+
+describe('comfyui isModelMatchManagedInput', () => {
+  const modelMatchNode = {
+    class_type: 'RegexMatch',
+    inputs: { string: '', regex_pattern: 'krea|k2' },
+    _meta: { cosmosVision: { modelMatch: true } },
+  } satisfies ComfyUIWorkflow[string];
+
+  it('hides the string input of a modelMatch node', () => {
+    expect(isModelMatchManagedInput(modelMatchNode, 'string')).toBe(true);
+  });
+
+  it('keeps other inputs of a modelMatch node visible', () => {
+    expect(isModelMatchManagedInput(modelMatchNode, 'regex_pattern')).toBe(false);
+  });
+
+  it('keeps plain nodes untouched', () => {
+    expect(isModelMatchManagedInput(node('RegexMatch', { string: '' }), 'string')).toBe(false);
+    expect(isModelMatchManagedInput(undefined, 'string')).toBe(false);
   });
 });

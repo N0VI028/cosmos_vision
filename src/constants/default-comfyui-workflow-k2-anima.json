@@ -1,0 +1,410 @@
+{
+  "10": {
+    "inputs": {
+      "unet_name": "krea2_turbo_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "UNet加载器（主模型入口）"
+    }
+  },
+  "11": {
+    "inputs": {
+      "string": "",
+      "regex_pattern": ".*krea.*",
+      "case_insensitive": true,
+      "multiline": false,
+      "dotall": false
+    },
+    "class_type": "RegexMatch",
+    "_meta": {
+      "title": "模型类型判断（命中正则=Krea-2，否则 Anima）",
+      "cosmosVision": {
+        "modelMatch": true
+      }
+    }
+  },
+  "12": {
+    "inputs": {
+      "clip_name": "qwen3vl_4b_fp8_scaled.safetensors",
+      "type": "krea2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "文本编码器（Krea-2）"
+    }
+  },
+  "13": {
+    "inputs": {
+      "clip_name": "qwen_3_06b_base.safetensors",
+      "type": "stable_diffusion",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "文本编码器（Anima）"
+    }
+  },
+  "14": {
+    "inputs": {
+      "on_true": [
+        "12",
+        0
+      ],
+      "on_false": [
+        "13",
+        0
+      ],
+      "switch": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "文本编码器分流"
+    }
+  },
+  "15": {
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "VAE加载器"
+    }
+  },
+  "16": {
+    "inputs": {
+      "text": "",
+      "loras": {
+        "__value__": []
+      },
+      "model": [
+        "10",
+        0
+      ],
+      "clip": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "Lora Loader (LoraManager)",
+    "_meta": {
+      "title": "Lora Loader (LoraManager)"
+    }
+  },
+  "20": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "16",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP文本编码（正面）",
+      "cosmosVision": {
+        "promptBindings": {
+          "text": "positive"
+        }
+      }
+    }
+  },
+  "21": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "16",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP文本编码（负面）",
+      "cosmosVision": {
+        "promptBindings": {
+          "text": "negative"
+        }
+      }
+    }
+  },
+  "22": {
+    "inputs": {
+      "conditioning": [
+        "20",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "负面条件置零（Krea-2）"
+    }
+  },
+  "23": {
+    "inputs": {
+      "on_true": [
+        "22",
+        0
+      ],
+      "on_false": [
+        "21",
+        0
+      ],
+      "switch": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "负面条件分流"
+    }
+  },
+  "24": {
+    "inputs": {
+      "value": 8,
+      "control_after_generate": "fixed"
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "步数（Krea-2）"
+    }
+  },
+  "25": {
+    "inputs": {
+      "value": 30,
+      "control_after_generate": "fixed"
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "步数（Anima）"
+    }
+  },
+  "26": {
+    "inputs": {
+      "on_true": [
+        "24",
+        0
+      ],
+      "on_false": [
+        "25",
+        0
+      ],
+      "switch": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "步数分流"
+    }
+  },
+  "27": {
+    "inputs": {
+      "value": 1
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "CFG（Krea-2）"
+    }
+  },
+  "28": {
+    "inputs": {
+      "value": 4
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "CFG（Anima）"
+    }
+  },
+  "29": {
+    "inputs": {
+      "on_true": [
+        "27",
+        0
+      ],
+      "on_false": [
+        "28",
+        0
+      ],
+      "switch": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "CFG分流"
+    }
+  },
+  "30": {
+    "inputs": {
+      "seed": 0,
+      "steps": [
+        "26",
+        0
+      ],
+      "cfg": [
+        "29",
+        0
+      ],
+      "sampler_name": [
+        "36",
+        0
+      ],
+      "scheduler": [
+        "39",
+        0
+      ],
+      "denoise": 1,
+      "model": [
+        "16",
+        0
+      ],
+      "positive": [
+        "20",
+        0
+      ],
+      "negative": [
+        "23",
+        0
+      ],
+      "latent_image": [
+        "31",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "K采样器",
+      "cosmosVision": {
+        "seedModes": {
+          "seed": "randomize"
+        }
+      }
+    }
+  },
+  "31": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "图像大小"
+    }
+  },
+  "32": {
+    "inputs": {
+      "samples": [
+        "30",
+        0
+      ],
+      "vae": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "33": {
+    "inputs": {
+      "images": [
+        "32",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "预览图像",
+      "cosmosVision": {
+        "imageOutput": true
+      }
+    }
+  },
+  "34": {
+    "inputs": {
+      "value": "euler"
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "采样器（Krea-2）"
+    }
+  },
+  "35": {
+    "inputs": {
+      "value": "er_sde"
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "采样器（Anima）"
+    }
+  },
+  "36": {
+    "inputs": {
+      "on_true": [
+        "34",
+        0
+      ],
+      "on_false": [
+        "35",
+        0
+      ],
+      "switch": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "采样器分流"
+    }
+  },
+  "37": {
+    "inputs": {
+      "value": "simple"
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "调度器（Krea-2）"
+    }
+  },
+  "38": {
+    "inputs": {
+      "value": "simple"
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "调度器（Anima）"
+    }
+  },
+  "39": {
+    "inputs": {
+      "on_true": [
+        "37",
+        0
+      ],
+      "on_false": [
+        "38",
+        0
+      ],
+      "switch": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "调度器分流"
+    }
+  }
+}
