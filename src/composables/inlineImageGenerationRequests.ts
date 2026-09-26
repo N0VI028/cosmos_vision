@@ -10,6 +10,7 @@ import { generateComfyUIImagesFromPrompts } from '@/services/comfyui/api';
 import type { ComfyUIProgress } from '@/services/comfyui/progress-ws';
 import { resolveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
 import { generateNovelAIImageFromPrompts } from '@/services/novelai/api';
+import type { NovelAIStreamPreviewEvent } from '@/services/novelai/stream-api';
 import type { ImagePromptPair } from '@/services/image-prompt/presets';
 import {
   buildPromptLlmHistoryExcludingFocusFloor,
@@ -25,6 +26,7 @@ import {
  * @param snapshot 提示词快照
  * @param signal 取消信号
  * @param onProgress ComfyUI 进度回调
+ * @param onStreamPreview NovelAI 流式中间帧预览回调
  * @returns 图片与生成后的提示词快照
  */
 export async function generateImagesFromSnapshot(
@@ -32,13 +34,14 @@ export async function generateImagesFromSnapshot(
   snapshot: InlinePromptSnapshot,
   signal: AbortSignal,
   onProgress?: (progress: ComfyUIProgress) => void,
+  onStreamPreview?: (event: NovelAIStreamPreviewEvent) => void,
 ): Promise<InlineGenerationBatchResult> {
   const imageSource = snapshot.imageSource ?? settings.imageSource;
   if (imageSource === 'comfyui') {
     return generateComfyUIImagesFromSnapshot(settings, snapshot, signal, onProgress);
   }
   const prompts = snapshot.novelai ?? snapshot;
-  const imageBlob = await generateNovelAIImageFromPrompts(settings.novelai, prompts, { signal });
+  const imageBlob = await generateNovelAIImageFromPrompts(settings.novelai, prompts, { signal, onStreamPreview });
   return { promptSnapshot: snapshot, imageBlobs: [imageBlob] };
 }
 

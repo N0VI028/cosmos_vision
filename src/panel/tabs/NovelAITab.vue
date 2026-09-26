@@ -242,6 +242,14 @@
           <ToggleSwitch v-model="settings.novelai.autoCharacterCoords" />
           <span>多角色提示词时自动安排位置</span>
         </label>
+        <div class="cv-field">
+          <div class="cv-field-control">
+            <label class="cv-field-inline">
+              <ToggleSwitch v-model="settings.novelai.streamImage" />
+              <span>流式生图（实时预览生成过程）</span>
+            </label>
+          </div>
+        </div>
         <div class="cv-field-grid">
           <label class="cv-field">
             <span>提示词引导重缩放</span>

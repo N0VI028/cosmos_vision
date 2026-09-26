@@ -857,6 +857,9 @@ body.dark .cv-inline-toolbar {
 }
 
 .cv-inline-generation-status--overlay .cv-prime-message {
+  position: relative;
+  /* 消息条压在流式预览舞台上层，保证进度与取消可交互 */
+  z-index: 1;
   width: calc(100% - 1.5em);
   margin: 0.75em;
   pointer-events: auto;
@@ -872,6 +875,47 @@ body.dark .cv-inline-toolbar {
 .cv-inline-generation-status .cv-prime-message-text {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* 流式预览舞台（普通宿主）：与画廊主图同宽（35em）居中，圆角与画廊主图舞台一致 */
+.cv-inline-stream-stage {
+  position: relative;
+  width: 100%;
+  max-width: 35em;
+  margin: 0.5em auto 0;
+  overflow: hidden;
+  border-radius: var(--cv-radius-sm);
+}
+
+.cv-inline-stream-stage img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* 流式预览舞台（overlay 宿主）：铺满蒙版壳居中展示，层级低于消息条 */
+.cv-inline-stream-stage--fill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cv-inline-stream-stage--fill img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* 状态条平滑退场：普通宿主高度塌缩 + 淡出；overlay 宿主仅淡出 */
+.cv-inline-generation-status--leaving {
+  overflow: hidden;
+  opacity: 0;
+  margin-block: 0;
+  transition: height 0.2s ease, opacity 0.2s ease, margin 0.2s ease;
 }
 
 /*
@@ -899,6 +943,11 @@ body.dark .cv-inline-toolbar {
   width: 100% !important;
   height: 6px !important;
   margin-block: 4px;
+}
+
+/* PrimeVue ProgressBar 填充元素（p-progressbar-value）：宽度过渡让步进跳变平滑 */
+.cv-inline-generation-progress .p-progressbar-value {
+  transition: width 0.3s ease;
 }
 
 .cv-inline-generation-text {

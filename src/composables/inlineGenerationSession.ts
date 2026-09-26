@@ -11,15 +11,29 @@ import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import type { AppContext } from 'vue';
-import { h, render } from 'vue';
+import { Fragment, h, render } from 'vue';
 
 export type InlineGenerationStatusMode = 'running' | 'error';
+
+/** 生成进度对象：value/max 计算百分比，step/totalSteps 可选用于步数展示 */
+export interface InlineGenerationProgress {
+  /** 已完成量（与 max 同单位） */
+  value: number;
+  /** 总量 */
+  max: number;
+  /** 当前步（1 基），存在时状态文本追加步数 */
+  step?: number;
+  /** 总步数 */
+  totalSteps?: number;
+}
 
 /** 段落内生成状态句柄 */
 export interface InlineGenerationStatusHandle {
   host: HTMLElement;
   setStatus: (text: string, mode?: InlineGenerationStatusMode, onRetry?: () => void, rawOutput?: string) => void;
-  setProgress: (progress: { value: number; max: number } | null) => void;
+  setProgress: (progress: InlineGenerationProgress | null) => void;
+  /** 设置流式预览图；null 清除预览（URL 生命周期由调用方管理） */
+  setStreamPreview: (preview: { imageUrl: string } | null) => void;
   remove: () => void;
 }
 
@@ -56,7 +70,9 @@ interface InlineGenerationStatusOptions {
 interface InlineGenerationStatusState {
   text: string;
   mode: InlineGenerationStatusMode;
-  progress?: { value: number; max: number };
+  progress?: InlineGenerationProgress;
+  /** 流式生图中间帧预览图 */
+  streamPreview?: { imageUrl: string };
   onRetry?: () => void;
   /** LLM 提取错误的完整原始输出（用于 Accordion 展示） */
   rawOutput?: string;
@@ -67,6 +83,10 @@ type ActiveInlineGenerationSessions = Map<HTMLElement, InlineGenerationSession>;
 type InlineGenerationStatusSlots = Record<string, () => ReturnType<typeof h>>;
 
 const ERROR_REMOVE_DELAY_MS = 8000;
+/** overlay 状态条淡出退场时长 */
+const STATUS_FADE_MS = 200;
+/** 普通状态条高度塌缩 + 淡出退场时长 */
+const STATUS_COLLAPSE_MS = 220;
 const MODE_SEVERITY: Record<InlineGenerationStatusMode, 'secondary' | 'error'> = {
   running: 'secondary',
   error: 'error',
@@ -371,11 +391,28 @@ function createInlineGenerationStatus(options: InlineGenerationStatusOptions): I
   let removed = false;
   let state: InlineGenerationStatusState = { text: options.initialText, mode: 'running' };
 
+  /** 卸载 Vue 内容并从 DOM 移除宿主 */
+  function unmountHost(): void {
+    render(null, host);
+    host.remove();
+  }
+
   function remove(): void {
     if (removed) return;
     removed = true;
-    render(null, host);
-    host.remove();
+    if (host.classList.contains('cv-inline-generation-status--overlay')) {
+      // overlay 宿主铺在画廊上，直接淡出即可
+      host.classList.add('cv-inline-generation-status--leaving');
+      window.setTimeout(unmountHost, STATUS_FADE_MS);
+      return;
+    }
+    // 普通宿主先锁定当前高度，下一帧再过渡到 0，保证高度塌缩有动画
+    host.style.height = `${host.offsetHeight}px`;
+    requestAnimationFrame(() => {
+      host.classList.add('cv-inline-generation-status--leaving');
+      host.style.height = '0';
+      window.setTimeout(unmountHost, STATUS_COLLAPSE_MS);
+    });
   }
 
   function setStatus(
@@ -388,14 +425,20 @@ function createInlineGenerationStatus(options: InlineGenerationStatusOptions): I
     renderStatus(host, state, options, remove);
   }
 
-  function setProgress(progress: { value: number; max: number } | null): void {
+  function setProgress(progress: InlineGenerationProgress | null): void {
     if (removed) return;
     state = { ...state, progress: progress ?? undefined };
     renderStatus(host, state, options, remove);
   }
 
+  function setStreamPreview(preview: { imageUrl: string } | null): void {
+    if (removed) return;
+    state = { ...state, streamPreview: preview ?? undefined };
+    renderStatus(host, state, options, remove);
+  }
+
   setStatus(options.initialText);
-  return { host, setStatus, setProgress, remove };
+  return { host, setStatus, setProgress, setStreamPreview, remove };
 }
 
 /**
@@ -410,6 +453,7 @@ function buildStatusClass(darkMode: boolean): string {
 
 /**
  * 渲染状态条内容为 PrimeVue Message
+ * 流式预览舞台作为 Message 的兄弟节点渲染：overlay 模式下舞台需铺满整个宿主
  * @param host 状态条宿主元素
  * @param state 当前状态
  * @param options 状态条配置
@@ -432,7 +476,8 @@ function renderStatus(
     buildStatusSlots(state, isRunning, remove, options),
   );
   if (options.appContext) vnode.appContext = options.appContext;
-  render(vnode, host);
+  const streamStage = isRunning ? renderStreamPreview(state.streamPreview, host) : null;
+  render(streamStage ? h(Fragment, [vnode, streamStage]) : vnode, host);
 }
 
 /**
@@ -494,7 +539,7 @@ function renderStatusButtons(
 }
 
 /**
- * 格式化状态文本（运行中且包含进度时追加百分比）
+ * 格式化状态文本（运行中且包含进度时追加百分比，带步数时再追加 X/Y 步）
  * @param state 当前状态
  * @param isRunning 是否正在运行
  * @returns 状态文本
@@ -502,7 +547,9 @@ function renderStatusButtons(
 function resolveStatusText(state: InlineGenerationStatusState, isRunning: boolean): string {
   if (isRunning && state.progress) {
     const percent = Math.round((state.progress.value / state.progress.max) * 100);
-    return `${state.text} ${percent}%`;
+    const { step, totalSteps } = state.progress;
+    const stepText = step != null && totalSteps != null ? `（${step}/${totalSteps} 步）` : '';
+    return `${state.text} ${percent}%${stepText}`;
   }
   return state.text;
 }
@@ -512,13 +559,32 @@ function resolveStatusText(state: InlineGenerationStatusState, isRunning: boolea
  * @param progress 进度对象
  * @returns ProgressBar 虚拟节点或 null
  */
-function renderProgressBar(progress?: { value: number; max: number }): ReturnType<typeof h> | null {
+function renderProgressBar(progress?: InlineGenerationProgress): ReturnType<typeof h> | null {
   if (!progress) return null;
   return h(ProgressBar, {
     value: Math.round((progress.value / progress.max) * 100),
     showValue: false,
     class: 'cv-inline-generation-progress',
   });
+}
+
+/**
+ * 渲染流式中间帧预览舞台（画廊同款视觉）
+ * overlay 宿主铺满蒙版壳居中展示；普通宿主按画廊主图宽度居中展示
+ * @param preview 预览对象
+ * @param host 状态条宿主
+ * @returns 舞台虚拟节点或 null
+ */
+function renderStreamPreview(
+  preview: { imageUrl: string } | undefined,
+  host: HTMLElement,
+): ReturnType<typeof h> | null {
+  if (!preview) return null;
+  const img = h('img', { src: preview.imageUrl, alt: '流式预览' });
+  const isOverlay = host.classList.contains('cv-inline-generation-status--overlay');
+  return isOverlay
+    ? h('div', { class: 'cv-inline-stream-stage--fill' }, [img])
+    : h('div', { class: 'cv-inline-stream-stage' }, [img]);
 }
 
 /**

@@ -128,6 +128,11 @@
           <i class="fa-solid fa-spinner fa-spin" />
           <span class="break-all whitespace-normal">{{ runningStateText }}</span>
         </div>
+        <NovelAIStreamPreview
+          v-if="isRunning && streamSlots.length"
+          :slots="streamSlots"
+          class="mb-(--cv-space-2xl)"
+        />
         <div
           v-else-if="testStatus === 'success'"
           class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-green-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-green-500)"
@@ -142,7 +147,9 @@
           <i class="fa-solid fa-circle-exclamation" />
           <span class="break-all whitespace-normal">{{ errorMessage }}</span>
         </div>
+        <!-- 运行中有流式槽位时预览舞台替代画廊（预览末帧=成图，完成后画廊接管显示，尺寸一致切换自然） -->
         <TestImageGallery
+          v-else
           :image-blobs="previewBlobs"
           :snapshot="previewPromptSnapshot"
           :placeholder="previewPlaceholderText"
@@ -292,6 +299,7 @@ import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
 import CvExpandableTextarea from '@/panel/components/CvExpandableTextarea.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue';
+import NovelAIStreamPreview, { type StreamPreviewSlot } from '@/panel/components/NovelAIStreamPreview.vue';
 import TestImageGallery from '@/panel/components/TestImageGallery.vue';
 
 import {
@@ -301,6 +309,7 @@ import {
   type NovelAIPromptOverrides,
   type NovelAIRequestSnapshot,
 } from '@/services/novelai/api';
+import type { NovelAIStreamPreviewEvent } from '@/services/novelai/stream-api';
 import { useSettingsStore } from '@/store/settings';
 import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
 import {
@@ -350,6 +359,8 @@ const lastRunMode = ref<NovelAITestMode | null>(null);
 const testStatus = ref<TestStatus>('idle');
 const errorMessage = ref('');
 const previewBlobs = ref<Blob[]>([]);
+const streamSlots = ref<StreamPreviewSlot[]>([]);
+const streamProgress = ref<{ step: number; totalSteps: number } | null>(null);
 
 const directPositivePrompt = ref('1girl');
 const directNegativePrompt = ref('');
@@ -390,6 +401,9 @@ const {
   outlined: actionOutlined,
 } = useTestActionButton(isRunning, { label: idleActionLabel });
 const runningStateText = computed(() => {
+  if (streamProgress.value) {
+    return `正在生成图像... 第 ${streamProgress.value.step}/${streamProgress.value.totalSteps} 步`;
+  }
   return useLlmMode.value
     ? `正在请求 LLM 并等待 ${props.serviceName} 返回图像`
     : `正在等待 ${props.serviceName} 返回图像`;
@@ -485,6 +499,7 @@ function stopTest(): void {
 function markAborted(): void {
   testStatus.value = 'error';
   errorMessage.value = '已终止测试';
+  clearStreamSlots();
   toastr.info('已终止测试');
 }
 
@@ -543,10 +558,56 @@ async function runNovelAIWithOverrides(overrides: NovelAIPromptOverrides, sessio
   novelaiSnapshot.value = request.snapshot;
   const result = await generateNovelAIImagesFromResolvedRequest(request, settings.novelai.imageCount, {
     signal: session.signal,
+    onStreamPreview: event => {
+      if (!requestSession.isCurrent(session)) return;
+      applyStreamPreviewEvent(event);
+    },
   });
   if (!requestSession.isCurrent(session)) return;
+  clearStreamSlots();
   novelaiSnapshot.value = result.snapshot;
   previewBlobs.value = result.imageBlobs;
+}
+
+/**
+ * 按图片总数初始化流式预览槽位（已初始化则跳过）
+ * @param imageCount 本次请求图片总数
+ * @param totalSteps 总去噪步数
+ */
+function ensureStreamSlots(imageCount: number, totalSteps: number): void {
+  if (streamSlots.value.length === imageCount) return;
+  streamSlots.value = Array.from({ length: imageCount }, () => ({
+    previewUrl: null,
+    completed: false,
+    step: 0,
+    totalSteps,
+  }));
+}
+
+/**
+ * 应用一帧流式预览事件到对应槽位（旧预览 URL 先释放）
+ * @param event 流式预览事件
+ */
+function applyStreamPreviewEvent(event: NovelAIStreamPreviewEvent): void {
+  ensureStreamSlots(event.imageCount, event.totalSteps);
+  const slot = streamSlots.value[event.imageIndex];
+  if (!slot) return;
+  if (slot.previewUrl) URL.revokeObjectURL(slot.previewUrl);
+  slot.previewUrl = URL.createObjectURL(event.previewBlob);
+  slot.completed = event.isFinal;
+  slot.step = event.isFinal ? event.totalSteps : event.step;
+  streamProgress.value = { step: slot.step, totalSteps: event.totalSteps };
+}
+
+/**
+ * 清空流式预览状态并释放全部槽位的 objectURL
+ */
+function clearStreamSlots(): void {
+  streamSlots.value.forEach(slot => {
+    if (slot.previewUrl) URL.revokeObjectURL(slot.previewUrl);
+  });
+  streamSlots.value = [];
+  streamProgress.value = null;
 }
 
 /**
@@ -708,7 +769,10 @@ function resetTestResult(): void {
   llmSentPromptLog.value = '';
   routedAccount.value = undefined;
   previewBlobs.value = [];
+  clearStreamSlots();
 }
+
+onBeforeUnmount(clearStreamSlots);
 
 /**
  * 记录测试失败状态
@@ -717,6 +781,7 @@ function resetTestResult(): void {
 function handleTestError(error: unknown): void {
   testStatus.value = 'error';
   errorMessage.value = error instanceof Error ? error.message : '测试失败，未知错误';
+  clearStreamSlots();
   toastr.error(errorMessage.value);
 }
 </script>

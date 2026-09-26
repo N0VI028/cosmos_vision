@@ -231,6 +231,8 @@ export interface NovelAISettings extends ImagePromptPresetReferences {
   ucPreset: NovelAIUcPreset;
   /** 是否让 NovelAI 自动安排多角色坐标 */
   autoCharacterCoords: boolean;
+  /** 流式生图开关 */
+  streamImage: boolean;
 }
 
 /** NovelAI 角色提示词条目 */

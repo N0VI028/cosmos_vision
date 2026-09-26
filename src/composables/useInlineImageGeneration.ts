@@ -15,6 +15,7 @@ import {
   buildNovelAIPromptOverrides,
   generateNovelAIImagesFromResolvedRequest,
 } from '@/services/novelai/api';
+import type { NovelAIStreamPreviewEvent } from '@/services/novelai/stream-api';
 import { createSelectionShellController } from '@/composables/inlineSelectionShell';
 import { hasMixedRoute, nextParagraphSelection } from '@/composables/inlineParagraphSelection';
 import {
@@ -33,7 +34,7 @@ import { buildLlmInspectorStoreHooks } from '@/store/llm-inspector';
 import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
 import { useSettingsStore } from '@/store/settings';
 import { resolveFreshPresetIdOverrides } from '@/services/image-prompt/random-preset-pool';
-import { getCurrentInstance, ref } from 'vue';
+import { getCurrentInstance, nextTick, ref } from 'vue';
 import { downloadInlineImageBlob } from '@/services/inline-image/image-download-transform';
 import {
   buildInlineImageDownloadBaseName,
@@ -549,6 +550,7 @@ export function useInlineImageGeneration(
 
   /**
    * 应用生成结果并按顺序插入全部图片
+   * 状态条在图片全部插入后延迟一帧再移除：成图先出现，状态条（含预览末帧）平滑退场形成交叉过渡
    * @param paragraph 目标段落或气泡
    * @param result 批量生成结果
    * @param session 生成会话
@@ -560,10 +562,11 @@ export function useInlineImageGeneration(
     floorTailContext?: GalleryGenerationContext,
   ): Promise<void> {
     generationSession.ensureActive(session);
-    session.status.remove();
     const route = resolveInlineRoute(paragraph);
     if (route === 'frontend') {
       await applyFrontendGenerationResult(paragraph, result, floorTailContext);
+      await nextTick();
+      session.status.remove();
       return;
     }
     for (const imageBlob of result.imageBlobs) {
@@ -572,6 +575,8 @@ export function useInlineImageGeneration(
         promptSnapshot: result.promptSnapshot,
       });
     }
+    await nextTick();
+    session.status.remove();
   }
 
   /**
@@ -707,12 +712,18 @@ export function useInlineImageGeneration(
     session: InlineGenerationSession,
   ): Promise<InlineGenerationBatchResult> {
     session.status.setStatus('正在生成图片...');
-    return generateImagesFromSnapshot(
-      settings,
-      snapshot,
-      session.controller.signal,
-      p => session.status.setProgress(p),
-    );
+    const streamPreview = createNovelAIStreamPreviewSync(session);
+    try {
+      return await generateImagesFromSnapshot(
+        settings,
+        snapshot,
+        session.controller.signal,
+        p => session.status.setProgress(p),
+        streamPreview.onStreamPreview,
+      );
+    } finally {
+      streamPreview.clear();
+    }
   }
 
   /**
@@ -751,6 +762,40 @@ export function useInlineImageGeneration(
   }
 
   /**
+   * 创建 NovelAI 流式预览同步器：把预览事件转成状态条进度与中间帧预览
+   * @param session 生成会话
+   * @returns onStreamPreview 回调与清理方法
+   */
+  function createNovelAIStreamPreviewSync(session: InlineGenerationSession) {
+    let currentUrl: string | null = null;
+    return {
+      /** 预览事件回调：同步进度条并替换中间帧预览图（旧帧 URL 先释放） */
+      onStreamPreview(event: NovelAIStreamPreviewEvent): void {
+        // final 帧的步数已计入 completedCount，再叠加 step 会超出 100%
+        const done = event.completedCount * event.totalSteps;
+        session.status.setProgress({
+          value: event.isFinal ? done : done + event.step,
+          max: event.imageCount * event.totalSteps,
+          step: event.isFinal ? event.totalSteps : event.step,
+          totalSteps: event.totalSteps,
+        });
+        if (currentUrl) URL.revokeObjectURL(currentUrl);
+        currentUrl = URL.createObjectURL(event.previewBlob);
+        session.status.setStreamPreview({ imageUrl: currentUrl });
+      },
+      /**
+       * 释放残留预览 URL
+       * 只 revoke 不清除状态：已显示的预览图不受 revoke 影响，保留显示末帧，
+       * 舞台随状态条 remove 的平滑退场（或错误态渲染）自然消失
+       */
+      clear(): void {
+        if (currentUrl) URL.revokeObjectURL(currentUrl);
+        currentUrl = null;
+      },
+    };
+  }
+
+  /**
    * 请求 NovelAI 图片并同步已提升的临时 Vibe
    * @param request 已解析请求
    * @param temporarySourceHashes 临时 Vibe 哈希
@@ -762,12 +807,15 @@ export function useInlineImageGeneration(
     temporarySourceHashes: readonly string[],
     session: InlineGenerationSession,
   ): Promise<InlineGenerationBatchResult> {
+    const streamPreview = createNovelAIStreamPreviewSync(session);
     try {
       const result = await generateNovelAIImagesFromResolvedRequest(request, settings.novelai.imageCount, {
         signal: session.controller.signal,
+        onStreamPreview: streamPreview.onStreamPreview,
       });
       return { promptSnapshot: createNovelAISnapshot(result.prompts), imageBlobs: result.imageBlobs };
     } finally {
+      streamPreview.clear();
       if (hasPromotedTemporaryVibes(request.prompts.vibeReferences, temporarySourceHashes)) {
         settingsStore.persistSavedSettings();
       }

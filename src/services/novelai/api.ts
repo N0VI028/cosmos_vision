@@ -1,11 +1,12 @@
 import type { ImagePromptPresetSettings } from '@/constants/image-prompt';
 import type { NovelAIAccount, CharacterPromptItem, NovelAISettings } from '@/constants/novelai';
-import { NOVELAI_MAX_SEED, NOVELAI_IMAGE_COUNT_LIMITS, isNovelAIV5Model } from '@/constants/novelai';
+import { NOVELAI_MAX_SEED, NOVELAI_IMAGE_COUNT_LIMITS, isNovelAIV3Model, isNovelAIV5Model } from '@/constants/novelai';
 import { buildNegativePromptParts, buildPositivePromptParts } from './prompt-presets';
 import type { PromptLlmExtractSettings, PromptLlmOutput } from '@/services/tavern-helper/prompt-llm';
 import { extractNovelAIJsonImages } from './response-images';
 import { extractImages } from './zip';
 import { getNovelAIRequestAccounts } from './router';
+import { requestNovelAIAccountImagesStream } from './stream-api';
 import { createRequestTimeoutController, throwIfRequestTimedOut } from '@/services/request-timeout';
 import { beginImageGeneration, endImageGeneration } from '@/store/image-generation-activity';
 import { getActiveNovelAIVibePresetRefs, resolveNovelAIVibeParameters } from './vibe-parameters';
@@ -142,19 +143,24 @@ async function requestImagesWithAccount(
   imageCount: number,
   options: NovelAIRequestOptions,
 ): Promise<NovelAIImagesResult> {
-  const imageBlobs = await requestNovelAIAccountImages(
-    request.settings,
-    prompts,
-    account,
-    options,
-    request.seed,
-    imageCount,
-  );
+  const imageBlobs = shouldStreamImages(request.settings)
+    ? await requestNovelAIAccountImagesStream(request.settings, prompts, account, options, request.seed, imageCount)
+    : await requestNovelAIAccountImages(request.settings, prompts, account, options, request.seed, imageCount);
   return {
     imageBlobs,
     snapshot: buildRequestSnapshot(request.settings, prompts, account, request.seed, imageCount),
     prompts,
   };
+}
+
+/**
+ * 判断本次请求是否走流式生成路径
+ * V3 模型不支持流式，静默回退普通生成
+ * @param settings NovelAI 设置页参数
+ * @returns 使用流式接口时返回 true
+ */
+function shouldStreamImages(settings: NovelAISettings): boolean {
+  return Boolean(settings.streamImage) && !isNovelAIV3Model(settings.model);
 }
 
 /**

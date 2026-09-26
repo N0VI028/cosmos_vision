@@ -11,6 +11,7 @@ import type {
 } from '@/constants/novelai';
 import type { NovelAIPromptMode } from '@/services/novelai/prompt-presets';
 import type { NovelAIVibeParameters, NovelAIVibeSnapshot } from '@/services/novelai/vibe-types';
+import type { NovelAIStreamPreviewEvent } from './stream-api';
 
 export interface NovelAIPromptOverrides {
   positiveLLMPrompt?: string;
@@ -97,4 +98,6 @@ export interface NovelAIImagesResult {
 /** NovelAI 请求控制选项 */
 export interface NovelAIRequestOptions {
   signal?: AbortSignal;
+  /** 流式中间帧预览回调 */
+  onStreamPreview?: (event: NovelAIStreamPreviewEvent) => void;
 }

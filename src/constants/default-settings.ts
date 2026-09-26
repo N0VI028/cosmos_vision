@@ -149,6 +149,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     qualityPreset: 'Standard',
     ucPreset: 'Heavy',
     autoCharacterCoords: true,
+    streamImage: false,
   },
   comfyui: {
     url: 'http://127.0.0.1:8188',

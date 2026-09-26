@@ -186,6 +186,7 @@ const novelAISettingsSchema = z.object({
   qualityPreset: novelAIQualityPresetSchema,
   ucPreset: novelAIUcPresetSchema,
   autoCharacterCoords: z.boolean(),
+  streamImage: z.boolean(),
 });
 
 const comfyUISettingsSchema = z.object({
@@ -538,6 +539,7 @@ function recoverNovelAISettings(value: unknown): NovelAISettings {
     qualityPreset: readNovelAIQualityPreset(record, fallback.qualityPreset),
     ucPreset: read('ucPreset', novelAIUcPresetSchema),
     autoCharacterCoords: read('autoCharacterCoords', z.boolean()),
+    streamImage: read('streamImage', z.boolean()),
   };
 }
 
