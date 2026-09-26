@@ -85,6 +85,7 @@
             :online="online"
             :comfyui-url="comfyuiUrl"
             @update:value="value => emit('update:input', control.inputName, value)"
+            @update:pair-value="(name, val) => emit('update:input', name, val)"
             @update:prompt-binding="binding => emit('update:prompt-binding', control.inputName, binding)"
             @update:image-binding="source => emit('update:image-binding', control.inputName, source)"
             @update:seed-mode="mode => emit('update:seed-mode', control.inputName, mode)"

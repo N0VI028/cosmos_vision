@@ -113,9 +113,35 @@ export function listInputControls(
   const meta = readNodeMeta(node);
   // objectInfo 非 null 即在线；某 class_type 缺失时 schema 仍可能为 undefined
   const online = objectInfo != null;
-  return Object.entries(node.inputs ?? {}).map(([inputName, value]) =>
+  const controls = Object.entries(node.inputs ?? {}).map(([inputName, value]) =>
     buildInputControl(nodeId, inputName, value, schema, meta, online),
   );
+  return mergeSizeControls(controls);
+}
+
+/**
+ * 将同一节点的 width/height 数字输入合并为 size 分辨率组合控件
+ * 仅当两者都是普通 number 控件（link 引用或下拉等非 number 不合并）时生效
+ * @param controls 输入控件列表
+ * @returns 合并后的控件列表
+ */
+function mergeSizeControls(controls: ComfyUIInputControlDesc[]): ComfyUIInputControlDesc[] {
+  const width = controls.find(control => control.inputName === 'width');
+  const height = controls.find(control => control.inputName === 'height');
+  if (!width || !height || width.kind !== 'number' || height.kind !== 'number') return controls;
+  return controls
+    .filter(control => control !== height)
+    .map(control =>
+      control === width
+        ? {
+            ...width,
+            kind: 'size' as const,
+            label: '分辨率',
+            heightInputName: height.inputName,
+            heightValue: Number(height.value),
+          }
+        : control,
+    );
 }
 
 /**

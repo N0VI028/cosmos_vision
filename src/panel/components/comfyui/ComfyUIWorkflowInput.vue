@@ -180,18 +180,6 @@
       </div>
     </div>
 
-    <!-- 尺寸分辨率控件 -->
-    <Select
-      v-else-if="isDimensionControl"
-      :model-value="Number(control.value ?? 0)"
-      :options="COMFYUI_DIMENSION_PRESETS"
-      editable
-      fluid
-      class="w-full"
-      :disabled="isValueDisabled"
-      @update:model-value="onDimensionChange"
-    />
-
     <!-- 分辨率预设控件（ResolutionPreset 节点） -->
     <Select
       v-else-if="isResolutionControl"
@@ -201,6 +189,17 @@
       class="w-full"
       :disabled="isValueDisabled"
       @update:model-value="onResolutionPresetChange"
+    />
+
+    <!-- 宽高组合分辨率控件（EmptyLatentImage 等节点的 width+height 合并） -->
+    <Select
+      v-else-if="isSizeControl"
+      :model-value="sizeSelectValue"
+      :options="RESOLUTION_PRESET_OPTIONS"
+      fluid
+      class="w-full"
+      :disabled="isValueDisabled"
+      @update:model-value="onSizePresetChange"
     />
 
     <!-- 普通下拉控件 -->
@@ -305,6 +304,32 @@
         />
       </label>
     </div>
+
+    <!-- 自定义尺寸宽高输入（size 组合控件选中"自定义"时展开） -->
+    <div v-if="isSizeControl && isCustomSize" class="grid grid-cols-2 gap-(--cv-space-md)">
+      <label class="flex flex-col gap-(--cv-space-sm)">
+        <span class="text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)">宽度</span>
+        <InputNumber
+          :model-value="sizeValue.width"
+          :min="64"
+          :use-grouping="false"
+          show-buttons
+          :disabled="isValueDisabled"
+          @update:model-value="value => onCustomSizeChange(value, 'width')"
+        />
+      </label>
+      <label class="flex flex-col gap-(--cv-space-sm)">
+        <span class="text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)">高度</span>
+        <InputNumber
+          :model-value="sizeValue.height"
+          :min="64"
+          :use-grouping="false"
+          show-buttons
+          :disabled="isValueDisabled"
+          @update:model-value="value => onCustomSizeChange(value, 'height')"
+        />
+      </label>
+    </div>
   </div>
 </template>
 
@@ -313,7 +338,6 @@ import type { ChipPassThroughOptions } from 'primevue/chip';
 import type { PopoverPassThroughOptions } from 'primevue/popover';
 import Popover from 'primevue/popover';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { COMFYUI_DIMENSION_PRESETS } from '@/constants/comfyui';
 import { NOVELAI_RESOLUTION_PRESETS } from '@/constants/novelai';
 import CvExpandableTextarea from '@/panel/components/CvExpandableTextarea.vue';
 import type { MacroPopoverInstance } from '@/panel/components/prompt-llm-macro-popover';
@@ -383,6 +407,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   'update:value': [value: unknown];
+  'update:pair-value': [inputName: string, value: unknown];
   'update:prompt-binding': [binding: PromptBinding | null];
   'update:image-binding': [source: TavernAvatarSource | null];
   'update:seed-mode': [mode: SeedMode | null];
@@ -513,12 +538,31 @@ const imageOptions = computed(() => {
   return Array.from(new Set(values)).map(value => ({ value, label: value }));
 });
 
-const isDimensionControl = computed(
-  () =>
-    props.control.kind === 'number' && (props.control.inputName === 'width' || props.control.inputName === 'height'),
-);
-
 const isResolutionControl = computed(() => props.control.kind === 'resolution');
+
+const isSizeControl = computed(() => props.control.kind === 'size');
+
+/** size 组合控件当前宽高（value 为宽度，heightValue 为高度） */
+const sizeValue = computed(() => ({
+  width: Number(props.control.value ?? 0),
+  height: Number(props.control.heightValue ?? 0),
+}));
+
+/** 用户已在 size 控件显式选择"自定义" */
+const customSizeSelected = ref(false);
+
+/** size 控件是否处于自定义态：显式选择或当前值不匹配任何预设 */
+const isCustomSize = computed(() => {
+  if (customSizeSelected.value) return true;
+  const { width, height } = sizeValue.value;
+  return !RESOLUTION_PRESET_OPTIONS.includes(`${width}x${height}`);
+});
+
+/** size 下拉显示值：匹配预设显示像素值，否则显示自定义 */
+const sizeSelectValue = computed(() => {
+  const { width, height } = sizeValue.value;
+  return isCustomSize.value ? CUSTOM_RESOLUTION_OPTION : `${width}x${height}`;
+});
 
 /** 用户已显式选择"自定义" */
 const customResolutionSelected = ref(false);
@@ -616,16 +660,6 @@ function onJsonChange(value: string | undefined): void {
 }
 
 /**
- * 提交尺寸值；可编辑 Select 手输时可能是字符串
- * @param value 下拉或手输值
- */
-function onDimensionChange(value: string | number | null | undefined): void {
-  const num = typeof value === 'number' ? value : Number(value);
-  if (!Number.isFinite(num)) return;
-  emit('update:value', Math.round(num));
-}
-
-/**
  * 选择分辨率：预设立即回写，自定义仅展开宽高输入
  * @param value 选中选项
  */
@@ -655,6 +689,40 @@ function onCustomResolutionChange(value: number | null, field: 'width' | 'height
   const width = field === 'width' ? value : size.width;
   const height = field === 'height' ? value : size.height;
   emit('update:value', buildResolutionJson(resolutionRaw.value, width, height));
+}
+
+/**
+ * 选择 size 组合控件的预设：预设立即回写宽高，自定义仅展开宽高输入
+ * @param value 选中选项
+ */
+function onSizePresetChange(value: string | number | null | undefined): void {
+  const label = String(value ?? '');
+  if (label === CUSTOM_RESOLUTION_OPTION) {
+    customSizeSelected.value = true;
+    return;
+  }
+  customSizeSelected.value = false;
+  const [width, height] = label.split('x').map(Number);
+  if (width > 0 && height > 0) {
+    emit('update:value', width);
+    emit('update:pair-value', props.control.heightInputName ?? 'height', height);
+  }
+}
+
+/**
+ * 提交 size 组合控件的自定义宽高：宽度走 update:value，高度走配对事件
+ * @param value 输入值
+ * @param field 本次修改的维度
+ */
+function onCustomSizeChange(value: number | null, field: 'width' | 'height'): void {
+  // 输入即锁定自定义态，与分辨率预设控件行为一致
+  customSizeSelected.value = true;
+  if (value === null) return;
+  const size = sizeValue.value;
+  const width = field === 'width' ? value : size.width;
+  const height = field === 'height' ? value : size.height;
+  emit('update:value', width);
+  emit('update:pair-value', props.control.heightInputName ?? 'height', height);
 }
 
 /**

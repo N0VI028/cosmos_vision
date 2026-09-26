@@ -153,6 +153,86 @@ describe('comfyui object-info', () => {
     expect(controls[0].kind).toBe('resolution');
   });
 
+  it('同节点 width 与 height 均为数字时合并为 size 分辨率控件', () => {
+    const objectInfoMap = normalizeObjectInfo({
+      EmptyLatentImage: {
+        display_name: 'Empty Latent Image',
+        input: {
+          required: {
+            width: ['INT', { default: 1024 }],
+            height: ['INT', { default: 1024 }],
+            batch_size: ['INT', { default: 1 }],
+          },
+        },
+        output: ['LATENT'],
+        output_name: ['latent'],
+      },
+    });
+    const workflow = {
+      '31': {
+        class_type: 'EmptyLatentImage',
+        inputs: { width: 1024, height: 1024, batch_size: 1 },
+      },
+    };
+
+    const controls = listInputControls(workflow, '31', objectInfoMap);
+    expect(controls).toHaveLength(2);
+    const size = controls.find(control => control.kind === 'size');
+    expect(size).toBeDefined();
+    expect(size?.inputName).toBe('width');
+    expect(size?.label).toBe('分辨率');
+    expect(size?.value).toBe(1024);
+    expect(size?.heightInputName).toBe('height');
+    expect(size?.heightValue).toBe(1024);
+    expect(controls.some(control => control.inputName === 'height')).toBe(false);
+  });
+
+  it('仅有 width 无 height 时不合并，维持 number 控件', () => {
+    const objectInfoMap = normalizeObjectInfo({
+      EmptyLatentImage: {
+        display_name: 'Empty Latent Image',
+        input: { required: { width: ['INT', { default: 1024 }] } },
+        output: ['LATENT'],
+        output_name: ['latent'],
+      },
+    });
+    const workflow = {
+      '1': { class_type: 'EmptyLatentImage', inputs: { width: 1024 } },
+    };
+
+    const controls = listInputControls(workflow, '1', objectInfoMap);
+    expect(controls).toHaveLength(1);
+    expect(controls[0].kind).toBe('number');
+    expect(controls[0].inputName).toBe('width');
+  });
+
+  it('width 为连线引用时不合并，height 维持独立 number 控件', () => {
+    const objectInfoMap = normalizeObjectInfo({
+      EmptyLatentImage: {
+        display_name: 'Empty Latent Image',
+        input: {
+          required: {
+            width: ['INT', { default: 1024 }],
+            height: ['INT', { default: 1024 }],
+          },
+        },
+        output: ['LATENT'],
+        output_name: ['latent'],
+      },
+    });
+    const workflow = {
+      '1': {
+        class_type: 'EmptyLatentImage',
+        inputs: { width: ['6', 0], height: 1024 },
+      },
+    };
+
+    const controls = listInputControls(workflow, '1', objectInfoMap);
+    expect(controls).toHaveLength(2);
+    expect(controls.find(control => control.inputName === 'width')?.kind).toBe('link');
+    expect(controls.find(control => control.inputName === 'height')?.kind).toBe('number');
+  });
+
   it('treats generic output ports as image candidates but not generic inputs', () => {
     const objectInfoMap = normalizeObjectInfo({
       SwitchNode: {
