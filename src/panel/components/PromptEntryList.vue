@@ -77,14 +77,19 @@ const entries = defineModel<PromptEntryListItem[]>({ required: true });
 const listEl = ref<HTMLElement | null>(null);
 const isDragging = ref(false);
 
-/** Sortable 配置：只保留轻量 ghost（细蓝色虚线占位），禁用粗 fallback 幽灵元素 */
+/**
+ * Sortable 配置：fallback 克隆作唯一虚线幽灵跟随鼠标，列表内原始条目拖动期间隐形让位
+ */
 const dragOptions = {
   handle: '.cv-message-handle',
   animation: 150,
   ghostClass: 'cv-message-row-ghost',
+  // 跟随鼠标的克隆幽灵（样式定义在文件底部全局样式中）
+  fallbackClass: 'cv-message-row-fallback',
   chosenClass: 'cv-message-row-chosen',
-  forceFallback: false,        // 禁用粗跟随幽灵元素
-  fallbackOnBody: false,       // 禁用粗跟随幽灵元素
+  // 原生 HTML5 拖放会导致屏幕闪烁，改用 fallback 跟随幽灵（复用下方 .cv-message-row-fallback 虚线轮廓样式）
+  forceFallback: true,
+  fallbackOnBody: true,
   delayOnTouchOnly: true,      // 手机端仍可用
   delay: 120,
   touchStartThreshold: 5,
@@ -109,16 +114,9 @@ defineExpose({ scrollToEnd });
   迁移条件：拖拽库改为不依赖 body 浮层且 class 可挂在组件根内时，可改为行内工具类。
 -->
 <style>
+/* 拖动期间原始条目隐形让位，仅保留 fallback 克隆的虚线跟随幽灵，避免双幽灵 */
 .cv-message-row-ghost {
-  opacity: 1 !important;
-  border-style: dashed !important;
-  border-color: var(--cvp-primary-color) !important;
-  background: color-mix(in srgb, var(--cvp-primary-color) 12%, transparent) !important;
-  box-shadow: none !important;
-}
-
-.cv-message-row-ghost > * {
-  opacity: 0;
+  opacity: 0 !important;
 }
 
 .cv-message-row-chosen {
@@ -127,12 +125,16 @@ defineExpose({ scrollToEnd });
 }
 
 .cv-message-row-fallback {
+  /* 幽灵必须禁用过渡：Sortable 每次移动重读 computed transform，带过渡会累积滑移导致幽灵不跟手 */
+  transition: none !important;
+  /* 克隆挂到 body 后部分任意值工具类不再命中，边框宽度回退默认 medium(3px)，显式收细 */
+  border-width: 1px !important;
   z-index: 10000;
   opacity: 1 !important;
   border-style: dashed !important;
   border-color: var(--cvp-primary-color) !important;
   background: color-mix(in srgb, var(--cvp-primary-color) 12%, transparent) !important;
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--cv-on-surface) 24%, transparent) !important;
+  box-shadow: none !important;
   pointer-events: none;
   cursor: grabbing !important;
 }

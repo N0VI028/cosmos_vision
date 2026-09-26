@@ -198,6 +198,8 @@ describe('lora 侧触发矩阵', () => {
 describe('resolveFreshPresetIdOverrides 新鲜生图解析', () => {
   it('comfyui 源返回 lora 键', () => {
     const settings = structuredClone(DEFAULT_SETTINGS);
+    // 总开关默认关闭，此处显式开启以测试池解析逻辑
+    settings.randomPresetPools.enabled = true;
     settings.comfyui.loraPresets.presets.push({ id: 'lora-x', name: 'x', loras: [] });
     settings.randomPresetPools.pools = [
       createRandomPresetPool('pool-1', {
@@ -211,6 +213,8 @@ describe('resolveFreshPresetIdOverrides 新鲜生图解析', () => {
 
   it('novelai 源不产出 lora 键', () => {
     const settings = structuredClone(DEFAULT_SETTINGS);
+    // 总开关默认关闭，此处显式开启以测试池解析逻辑
+    settings.randomPresetPools.enabled = true;
     settings.randomPresetPools.pools = [
       createRandomPresetPool('pool-1', {
         side: 'lora',

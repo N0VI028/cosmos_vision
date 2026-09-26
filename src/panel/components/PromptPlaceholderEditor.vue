@@ -14,6 +14,7 @@
         data-part="before"
         @input="syncFromDom"
         @paste.prevent="pastePlainText"
+        @keydown="handleBeforeKeydown"
       />
       <span
         ref="tokenEl"
@@ -27,6 +28,7 @@
         @pointermove="movePlaceholder"
         @pointerup="finishMove"
         @pointercancel="cancelMove"
+        @keydown="handleTokenKeydown"
       >
         <span>LLM提取结果</span>
       </span>
@@ -37,6 +39,7 @@
         data-part="after"
         @input="syncFromDom"
         @paste.prevent="pastePlainText"
+        @keydown="handleAfterKeydown"
       />
     </div>
     <button
@@ -45,7 +48,7 @@
       class="cv-expandable-trigger"
       title="全屏编辑"
       aria-label="全屏编辑"
-      @click="fullscreenVisible = true"
+      @click="openFullscreen()"
     >
       <i class="fa-solid fa-maximize" aria-hidden="true" />
     </button>
@@ -53,7 +56,7 @@
       v-if="!embedded"
       v-model:visible="fullscreenVisible"
       modal
-      header="编辑提示词预设"
+      :show-header="false"
       :style="EXPANDABLE_DIALOG_STYLE"
       :content-style="EXPANDABLE_DIALOG_CONTENT_STYLE"
       :pt="EXPANDABLE_DIALOG_PT"
@@ -66,8 +69,8 @@
         />
       </div>
       <template #footer>
-        <div class="flex w-full items-center justify-between">
-          <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">{{ modelValue.text.length }} 字</span>
+        <div class="flex w-full items-center justify-end gap-(--cv-space-sm)">
+          <Button label="取消" text :fluid="false" @click="cancelFullscreen" />
           <Button label="完成" icon="fa-solid fa-check" :fluid="false" @click="fullscreenVisible = false" />
         </div>
       </template>
@@ -115,6 +118,8 @@ const props = withDefaults(
 const emit = defineEmits<{ 'update:modelValue': [PromptPlaceholderValue] }>();
 
 const fullscreenVisible = ref(false);
+/** 打开全屏大窗时的值快照，用于取消回滚 */
+let fullscreenSnapshot: PromptPlaceholderValue = { text: '', placeholderOffset: 0 };
 
 const editorEl = ref<HTMLElement | null>(null);
 const beforeEl = ref<HTMLElement | null>(null);
@@ -165,6 +170,22 @@ function normalizeValue(value: PromptPlaceholderValue): PromptPlaceholderValue {
     text,
     placeholderOffset: clampImagePromptPlaceholderOffset(text, value.placeholderOffset),
   };
+}
+
+/**
+ * 打开全屏大窗并快照当前值，供取消时回滚
+ */
+function openFullscreen(): void {
+  fullscreenSnapshot = { ...normalizeValue(props.modelValue) };
+  fullscreenVisible.value = true;
+}
+
+/**
+ * 取消全屏编辑并回滚到打开时的快照（直接 emit，不走 emitValue，确保外层编辑器回渲染快照内容）
+ */
+function cancelFullscreen(): void {
+  emit('update:modelValue', fullscreenSnapshot);
+  fullscreenVisible.value = false;
 }
 
 /**
@@ -312,7 +333,19 @@ function getOffsetFromNode(node: Node, offset: number, x = 0): number {
   const after = afterEl.value;
   if (before?.contains(node)) return getLocalOffset(before, node, offset);
   if (after?.contains(node)) return getBeforeLength() + getLocalOffset(after, node, offset);
+  if (editorEl.value?.contains(node)) return getBoundaryOffset(node, offset);
   return fallbackOffsetFromPoint(x);
+}
+
+/**
+ * 命中徽章本体或编辑器容器时维持占位符当前位置，避免拖动振荡
+ * @param node 命中节点
+ * @param offset 节点内 offset
+ * @returns 逻辑 offset
+ */
+function getBoundaryOffset(node: Node, offset: number): number {
+  if (node === editorEl.value && offset === 0) return 0;
+  return getBeforeLength();
 }
 
 /**
@@ -338,6 +371,69 @@ function fallbackOffsetFromPoint(x: number): number {
   const rect = editorEl.value?.getBoundingClientRect();
   if (!rect) return normalizeValue(props.modelValue).placeholderOffset;
   return x < rect.left + rect.width / 2 ? 0 : readFullText().length;
+}
+
+/**
+ * 把光标放置到元素文本的开头或末尾
+ * @param el 目标元素
+ * @param position 放置位置
+ */
+function placeCaret(el: HTMLElement, position: 'start' | 'end'): void {
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  range.collapse(position === 'start');
+  const selection = window.getSelection();
+  if (!selection) return;
+  selection.removeAllRanges();
+  selection.addRange(range);
+  el.focus();
+}
+
+/**
+ * before 段按键处理：末尾按 → 直接越过徽章落到 after 开头
+ * @param event 键盘事件
+ */
+function handleBeforeKeydown(event: KeyboardEvent): void {
+  if (event.key !== 'ArrowRight') return;
+  event.stopPropagation();
+  const el = beforeEl.value;
+  const selection = window.getSelection();
+  if (!el || !selection) return;
+  if (selection.focusOffset >= (el.textContent ?? '').length) {
+    event.preventDefault();
+    if (afterEl.value) placeCaret(afterEl.value, 'start');
+  }
+}
+
+/**
+ * 徽章按键处理：方向键把光标送到前后段，像越过一个字符
+ * @param event 键盘事件
+ */
+function handleTokenKeydown(event: KeyboardEvent): void {
+  if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+  event.stopPropagation();
+  if (event.key === 'ArrowRight' && afterEl.value) {
+    event.preventDefault();
+    placeCaret(afterEl.value, 'start');
+  } else if (event.key === 'ArrowLeft' && beforeEl.value) {
+    event.preventDefault();
+    placeCaret(beforeEl.value, 'end');
+  }
+}
+
+/**
+ * after 段按键处理：开头按 ← 直接越过徽章落到 before 末尾
+ * @param event 键盘事件
+ */
+function handleAfterKeydown(event: KeyboardEvent): void {
+  if (event.key !== 'ArrowLeft') return;
+  event.stopPropagation();
+  const selection = window.getSelection();
+  if (!selection) return;
+  if (selection.focusOffset <= 0) {
+    event.preventDefault();
+    if (beforeEl.value) placeCaret(beforeEl.value, 'end');
+  }
 }
 
 /**

@@ -240,8 +240,8 @@ const randomPresetPoolSchema = z.object({
 });
 
 const randomPresetPoolSettingsSchema = z.object({
-  // default(true)：旧数据缺 enabled 字段时恢复为开启
-  enabled: z.boolean().default(true),
+  // default(false)：缺 enabled 字段的旧数据恢复为关闭（总开关默认关）
+  enabled: z.boolean().default(false),
   pools: z.array(randomPresetPoolSchema),
 });
 

@@ -64,9 +64,9 @@ export function createRandomPresetPool(
 }
 
 /**
- * 创建默认随机预设池设置（空池）
+ * 创建默认随机预设池设置（空池，总开关默认关闭）
  * @returns 随机预设池设置
  */
 export function createRandomPresetPoolSettings(): RandomPresetPoolSettings {
-  return { enabled: true, pools: [] };
+  return { enabled: false, pools: [] };
 }

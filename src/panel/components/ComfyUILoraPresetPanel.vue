@@ -72,7 +72,7 @@
                   <!-- 名称：可悬停预览，flex-1 截断 -->
                   <ComfyUILoraPreviewButton :comfyui-url="props.comfyuiUrl" :lora-name="lora.name" />
                 </div>
-                <div v-else class="grid w-full grid-cols-[minmax(0,1fr)_5.75rem_auto_auto] items-center gap-(--cv-space-md)">
+                <div v-else class="grid w-full grid-cols-[minmax(0,1fr)_4.25rem_auto_auto] items-center gap-(--cv-space-md)">
                   <!-- Select / InputNumber：现有绑定不变，加 size="small" -->
                   <Select
                     :model-value="lora.name"
@@ -87,7 +87,14 @@
                     aria-label="LoRA 文件"
                     filter
                     @update:model-value="updateLora(lora.id, { name: String($event ?? '') })"
-                  />
+                  >
+                    <template #option="{ option }">
+                      <div class="flex min-w-0 items-center gap-(--cv-space-md)">
+                        <ComfyUILoraOptionThumb :comfyui-url="props.comfyuiUrl" :lora-name="(option as TextOption).value" />
+                        <span class="min-w-0 truncate">{{ option.label }}</span>
+                      </div>
+                    </template>
+                  </Select>
                   <InputNumber
                     :model-value="lora.strength"
                     :min="-5"
@@ -165,6 +172,7 @@ import {
   type ComfyUILoraSetting,
 } from '@/constants/comfyui';
 import ComfyUILoraImportDialog from '@/panel/components/comfyui/ComfyUILoraImportDialog.vue';
+import ComfyUILoraOptionThumb from '@/panel/components/comfyui/ComfyUILoraOptionThumb.vue';
 import ComfyUILoraPreviewButton from '@/panel/components/comfyui/ComfyUILoraPreviewButton.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import CvMiniToggleSwitch from '@/panel/components/CvMiniToggleSwitch.vue';
@@ -231,12 +239,17 @@ const loras = computed({
   },
 });
 
-/** Sortable 配置：与提示词条目列表一致（仅把手拖动、触屏长按延迟） */
+/** Sortable 配置：与提示词条目列表一致（仅把手拖动、触屏长按延迟、fallback 克隆作唯一虚线幽灵，原条目隐形） */
 const loraDragOptions = {
   handle: '.cv-lora-handle',
   animation: 150,
   ghostClass: 'cv-message-row-ghost',
+  // 跟随鼠标的克隆幽灵（fallbackClass 样式定义在 PromptEntryList.vue 的全局样式中，勿重复定义）
+  fallbackClass: 'cv-message-row-fallback',
   chosenClass: 'cv-message-row-chosen',
+  // 原生 HTML5 拖放会导致屏幕闪烁，改用 fallback 跟随幽灵（ghost/fallback 样式定义在 PromptEntryList.vue 的全局样式中）
+  forceFallback: true,
+  fallbackOnBody: true,
   delayOnTouchOnly: true,
   delay: 120,
   touchStartThreshold: 5,

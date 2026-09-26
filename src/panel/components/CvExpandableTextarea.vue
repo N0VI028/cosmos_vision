@@ -24,7 +24,7 @@
     <Dialog
       v-model:visible="dialogVisible"
       modal
-      :header="dialogTitle"
+      :show-header="false"
       :style="EXPANDABLE_DIALOG_STYLE"
       :content-style="EXPANDABLE_DIALOG_CONTENT_STYLE"
       :pt="EXPANDABLE_DIALOG_PT"
@@ -41,7 +41,8 @@
         />
       </div>
       <template #footer>
-        <div class="flex w-full items-center justify-between">
+        <div class="flex w-full items-center justify-end gap-(--cv-space-sm)">
+          <Button label="取消" text :fluid="false" @click="cancelDialog" />
           <Button label="完成" icon="fa-solid fa-check" :fluid="false" @click="dialogVisible = false" />
         </div>
       </template>
@@ -79,10 +80,8 @@ const props = withDefaults(
     disabled?: boolean;
     /** 追加给内部 Textarea 的额外 class */
     textareaClass?: string;
-    /** 大窗标题 */
-    dialogTitle?: string;
   }>(),
-  { rows: 3, autoResize: false, placeholder: '', disabled: false, textareaClass: '', dialogTitle: '编辑内容' },
+  { rows: 3, autoResize: false, placeholder: '', disabled: false, textareaClass: '' },
 );
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
@@ -92,6 +91,8 @@ const dialogFieldRef = ref<TextareaRef>(null);
 const dialogVisible = ref(false);
 /** 打开大窗时记下的光标位置 */
 let savedPosition = 0;
+/** 打开大窗时的值快照，用于取消回滚 */
+let dialogSnapshot = '';
 
 /** 内部 Textarea 原生元素（供外部 token 插入等逻辑取用） */
 const textareaEl = computed(() => getTextareaElement(fieldRef.value));
@@ -103,8 +104,17 @@ defineExpose({ textareaEl });
 function openDialog(): void {
   const el = textareaEl.value;
   savedPosition = el ? el.selectionStart : props.modelValue.length;
+  dialogSnapshot = props.modelValue;
   dialogVisible.value = true;
   void nextTick(() => focusTextarea(readDialogTextareaElement(), savedPosition));
+}
+
+/**
+ * 取消编辑并回滚到打开大窗时的快照
+ */
+function cancelDialog(): void {
+  emit('update:modelValue', dialogSnapshot);
+  dialogVisible.value = false;
 }
 
 /**

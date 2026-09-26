@@ -15,7 +15,7 @@ describe('settings store recovery and state management', () => {
   it('initializes default settings and updates dark mode', () => {
     const store = useSettingsStore();
     expect(store.settings.imageSource).toBe('novelai');
-    expect(store.settings.randomPresetPools).toEqual({ enabled: true, pools: [] });
+    expect(store.settings.randomPresetPools).toEqual({ enabled: false, pools: [] });
     expect(store.isDirty).toBe(false);
 
     store.settings.imageSource = 'comfyui';
@@ -78,13 +78,13 @@ describe('settings store recovery and state management', () => {
     expect(promptLlm.accounts[0].shouldStream).toBe(true);
   });
 
-  it('recovers random preset pools with enabled defaulting to true when legacy data lacks it', () => {
+  it('recovers random preset pools with enabled defaulting to false when legacy data lacks it', () => {
     extensionSettings.cosmos_vision = {
       randomPresetPools: { pools: [{ id: 'pool-1', name: '旧池', side: 'positive', enabled: true, triggerMode: 'always', triggerModels: [], triggerWorkflowIds: [], presetIds: ['a'] }] },
     };
 
     const store = useSettingsStore();
-    expect(store.settings.randomPresetPools.enabled).toBe(true);
+    expect(store.settings.randomPresetPools.enabled).toBe(false);
     expect(store.settings.randomPresetPools.pools).toHaveLength(1);
   });
 
