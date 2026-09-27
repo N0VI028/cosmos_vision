@@ -3,11 +3,22 @@
     "target": "ESNext",
     "module": "ESNext",
     "outDir": "dist",
+    "rootDir": "../../../../../",
     "baseUrl": "src",
-    "types": ["jquery", "lodash", "toastr", "vite/client"],
+    "ignoreDeprecations": "6.0",
+    "types": [
+      "jquery",
+      "lodash",
+      "toastr",
+      "vite/client"
+    ],
     "paths": {
-      "@sillytavern/*": ["../../../../../*"],
-      "@/*": ["./*"]
+      "@sillytavern/*": [
+        "../../../../../*"
+      ],
+      "@/*": [
+        "./*"
+      ]
     },
     "moduleDetection": "auto",
     "moduleResolution": "bundler",
@@ -28,6 +39,14 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["*.d.ts", "src/**/*.ts", "src/**/*.vue", "tests/**/*.ts"],
-  "exclude": ["**/node_modules/**", "**/dist/**"]
+  "include": [
+    "*.d.ts",
+    "src/**/*.ts",
+    "src/**/*.vue",
+    "tests/**/*.ts"
+  ],
+  "exclude": [
+    "**/node_modules/**",
+    "**/dist/**"
+  ]
 }
