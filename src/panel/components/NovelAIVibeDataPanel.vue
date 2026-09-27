@@ -1,6 +1,7 @@
 <template>
   <StaticPanel title="Vibe 数据" class="[--cv-vibe-grid-max-h:36rem]">
     <template #actions>
+      <CvLayoutToggle v-model="layout" />
       <CvMiniButton
         :label="isSelecting ? '取消选择' : '选择'"
         icon="fa-regular fa-check-double"
@@ -10,7 +11,23 @@
     </template>
 
     <div
-      v-if="loading"
+      v-if="loading && layout === 'list'"
+      class="flex max-h-(--cv-vibe-grid-max-h,36rem) flex-col gap-(--cv-space-sm) overflow-y-auto"
+    >
+      <CvDataCard v-for="index in 4" :key="index">
+        <div class="flex items-center gap-(--cv-space-md) px-(--cv-space-md) py-(--cv-space-sm)">
+          <Skeleton height="2.5rem" width="2.5rem" border-radius="var(--cv-radius-sm)" />
+          <div class="flex min-w-0 flex-1 flex-col gap-(--cv-space-xs)">
+            <Skeleton height="1rem" width="60%" />
+            <Skeleton height="0.9rem" width="42%" />
+            <Skeleton height="1.2rem" width="6rem" border-radius="999px" />
+          </div>
+        </div>
+      </CvDataCard>
+    </div>
+
+    <div
+      v-else-if="loading"
       class="grid max-h-(--cv-vibe-grid-max-h,36rem) grid-cols-3 gap-(--cv-space-4xl) overflow-y-auto max-[56rem]:grid-cols-2"
     >
       <CvDataCard v-for="index in 4" :key="index">
@@ -48,89 +65,163 @@
             v-for="row in visibleRows"
             :key="row.rowIndex"
             :ref="rowRef(row.rowIndex)"
-            class="grid grid-cols-3 gap-x-(--cv-space-4xl) pb-(--cv-space-4xl) max-[56rem]:grid-cols-2"
+            :class="
+              layout === 'list'
+                ? 'flex flex-col gap-(--cv-space-sm) pb-(--cv-space-sm)'
+                : 'grid grid-cols-3 gap-x-(--cv-space-4xl) pb-(--cv-space-4xl) max-[56rem]:grid-cols-2'
+            "
           >
-            <CvDataCard
-              v-for="item in row.items"
-              :key="item.sourceHash"
-              :selected="isItemSelected(item.sourceHash)"
-              :selecting="isSelecting"
-              :disabled="busy"
-              @toggle="toggleItem(item.sourceHash)"
-            >
-              <div class="relative flex min-w-0 flex-col">
-                <div v-if="isSelecting" class="absolute top-(--cv-space-lg) left-(--cv-space-lg) z-1" @click.stop>
-                  <Checkbox
-                    binary
-                    :model-value="isItemSelected(item.sourceHash)"
-                    :disabled="busy"
-                    @update:model-value="toggleItem(item.sourceHash)"
-                  />
-                </div>
+            <template v-for="item in row.items" :key="item.sourceHash">
+              <!-- 列表态：单行横向卡片 -->
+              <CvDataCard
+                v-if="layout === 'list'"
+                :selected="isItemSelected(item.sourceHash)"
+                :selecting="isSelecting"
+                :disabled="busy"
+                @toggle="toggleItem(item.sourceHash)"
+              >
+                <div class="flex items-center gap-(--cv-space-md) px-(--cv-space-md) py-(--cv-space-sm)">
+                  <div v-if="isSelecting" @click.stop>
+                    <Checkbox
+                      binary
+                      :model-value="isItemSelected(item.sourceHash)"
+                      :disabled="busy"
+                      @update:model-value="toggleItem(item.sourceHash)"
+                    />
+                  </div>
 
-                <div
-                  class="flex aspect-square items-center justify-center overflow-hidden border-(length:--cv-border-width) border-b border-solid border-[color-mix(in_srgb,var(--cv-surface-variant)_72%,transparent)] bg-(--cv-surface-container-high) text-(--cv-on-surface-variant)"
-                  :class="!item.thumbnailData && 'flex-col gap-(--cv-space-sm)'"
-                >
-                  <img
-                    v-if="item.thumbnailData"
-                    :src="item.thumbnailData"
-                    alt=""
-                    class="block size-full object-cover"
-                  />
-                  <template v-else>
-                    <span class="text-(length:--cv-font-size-2xl) leading-none font-bold text-(--cv-primary-container)"
-                      >V</span
+                  <!-- 缩略图：有缩略图数据用图片，否则 V + 状态文案占位（缩小适配 2.5rem 容器） -->
+                  <div class="size-10 shrink-0 overflow-hidden rounded-(--cv-radius-sm)">
+                    <img
+                      v-if="item.thumbnailData"
+                      :src="item.thumbnailData"
+                      alt=""
+                      class="block size-full object-cover"
+                    />
+                    <div
+                      v-else
+                      class="flex size-full flex-col items-center justify-center gap-(--cv-space-xs) text-(--cv-on-surface-variant)"
                     >
-                    <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
-                      {{ item.hasImage ? 'HAS IMG' : 'NO IMG' }}
-                    </span>
-                  </template>
-                </div>
+                      <span class="text-(length:--cv-font-size-xs) leading-none font-bold text-(--cv-primary-container)"
+                        >V</span
+                      >
+                      <span class="text-[0.5rem] leading-none">
+                        {{ item.hasImage ? 'HAS IMG' : 'NO IMG' }}
+                      </span>
+                    </div>
+                  </div>
 
-                <div class="flex min-w-0 flex-col gap-(--cv-space-sm) p-(--cv-space-4xl)">
-                  <div
-                    class="overflow-hidden text-(length:--cv-font-size-xs) leading-[1.4] font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
-                  >
-                    {{ getNovelAIVibeDisplayFileName(item) }}
+                  <div class="flex min-w-0 flex-1 flex-col gap-(--cv-space-xs)">
+                    <div class="truncate text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)">
+                      {{ getNovelAIVibeDisplayFileName(item) }}
+                    </div>
+                    <div class="flex min-w-0 flex-wrap items-center gap-(--cv-space-sm)">
+                      <Tag
+                        v-for="tagItem in buildTagItems(item)"
+                        :key="tagItem.label"
+                        :value="tagItem.label"
+                        :severity="tagItem.severity"
+                        class="leading-none text-wrap"
+                      />
+                    </div>
                   </div>
-                  <div
-                    class="overflow-hidden text-(length:--cv-font-size-xs) text-ellipsis whitespace-nowrap text-(--cv-on-surface-variant)"
-                  >
-                    {{ formatCreatedAt(item.createdAt) }} · {{ item.sourceHash.slice(0, 8) }}
-                  </div>
-                  <div class="flex flex-wrap items-center gap-(--cv-space-sm)">
-                    <Tag
-                      v-for="tagItem in buildTagItems(item)"
-                      :key="tagItem.label"
-                      :value="tagItem.label"
-                      :severity="tagItem.severity"
-                      class="leading-none text-wrap"
+
+                  <div v-if="!isSelecting" class="flex shrink-0 items-center gap-(--cv-space-sm)" @click.stop>
+                    <CvMiniButton
+                      icon="fa-regular fa-download"
+                      aria-label="下载"
+                      :disabled="busy"
+                      @click="$emit('download-item', item)"
+                    />
+                    <CvMiniButton
+                      icon="fa-regular fa-trash"
+                      tone="error"
+                      aria-label="删除"
+                      :disabled="busy"
+                      @click="$emit('delete-item', item)"
                     />
                   </div>
                 </div>
+              </CvDataCard>
 
-                <div
-                  v-if="!isSelecting"
-                  class="flex items-center justify-end gap-(--cv-space-md) px-(--cv-space-4xl) pb-(--cv-space-4xl)"
-                  @click.stop
-                >
-                  <CvMiniButton
-                    icon="fa-regular fa-download"
-                    aria-label="下载"
-                    :disabled="busy"
-                    @click="$emit('download-item', item)"
-                  />
-                  <CvMiniButton
-                    icon="fa-regular fa-trash"
-                    tone="error"
-                    aria-label="删除"
-                    :disabled="busy"
-                    @click="$emit('delete-item', item)"
-                  />
+              <!-- 网格态：现有卡片 -->
+              <CvDataCard
+                v-else
+                :selected="isItemSelected(item.sourceHash)"
+                :selecting="isSelecting"
+                :disabled="busy"
+                @toggle="toggleItem(item.sourceHash)"
+              >
+                <div class="relative flex min-w-0 flex-col">
+                  <div v-if="isSelecting" class="absolute top-(--cv-space-lg) left-(--cv-space-lg) z-1" @click.stop>
+                    <Checkbox
+                      binary
+                      :model-value="isItemSelected(item.sourceHash)"
+                      :disabled="busy"
+                      @update:model-value="toggleItem(item.sourceHash)"
+                    />
+                  </div>
+
+                  <div
+                    class="flex aspect-square items-center justify-center overflow-hidden border-(length:--cv-border-width) border-b border-solid border-[color-mix(in_srgb,var(--cv-surface-variant)_72%,transparent)] bg-(--cv-surface-container-high) text-(--cv-on-surface-variant)"
+                    :class="!item.thumbnailData && 'flex-col gap-(--cv-space-sm)'"
+                  >
+                    <img
+                      v-if="item.thumbnailData"
+                      :src="item.thumbnailData"
+                      alt=""
+                      class="block size-full object-cover"
+                    />
+                    <template v-else>
+                      <span
+                        class="text-(length:--cv-font-size-2xl) leading-none font-bold text-(--cv-primary-container)"
+                        >V</span
+                      >
+                      <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
+                        {{ item.hasImage ? 'HAS IMG' : 'NO IMG' }}
+                      </span>
+                    </template>
+                  </div>
+
+                  <div class="flex min-w-0 flex-col gap-(--cv-space-sm) p-(--cv-space-4xl)">
+                    <div
+                      class="overflow-hidden text-(length:--cv-font-size-xs) leading-[1.4] font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
+                    >
+                      {{ getNovelAIVibeDisplayFileName(item) }}
+                    </div>
+                    <div class="flex flex-wrap items-center gap-(--cv-space-sm)">
+                      <Tag
+                        v-for="tagItem in buildTagItems(item)"
+                        :key="tagItem.label"
+                        :value="tagItem.label"
+                        :severity="tagItem.severity"
+                        class="leading-none text-wrap"
+                      />
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="!isSelecting"
+                    class="flex items-center justify-end gap-(--cv-space-md) px-(--cv-space-4xl) pb-(--cv-space-4xl)"
+                    @click.stop
+                  >
+                    <CvMiniButton
+                      icon="fa-regular fa-download"
+                      aria-label="下载"
+                      :disabled="busy"
+                      @click="$emit('download-item', item)"
+                    />
+                    <CvMiniButton
+                      icon="fa-regular fa-trash"
+                      tone="error"
+                      aria-label="删除"
+                      :disabled="busy"
+                      @click="$emit('delete-item', item)"
+                    />
+                  </div>
                 </div>
-              </div>
-            </CvDataCard>
+              </CvDataCard>
+            </template>
           </div>
         </div>
       </div>
@@ -155,10 +246,12 @@
 import Checkbox from 'primevue/checkbox';
 import Skeleton from 'primevue/skeleton';
 import Tag from 'primevue/tag';
+import { useLocalStorage } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import { NOVELAI_MODELS, type NovelAIModel } from '@/constants/novelai';
 import { useVirtualCardGrid } from '@/composables/useVirtualCardGrid';
 import CvDataCard from '@/panel/components/CvDataCard.vue';
+import CvLayoutToggle from '@/panel/components/CvLayoutToggle.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import StaticPanel from '@/panel/components/StaticPanel.vue';
 import { getNovelAIVibeDisplayFileName } from '@/services/novelai/vibe-display';
@@ -191,9 +284,11 @@ const selectedHashes = ref<string[]>([]);
 const selectedCount = computed(() => selectedHashes.value.length);
 const isAllSelected = computed(() => props.items.length > 0 && selectedCount.value === props.items.length);
 const isSelectionToggleDisabled = computed(() => props.loading || props.busy || !props.items.length);
+const layout = useLocalStorage<'grid' | 'list'>('cosmos-vision:vibe-layout', 'grid');
 // 顶层解构以获得模板自动解包（嵌套在普通对象里的 ref 不会解包）
 const { containerProps, wrapperProps, visibleRows, rowRef } = useVirtualCardGrid<NovelAIVibeCacheListItem>(
   () => props.items,
+  { layout: () => layout.value },
 );
 
 watch(
@@ -252,10 +347,5 @@ function buildTagItems(item: NovelAIVibeCacheListItem): VibeTagItem[] {
       }))
     : [{ label: '未知模型', severity: 'warn' as const }];
   return [...modelTags, { label: item.hasImage ? '有原图' : '仅编码', severity: item.hasImage ? 'info' : 'warn' }];
-}
-
-function formatCreatedAt(createdAt: number): string {
-  const date = new Date(createdAt);
-  return `${date.getMonth() + 1}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 </script>
