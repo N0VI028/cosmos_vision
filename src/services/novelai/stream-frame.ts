@@ -35,6 +35,32 @@ interface DecodeState { offset: number }
 const textDecoder = new TextDecoder()
 const MAX_FRAME_SIZE = 32 * 1024 * 1024 // 32MB
 
+/** 流式读停滞超时（毫秒）：连接中途死亡时既无数据也不关闭，需主动判定断流 */
+const STREAM_STALL_TIMEOUT_MS = 30_000
+
+/**
+ * 带停滞看门狗的流读取：收到过数据后长时间无新分块即抛错，避免干等总超时
+ * @param reader 响应体流读取器
+ * @param armed 是否已收到过数据（未收到首块前不计时，排队等待发生在响应头/首块之前）
+ * @returns 单次读取结果（done 或新分块）
+ * @throws 已收到数据后又超过停滞时限无新数据时抛出错误
+ */
+async function readChunkWithStall(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  armed: boolean,
+): Promise<ReadableStreamReadResult<Uint8Array>> {
+  if (!armed) return reader.read()
+  let timerId: ReturnType<typeof setTimeout> | undefined
+  const stall = new Promise<never>((_, reject) => {
+    timerId = setTimeout(() => reject(new Error(`流式连接 ${STREAM_STALL_TIMEOUT_MS / 1000} 秒无新数据，可能已中断`)), STREAM_STALL_TIMEOUT_MS)
+  })
+  try {
+    return await Promise.race([reader.read(), stall])
+  } finally {
+    clearTimeout(timerId)
+  }
+}
+
 function ensureAvail(b: Uint8Array, s: DecodeState, n: number) {
   if (s.offset + n > b.length) throw new Error('msgpack 数据不完整')
 }
@@ -202,12 +228,14 @@ export async function* parseMsgpackFrames(
 ): AsyncGenerator<NovelAIStreamFrame, void, unknown> {
   const reader = stream.getReader()
   let buf = new Uint8Array(0)
+  let receivedData = false
 
   try {
     while (true) {
-      const { done, value } = await reader.read()
+      const { done, value } = await readChunkWithStall(reader, receivedData)
       if (done) break
       if (!value?.length) continue
+      receivedData = true
 
       // 追加新数据
       const next = new Uint8Array(buf.length + value.length)
@@ -484,6 +512,7 @@ async function* readEvents(stream: ReadableStream<Uint8Array>): AsyncGenerator<S
   const decoder = new TextDecoder('utf-8')
   let buffer = ''
   let searchIndex = 0
+  let receivedData = false
 
   let currentEvent = ''
   const currentData: string[] = []
@@ -559,9 +588,10 @@ async function* readEvents(stream: ReadableStream<Uint8Array>): AsyncGenerator<S
 
   try {
     while (true) {
-      const { done, value } = await reader.read()
+      const { done, value } = await readChunkWithStall(reader, receivedData)
       if (done) break
       if (!value?.length) continue
+      receivedData = true
 
       buffer += decoder.decode(value, { stream: true })
       if (buffer.length > MAX_SSE_BUFFER) {

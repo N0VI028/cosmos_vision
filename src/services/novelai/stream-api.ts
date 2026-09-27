@@ -188,6 +188,7 @@ async function postStreamRequest(
       signal: options.signal,
     });
     await ensureStreamSuccess(response);
+    await ensureStreamNotJsonError(response);
     return response;
   } catch (error) {
     throw new Error(`[fetch] ${(error as Error).message}`);
@@ -202,6 +203,19 @@ async function ensureStreamSuccess(response: Response): Promise<void> {
   if (response.ok) return;
   const detail = await response.text().catch(() => '');
   throw new Error(`NovelAI 请求失败: ${response.status}${detail ? ' ' + detail.slice(0, 160) : ''}`);
+}
+
+/**
+ * 拦截流式端点返回的 JSON 负载
+ * 未实现流式端点时会返回 200 + JSON 错误（如 {"error":"File not found"}），
+ * 若交给 msgpack 解析，JSON 首字节会被误读为帧头报"非法 msgpack 帧长度"
+ * @param response 官方流式响应
+ */
+async function ensureStreamNotJsonError(response: Response): Promise<void> {
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.includes('json')) return;
+  const detail = (await response.text().catch(() => '')).trim().slice(0, 160);
+  throw new Error(`该源可能不支持流式生成，请在设置中关闭流式生成后重试${detail ? `（服务端返回: ${detail}）` : ''}`);
 }
 
 /**

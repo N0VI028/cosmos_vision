@@ -5,11 +5,7 @@
     @update:value="handleAccordionChange"
   >
     <AccordionPanel value="0" :pt="panelPt">
-      <AccordionHeader :pt="headerPt">
-        <!--
-          gap 放在内层容器：官方 .p-accordionheader { all: unset } 会清掉 header 根上的 utility，
-          内层 div 不受影响，可稳定保留 gap-(--cv-space-lg)
-        -->
+      <AccordionHeader as="div" :pt="headerPt">
         <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-(--cv-space-5xl) gap-y-(--cv-space-xs)">
           <!-- 第一行：Chevron + Title -->
           <div class="flex h-[2.375rem] min-w-0 flex-1 items-center gap-(--cv-space-3xl)">
@@ -57,6 +53,7 @@
  * 可折叠面板项组件
  * 基于 PrimeVue Accordion；业务壳边框/底色在 root class，不依赖 .p-accordion*
  * header 布局 gap 必须在 slot 内层容器上，勿写在 AccordionHeader 根（官方 all:unset）
+ * header 必须以 as="div" 渲染：button 原生空格/回车激活会误触标题 slot 内的输入框（含 IME 空格选词），勿改回
  */
 const props = withDefaults(
   defineProps<{
@@ -86,7 +83,7 @@ const panelPt = {
 const headerPt = computed(() => ({
   root: {
     class: [
-      'cv-collapsible-panel__header px-(--cv-space-md) py-0',
+      'cv-collapsible-panel__header px-(--cv-space-md) py-0 cursor-pointer select-none',
       props.disabled ? 'opacity-[0.62]' : '',
     ],
   },

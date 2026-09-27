@@ -19,6 +19,9 @@
             <div
               v-if="editingPersonId === person.id"
               class="flex h-full min-w-0 flex-1 items-center gap-(--cv-space-md)"
+              @click.stop
+              @keydown.stop
+              @keyup.stop
             >
               <InputText
                 v-model="editingDraft"
@@ -26,6 +29,8 @@
                 size="small"
                 autofocus
                 @click.stop
+                @keydown.stop
+                @keyup.stop
                 @keydown.enter.stop.prevent="finishEditing(person)"
                 @keydown.esc.stop.prevent="finishEditing(person)"
               />

@@ -829,13 +829,15 @@ body.dark .cv-inline-toolbar {
   }
 }
 
-/* 段落下方的生成状态条容器 */
+/* 段落下方的生成状态条容器（普通宿主）：与画廊主图（.cv-inline-img-wrap）同宽（35em）居中，出图前后视觉无缝衔接 */
 .cv-inline-generation-status {
   display: block;
   width: 100%;
-  margin: var(--cv-space-md, 0.5rem) 0 var(--cv-space-lg, 0.75rem);
+  max-width: 35em;
+  margin: var(--cv-space-md, 0.5rem) auto var(--cv-space-lg, 0.75rem);
   pointer-events: auto;
   padding-inline: 1px;
+  overflow-anchor: none;
 }
 
 .cv-inline-generation-status--overlay {
@@ -843,8 +845,9 @@ body.dark .cv-inline-toolbar {
   inset: 0;
   z-index: 4;
   min-height: 100%;
+  max-width: none;
   margin: 0;
-  /* 壳本身不拦点击；消息条可点取消/重试，缩略图在壳外可点 */
+  /* 壳本身不拦截点击；消息条可点取消/重试，缩略图在壳外可点 */
   pointer-events: none;
   background: color-mix(in srgb, var(--cv-surface-container-high) 42%, transparent);
   -webkit-backdrop-filter: blur(0.35em);
@@ -865,6 +868,23 @@ body.dark .cv-inline-toolbar {
   pointer-events: auto;
 }
 
+/* 当普通宿主存在流式预览图时：状态条卡片转为舞台壳，Message 悬浮在图片正上方，过程图在底层并带毛玻璃遮罩 */
+.cv-inline-generation-status--has-preview {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--cv-radius-sm);
+}
+
+.cv-inline-generation-status--has-preview .cv-prime-message {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  width: calc(100% - 1.5em);
+  margin: 0.75em;
+  pointer-events: auto;
+}
+
 /* Message 内容紧凑：文本撑开，业务按钮行靠右 */
 .cv-inline-generation-status .cv-prime-message-content {
   gap: 0.4em;
@@ -877,17 +897,33 @@ body.dark .cv-inline-toolbar {
   min-width: 0;
 }
 
-/* 流式预览舞台（普通宿主）：与画廊主图同宽（35em）居中，圆角与画廊主图舞台一致 */
+/* 流式预览舞台（普通宿主）：作为底层卡片舞台，与画廊同宽并带有与 overlay 模式一致的毛玻璃模糊氛围 */
 .cv-inline-stream-stage {
   position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 35em;
-  margin: 0.5em auto 0;
+  min-height: 5em;
+  margin: 0;
   overflow: hidden;
   border-radius: var(--cv-radius-sm);
+  overflow-anchor: none;
+}
+
+/* 过程图遮罩层：与重新生图（overlay）保持一模一样的背景色与毛玻璃滤镜 */
+.cv-inline-stream-stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--cv-surface-container-high) 42%, transparent);
+  -webkit-backdrop-filter: blur(0.35em);
+  backdrop-filter: blur(0.35em);
 }
 
 .cv-inline-stream-stage img {
+  position: relative;
+  z-index: 0;
   display: block;
   width: 100%;
   height: auto;
@@ -910,12 +946,11 @@ body.dark .cv-inline-toolbar {
   object-fit: contain;
 }
 
-/* 状态条平滑退场：普通宿主高度塌缩 + 淡出；overlay 宿主仅淡出 */
+/* 状态条平滑退场：透明度淡出，不做物理高度塌缩，避免挤压下方元素产生 Y 轴抖动 */
 .cv-inline-generation-status--leaving {
-  overflow: hidden;
   opacity: 0;
-  margin-block: 0;
-  transition: height 0.2s ease, opacity 0.2s ease, margin 0.2s ease;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
 }
 
 /*
@@ -945,9 +980,11 @@ body.dark .cv-inline-toolbar {
   margin-block: 4px;
 }
 
-/* PrimeVue ProgressBar 填充元素（p-progressbar-value）：宽度过渡让步进跳变平滑 */
+/* PrimeVue ProgressBar 填充元素（p-progressbar-value）：禁用宽度过渡——
+   中转站流式多为"生成完一次性回放"，帧间隔仅几十毫秒，ease 过渡每帧只追回几个百分点
+   导致进度条长期滞后、末帧一口气冲尾；宽度直接跟随数值才能与"X/Y 步"文本一致 */
 .cv-inline-generation-progress .p-progressbar-value {
-  transition: width 0.3s ease;
+  transition: none;
 }
 
 .cv-inline-generation-text {
