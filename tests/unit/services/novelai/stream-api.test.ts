@@ -153,6 +153,7 @@ describe('sniffImageMime', () => {
 describe('requestNovelAIAccountImagesStream', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   /** 构建基于默认设置的测试参数 */
@@ -272,6 +273,23 @@ describe('requestNovelAIAccountImagesStream', () => {
     ).rejects.toThrow('NovelAI 请求失败: 401');
   });
 
+  it('200 + JSON 负载时 reject 提示该源可能不支持流式生成', async () => {
+    const args = createArgs();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response('{"error":"File not found"}', {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      ),
+    );
+
+    await expect(
+      requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 1, 1),
+    ).rejects.toThrow('该源可能不支持流式生成');
+  });
+
   it('请求体携带 stream=msgpack 且命中流式端点', async () => {
     const args = createArgs();
     const stream = createStream([
@@ -361,6 +379,51 @@ describe('requestNovelAIAccountImagesStream', () => {
     await expect(
       requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 123, 2),
     ).rejects.toThrow('流式生成仅返回 1/2 张图片');
+  });
+
+  it('msgpack 流收到数据后 30 秒无新分块时 reject 停滞错误', async () => {
+    vi.useFakeTimers();
+    const args = createArgs();
+    // 中转站连接中途死亡的真实形态：发过中间帧后既无数据也不关流
+    const stalledStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(frameChunk({ event_type: 'intermediate', samp_ix: 0, gen_id: 0, step_ix: 5 })));
+      },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(stalledStream, { status: 200, headers: { 'content-type': 'application/msgpack' } }),
+      ),
+    );
+
+    const assertion = expect(
+      requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 123, 1),
+    ).rejects.toThrow('流式连接 30 秒无新数据');
+    await vi.advanceTimersByTimeAsync(30_001);
+    await assertion;
+  });
+
+  it('SSE 流收到数据后 30 秒无新分块时 reject 停滞错误', async () => {
+    vi.useFakeTimers();
+    const args = createArgs();
+    const stalledStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(sseChunk('intermediate', sseFinalPayload(0))));
+      },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(stalledStream, { status: 200, headers: { 'content-type': 'text/event-stream' } }),
+      ),
+    );
+
+    const assertion = expect(
+      requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 123, 1),
+    ).rejects.toThrow('流式连接 30 秒无新数据');
+    await vi.advanceTimersByTimeAsync(30_001);
+    await assertion;
   });
 
   it('error 帧异常路径下响应体也被 cancel 断流', async () => {

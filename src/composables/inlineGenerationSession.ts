@@ -83,10 +83,8 @@ type ActiveInlineGenerationSessions = Map<HTMLElement, InlineGenerationSession>;
 type InlineGenerationStatusSlots = Record<string, () => ReturnType<typeof h>>;
 
 const ERROR_REMOVE_DELAY_MS = 8000;
-/** overlay 状态条淡出退场时长 */
+/** 状态条淡出退场时长 */
 const STATUS_FADE_MS = 200;
-/** 普通状态条高度塌缩 + 淡出退场时长 */
-const STATUS_COLLAPSE_MS = 220;
 const MODE_SEVERITY: Record<InlineGenerationStatusMode, 'secondary' | 'error'> = {
   running: 'secondary',
   error: 'error',
@@ -400,19 +398,9 @@ function createInlineGenerationStatus(options: InlineGenerationStatusOptions): I
   function remove(): void {
     if (removed) return;
     removed = true;
-    if (host.classList.contains('cv-inline-generation-status--overlay')) {
-      // overlay 宿主铺在画廊上，直接淡出即可
-      host.classList.add('cv-inline-generation-status--leaving');
-      window.setTimeout(unmountHost, STATUS_FADE_MS);
-      return;
-    }
-    // 普通宿主先锁定当前高度，下一帧再过渡到 0，保证高度塌缩有动画
-    host.style.height = `${host.offsetHeight}px`;
-    requestAnimationFrame(() => {
-      host.classList.add('cv-inline-generation-status--leaving');
-      host.style.height = '0';
-      window.setTimeout(unmountHost, STATUS_COLLAPSE_MS);
-    });
+    // 统一通过透明度淡出退出，不做物理高度塌缩，避免挤压页面引起 Y 轴跳跃
+    host.classList.add('cv-inline-generation-status--leaving');
+    window.setTimeout(unmountHost, STATUS_FADE_MS);
   }
 
   function setStatus(
@@ -477,6 +465,7 @@ function renderStatus(
   );
   if (options.appContext) vnode.appContext = options.appContext;
   const streamStage = isRunning ? renderStreamPreview(state.streamPreview, host) : null;
+  host.classList.toggle('cv-inline-generation-status--has-preview', Boolean(streamStage));
   render(streamStage ? h(Fragment, [vnode, streamStage]) : vnode, host);
 }
 
@@ -539,7 +528,7 @@ function renderStatusButtons(
 }
 
 /**
- * 格式化状态文本（运行中且包含进度时追加百分比，带步数时再追加 X/Y 步）
+ * 格式化状态文本（运行中且包含进度时附加百分比，带步数时再附加 X/Y 步）
  * @param state 当前状态
  * @param isRunning 是否正在运行
  * @returns 状态文本

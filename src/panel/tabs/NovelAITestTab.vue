@@ -133,27 +133,28 @@
           :slots="streamSlots"
           class="mb-(--cv-space-2xl)"
         />
-        <div
-          v-else-if="testStatus === 'success'"
-          class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-green-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-green-500)"
-        >
-          <i class="fa-solid fa-circle-check" />
-          <span class="break-all whitespace-normal">{{ successStateText }}</span>
-        </div>
-        <div
-          v-else-if="testStatus === 'error'"
-          class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-red-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-red-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-red-500)"
-        >
-          <i class="fa-solid fa-circle-exclamation" />
-          <span class="break-all whitespace-normal">{{ errorMessage }}</span>
-        </div>
-        <!-- 运行中有流式槽位时预览舞台替代画廊（预览末帧=成图，完成后画廊接管显示，尺寸一致切换自然） -->
-        <TestImageGallery
-          v-else
-          :image-blobs="previewBlobs"
-          :snapshot="previewPromptSnapshot"
-          :placeholder="previewPlaceholderText"
-        />
+        <!-- 预览舞台与"横幅+画廊"互斥；成功/错误横幅与画廊并列，完成后画廊接管显示最终图 -->
+        <template v-else>
+          <div
+            v-if="testStatus === 'success'"
+            class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-green-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-green-500)"
+          >
+            <i class="fa-solid fa-circle-check" />
+            <span class="break-all whitespace-normal">{{ successStateText }}</span>
+          </div>
+          <div
+            v-else-if="testStatus === 'error'"
+            class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-red-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-red-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-red-500)"
+          >
+            <i class="fa-solid fa-circle-exclamation" />
+            <span class="break-all whitespace-normal">{{ errorMessage }}</span>
+          </div>
+          <TestImageGallery
+            :image-blobs="previewBlobs"
+            :snapshot="previewPromptSnapshot"
+            :placeholder="previewPlaceholderText"
+          />
+        </template>
       </div>
     </div>
 

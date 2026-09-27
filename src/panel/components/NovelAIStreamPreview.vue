@@ -47,10 +47,8 @@ function slotClass(slot: StreamPreviewSlot): string {
     >
       <img :src="slots[0].previewUrl" class="block w-full object-contain" alt="流式预览" />
       <div class="absolute inset-x-0 bottom-0 h-1 bg-black/50">
-        <div
-          class="h-full transition-all duration-200 bg-(--cvp-primary-color)"
-          :style="{ width: `${progressPercent(slots[0])}%` }"
-        />
+        <!-- 无宽度过渡：突发回放的流帧间隔仅几十毫秒，带过渡会长期滞后再冲尾 -->
+        <div class="h-full bg-(--cvp-primary-color)" :style="{ width: `${progressPercent(slots[0])}%` }" />
       </div>
     </div>
     <div
@@ -72,10 +70,7 @@ function slotClass(slot: StreamPreviewSlot): string {
       />
       <div v-else class="flex h-full items-center justify-center text-(--cv-on-surface-variant)">待生成</div>
       <div v-if="!slot.completed && slot.previewUrl" class="absolute inset-x-0 bottom-0 h-1 bg-black/50">
-        <div
-          class="h-full transition-all duration-200 bg-(--cvp-primary-color)"
-          :style="{ width: `${progressPercent(slot)}%` }"
-        />
+        <div class="h-full bg-(--cvp-primary-color)" :style="{ width: `${progressPercent(slot)}%` }" />
       </div>
     </div>
   </div>

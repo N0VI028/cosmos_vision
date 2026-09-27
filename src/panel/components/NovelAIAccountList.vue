@@ -18,13 +18,21 @@
         @toggle="toggleCollapse(account.id)"
       >
         <template #title>
-          <div v-if="editingAccountId === account.id" class="flex h-full min-w-0 flex-1 items-center gap-(--cv-space-md)">
+          <div
+            v-if="editingAccountId === account.id"
+            class="flex h-full min-w-0 flex-1 items-center gap-(--cv-space-md)"
+            @click.stop
+            @keydown.stop
+            @keyup.stop
+          >
             <InputText
               v-model="editingDraft"
               class="h-8 min-w-0 flex-1"
               size="small"
               autofocus
               @click.stop
+              @keydown.stop
+              @keyup.stop
               @keydown.enter.stop.prevent="finishEditing(account)"
               @keydown.esc.stop.prevent="finishEditing(account)"
             />
