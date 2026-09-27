@@ -91,8 +91,8 @@ const dialogClass = computed(() => [
 ]);
 const dialogStyle = computed(() =>
   isMobile.value
-    ? { width: 'calc(100vw - 2rem)', maxWidth: '28rem' }
-    : { width: '28rem', maxWidth: 'calc(100vw - 3rem)' },
+    ? { width: 'calc(100dvw - 2rem)', maxWidth: '28rem' }
+    : { width: '28rem', maxWidth: 'calc(100dvw - 3rem)' },
 );
 const contentStyle = { overflow: 'hidden' } as const;
 const DOWNLOAD_DIALOG_Z_INDEX = 100100;

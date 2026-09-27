@@ -2,9 +2,7 @@
   <span
     class="block min-w-0 flex-1 cursor-pointer overflow-hidden text-(length:--cv-font-size-sm) text-ellipsis whitespace-nowrap transition-colors duration-200 ease-in-out"
     :class="
-      props.loraName.trim()
-        ? 'hover:text-(--cvp-primary-color)'
-        : 'pointer-events-none text-(--cv-on-surface-variant)'
+      props.loraName.trim() ? 'hover:text-(--cvp-primary-color)' : 'pointer-events-none text-(--cv-on-surface-variant)'
     "
     :aria-label="props.loraName.trim() ? '预览 LoRA' : undefined"
     @pointerenter="onPreviewPointerEnter"
@@ -18,7 +16,7 @@
     <div class="flex max-h-[24rem] flex-col gap-(--cv-space-sm) p-(--cv-space-xs)">
       <div
         v-if="previewState === 'loading'"
-        class="flex w-[min(20rem,80vw)] items-center justify-center gap-(--cv-space-md) py-(--cv-space-2xl) text-(--cv-on-surface-variant)"
+        class="flex w-[min(20rem,80dvw)] items-center justify-center gap-(--cv-space-md) py-(--cv-space-2xl) text-(--cv-on-surface-variant)"
       >
         <i class="fa-solid fa-spinner animate-spin text-(length:--cv-font-size-base)" aria-hidden="true" />
         <span class="text-(length:--cv-font-size-xs)">正在加载预览图…</span>
@@ -27,14 +25,17 @@
         v-else-if="previewState === 'ready'"
         :src="previewImageUrl"
         :alt="loraName.trim()"
-        class="max-h-[20rem] max-w-[min(20rem,80vw)] self-start rounded-(--cv-radius-sm)"
+        class="max-h-[20rem] max-w-[min(20rem,80dvw)] self-start rounded-(--cv-radius-sm)"
         @error="onPreviewImageError"
       />
       <div
         v-else
-        class="flex w-[min(20rem,80vw)] flex-col items-center justify-center gap-(--cv-space-sm) py-(--cv-space-xl) text-center text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
+        class="flex w-[min(20rem,80dvw)] flex-col items-center justify-center gap-(--cv-space-sm) py-(--cv-space-xl) text-center text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
       >
-        <i class="fa-solid fa-circle-exclamation text-(length:--cv-font-size-base) text-(--cv-on-surface-variant)" aria-hidden="true" />
+        <i
+          class="fa-solid fa-circle-exclamation text-(length:--cv-font-size-base) text-(--cv-on-surface-variant)"
+          aria-hidden="true"
+        />
         <span class="wrap-break-word">{{ previewErrorMessage }}</span>
       </div>
     </div>

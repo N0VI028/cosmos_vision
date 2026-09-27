@@ -41,11 +41,7 @@
       </DefineNodeSelect>
 
       <!-- 非全屏状态提示行（statusTone 非 info 时显示 statusText） -->
-      <div
-        v-if="!fullscreen && statusTone !== 'info' && statusText"
-        class="cv-field-hint"
-        :class="statusClass"
-      >
+      <div v-if="!fullscreen && statusTone !== 'info' && statusText" class="cv-field-hint" :class="statusClass">
         {{ statusText }}
       </div>
 
@@ -265,12 +261,7 @@ import {
   listInputControls,
 } from '@/services/comfyui/object-info';
 import { parseComfyUIWorkflow, serializeComfyUIWorkflow } from '@/services/comfyui/parse';
-import type {
-  ComfyUIObjectInfoMap,
-  ComfyUIWorkflow,
-  PromptBinding,
-  SeedMode,
-} from '@/services/comfyui/types';
+import type { ComfyUIObjectInfoMap, ComfyUIWorkflow, PromptBinding, SeedMode } from '@/services/comfyui/types';
 import type { TavernAvatarSource } from '@/services/tavern-helper/avatar';
 import {
   buildFavoriteLocateOptions,
@@ -752,7 +743,7 @@ onBeforeUnmount(() => {
 .cv-workflow-locate-popover {
   width: max-content;
   min-width: 160px;
-  max-width: min(15rem, 80vw);
+  max-width: min(15rem, 80dvw);
 }
 
 .cv-workflow-node-select .p-select-label {

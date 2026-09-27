@@ -17,6 +17,8 @@
  */
 
 .cosmos-vision-root .cv-shell {
+  /* 主区内容列限宽：header 与 content 共用，保证标题区与内容左右对齐 */
+  --cv-content-measure: 53.3333em;
   @apply flex;
   position: relative;
   height: 100%;
@@ -290,9 +292,20 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: var(--cv-space-lg);
-  padding: var(--cv-space-5xl) var(--cv-space-8xl);
+  padding-block: var(--cv-space-10xl);
+  padding-inline: var(--cv-space-8xl);
   flex-shrink: 0;
+}
+
+/* header 内容列：与 .cv-content-inner 同限宽同居中，标题/二级标签与内容共用左右边距 */
+.cosmos-vision-root .cv-header-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cv-space-lg);
+  /* 父级为纵向 flex，交叉轴 auto margin 会取消拉伸改为收缩包裹，需显式满宽后由 max-width 居中 */
+  width: 100%;
+  max-width: var(--cv-content-measure);
+  margin: 0 auto;
 }
 
 .cosmos-vision-root .cv-breadcrumb {
@@ -408,7 +421,7 @@
 }
 
 .cosmos-vision-root .cv-content-inner {
-  max-width: 53.3333em;
+  max-width: var(--cv-content-measure);
   margin: 0 auto;
   padding-bottom: var(--cv-space-12xl);
 }
@@ -643,7 +656,8 @@
   }
 
   .cosmos-vision-root .cv-header {
-    padding: var(--cv-space-4xl) var(--cv-space-5xl);
+    padding-block: var(--cv-space-8xl);
+    padding-inline: var(--cv-space-8xl);
     min-height: auto;
   }
 
@@ -658,7 +672,7 @@
   }
 
   .cosmos-vision-root .cv-content {
-    padding: 0 var(--cv-space-5xl) var(--cv-space-5xl);
+    padding: 0 var(--cv-space-8xl) var(--cv-space-5xl);
   }
 
   .cosmos-vision-root .cv-content-inner {

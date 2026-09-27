@@ -487,7 +487,7 @@ onBeforeUnmount(() => {
       ref="overlayRef"
       class="cv-onboarding cosmos-vision-root pointer-events-auto absolute inset-0 isolate h-screen w-screen overflow-hidden font-(family-name:--cv-font-body)"
       :class="{ [DARK_CLASS]: darkMode }"
-      style="z-index: 999999;"
+      style="z-index: 999999"
       role="dialog"
       aria-modal="true"
       aria-label="Cosmos Vision 使用教程"
@@ -522,7 +522,7 @@ onBeforeUnmount(() => {
         v-show="!cardHidden"
         ref="cardRef"
         v-focus-trap="{ autoFocus: true, disabled: cardHidden }"
-        class="cv-onboarding__card fixed z-2 box-border flex max-h-[calc(100vh-2rem)] w-[min(26rem,calc(100vw-2rem))] flex-col gap-(--cv-space-4xl) overflow-y-auto rounded-(--cv-radius-lg) border-(length:--cv-border-width) border-solid border-(--cv-outline) bg-(--cv-surface-container-lowest) p-(--cv-space-7xl) wrap-break-word whitespace-normal text-(--cv-on-surface) shadow-[0_1.5rem_4rem_rgb(0_0_0/32%)] max-[40rem]:max-h-[min(75vh,calc(100vh-2rem))] max-[40rem]:p-(--cv-space-4xl)"
+        class="cv-onboarding__card fixed z-2 box-border flex max-h-[calc(100dvh-2rem)] w-[min(26rem,calc(100dvw-2rem))] flex-col gap-(--cv-space-4xl) overflow-y-auto rounded-(--cv-radius-lg) border-(length:--cv-border-width) border-solid border-(--cv-outline) bg-(--cv-surface-container-lowest) p-(--cv-space-7xl) wrap-break-word whitespace-normal text-(--cv-on-surface) shadow-[0_1.5rem_4rem_rgb(0_0_0/32%)] max-[40rem]:max-h-[min(75dvh,calc(100dvh-2rem))] max-[40rem]:p-(--cv-space-4xl)"
         :style="cardStyle"
         data-cv-tutorial-surface
       >

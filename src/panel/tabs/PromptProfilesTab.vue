@@ -16,7 +16,10 @@
           @toggle="togglePerson(person.id)"
         >
           <template #title>
-            <div v-if="editingPersonId === person.id" class="flex h-full min-w-0 flex-1 items-center gap-(--cv-space-md)">
+            <div
+              v-if="editingPersonId === person.id"
+              class="flex h-full min-w-0 flex-1 items-center gap-(--cv-space-md)"
+            >
               <InputText
                 v-model="editingDraft"
                 class="h-8 min-w-0 flex-1"
@@ -278,7 +281,7 @@ const showConfirm =
       severity?: string;
     }) => Promise<boolean>
   >('showConfirm');
-const tagParseDialogStyle = { width: '30rem', maxWidth: 'calc(100vw - 2rem)' } as const;
+const tagParseDialogStyle = { width: '30rem', maxWidth: 'calc(100dvw - 2rem)' } as const;
 
 const filteredProfiles = computed(() =>
   settings.promptProfiles.profiles.filter(person => person.kind === activeKind.value),

@@ -4,10 +4,10 @@ import './expandable-editor-dialog.css';
  * 全屏编辑大窗共享尺寸：近全屏，四周留呼吸边距
  */
 export const EXPANDABLE_DIALOG_STYLE = {
-  width: 'min(56rem, calc(100vw - 4rem))',
+  width: 'min(56rem, calc(100dvw - 4rem))',
   height: 'min(85dvh, 48rem)',
   maxHeight: 'calc(100dvh - 2rem)',
-  maxWidth: 'calc(100vw - 2rem)',
+  maxWidth: 'calc(100dvw - 2rem)',
 } as const;
 
 /**

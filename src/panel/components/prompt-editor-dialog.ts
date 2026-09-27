@@ -6,7 +6,7 @@ import './prompt-editor-dialog.css';
 export const PROMPT_EDITOR_DIALOG_STYLE = {
   width: '42rem',
   maxHeight: 'min(42rem, calc(100dvh - 2rem))',
-  maxWidth: 'calc(100vw - 2rem)',
+  maxWidth: 'calc(100dvw - 2rem)',
 } as const;
 
 /**

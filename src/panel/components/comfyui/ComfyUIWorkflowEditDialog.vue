@@ -51,7 +51,7 @@ import { getComfyUIWorkflowValidationError } from '@/services/comfyui/parse';
 /** 弹窗样式 */
 const DIALOG_STYLE = {
   width: '38rem',
-  maxWidth: 'calc(100vw - 2rem)',
+  maxWidth: 'calc(100dvw - 2rem)',
 } as const;
 
 const props = defineProps<{

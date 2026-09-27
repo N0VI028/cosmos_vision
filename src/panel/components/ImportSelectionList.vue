@@ -10,7 +10,9 @@
     </div>
 
     <!-- 列表滚动区 -->
-    <div class="custom-scrollbar flex max-h-[min(52vh,26rem)] min-h-[10rem] flex-col gap-(--cv-space-md) overflow-y-auto overscroll-contain">
+    <div
+      class="custom-scrollbar flex max-h-[min(52dvh,26rem)] min-h-[10rem] flex-col gap-(--cv-space-md) overflow-y-auto overscroll-contain"
+    >
       <div
         v-for="row in props.rows"
         :key="row.id"
@@ -31,7 +33,7 @@
           class="size-11 shrink-0 rounded-(--cv-radius-sm) object-cover"
           loading="lazy"
           @error="markPreviewFailed(row.id)"
-        >
+        />
         <!-- 图片占位仅在配方列表开启；默认预设列表不显示图标 -->
         <span
           v-else-if="props.showPreviewPlaceholder"
@@ -41,13 +43,13 @@
         </span>
         <span class="flex min-w-0 flex-1 flex-col gap-(--cv-space-2xs)">
           <span
-            class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-xs) font-medium text-(--cv-on-surface)"
+            class="min-w-0 overflow-hidden text-(length:--cv-font-size-xs) font-medium text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
             :title="row.title"
           >
             {{ row.title }}
           </span>
           <span
-            class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
+            class="min-w-0 overflow-hidden text-(length:--cv-font-size-xs) text-ellipsis whitespace-nowrap text-(--cv-on-surface-variant)"
           >
             {{ row.subtitle }}
           </span>

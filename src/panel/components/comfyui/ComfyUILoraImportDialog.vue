@@ -10,13 +10,7 @@
   >
     <!-- 入口态：选择导入方式 -->
     <div v-if="mode === 'entry'" class="flex flex-col gap-(--cv-space-lg) py-(--cv-space-sm)">
-      <input
-        ref="fileInputRef"
-        type="file"
-        accept="application/json,.json"
-        class="hidden"
-        @change="onFileSelected"
-      >
+      <input ref="fileInputRef" type="file" accept="application/json,.json" class="hidden" @change="onFileSelected" />
       <button
         type="button"
         class="flex w-full cursor-pointer items-center justify-center gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-dashed border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)] py-(--cv-space-2xl) text-(length:--cv-font-size-sm) text-(--cv-on-surface) transition-all duration-200 ease-in-out hover:border-(--cv-outline) hover:bg-(--cv-surface-container-low) hover:text-(--cvp-primary-color)"
@@ -43,7 +37,10 @@
       v-else-if="mode === 'loading'"
       class="flex min-h-[14rem] flex-col items-center justify-center gap-(--cv-space-lg) text-(length:--cv-font-size-sm) text-(--cv-on-surface-variant)"
     >
-      <i class="fa-solid fa-spinner animate-spin text-(length:--cv-font-size-2xl) text-(--cvp-primary-color)" aria-hidden="true" />
+      <i
+        class="fa-solid fa-spinner animate-spin text-(length:--cv-font-size-2xl) text-(--cvp-primary-color)"
+        aria-hidden="true"
+      />
       <span>正在拉取 LoRA Manager 配方…</span>
     </div>
 
@@ -55,7 +52,14 @@
         class="flex min-h-[12rem] flex-col items-center justify-center gap-(--cv-space-md) px-(--cv-space-xl) text-center text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
       >
         <span class="text-(--cvp-red-500)">{{ errorMessage }}</span>
-        <Button label="重试" severity="secondary" variant="text" size="small" :fluid="false" @click="startFetchRecipes" />
+        <Button
+          label="重试"
+          severity="secondary"
+          variant="text"
+          size="small"
+          :fluid="false"
+          @click="startFetchRecipes"
+        />
       </div>
 
       <!-- 空结果状态 -->
@@ -112,7 +116,7 @@ interface ImportRow {
 /** 弹窗样式 */
 const DIALOG_STYLE = {
   width: '26rem',
-  maxWidth: 'calc(100vw - 2rem)',
+  maxWidth: 'calc(100dvw - 2rem)',
 } as const;
 
 type DialogMode = 'entry' | 'loading' | 'list';

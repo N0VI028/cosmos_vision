@@ -115,50 +115,53 @@
 
         <!-- 顶部标题 -->
         <header class="cv-header">
-          <div ref="breadcrumbRef" class="cv-breadcrumb">
-            <span class="cv-breadcrumb-item">设置</span>
-            <i class="fa-solid fa-chevron-right cv-breadcrumb-sep" />
-            <span class="cv-breadcrumb-item cv-breadcrumb-item--active">{{ currentTabLabel }}</span>
-
-            <!-- Section 层级 -->
-            <template v-if="currentSection">
+          <!-- 与内容区共用同一限宽容器，保证标题/二级标签与内容列左右对齐 -->
+          <div class="cv-header-inner">
+            <div ref="breadcrumbRef" class="cv-breadcrumb">
+              <span class="cv-breadcrumb-item">设置</span>
               <i class="fa-solid fa-chevron-right cv-breadcrumb-sep" />
-              <div class="cv-breadcrumb-section-wrapper">
-                <button
-                  type="button"
-                  class="cv-breadcrumb-item cv-breadcrumb-item--active cv-breadcrumb-dropdown"
-                  @click="toggleSectionMenu"
-                >
-                  {{ currentSection }}
-                  <i v-if="sections.length > 1" class="fa-solid fa-chevron-down cv-breadcrumb-dropdown-icon" />
-                </button>
+              <span class="cv-breadcrumb-item cv-breadcrumb-item--active">{{ currentTabLabel }}</span>
 
-                <!-- 下拉菜单 -->
-                <div v-if="showSectionMenu && sections.length > 1" class="cv-section-menu">
+              <!-- Section 层级 -->
+              <template v-if="currentSection">
+                <i class="fa-solid fa-chevron-right cv-breadcrumb-sep" />
+                <div class="cv-breadcrumb-section-wrapper">
                   <button
-                    v-for="section in sections"
-                    :key="section.id"
                     type="button"
-                    class="cv-section-menu-item"
-                    :class="{ 'cv-section-menu-item--active': section.title === currentSection }"
-                    @click="scrollToSection(section)"
+                    class="cv-breadcrumb-item cv-breadcrumb-item--active cv-breadcrumb-dropdown"
+                    @click="toggleSectionMenu"
                   >
-                    {{ section.title }}
+                    {{ currentSection }}
+                    <i v-if="sections.length > 1" class="fa-solid fa-chevron-down cv-breadcrumb-dropdown-icon" />
                   </button>
+
+                  <!-- 下拉菜单 -->
+                  <div v-if="showSectionMenu && sections.length > 1" class="cv-section-menu">
+                    <button
+                      v-for="section in sections"
+                      :key="section.id"
+                      type="button"
+                      class="cv-section-menu-item"
+                      :class="{ 'cv-section-menu-item--active': section.title === currentSection }"
+                      @click="scrollToSection(section)"
+                    >
+                      {{ section.title }}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </template>
+              </template>
+            </div>
+            <span class="cv-header-title">{{ currentTabLabel }}</span>
+            <SubTabNav v-if="activeTab === 'main'" v-model="mainSubTab" :tabs="MAIN_SUB_TABS" />
+            <SubTabNav v-if="activeTab === 'novelai'" v-model="novelaiSubTab" :tabs="NOVELAI_SUB_TABS" />
+            <SubTabNav v-if="activeTab === 'comfyui'" v-model="comfyuiSubTab" :tabs="COMFYUI_SUB_TABS" />
+            <SubTabNav v-if="activeTab === 'prompt-llm'" v-model="promptLlmSubTab" :tabs="PROMPT_LLM_SUB_TABS" />
+            <SubTabNav
+              v-if="activeTab === 'prompt-profiles'"
+              v-model="promptProfilesSubTab"
+              :tabs="PROMPT_PROFILES_SUB_TABS"
+            />
           </div>
-          <span class="cv-header-title">{{ currentTabLabel }}</span>
-          <SubTabNav v-if="activeTab === 'main'" v-model="mainSubTab" :tabs="MAIN_SUB_TABS" />
-          <SubTabNav v-if="activeTab === 'novelai'" v-model="novelaiSubTab" :tabs="NOVELAI_SUB_TABS" />
-          <SubTabNav v-if="activeTab === 'comfyui'" v-model="comfyuiSubTab" :tabs="COMFYUI_SUB_TABS" />
-          <SubTabNav v-if="activeTab === 'prompt-llm'" v-model="promptLlmSubTab" :tabs="PROMPT_LLM_SUB_TABS" />
-          <SubTabNav
-            v-if="activeTab === 'prompt-profiles'"
-            v-model="promptProfilesSubTab"
-            :tabs="PROMPT_PROFILES_SUB_TABS"
-          />
         </header>
 
         <!-- 滚动内容区 -->
@@ -378,8 +381,8 @@ function toggleRail(): void {
 
 const confirmDialogStyle = computed(() =>
   isMobile.value
-    ? { width: 'calc(100vw - 2rem)', maxWidth: '26rem' }
-    : { width: '24rem', maxWidth: 'calc(100vw - 2rem)' },
+    ? { width: 'calc(100dvw - 2rem)', maxWidth: '26rem' }
+    : { width: '24rem', maxWidth: 'calc(100dvw - 2rem)' },
 );
 
 const contentStyle = { padding: '0', overflow: 'hidden' } as const;

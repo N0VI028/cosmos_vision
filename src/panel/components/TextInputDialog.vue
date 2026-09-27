@@ -12,7 +12,7 @@
     @show="focusInput"
   >
     <div
-      class="flex max-h-[min(68vh,34rem)] w-full flex-col gap-(--cv-space-3xl) overflow-x-hidden overflow-y-auto overscroll-contain *:shrink-0"
+      class="flex max-h-[min(68dvh,34rem)] w-full flex-col gap-(--cv-space-3xl) overflow-x-hidden overflow-y-auto overscroll-contain *:shrink-0"
     >
       <div class="cv-confirm-message mb-2">{{ message }}</div>
       <div class="flex min-h-0 flex-col gap-(--cv-space-lg)">
@@ -36,7 +36,7 @@
         <CvExpandableTextarea
           ref="inputRef"
           v-model="value"
-          class="custom-scrollbar max-h-[min(28vh,14rem)] min-h-28 w-full resize-none overflow-y-auto overscroll-contain"
+          class="custom-scrollbar max-h-[min(28dvh,14rem)] min-h-28 w-full resize-none overflow-y-auto overscroll-contain"
           :rows="rows"
           @click="rememberSelection"
           @keyup="rememberSelection"
@@ -64,8 +64,8 @@
           v-if="quickPhrases.length"
           ref="chipsContainerRef"
           class="flex flex-wrap gap-(--cv-space-xs)"
-          :class="isExpanded ? 'custom-scrollbar max-h-40 overflow-y-auto' : 'max-h-[4.75rem] overflow-hidden'
-        ">
+          :class="isExpanded ? 'custom-scrollbar max-h-40 overflow-y-auto' : 'max-h-[4.75rem] overflow-hidden'"
+        >
           <button
             v-for="(phrase, index) in quickPhrases"
             :key="index"
@@ -96,7 +96,7 @@
         </div>
         <CvExpandableTextarea
           v-model="secondaryValue"
-          class="custom-scrollbar max-h-[min(24vh,12rem)] min-h-[5.5rem] w-full resize-none overflow-y-auto overscroll-contain"
+          class="custom-scrollbar max-h-[min(24dvh,12rem)] min-h-[5.5rem] w-full resize-none overflow-y-auto overscroll-contain"
           :rows="secondaryRows"
         />
       </div>
@@ -127,7 +127,7 @@
                 >
                 <CvExpandableTextarea
                   v-model="character.positivePrompt"
-                  class="custom-scrollbar max-h-[min(18vh,9rem)] min-h-[4.5rem] w-full resize-none overflow-y-auto overscroll-contain"
+                  class="custom-scrollbar max-h-[min(18dvh,9rem)] min-h-[4.5rem] w-full resize-none overflow-y-auto overscroll-contain"
                   :rows="3"
                 />
               </div>
@@ -137,7 +137,7 @@
                 >
                 <CvExpandableTextarea
                   v-model="character.negativePrompt"
-                  class="custom-scrollbar max-h-[min(18vh,9rem)] min-h-[4.5rem] w-full resize-none overflow-y-auto overscroll-contain"
+                  class="custom-scrollbar max-h-[min(18dvh,9rem)] min-h-[4.5rem] w-full resize-none overflow-y-auto overscroll-contain"
                   :rows="2"
                 />
               </div>
@@ -198,7 +198,7 @@
     :content-style="contentStyle"
   >
     <div
-      class="flex max-h-[min(56vh,28rem)] w-full flex-col gap-(--cv-space-lg) overflow-x-hidden overflow-y-auto overscroll-contain p-(--cv-space-xs)"
+      class="flex max-h-[min(56dvh,28rem)] w-full flex-col gap-(--cv-space-lg) overflow-x-hidden overflow-y-auto overscroll-contain p-(--cv-space-xs)"
     >
       <div v-if="draftPhrases.length === 0" class="cv-confirm-message text-(--cv-on-surface-variant)">
         暂无常用短语，点击下方按钮添加。
@@ -353,13 +353,13 @@ const dialogClass = computed(() => ['cv-confirm-dialog', 'cv-text-input-dialog',
 const hasSecondaryField = computed(() => Boolean(props.secondaryLabel));
 const dialogStyle = computed(() =>
   isMobile.value
-    ? { width: 'calc(100vw - 2rem)', maxWidth: '32rem', maxHeight: 'calc(100vh - 2rem)' }
-    : { width: '42rem', maxWidth: 'calc(100vw - 3rem)', maxHeight: 'calc(100vh - 3rem)' },
+    ? { width: 'calc(100dvw - 2rem)', maxWidth: '32rem', maxHeight: 'calc(100dvh - 2rem)' }
+    : { width: '42rem', maxWidth: 'calc(100dvw - 3rem)', maxHeight: 'calc(100dvh - 3rem)' },
 );
 const manageDialogStyle = computed(() =>
   isMobile.value
-    ? { width: 'calc(100vw - 2rem)', maxWidth: '30rem', maxHeight: 'calc(100vh - 2rem)' }
-    : { width: '32rem', maxWidth: 'calc(100vw - 3rem)', maxHeight: 'calc(100vh - 3rem)' },
+    ? { width: 'calc(100dvw - 2rem)', maxWidth: '30rem', maxHeight: 'calc(100dvh - 2rem)' }
+    : { width: '32rem', maxWidth: 'calc(100dvw - 3rem)', maxHeight: 'calc(100dvh - 3rem)' },
 );
 const contentStyle = { overflow: 'hidden' } as const;
 

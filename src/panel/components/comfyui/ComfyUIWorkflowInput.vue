@@ -821,7 +821,7 @@ async function onLocalFileSelected(event: Event): Promise<void> {
 .cv-workflow-input__binding-popover {
   width: max-content;
   min-width: 140px;
-  max-width: min(15rem, 80vw);
+  max-width: min(15rem, 80dvw);
 }
 
 .cv-workflow-input__binding-popover-content {
