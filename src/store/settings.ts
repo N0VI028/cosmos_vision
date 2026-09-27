@@ -318,6 +318,7 @@ function normalizeSettings(value: unknown): PlainRecord {
   normalizeLegacyPromptLlmConnection(record);
   const normalized = _.defaultsDeep({}, record, DEFAULT_SETTINGS);
   restoreUserWorkflowPresets(normalized, record);
+  restoreUserPromptLlmMessagePresets(normalized, record);
   return normalized;
 }
 
@@ -333,6 +334,21 @@ function restoreUserWorkflowPresets(settings: PlainRecord, source: PlainRecord):
   const comfyui = toPlainRecord(settings.comfyui);
   comfyui.workflowPresets = { ...toPlainRecord(comfyui.workflowPresets), presets: _.cloneDeep(sourcePresets) };
   settings.comfyui = comfyui;
+}
+
+/**
+ * 还原用户持久化的提示词 LLM 消息预设列表
+ * defaultsDeep 会按下标合并数组：用户删过中间条目会错位复活重复项，新增默认条目会被漏补给旧触发配置的用户（新旧规则同时生效互相矛盾），故用原始记录覆盖
+ * @param settings 已补齐默认值的设置记录
+ * @param source 用户持久化的原始记录
+ */
+function restoreUserPromptLlmMessagePresets(settings: PlainRecord, source: PlainRecord): void {
+  const sourcePresets = _.get(source, 'promptLlmMessagePresets.presets');
+  if (!Array.isArray(sourcePresets) || !sourcePresets.length) return;
+  settings.promptLlmMessagePresets = {
+    ...toPlainRecord(settings.promptLlmMessagePresets),
+    presets: _.cloneDeep(sourcePresets),
+  };
 }
 
 /**

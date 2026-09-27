@@ -12,7 +12,7 @@
   "11": {
     "inputs": {
       "string": "",
-      "regex_pattern": ".*krea.*",
+      "regex_pattern": "(?i).*krea.*",
       "case_insensitive": true,
       "multiline": false,
       "dotall": false

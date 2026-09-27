@@ -7,6 +7,13 @@ import {
   DEFAULT_COMFYUI_WORKFLOW_PRESET_ID_K2_ANIMA,
   DEFAULT_COMFYUI_WORKFLOW_PRESET_NAME,
 } from '@/constants/comfyui';
+import {
+  DEFAULT_PROMPT_LLM_COMFYUI_ANIMA_RULES_MESSAGE_ID,
+  DEFAULT_PROMPT_LLM_COMFYUI_KREA_RULES_MESSAGE_ID,
+  DEFAULT_PROMPT_LLM_PRESET_ID,
+  DEFAULT_PROMPT_LLM_START_MESSAGE_ID,
+  DEFAULT_PROMPT_LLM_SYSTEM_MESSAGE_ID,
+} from '@/constants/default-prompt-llm-preset';
 import { useSettingsStore } from '@/store/settings';
 
 const extensionSettings = extension_settings as Record<string, unknown>;
@@ -169,5 +176,31 @@ describe('settings store recovery and state management', () => {
 
     expect(workflowPresets.presets.map(preset => preset.id)).toEqual(['my-workflow']);
     expect(workflowPresets.activePresetId).toBe('my-workflow');
+  });
+
+  it('does not revive deleted default LLM messages on reload', () => {
+    extensionSettings.cosmos_vision = {
+      promptLlmMessagePresets: {
+        activePresetId: DEFAULT_PROMPT_LLM_PRESET_ID,
+        presets: [
+          {
+            id: DEFAULT_PROMPT_LLM_PRESET_ID,
+            name: '默认预设',
+            // 用户已删除中间大部分默认条目，仅剩首尾两条
+            messages: [
+              { id: DEFAULT_PROMPT_LLM_START_MESSAGE_ID, title: '启动', role: 'system', content: 'a' },
+              { id: DEFAULT_PROMPT_LLM_SYSTEM_MESSAGE_ID, title: '系统提示词', role: 'system', content: 'b' },
+            ],
+          },
+        ],
+      },
+    };
+
+    const firstLoad = useSettingsStore();
+    const messageIds = firstLoad.settings.promptLlmMessagePresets.presets[0].messages.map(message => message.id);
+
+    expect(messageIds).toEqual([DEFAULT_PROMPT_LLM_START_MESSAGE_ID, DEFAULT_PROMPT_LLM_SYSTEM_MESSAGE_ID]);
+    expect(messageIds).not.toContain(DEFAULT_PROMPT_LLM_COMFYUI_KREA_RULES_MESSAGE_ID);
+    expect(messageIds).not.toContain(DEFAULT_PROMPT_LLM_COMFYUI_ANIMA_RULES_MESSAGE_ID);
   });
 });

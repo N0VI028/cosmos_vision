@@ -26,6 +26,8 @@ export const DEFAULT_PROMPT_LLM_SPECIAL_REQUEST_MESSAGE_ID = 'prompt-llm-special
 export const DEFAULT_PROMPT_LLM_NAI_RULES_V3_MESSAGE_ID = 'prompt-llm-nai-rules-v3';
 export const DEFAULT_PROMPT_LLM_NAI_RULES_V4_MESSAGE_ID = 'prompt-llm-nai-rules-v4';
 export const DEFAULT_PROMPT_LLM_COMFYUI_RULES_MESSAGE_ID = 'prompt-llm-comfyui-rules';
+export const DEFAULT_PROMPT_LLM_COMFYUI_KREA_RULES_MESSAGE_ID = 'prompt-llm-comfyui-krea-rules';
+export const DEFAULT_PROMPT_LLM_COMFYUI_ANIMA_RULES_MESSAGE_ID = 'prompt-llm-comfyui-anima-rules';
 export const DEFAULT_PROMPT_LLM_COT_ID = 'prompt-llm-cot';
 export const DEFAULT_PROMPT_LLM_EMERGENCY_TASK_ID = 'prompt-llm-emergency-task';
 export const DEFAULT_PROMPT_LLM_SKIP_THINK_ID = 'prompt-llm-skip-think';
@@ -471,7 +473,7 @@ export default {
 
         {
           id: DEFAULT_PROMPT_LLM_COMFYUI_RULES_MESSAGE_ID,
-          title: 'ComfyUI 提示词规则',
+          title: 'ComfyUI 提示词规则（通用）',
           role: 'system',
           content: `<comfyui_prompt_rules>
 
@@ -520,8 +522,6 @@ export default {
   "negativePrompt": "画面不应出现的物体/元素（禁止质量词），英文逗号分隔"
 }
 
-**注意：ComfyUI 模式下没有角色提示词（characterPrompts）一说，你必须且只能输出 \`positivePrompt\` 与 \`negativePrompt\` 两个字段。绝对不要输出 \`characterPrompts\` 字段。**
-
 输出规范：
 1. 最终的 JSON 结果必须被 \`<output>...</output>\` 标签完全包裹。不要使用 Markdown 代码块标记（如 \`\`\`json），在包裹区域之外不要输出任何无关的解释、注释或闲聊
 2. JSON 必须合法可解析
@@ -560,9 +560,241 @@ export default {
 
 </examples>`,
           enabled: true,
-          triggerMatchMode: 'any_match',
+          triggerMatchMode: 'all_mismatch',
           triggerKeywordGroups: [],
           triggerModels: [],
+          triggerImageSources: ['novelai'],
+        },
+
+        {
+          id: DEFAULT_PROMPT_LLM_COMFYUI_KREA_RULES_MESSAGE_ID,
+          title: 'ComfyUI 提示词规则（Krea-2）',
+          role: 'system',
+          content: `<comfyui_prompt_rules>
+
+## ComfyUI 语法与 Prompt 组织规则
+
+### 基本语法与多角色
+
+- **纯自然语言连贯段落**：本模型的文本编码器是多模态语言模型，**严禁使用逗号拼凑的标签汤（Tag Soup）**。必须写成语法完整、语义连贯、有主谓宾与修饰从句的英文描述段落，像给一位摄影师或插画师下达分镜 brief。
+- **连字符与分隔**：按标准英语书写，**严禁连字符拼接**（写 \`long blonde hair\`，不写 \`long-blonde-hair\`）。逗号只用于句内自然停顿，不要当作"关键词分隔符"。
+- **禁止元描述开头**：不要写 \`In this image...\`、\`The photo shows...\`，直接进入主体与场景。
+- **主体确立**：无需格式化的人数标签，用语言直接说明（\`A young woman stands...\` / \`Two teenage girls...\`）。人数与主体关系写在首句。
+- **文字渲染**：画面中需要出现的文字、招牌、标签，必须用英文双引号包裹（如 \`a wooden sign reading "EXIT"\`）。
+- **禁用 BREAK 与一切分块符**：\`BREAK\`、\`( )\`、\`[ ]\`、\`{ }\` 都会被当成字面文本读入，既不做分块也不做加权。
+- **多角色（用语法与介词隔离）**：先交代全局构图与人数，再为每个角色单独一句，明确位置（\`on the left\`、\`in the foreground\`、\`behind her on the right\`）、姿态与动作，最后补一句互动关系。禁止先报两套衣柜再分配位置。参考句式：\`Two girls chase each other under a cherry blossom tree. The girl on the left has short hair and a sailor uniform, running ahead and laughing; behind her on the right, the girl with twintails and a plaid skirt reaches out to catch her.\`
+- **一句话一个动作**：同一句里塞入两个互相竞争的动作，是画面发糊的首要原因。
+- **一次只改一个变量**：主体验证通过后，再依次单独调整光照、机位、服装、调色，否则无法判断哪一句在起作用。
+- **长度控制**：把六个要素写满即可停笔，常用 80–200 词；**约 300 词是实际信息上限**，再长不再增加信息量。信息密度优先于字数。
+- **挂载风格 LoRA 时**：把它的触发短语原样写在最前（风格声明位），其余部分只写内容；**不要在正文里再写与它冲突的风格词**，否则两者互相抢占风格预算。
+- **禁止自相矛盾**：同一角色既写短发又写极长发、既写面向镜头又写背影，会造成结构崩坏。
+
+### 权重标准格式与限制
+
+- **严禁使用任何括号权重**：本模型不识别 \`(keyword:1.2)\`、\`((keyword))\`、\`[keyword]\`，这些字符会被当作普通文本读入，破坏句子的连续表征。
+- **强调的三条正确手段（按优先级）**：
+  1. **语序即权重**：最想强调的内容放在句首/首句，前缀内容会被读成主体。
+  2. **换词重述**：同一概念换不同的词说两遍，比加权稳定（如 \`a rusted iron gate, orange corrosion eating through the hinges\`）。
+  3. **具体词汇**：用精确的具象词代替模糊的大音量词（\`oxblood\` 优于给 \`red\` 加权）。
+- **确实需要数值控制时**：调整 LoRA 强度，或使用第三方注意力加权节点（可用区间约 1.1–3.0；负值 -1 至 -5 可把概念推向反面，用于"排除某物"）。仅在确有必要时使用。
+- **严禁**对普通物品、普通动作、普通颜色加权；**严禁**用权重去修补自相矛盾的描述。
+
+### Prompt 组织顺序
+
+按"分镜 brief"的层级写成一到两段连贯英文，六个要素齐了就停：
+1. **媒介 / 风格声明**（决定"这是什么质地的图"：\`cinematic film still\`、\`digital painting\`、\`1990s anime style cel animation, flat shading\`；若挂载风格 LoRA，触发短语放在这一位）
+2. **主体 + 动作 + 神态**（画面中心是谁、正在做什么、眼神与表情）
+3. **外观 / 服装 / 材质**（面料、版型、配饰、磨损状态，以及材质如何吃光）
+4. **构图 / 镜头 / 裁切**（景别 + 机位 + 焦段 + 留白 + 画幅比例；要远景就同时写"机位更远 + 人物全身不裁切 + 人物占比小"三重信号，不要只押一个镜头词）
+5. **环境 / 背景 / 景深层次**（地点、建筑、天气、前中后景的空间关系与虚实）
+6. **光照（第一质量杠杆）**：点名光源、方向、光质与色温（\`soft window light from the left\`、\`golden hour side light\`、\`hard overhead\`）。画面发平先改光，调色救不了死掉的照明
+7. **收尾**：色彩分级、质感与美学（film grain、print texture、时代或胶片参考）
+
+进阶可选（工作流允许时）：用换行 + 自然语言标签分块 \`Camera:\` / \`Lighting:\` / \`Subject:\` / \`Environment:\` / \`Expression:\` / \`Pose:\` / \`Style:\`，每块写一段话，**只写一个 Style 段**；需要精确肢体时，用"解剖式句子"逐项描述（腿位、臂位、手位、躯干朝向、头朝向、重心脚、肌肉松紧、动作质感、剪影），而不是堆动作词。
+
+> 质量类、技术类词汇由系统统一注入，不要自己填写；本模型对 \`masterpiece, best quality\` 一类词本来也不响应。
+
+### negativePrompt 写法
+
+- **默认留空**：本模型在无引导采样（引导强度约等于 0）下负面条件几乎不生效，**不要把负面当成主要控制手段**。
+- **要"不要某物"**：优先在正面把"要的东西"写清楚（本模型对散文式否定如 \`no hat\` 不可靠）；或在使用注意力加权节点时用负值权重 \`(concept:-2)\` 实现排除/反转。
+- 结构上仍保留该字段：只填极少数必须从画面中排除的具体物体，建议 3–5 项以内。
+- **禁止质量词**（由系统统一注入）：不要填写 \`lowres\`、\`worst quality\`、\`blurry\`、\`jpeg artifacts\` 等画质或技术类词汇。
+
+</comfyui_prompt_rules>
+
+<output_format>
+
+你必须输出以下 JSON 格式。其中，最终的 JSON 结果必须且只能被 \`<output>\` 与 \`</output>\` 标签完全包裹，在包裹区域之外不要附加任何无关的解释、闲聊或 Markdown 代码块标记（如 \`\`\`json）：
+
+{
+  "positivePrompt": "正面提示词：一到两段连贯的英文自然语言，按 媒介/风格 → 主体动作 → 外观材质 → 构图裁切 → 环境景深 → 光照色彩 的顺序展开，必须写明光源方向与色温；多角色用位置介词逐人成句（严禁标签堆砌、连字符、BREAK、括号权重，禁止包含质量词）",
+  "negativePrompt": "默认输出空字符串；仅在确有必要排除具体物件时填写极简项（禁止质量词）"
+}
+
+输出规范：
+1. 最终的 JSON 结果必须被 \`<output>...</output>\` 标签完全包裹。不要使用 Markdown 代码块标记（如 \`\`\`json），在包裹区域之外不要输出任何无关的解释、注释或闲聊
+2. JSON 必须合法可解析
+3. 所有提示词必须使用通顺连贯的自然英语，禁止逗号堆砌的标签词表
+4. 严禁使用连字符、\`BREAK\` 以及任何 \`(word:1.2)\`、\`((word))\`、\`[word]\` 形式的括号权重
+5. 画面中需要出现的文字必须用英文双引号包裹
+6. 多角色必须用位置介词（on the left / behind her / in the foreground）逐人成句，并补一句互动关系
+7. 如果段落缺少视觉信息，根据上下文合理推断补充，不要询问
+8. 根据段落的情感氛围自动调整光影与色彩分级，并确保句中出现明确的光源
+9. 整体长度控制在约 300 词以内，六要素写满即可停笔
+
+</output_format>
+
+<examples>
+
+### 示例 1（单角色）
+
+输入："安洁莉卡靠在窗边，月光透过薄纱窗帘洒在她苍白的脸庞上。她穿着一件黑色丝绸睡裙，银色的长发散落在肩头，碧绿色的眼眸中映着窗外的星空。"
+
+输出：
+<output>
+{
+  "positivePrompt": "Cinematic anime illustration with delicate linework and a melancholic mood. A pale young woman in a flowing black silk nightgown leans softly against a dark wooden window frame in a quiet bedroom, her weight shifted to one side and her shoulders relaxed. Long silver hair spills loosely over one shoulder, catching small silver highlights, and her emerald-green eyes gaze upward at the night sky as faint star reflections glitter in them. Medium close-up at eye level, shallow depth of field, with the room falling away into soft darkness behind her. The only light source is cool moonlight coming diagonally through sheer white curtains from the window side, laying translucent shadows across the floor and tracing a clear rim of light along her profile.",
+  "negativePrompt": ""
+}
+</output>
+
+### 示例 2（多角色，位置介词逐人成句）
+
+输入："两个女孩在樱花树下追逐打闹。穿着水手服的短发女孩笑着跑在前面，身后是扎着双马尾、穿着格子裙的女孩伸手想要抓住她。"
+
+输出：
+<output>
+{
+  "positivePrompt": "Bright spring afternoon illustration in a lively anime style with crisp cel-shading and clean lineart. Two schoolgirls chase each other beneath the wide canopy of a blooming cherry blossom tree, petals drifting through the air between them. On the left, a girl with short brown hair and a wide laughing smile runs half a step ahead in a white and navy sailor uniform, looking back over her shoulder; behind her on the right, a girl with blonde twintails and a green plaid pleated skirt stretches both hands forward, trying to catch her friend's sleeve. Medium-wide shot at a slightly low angle, the nearer girl sharp and the path receding softly behind them. Warm dappled sunlight comes down through the branches from above, falling in shifting patches across both figures, with a bright, cheerful palette and sunlit haze in the background.",
+  "negativePrompt": ""
+}
+</output>
+
+</examples>`,
+          enabled: false,
+          triggerMatchMode: 'all_match',
+          triggerKeywordGroups: [],
+          triggerModels: ['.*krea.*'],
+          triggerImageSources: ['comfyui'],
+        },
+
+        {
+          id: DEFAULT_PROMPT_LLM_COMFYUI_ANIMA_RULES_MESSAGE_ID,
+          title: 'ComfyUI 提示词规则（Anima）',
+          role: 'system',
+          content: `<comfyui_prompt_rules>
+
+## ComfyUI 语法与 Prompt 组织规则
+
+### 基本语法与多角色
+
+- **连字符与分隔**：用英文逗号加空格分隔短语。本模型的词表以「自然语言 + 标准标签」为基础，**单词之间必须使用普通空格**（如 \`long blonde hair\`、\`sheer curtains\`）。**禁用连字符写法**（\`long-blonde-hair\`）与**下划线写法**（\`long_blonde_hair\`），它们会被切成词表外的碎片 token。
+- **双轨输入（推荐写法）**：标签负责"画面上有什么"（外观、服装、表情、镜头、环境），自然语言句子负责"在哪里、在做什么、物体之间什么关系、光从哪来"。两者可混排，全部小写。
+- **人数与角色名前置**：单人写 \`1girl, solo\`；已知角色写 \`角色名, 作品名\`；多角色写 \`2girls\` 并紧跟全部角色名（或身份代称）。
+- **多角色特征分离（核心，社区实测最稳写法）**：
+  1. 段首先交代**总人数 + 全部角色名**，再补一句整体构图（如"三人并排站在舞台前方，鼓手在后方"）。
+  2. **每个角色写成一个连续从句**：\`名字 → 极简外观锚点（发色 + 瞳色 + 一个辨识特征）→ 位置（左/右/前/后）→ 动作/道具\`。同一角色从句内部用逗号连贯，不要用句号切断；角色之间再用分号或句号切换。
+  3. **结尾用一句话复述各角色的位置与角色**（"三位主唱在前，鼓手在后"），可显著提升归属正确率。
+  4. 同类道具不要只靠颜色区分，同时写形状/数量/大小差异。
+  5. 用法示例：\`2girls, aiko, mika, outdoors, park, daytime. The girl on the left, aiko with short black hair and green eyes, runs ahead in a sailor uniform, laughing and looking back. The girl on the right, mika with blonde twintails and a plaid skirt, reaches out one hand to catch her. The black-haired girl leads in the foreground while the blonde girl follows behind her.\`
+- **禁止使用 BREAK / 分块标记做角色隔离**：官方文档未定义该语法，社区实测结论互相矛盾；请把区域划分完全交给自然语言的定位句。也不要为每个角色单独编码再拼接（会丢失跨角色的位置关系，实测会丢角色）。
+- **不要用句号切碎段落结构**：本模型对句号、换行、正式英语句式高度敏感；同一描述块内用逗号维持连贯，段落之间再断句。
+- **视线默认值**：单人场景若无特殊要求，建议补 \`direct eye contact, facing viewer\`（要侧脸/背影时例外），否则容易得到偏离的视线。
+- **画师与风格语法**：画师必须带 \`@\` 前缀（\`@artist name\`），否则影响极弱；多画师混合使用 \`@[artist1|artist2|artist3]\`，需要权重时写 \`@[artist1:2|artist2:1]\`。画师影响可能强到等同 LoRA，过强时用 \`(@artist name:0.4)\` 往下压。
+- **禁止自相矛盾**：\`short hair\` 与 \`very long hair\`、\`front view\` 与 \`from behind\`、\`solo\` 与 \`2girls\` 同写会造成结构崩坏，而不是被忽略。
+- **长度控制**：单人 40–150 token；复杂多人场景 200–500 token，**不要超过 512**（训练按 512 截断，超出即落在训练分布外）。标签数量参考：单人 16–30 个，双人 22–38 个，复杂场景 30–48 个。
+- **让大模型代写时要人工校对**：实测让更大的语言模型代写长提示词，容易出现删掉各角色外观锚点、写出矛盾动作（如"双手演奏同时拿麦克风架"）的问题，人工精修的结果明显更稳。
+
+### 权重标准格式与限制
+
+- **遵循全局的权重限制规则**，默认不加任何括号或权重数值，严禁想当然地加权重。
+- 语法与数值规则：
+  - 格式为 \`(keyword:数值)\`，**不要嵌套括号，不要使用 \`((keyword))\` 或 \`[keyword]\`**。
+  - 本模型的刻度比旧模型迟钝：轻微数值（1.1–1.2）基本没有体感，需要用更明显的数值才能看到推动；可将它同时用于"抬"和"压"：
+    - 抬高关键媒介/镜头词：\`(anime screenshot: 2.0)\`
+    - 压低过强的画师风格：\`(@artist name: 0.4)\`
+  - 常用有效区间约 0.4–2.0，**绝对不要超过 2.0**。
+- 只在这些情况下用：关键概念反复丢失 / 画师风格盖过角色 / 某条非常规镜头指令不生效。
+- **严禁**用权重去修补自相矛盾的描述，**严禁**对普通物品、普通动作、普通颜色加权。
+- 多角色示例：\`2girls, the girl on the left has long blonde hair, the girl on the right has short black hair, holding hands\`（默认不加权重；仅在某个特征反复串色时做一次性轻度强调）
+
+### Prompt 组织顺序
+
+1. 主体与人数（如 \`1girl, solo\`；多角色时 \`2girls\` + 角色名）
+2. 画师 / 风格锚点（\`@artist name\`，或 \`anime coloring, clean lineart\`）
+3. 角色外观锚点（发色发型 → 瞳色 → 表情 → 服装与材质，空格分词）
+4. 镜头 / 构图（如 \`upper body, cowboy shot, from above, looking at viewer\`）
+5. 场景 / 环境 / 时间（如 \`classroom, night, rain\`）
+6. 光影 / 氛围（若工作流已统一注入光影词，此处留空，不要重复）
+7. **1–3 句自然语言调度句（核心）**：主体在画面中的位置、正在做什么、道具与互动关系、光源从哪边来
+8. 进阶：想要"TV 动画截图感"时，把 \`anime screenshot\`、角色名、作品名写在**同一段落且彼此紧邻**，并置于该段落开头；段内用逗号而非句号分隔，整体过长时再考虑抬高 \`anime screenshot\` 的权重
+
+> 质量类、评分类标签由系统统一注入，不要自己填写；若上游没有注入，Base 版本可补 \`masterpiece, best quality, score_7, safe,\`，而偏美学调教的版本请勿使用 \`score_*\`。风格/年代/画师会改变内容而不只是画面观感，一次只改一个变量。
+
+### negativePrompt 写法
+
+- **全局负面**：填写画面里不应出现的具体事物、错误概念或多余肢体（如 \`glasses, hat, bag, crowd, extra arms, extra fingers\`），根据画面按需排除。
+- **保持精炼**：本模型对负面条件较敏感，过长的负面会压制细节并引入偏移，建议 3–10 项，只追加"实际出现过的失败项"。
+- **质量词与官方瑕疵基线由系统统一注入**，不要自己重复 \`lowres\`、\`worst quality\`、\`blurry\`、\`jpeg artifacts\` 等；偏美学调教的版本也不要在负面里写 \`score_*\`。
+- 低引导强度（低 CFG）配置下负面条件作用有限，问题优先靠正面描述解决。
+
+</comfyui_prompt_rules>
+
+<output_format>
+
+你必须输出以下 JSON 格式。其中，最终的 JSON 结果必须且只能被 \`<output>\` 与 \`</output>\` 标签完全包裹，在包裹区域之外不要附加任何无关的解释、闲聊或 Markdown 代码块标记（如 \`\`\`json）：
+
+{
+  "positivePrompt": "正面提示词：前半段为英文逗号分隔的纯小写空格标签（严禁连字符与下划线），后半段为 1-3 句完整自然语言，交代位置、动作、互动与光源；多角色必须为每个角色写一个连续从句（名字→外观锚点→位置→动作）并在结尾复述各自位置（严禁 BREAK，禁止包含质量词）",
+  "negativePrompt": "画面不应出现的物体/元素/多余肢体（禁止质量词），英文逗号分隔，3-10 项"
+}
+
+输出规范：
+1. 最终的 JSON 结果必须被 \`<output>...</output>\` 标签完全包裹。不要使用 Markdown 代码块标记（如 \`\`\`json），在包裹区域之外不要输出任何无关的解释、注释或闲聊
+2. JSON 必须合法可解析
+3. 所有提示词使用英文
+4. 单词间必须使用自然空格，严禁连字符（禁止 \`silver-hair\`，必须写为 \`silver hair\`）与下划线
+5. 严禁在提示词中使用 \`BREAK\` 或任何分块标记
+6. 画师标签必须带 \`@\` 前缀，多画师如需混合使用 \`@[artist1|artist2]\` 语法
+7. 如果段落缺少视觉信息，根据上下文合理推断补充，不要询问
+8. 根据段落的情感氛围自动调整光影和色调
+9. 极度克制地使用括号权重。默认不使用任何括号；必要时可用 \`(keyword:0.4~2.0)\` 做"压低画师风格"或"抬高关键媒介词"这类明确目的的控制，绝不超过 2.0，严禁对普通物品或动作加权
+10. 单人场景若无特殊要求，加入 \`direct eye contact, facing viewer\`
+
+</output_format>
+
+<examples>
+
+### 示例 1（单角色）
+
+输入："安洁莉卡靠在窗边，月光透过薄纱窗帘洒在她苍白的脸庞上。她穿着一件黑色丝绸睡裙，银色的长发散落在肩头，碧绿色的眼眸中映着窗外的星空。"
+
+输出：
+<output>
+{
+  "positivePrompt": "1girl, solo, silver hair, long hair, green eyes, pale skin, black silk nightgown, bedroom, window, sheer curtains, night, starry sky, upper body, looking away, anime coloring, clean lineart. A pale young woman in a black silk nightgown leans gently against the wooden window frame in a quiet bedroom. Cool moonlight filters through the translucent curtains, laying soft highlights along her loose silver hair and casting delicate shadows across her face while she gazes up at the stars.",
+  "negativePrompt": "daytime, bright sunlight, outdoor, glasses, hat, bag, multiple girls, crowd"
+}
+</output>
+
+### 示例 2（多角色，连续从句 + 位置复述）
+
+输入："两个女孩在樱花树下追逐打闹。穿着水手服的短发女孩笑着跑在前面，身后是扎着双马尾、穿着格子裙的女孩伸手想要抓住她。"
+
+输出：
+<output>
+{
+  "positivePrompt": "2girls, sakura, mika, cherry blossom tree, falling petals, spring, dappled sunlight, outdoor, anime coloring, clean lineart, dynamic composition. The girl on the left, sakura with short brown hair and a bright smile, runs ahead in a white and navy sailor uniform, glancing back over her shoulder as petals drift past her. The girl on the right, mika with blonde twintails and a green plaid pleated skirt, stretches both hands forward and laughs while chasing her friend. The short-haired girl leads in the foreground while the girl with twintails follows closely behind her under the blooming branches.",
+  "negativePrompt": "indoor, night, rain, winter, snow, 3girls, boy, extra arms, extra fingers"
+}
+</output>
+
+</examples>`,
+          enabled: false,
+          triggerMatchMode: 'all_match',
+          triggerKeywordGroups: [],
+          triggerModels: ['.*anima.*'],
           triggerImageSources: ['comfyui'],
         },
 
