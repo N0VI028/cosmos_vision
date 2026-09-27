@@ -25,7 +25,7 @@ export type PromptLlmMessageTriggerFields = Pick<
 export interface PromptLlmTriggerContext {
   historyContent: string;
   imageSource: ImageSource;
-  modelId: string;
+  modelIds: readonly string[];
 }
 
 /**
@@ -138,7 +138,7 @@ export function resolvePromptLlmMessageTriggerMatchMode(
 
 /**
  * 收集已启用条件的命中布尔值
- * 每个关键词组各算一条；模型列表与生图源列表各算一个维度（列表内任一命中）
+ * 每个关键词组各算一条；模型列表与生图源列表各算一个维度（列表内任一命中，模型维度对运行时模型集合取任一）
  * @param message 条目触发字段
  * @param context 运行时上下文
  * @returns 命中列表
@@ -152,9 +152,35 @@ function collectEnabledConditionHits(
   const sources = normalizePromptLlmMessageImageSources(message.triggerImageSources);
   const hits: boolean[] = [];
   for (const group of groups) hits.push(includesPromptLlmKeyword(context.historyContent, group));
-  if (models.length) hits.push(models.includes(context.modelId.trim()));
+  if (models.length) hits.push(matchesPromptLlmTriggerModels(models, context.modelIds));
   if (sources.length) hits.push(sources.includes(context.imageSource));
   return hits;
+}
+
+/**
+ * 判断运行时模型集合是否命中触发模型列表（任一 pattern 命中任一模型即算命中）
+ * @param models 触发模型列表（原文或正则体）
+ * @param modelIds 运行时模型集合
+ * @returns 是否命中
+ */
+function matchesPromptLlmTriggerModels(models: readonly string[], modelIds: readonly string[]): boolean {
+  const targets = modelIds.map(modelId => modelId.trim()).filter(Boolean);
+  return models.some(pattern => targets.some(target => matchesPromptLlmTriggerModelPattern(target, pattern)));
+}
+
+/**
+ * 判断单条模型触发值是否命中运行时模型名
+ * 触发值按正则体解释（无需斜杠定界符，忽略大小写）；非法正则回退为忽略大小写的全等比较
+ * @param target 运行时模型名（已修剪）
+ * @param pattern 触发值原文
+ * @returns 是否命中
+ */
+function matchesPromptLlmTriggerModelPattern(target: string, pattern: string): boolean {
+  try {
+    return new RegExp(pattern, 'i').test(target);
+  } catch {
+    return pattern.toLowerCase() === target.toLowerCase();
+  }
 }
 
 /**

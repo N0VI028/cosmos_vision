@@ -7,7 +7,6 @@
           <PresetSelector
             :presets="section.presets"
             :active-preset-id="section.activePresetId"
-            :default-preset-id="section.defaultPresetId"
             show-portability
             @update:active-preset-id="updatePromptPresetId(section.kind, $event)"
             @create="createPromptPreset(section.kind)"
@@ -15,7 +14,7 @@
             @rename="renamePromptPreset(section.kind)"
             @export-preset="exportPromptPreset(section.kind, section.activePresetId)"
             @import-presets="importPromptPresetPackage(section.kind, $event)"
-            @delete-preset="deletePromptPreset(section.kind, $event, section.defaultPresetId)"
+            @delete-preset="deletePromptPreset(section.kind, $event)"
           />
           <PromptPlaceholderEditor
             v-if="section.activePreset"
@@ -31,7 +30,6 @@
         <PresetSelector
           :presets="section.presets"
           :active-preset-id="section.activePresetId"
-          :default-preset-id="section.defaultPresetId"
           show-portability
           @update:active-preset-id="updatePromptPresetId(section.kind, $event)"
           @create="createPromptPreset(section.kind)"
@@ -39,7 +37,7 @@
           @rename="renamePromptPreset(section.kind)"
           @export-preset="exportPromptPreset(section.kind, section.activePresetId)"
           @import-presets="importPromptPresetPackage(section.kind, $event)"
-          @delete-preset="deletePromptPreset(section.kind, $event, section.defaultPresetId)"
+          @delete-preset="deletePromptPreset(section.kind, $event)"
         />
         <PromptPlaceholderEditor
           v-if="section.activePreset"
@@ -68,6 +66,7 @@ import {
   importImagePromptPresetPackageFile,
 } from '@/services/data-portability/preset-toolbar';
 import { findImagePromptPreset } from '@/services/image-prompt/presets';
+import { removePresetReferences } from '@/services/image-prompt/random-preset-pool';
 import { useSettingsStore } from '@/store/settings';
 import manifest from '../../../manifest.json';
 
@@ -77,7 +76,6 @@ interface PromptPresetField {
   kind: ImagePromptPresetKind;
   label: string;
   sectionLabel: string;
-  defaultPresetId: string;
 }
 
 interface PromptPresetOption {
@@ -96,13 +94,11 @@ const PRESET_FIELDS = [
     kind: 'positive',
     label: '正面提示词',
     sectionLabel: '正面提示词',
-    defaultPresetId: DEFAULT_POSITIVE_PROMPT_PRESET_ID,
   },
   {
     kind: 'negative',
     label: '负面提示词',
     sectionLabel: '负面提示词',
-    defaultPresetId: DEFAULT_NEGATIVE_PROMPT_PRESET_ID,
   },
 ] as const satisfies ReadonlyArray<PromptPresetField>;
 
@@ -129,7 +125,7 @@ const showPrompt =
 const promptPresetSections = computed<PromptPresetSection[]>(() => {
   return PRESET_FIELDS.map(field => {
     const presets = getPromptPresetList(field.kind);
-    const activePresetId = getActivePresetId(field.kind, field.defaultPresetId);
+    const activePresetId = getActivePresetId(field.kind);
     return {
       ...field,
       activePresetId,
@@ -151,12 +147,11 @@ function getPromptPresetList(kind: ImagePromptPresetKind): ImagePromptPreset[] {
 /**
  * 读取当前渠道引用的预设 ID
  * @param kind 正面或负面
- * @param defaultPresetId 默认预设 ID
  * @returns 有效预设 ID
  */
-function getActivePresetId(kind: ImagePromptPresetKind, defaultPresetId: string): string {
+function getActivePresetId(kind: ImagePromptPresetKind): string {
   const presetId = kind === 'positive' ? props.positivePresetId : props.negativePresetId;
-  return getFallbackPromptPresetId(getPromptPresetList(kind), presetId, defaultPresetId);
+  return getFallbackPromptPresetId(getPromptPresetList(kind), presetId, getDefaultPresetId(kind));
 }
 
 /**
@@ -224,20 +219,25 @@ async function renamePromptPreset(kind: ImagePromptPresetKind): Promise<void> {
 }
 
 /**
- * 删除指定生图固定提示词预设
+ * 删除指定生图固定提示词预设并级联清理随机预设池引用
  * @param kind 正面或负面
  * @param id 预设 ID
- * @param defaultPresetId 默认预设 ID
  */
-function deletePromptPreset(kind: ImagePromptPresetKind, id: string, defaultPresetId: string): void {
-  if (id === defaultPresetId) {
-    toastr.warning('默认预设不能删除');
-    return;
-  }
+function deletePromptPreset(kind: ImagePromptPresetKind, id: string): void {
   const presets = getPromptPresetList(kind).filter(preset => preset.id !== id);
   updatePromptPresetList(kind, presets);
-  updatePromptPresetId(kind, getFallbackPromptPresetId(presets, getCurrentPresetId(kind), defaultPresetId));
+  updatePromptPresetId(kind, getFallbackPromptPresetId(presets, getCurrentPresetId(kind), getDefaultPresetId(kind)));
+  settings.randomPresetPools.pools = removePresetReferences(settings.randomPresetPools.pools, kind, id);
   toastr.success('预设已删除');
+}
+
+/**
+ * 读取指定侧的默认预设 ID
+ * @param kind 正面或负面
+ * @returns 默认预设 ID
+ */
+function getDefaultPresetId(kind: ImagePromptPresetKind): string {
+  return kind === 'positive' ? DEFAULT_POSITIVE_PROMPT_PRESET_ID : DEFAULT_NEGATIVE_PROMPT_PRESET_ID;
 }
 
 /**
@@ -373,4 +373,3 @@ function getFallbackPromptPresetId(presets: ImagePromptPreset[], preferredId: st
   );
 }
 </script>
-

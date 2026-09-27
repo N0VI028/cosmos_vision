@@ -24,6 +24,10 @@
     v-model:value="textInputDialogState.value"
     v-model:secondary-value="textInputDialogState.secondaryValue"
     v-model:characters="textInputDialogState.characters"
+    v-model:positive-preset-id="textInputDialogState.positivePresetId"
+    v-model:negative-preset-id="textInputDialogState.negativePresetId"
+    v-model:positive-core="textInputDialogState.positiveCore"
+    v-model:negative-core="textInputDialogState.negativeCore"
     :title="textInputDialogState.title"
     :message="textInputDialogState.message"
     :primary-label="textInputDialogState.primaryLabel"
@@ -34,7 +38,10 @@
     :cancel-label="textInputDialogState.cancelLabel"
     :dark-mode="darkMode"
     :enable-characters="textInputDialogState.enableCharacters"
+    :enable-preset-selector="textInputDialogState.enablePresetSelector"
+    :quick-phrases="textInputDialogState.quickPhrases"
     @submit="handleTextInputDialog"
+    @update-quick-phrases="handleQuickPhrasesUpdate"
   />
   <ImageDownloadDialog
     v-model:visible="imageDownloadDialogVisible"
@@ -42,6 +49,7 @@
     :dark-mode="darkMode"
     @submit="handleImageDownloadDialog"
   />
+  <InlineImageLightbox />
   <Teleport to="body">
     <!-- 顶部生图模式提示蒙版 -->
     <Transition name="cv-fade">
@@ -79,17 +87,13 @@
     >
       <!-- Speed Dial 菜单 -->
       <Transition name="cv-speed-dial-menu">
-        <div
-          v-if="speedDialOpen"
-          class="cv-speed-dial-menu"
-        >
-          <button
-            type="button"
-            aria-label="打开设置"
-            @pointerdown.stop
-            @click="openSettings"
-          >
+        <div v-if="speedDialOpen" class="cv-speed-dial-menu">
+          <button type="button" aria-label="打开设置" @pointerdown.stop @click="openSettings">
             <i class="fa-solid fa-gear" />
+          </button>
+          <button type="button" aria-label="打开 LLM 请求监视" @pointerdown.stop @click="openLlmInspector">
+            <i class="fa-solid fa-comments" />
+            <span v-if="hasRunningLlmSession" class="cv-fab-menu-dot" aria-hidden="true" />
           </button>
         </div>
       </Transition>
@@ -118,11 +122,19 @@
             <circle cx="25" cy="79" r="5" />
           </g>
         </svg>
+        <!-- 红点：LLM 阶段亮起后保持到生图整体结束 -->
+        <span
+          v-if="hasRunningLlmSession || hasRunningImageGeneration"
+          class="cv-fab-menu-dot"
+          aria-hidden="true"
+        />
       </button>
     </div>
   </Teleport>
   <!-- 短码 / 临时画廊：Teleport 到聊天内 cv-render -->
   <InlineGalleryRuntimeHost />
+  <!-- LLM 请求监视弹窗：由悬浮球次级菜单打开，实时查看内联生图的指令与模型响应 -->
+  <LlmInspectorDrawer v-model:open="llmInspectorOpen" />
 </template>
 
 <script setup lang="ts">
@@ -131,6 +143,7 @@ import { storeToRefs } from 'pinia';
 import { DARK_CLASS } from '@/constants/default-settings';
 import SettingsDialog from '@/panel/SettingsDialog.vue';
 import ImageDownloadDialog from '@/panel/components/ImageDownloadDialog.vue';
+import InlineImageLightbox from '@/panel/components/InlineImageLightbox.vue';
 import TextInputDialog from '@/panel/components/TextInputDialog.vue';
 import { useSettingsStore } from '@/store/settings';
 import {
@@ -141,6 +154,9 @@ import {
   type InlineTextInputOptions,
 } from '@/composables/useInlineImageGeneration';
 import InlineGalleryRuntimeHost from '@/panel/components/InlineGalleryRuntimeHost.vue';
+import LlmInspectorDrawer from '@/panel/components/LlmInspectorDrawer.vue';
+import { useLlmInspectorStore } from '@/store/llm-inspector';
+import { hasRunningImageGeneration } from '@/store/image-generation-activity';
 import {
   extractMessageParagraphs,
   findMessageId,
@@ -156,13 +172,7 @@ import {
 } from '@/services/inline-image/download-options';
 import { ensurePromptStripRegex } from '@/services/inline-image/prompt-strip-regex';
 import { checkExtensionUpdate, updateDetected } from '@/services/version-check/st-update';
-import type { TextInputCharacterDraft } from '@/panel/components/TextInputDialog.vue';
-
-interface TextInputDialogSubmitValue {
-  value: string;
-  secondaryValue: string;
-  characters: TextInputCharacterDraft[];
-}
+import type { TextInputCharacterDraft, TextInputDialogSubmitValue } from '@/panel/components/TextInputDialog.vue';
 
 interface TextInputDialogState {
   title: string;
@@ -176,7 +186,13 @@ interface TextInputDialogState {
   acceptLabel: string;
   cancelLabel: string;
   enableCharacters: boolean;
+  enablePresetSelector: boolean;
+  positivePresetId: string;
+  negativePresetId: string;
+  positiveCore: string;
+  negativeCore: string;
   characters: TextInputCharacterDraft[];
+  quickPhrases?: string[];
   resolve: (value: TextInputDialogSubmitValue | null) => void;
 }
 
@@ -202,6 +218,21 @@ const settingsFocusParagraphElements = ref<HTMLElement[]>([]);
 /** Speed Dial 菜单展开状态 */
 const speedDialOpen = ref(false);
 
+/** LLM 请求监视弹窗开合状态 */
+const llmInspectorOpen = ref(false);
+/** 是否存在进行中的 LLM 会话（次级菜单红点提示） */
+const { hasRunningSession: hasRunningLlmSession } = storeToRefs(useLlmInspectorStore());
+
+/**
+ * 从悬浮球次级菜单打开 LLM 请求监视弹窗并收起菜单
+ * 与 openSettings 同逻辑：打开时退出段落生图选择态
+ */
+function openLlmInspector(): void {
+  speedDialOpen.value = false;
+  exitSelectionMode();
+  llmInspectorOpen.value = true;
+}
+
 const settingsStore = useSettingsStore();
 const { savedSettings } = settingsStore;
 const { darkMode } = storeToRefs(settingsStore);
@@ -220,7 +251,13 @@ const textInputDialogState = ref<TextInputDialogState>({
   acceptLabel: '确定',
   cancelLabel: '取消',
   enableCharacters: false,
+  enablePresetSelector: false,
+  positivePresetId: '',
+  negativePresetId: '',
+  positiveCore: '',
+  negativeCore: '',
   characters: [],
+  quickPhrases: undefined,
   resolve: () => {},
 });
 const imageDownloadDialogOptions = ref(createDefaultInlineImageDownloadOptions());
@@ -229,16 +266,14 @@ const imageDownloadDialogState = ref<ImageDownloadDialogState>({
 });
 
 /** 段落生图运行时控制器 */
-const { isSelectionMode, toggleSelectionMode, exitSelectionMode, refreshGalleryTheme, cleanup } = useInlineImageGeneration(
-  savedSettings,
-  {
+const { isSelectionMode, toggleSelectionMode, exitSelectionMode, refreshGalleryTheme, cleanup } =
+  useInlineImageGeneration(savedSettings, {
     isRuntimeEnabled: () => savedSettings.enabled,
     requestTextInput: showTextInputDialog,
     requestPromptPairInput: showPromptPairDialog,
     requestImageDownloadOptions: showImageDownloadDialog,
     getDarkMode: () => darkMode.value,
-  },
-);
+  });
 
 provide(IMAGE_DOWNLOAD_OPTIONS_REQUEST_KEY, showImageDownloadDialog);
 
@@ -381,7 +416,13 @@ function showTextInputDialog(options: InlineTextInputOptions): Promise<string | 
       acceptLabel: options.acceptLabel ?? '确定',
       cancelLabel: options.cancelLabel ?? '取消',
       enableCharacters: false,
+      enablePresetSelector: false,
+      positivePresetId: '',
+      negativePresetId: '',
+      positiveCore: '',
+      negativeCore: '',
       characters: [],
+      quickPhrases: [...savedSettings.inlineQuickPhrases],
       resolve: result => resolve(result?.value ?? null),
     };
     textInputDialogVisible.value = true;
@@ -398,15 +439,20 @@ function showPromptPairDialog(options: InlinePromptPairInputOptions): Promise<In
     textInputDialogState.value = {
       title: options.title ?? '编辑提示词',
       message: options.message,
-      primaryLabel: options.positiveLabel ?? '正向提示词',
+      primaryLabel: options.positiveLabel ?? '正面提示词',
       value: options.positiveDefaultValue ?? '',
-      secondaryLabel: options.negativeLabel ?? '负向提示词',
+      secondaryLabel: options.negativeLabel ?? '负面提示词',
       secondaryValue: options.negativeDefaultValue ?? '',
       rows: options.positiveRows ?? 6,
       secondaryRows: options.negativeRows ?? 4,
       acceptLabel: options.acceptLabel ?? '确定',
       cancelLabel: options.cancelLabel ?? '取消',
       enableCharacters: Boolean(options.enableCharacters),
+      enablePresetSelector: true,
+      positivePresetId: options.positivePresetId ?? '',
+      negativePresetId: options.negativePresetId ?? '',
+      positiveCore: options.positiveCore ?? '',
+      negativeCore: options.negativeCore ?? '',
       characters: toTextInputCharacterDrafts(options.charactersDefaultValue ?? []),
       resolve: result =>
         resolve(
@@ -415,6 +461,8 @@ function showPromptPairDialog(options: InlinePromptPairInputOptions): Promise<In
                 positive: result.value,
                 negative: result.secondaryValue,
                 characters: result.characters.map(toInlineCharacterDraft),
+                positivePresetId: result.positivePresetId,
+                negativePresetId: result.negativePresetId,
               }
             : null,
         ),
@@ -475,6 +523,18 @@ function handleTextInputDialog(value: TextInputDialogSubmitValue | null): void {
 }
 
 /**
+ * 更新常用短语设置并持久化
+ * @param phrases 新的常用短语列表
+ */
+function handleQuickPhrasesUpdate(phrases: string[]): void {
+  // 运行配置与设置面板草稿必须持有独立拷贝,避免共享 reactive 数组互相串改
+  savedSettings.inlineQuickPhrases = [...phrases];
+  settingsStore.settings.inlineQuickPhrases = [...phrases];
+  textInputDialogState.value.quickPhrases = [...phrases];
+  settingsStore.persistSavedSettings();
+}
+
+/**
  * 处理图片下载配置弹窗结果
  * @param value 下载配置或取消状态
  */
@@ -486,6 +546,9 @@ function handleImageDownloadDialog(value: InlineImageDownloadOptions | null): vo
 
 // 段落短码 prompt 剥离正则：load 注册；关插件保持开启
 void ensurePromptStripRegex();
+
+// LLM 请求监视：订阅 TavernHelper 流式事件（幂等）
+useLlmInspectorStore().start();
 
 // 载入时检测一次扩展更新，失败静默
 onMounted(async () => {
@@ -520,6 +583,7 @@ watch(settingsVisible, visible => {
 onBeforeUnmount(() => {
   if (textInputDialogVisible.value) textInputDialogState.value.resolve(null);
   if (imageDownloadDialogVisible.value) imageDownloadDialogState.value.resolve(null);
+  useLlmInspectorStore().stop();
   cleanup();
 });
 </script>

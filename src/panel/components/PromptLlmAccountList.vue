@@ -18,15 +18,15 @@
         @toggle="toggleCollapse(account.id)"
       >
         <template #title>
-          <div v-if="editingAccountId === account.id" class="flex h-8 min-w-0 flex-1 items-center gap-(--cv-space-md)">
+          <div v-if="editingAccountId === account.id" class="flex h-full min-w-0 flex-1 items-center gap-(--cv-space-md)">
             <InputText
               v-model="editingDraft"
               class="h-8 min-w-0 flex-1"
               size="small"
               autofocus
               @click.stop
-              @keydown.enter="finishEditing(account)"
-              @keydown.esc="finishEditing(account)"
+              @keydown.enter.stop.prevent="finishEditing(account)"
+              @keydown.esc.stop.prevent="finishEditing(account)"
             />
             <CvMiniButton
               icon="fa-regular fa-check"
@@ -34,9 +34,9 @@
               @click.stop="finishEditing(account)"
             />
           </div>
-          <div v-else class="flex h-8 min-w-0 items-center gap-(--cv-space-sm)">
+          <div v-else class="flex h-full min-w-0 items-center gap-(--cv-space-sm)">
             <span
-              class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface) leading-8"
+              class="block min-w-0 flex-[0_1_auto] overflow-hidden text-(length:--cv-font-size-xs) text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)"
             >
               {{ getAccountTitle(account) }}
             </span>
@@ -127,7 +127,7 @@
                 dropdown
                 fluid
                 input-id="model-input"
-                :pt="autocompletePt"
+                :pt="cosmosAutocompleteFieldPt"
                 @complete="searchModels($event, account)"
                 @dropdown-click="onModelDropdownClick(account)"
               />
@@ -147,7 +147,7 @@
             <label class="cv-field">
               <span>包含请求体参数</span>
               <div class="cv-field-control">
-                <Textarea v-model="account.customIncludeBody" rows="3" class="w-full" />
+                <CvExpandableTextarea v-model="account.customIncludeBody" rows="3" class="w-full" />
                 <div class="cv-field-hint">
                   YAML 格式，附加到请求 body 的字段（如 reasoning_effort: high），留空则不发送
                 </div>
@@ -170,6 +170,48 @@
               </div>
             </label>
           </template>
+
+          <label class="cv-field-inline">
+            <span>启用流式请求</span>
+            <ToggleSwitch v-model="account.shouldStream" />
+          </label>
+
+          <div class="cv-field-grid">
+            <label class="cv-field">
+              <span>温度</span>
+              <InputNumber
+                v-model="account.temperature"
+                :min="0"
+                :max="2"
+                :step="0.1"
+                :min-fraction-digits="1"
+              />
+            </label>
+            <label class="cv-field">
+              <span>最大输出令牌数</span>
+              <InputNumber v-model="account.maxTokens" :min="1" show-buttons />
+            </label>
+          </div>
+          <div class="cv-field-grid">
+            <div class="cv-field">
+              <div class="cv-field-header">
+                <span>Top P</span>
+                <span class="text-(length:--cv-font-size-base) font-medium text-(--cv-on-surface-variant)">
+                  {{ account.topP.toFixed(2) }}
+                </span>
+              </div>
+              <Slider v-model="account.topP" :min="0" :max="1" :step="0.01" />
+            </div>
+            <div class="cv-field">
+              <div class="cv-field-header">
+                <span>Top K</span>
+                <span class="text-(length:--cv-font-size-base) font-medium text-(--cv-on-surface-variant)">
+                  {{ account.topK }}
+                </span>
+              </div>
+              <Slider v-model="account.topK" :min="0" :max="100" :step="1" />
+            </div>
+          </div>
         </div>
       </CollapsiblePanelItem>
     </div>
@@ -191,6 +233,7 @@ import { requestConfirmation, type ShowConfirm } from '@/panel/confirm-action';
 
 import { createPromptLlmAccount, getPromptLlmAccountDisplayName, type PromptLlmAccount } from '@/constants/prompt-llm';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
+import CvExpandableTextarea from '@/panel/components/CvExpandableTextarea.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import CvMiniToggleSwitch from '@/panel/components/CvMiniToggleSwitch.vue';
 import {
@@ -199,6 +242,7 @@ import {
   getProxyPresets,
   type ProxyPresetOption,
 } from '@/services/sillytavern/openai-config';
+import { cosmosAutocompleteFieldPt } from '@/services/primevue/primevue-pt';
 import { useSyncCacheStore } from '@/store/sync-cache';
 
 const accounts = defineModel<PromptLlmAccount[]>({ required: true });
@@ -219,58 +263,6 @@ const editingDraft = ref<string>('');
 
 /** AutoComplete 筛选后的模型列表建议 */
 const modelSuggestions = ref<string[]>([]);
-
-/**
- * AutoComplete PT 配置
- * 容器样式与 Select 对齐，内部加载图标隐藏，移动端输入优化
- */
-const autocompletePt = {
-  root: {
-    class: 'cv-prime-autocomplete',
-    style: {
-      background: 'var(--cvp-select-background)',
-      border: '1px solid var(--cvp-select-border-color)',
-      borderRadius: 'var(--cvp-select-border-radius)',
-    },
-  },
-  pcInput: {
-    root: {
-      inputmode: 'text',
-      enterkeyhint: 'done',
-    },
-  },
-  dropdown: {
-    style: {
-      background: 'var(--cvp-select-background)',
-      border: 'none',
-    },
-  },
-  loader: {
-    style: {
-      display: 'none',
-    },
-  },
-} as const;
-
-/**
- * 为所有 AutoComplete 输入框设置移动端优化属性
- * 在组件挂载后和 DOM 更新后执行，确保动态渲染的输入框也能被处理
- */
-function applyMobileInputAttributes(): void {
-  nextTick(() => {
-    const inputs = document.querySelectorAll('.p-autocomplete-input');
-    inputs.forEach((input) => {
-      if (input instanceof HTMLInputElement) {
-        input.setAttribute('inputmode', 'text');
-        input.setAttribute('enterkeyhint', 'done');
-      }
-    });
-  });
-}
-
-onMounted(applyMobileInputAttributes);
-// 监听账号展开，确保新显示的输入框也应用属性
-watch(expandedAccountIds, applyMobileInputAttributes, { deep: true });
 
 /**
  * 获取账号标题

@@ -16,10 +16,7 @@ import {
   resolvePromptLlmMessageContent,
   type PromptLlmRuntimeContent,
 } from '@/services/prompt-llm/message-preset';
-import {
-  shouldSendPromptLlmMessage,
-  type PromptLlmTriggerContext,
-} from '@/services/prompt-llm/message-trigger';
+import { shouldSendPromptLlmMessage, type PromptLlmTriggerContext } from '@/services/prompt-llm/message-trigger';
 import { buildPromptLlmRuntimeContent } from '@/services/prompt-profiles/runtime';
 import { getTavernHelper } from '@/services/tavern-helper/availability';
 import { requestTavernHelperGenerateRaw } from '@/services/tavern-helper/generate-raw';
@@ -34,12 +31,29 @@ import {
 } from '@/services/tavern-helper/prompt-llm';
 import { createExtractionError, detectExtractionFailureType } from '@/services/prompt-llm/errors';
 import { readCharacterPrompts } from '@/services/prompt-llm/character-prompt';
+import { readComfyUIMainModelNames } from '@/services/comfyui/model-loaders';
+import { parseComfyUIWorkflow } from '@/services/comfyui/parse';
+import { getActiveComfyUIWorkflowJson } from '@/services/comfyui/workflow-presets';
 
 /** Prompt LLM 运行时生成选项 */
 export interface PromptLlmGenerateOptions {
   generationId?: string;
   /** 显式触发上下文；缺省时仅 history，模型/来源为空 */
   triggerContext?: PromptLlmTriggerContext;
+  /** 请求监视钩子（仅内联生图路径传入；测试页与人物标签解析不捕获） */
+  inspector?: PromptLlmInspectorHooks;
+}
+
+/** Prompt LLM 请求监视钩子 */
+export interface PromptLlmInspectorHooks {
+  /** 每次账号尝试构建完请求体后调用（多账号故障转移时按次触发） */
+  onRequestBuilt?: (request: TavernHelperGenerateRawConfig, account?: PromptLlmAccount) => void;
+  /** 请求成功后调用 */
+  onSucceeded?: (rawText: string, accountName: string, reasoning?: string) => void;
+  /** 多账号故障转移中单次账号尝试失败后调用（后续仍会切换下一个账号） */
+  onAttemptFailed?: (error: unknown) => void;
+  /** 全部账号尝试失败或请求异常后调用 */
+  onFailed?: (error: unknown) => void;
 }
 
 /**
@@ -55,7 +69,7 @@ export function buildPromptLlmTriggerContext(
   return {
     historyContent: '',
     imageSource,
-    modelId: readPromptLlmTriggerModelId(settings, imageSource),
+    modelIds: readPromptLlmTriggerModelIds(settings, imageSource),
   };
 }
 
@@ -72,22 +86,28 @@ export function mergePromptLlmTriggerContext(
   return {
     historyContent,
     imageSource: triggerContext?.imageSource ?? 'novelai',
-    modelId: triggerContext?.modelId ?? '',
+    modelIds: triggerContext?.modelIds ?? [],
   };
 }
 
 /**
- * 读取当前来源对应的模型 ID
+ * 读取当前来源对应的模型列表
+ * ComfyUI 取当前激活工作流的主模型名；其他来源取 NovelAI 模型
  * @param settings 扩展设置
  * @param imageSource 生图来源
- * @returns 模型 ID
+ * @returns 模型名列表（读取失败时为空列表）
  */
-function readPromptLlmTriggerModelId(
+function readPromptLlmTriggerModelIds(
   settings: Pick<CosmosVisionSettings, 'novelai' | 'comfyui'>,
   imageSource: ImageSource,
-): string {
-  if (imageSource === 'comfyui') return '';
-  return settings.novelai.model.trim();
+): string[] {
+  if (imageSource !== 'comfyui') return [settings.novelai.model.trim()];
+  try {
+    const workflow = parseComfyUIWorkflow(getActiveComfyUIWorkflowJson(settings.comfyui.workflowPresets));
+    return readComfyUIMainModelNames(workflow);
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -135,7 +155,8 @@ export async function buildPromptLlmRuntimeRequest(
   const orderedPrompts = await buildPromptLlmOrderedPrompts(presetSettings, runtimeContent, triggerContext);
   const schema = schemaFields ? buildJsonSchema(schemaFields) : undefined;
   const requestAccount = account ?? getAvailablePromptLlmAccounts(settings)[0];
-  return buildGenerateRawMessagesRequest(orderedPrompts, buildCustomApi(settings, requestAccount), schema, settings.shouldStream);
+  const shouldStream = requestAccount?.shouldStream ?? false;
+  return buildGenerateRawMessagesRequest(orderedPrompts, buildCustomApi(requestAccount), schema, shouldStream);
 }
 
 /**
@@ -175,7 +196,10 @@ function canSendPromptLlmMessage(
   triggerContext?: PromptLlmTriggerContext,
 ): boolean {
   if (message.enabled === false) return false;
-  return shouldSendPromptLlmMessage(message, mergePromptLlmTriggerContext(runtimeContent.historyContent, triggerContext));
+  return shouldSendPromptLlmMessage(
+    message,
+    mergePromptLlmTriggerContext(runtimeContent.historyContent, triggerContext),
+  );
 }
 
 /**
@@ -203,7 +227,7 @@ async function generatePromptTextFromRuntimeContext(
     const result = await requestPromptLlmWithAccounts(
       tavernHelper,
       settings,
-      options,
+      { ...options, inspector: options.inspector },
       account =>
         buildPromptLlmRuntimeRequestFromContext(
           context,
@@ -225,12 +249,18 @@ async function generatePromptTextFromRuntimeContext(
 export interface PromptLlmAccountsRequestContext {
   generationId?: string;
   timeoutSeconds?: number;
+  /** 请求监视钩子 */
+  inspector?: PromptLlmInspectorHooks;
+  /** 单次账号尝试失败回调（故障转移切换下一个账号前调用） */
+  onAttemptFailed?: (error: unknown) => void;
 }
 
 /** 提示词 LLM 多账号请求结果 */
 export interface PromptLlmRawRequestResult {
   rawText: string;
   accountName: string;
+  /** 推理内容（经 should_return_reasoning 返回；普通模型为空） */
+  reasoning?: string;
 }
 
 /**
@@ -256,18 +286,27 @@ export async function requestPromptLlmWithAccounts(
   for (const [index, account] of accounts.entries()) {
     try {
       const request = await buildRequest(account);
-      const rawText = await requestTavernHelperGenerateRaw(tavernHelper, buildSilentGenerateRawRequest(request, context), {
-        timeoutSeconds: context.timeoutSeconds ?? settings.timeout,
-      });
-      return { rawText, accountName: getPromptLlmAccountDisplayName(account) };
+      context.inspector?.onRequestBuilt?.(request, account);
+      const { text, reasoning } = await requestTavernHelperGenerateRaw(
+        tavernHelper,
+        buildSilentGenerateRawRequest(request, context),
+        { timeoutSeconds: context.timeoutSeconds ?? settings.timeout },
+      );
+      const accountName = getPromptLlmAccountDisplayName(account);
+      context.inspector?.onSucceeded?.(text, accountName, reasoning);
+      return { rawText: text, accountName, reasoning };
     } catch (error) {
+      context.onAttemptFailed?.(error);
+      context.inspector?.onAttemptFailed?.(error);
       errors.push(formatPromptLlmAccountError(account, error));
       if (index < accounts.length - 1) {
         console.warn(`[PromptLlm] ${getPromptLlmAccountDisplayName(account)} 请求失败，尝试下一个账号`, error);
       }
     }
   }
-  throw new Error(`已尝试多组账号但均失败: ${errors.join('； ')}`);
+  const finalError = new Error(`已尝试多组账号但均失败: ${errors.join('； ')}`);
+  context.inspector?.onFailed?.(finalError);
+  throw finalError;
 }
 
 /**
@@ -285,6 +324,7 @@ function formatPromptLlmAccountError(account: PromptLlmAccount, error: unknown):
 
 /**
  * 构建静默 generateRaw 请求
+ * 统一注入 should_return_reasoning：据此在返回值中携带推理内容
  * @param request 原始请求
  * @param options 生成选项
  * @returns 可发送给 TavernHelper 的请求
@@ -293,12 +333,12 @@ function buildSilentGenerateRawRequest(
   request: TavernHelperGenerateRawConfig,
   options: PromptLlmAccountsRequestContext,
 ): TavernHelperGenerateRawConfig {
-  return { ...request, should_silence: true, generation_id: options.generationId };
+  return { ...request, should_silence: true, should_return_reasoning: true, generation_id: options.generationId };
 }
 
 /**
  * 从 LLM 原始文本提取并校验提示词,所有生图渠道共用的统一入口
- * 空输出、无法解析、正向提示词为空时均抛出结构化提取错误
+ * 空输出、无法解析、正面提示词为空时均抛出结构化提取错误
  * @param rawText LLM 原始响应文本
  * @param settings LLM 配置
  * @param schemaFields JSON Schema 字段配置

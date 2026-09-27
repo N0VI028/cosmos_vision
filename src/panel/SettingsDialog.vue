@@ -9,7 +9,9 @@
     :content-style="contentStyle"
     @show="handleShow"
   >
-    <div class="cv-shell">
+    <div class="cv-shell" :class="{ 'cv-shell--rail-collapsed': railCollapsed }">
+      <!-- 侧栏收起/展开切换钮（骑跨分界线） -->
+      <SidebarRailToggle :collapsed="railCollapsed" @toggle="toggleRail" />
       <!-- 侧边栏导航 -->
       <nav class="cv-sidebar">
         <!-- Logo/品牌区 -->
@@ -101,7 +103,7 @@
         </div>
 
         <!-- 底部操作 -->
-        <SettingsSidebarControls v-model="darkMode" :mobile="isMobile" @start-tutorial="tutorial.start" />
+        <SettingsSidebarControls v-model="darkMode" :mobile="railCollapsed" @start-tutorial="tutorial.start" />
       </nav>
 
       <!-- 主内容区 -->
@@ -113,50 +115,53 @@
 
         <!-- 顶部标题 -->
         <header class="cv-header">
-          <div ref="breadcrumbRef" class="cv-breadcrumb">
-            <span class="cv-breadcrumb-item">设置</span>
-            <i class="fa-solid fa-chevron-right cv-breadcrumb-sep" />
-            <span class="cv-breadcrumb-item cv-breadcrumb-item--active">{{ currentTabLabel }}</span>
-
-            <!-- Section 层级 -->
-            <template v-if="currentSection">
+          <!-- 与内容区共用同一限宽容器，保证标题/二级标签与内容列左右对齐 -->
+          <div class="cv-header-inner">
+            <div ref="breadcrumbRef" class="cv-breadcrumb">
+              <span class="cv-breadcrumb-item">设置</span>
               <i class="fa-solid fa-chevron-right cv-breadcrumb-sep" />
-              <div class="cv-breadcrumb-section-wrapper">
-                <button
-                  type="button"
-                  class="cv-breadcrumb-item cv-breadcrumb-item--active cv-breadcrumb-dropdown"
-                  @click="toggleSectionMenu"
-                >
-                  {{ currentSection }}
-                  <i v-if="sections.length > 1" class="fa-solid fa-chevron-down cv-breadcrumb-dropdown-icon" />
-                </button>
+              <span class="cv-breadcrumb-item cv-breadcrumb-item--active">{{ currentTabLabel }}</span>
 
-                <!-- 下拉菜单 -->
-                <div v-if="showSectionMenu && sections.length > 1" class="cv-section-menu">
+              <!-- Section 层级 -->
+              <template v-if="currentSection">
+                <i class="fa-solid fa-chevron-right cv-breadcrumb-sep" />
+                <div class="cv-breadcrumb-section-wrapper">
                   <button
-                    v-for="section in sections"
-                    :key="section.id"
                     type="button"
-                    class="cv-section-menu-item"
-                    :class="{ 'cv-section-menu-item--active': section.title === currentSection }"
-                    @click="scrollToSection(section)"
+                    class="cv-breadcrumb-item cv-breadcrumb-item--active cv-breadcrumb-dropdown"
+                    @click="toggleSectionMenu"
                   >
-                    {{ section.title }}
+                    {{ currentSection }}
+                    <i v-if="sections.length > 1" class="fa-solid fa-chevron-down cv-breadcrumb-dropdown-icon" />
                   </button>
+
+                  <!-- 下拉菜单 -->
+                  <div v-if="showSectionMenu && sections.length > 1" class="cv-section-menu">
+                    <button
+                      v-for="section in sections"
+                      :key="section.id"
+                      type="button"
+                      class="cv-section-menu-item"
+                      :class="{ 'cv-section-menu-item--active': section.title === currentSection }"
+                      @click="scrollToSection(section)"
+                    >
+                      {{ section.title }}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </template>
+              </template>
+            </div>
+            <span class="cv-header-title">{{ currentTabLabel }}</span>
+            <SubTabNav v-if="activeTab === 'main'" v-model="mainSubTab" :tabs="MAIN_SUB_TABS" />
+            <SubTabNav v-if="activeTab === 'novelai'" v-model="novelaiSubTab" :tabs="NOVELAI_SUB_TABS" />
+            <SubTabNav v-if="activeTab === 'comfyui'" v-model="comfyuiSubTab" :tabs="COMFYUI_SUB_TABS" />
+            <SubTabNav v-if="activeTab === 'prompt-llm'" v-model="promptLlmSubTab" :tabs="PROMPT_LLM_SUB_TABS" />
+            <SubTabNav
+              v-if="activeTab === 'prompt-profiles'"
+              v-model="promptProfilesSubTab"
+              :tabs="PROMPT_PROFILES_SUB_TABS"
+            />
           </div>
-          <span class="cv-header-title">{{ currentTabLabel }}</span>
-          <SubTabNav v-if="activeTab === 'main'" v-model="mainSubTab" :tabs="MAIN_SUB_TABS" />
-          <SubTabNav v-if="activeTab === 'novelai'" v-model="novelaiSubTab" :tabs="NOVELAI_SUB_TABS" />
-          <SubTabNav v-if="activeTab === 'comfyui'" v-model="comfyuiSubTab" :tabs="COMFYUI_SUB_TABS" />
-          <SubTabNav v-if="activeTab === 'prompt-llm'" v-model="promptLlmSubTab" :tabs="PROMPT_LLM_SUB_TABS" />
-          <SubTabNav
-            v-if="activeTab === 'prompt-profiles'"
-            v-model="promptProfilesSubTab"
-            :tabs="PROMPT_PROFILES_SUB_TABS"
-          />
         </header>
 
         <!-- 滚动内容区 -->
@@ -278,13 +283,14 @@
 </template>
 
 <script setup lang="ts">
-import { onClickOutside, useEventListener, useMediaQuery, useLocalStorage } from '@vueuse/core';
+import { onClickOutside, useEventListener, useLocalStorage } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 
 import { DARK_CLASS } from '@/constants/default-settings';
 import '@/panel/styles/settings-dialog.css';
 import OnboardingTutorial from '@/panel/components/onboarding/OnboardingTutorial.vue';
 import SettingsSidebarControls from '@/panel/components/SettingsSidebarControls.vue';
+import SidebarRailToggle from '@/panel/components/SidebarRailToggle.vue';
 import ComfyUITab from '@/panel/tabs/ComfyUITab.vue';
 import MainTab from '@/panel/tabs/MainTab.vue';
 import NovelAITab from '@/panel/tabs/NovelAITab.vue';
@@ -292,6 +298,7 @@ import PromptLlmTab from '@/panel/tabs/PromptLlmTab.vue';
 import PromptProfilesTab from '@/panel/tabs/PromptProfilesTab.vue';
 import SubTabNav from '@/panel/components/SubTabNav.vue';
 import { useSettingsOnboardingTutorial } from '@/panel/composables/useSettingsOnboardingTutorial';
+import { useShellDialogStyle } from '@/composables/useShellDialogStyle';
 import { useSettingsStore } from '@/store/settings';
 import {
   FOCUSED_PARAGRAPH_ELEMENTS_KEY,
@@ -349,17 +356,33 @@ const visible = defineModel<boolean>('visible', { default: false });
 const settingsStore = useSettingsStore();
 const { darkMode } = storeToRefs(settingsStore);
 
-const settingsDialogClass = computed(() => ({ [DARK_CLASS]: darkMode.value }));
+const settingsDialogClass = computed(() => ['cv-settings-dialog', { [DARK_CLASS]: darkMode.value }]);
 const confirmDialogClass = computed(() => ['cv-confirm-dialog', settingsDialogClass.value]);
 
-const isMobile = useMediaQuery('(max-width: 87.5em)');
-const dialogStyle = computed(() =>
-  isMobile.value ? { width: '95vw', height: '95vh' } : { width: '40vw', height: '70vh', maxHeight: '80vh' },
-);
+const { isMobile, dialogStyle } = useShellDialogStyle();
+
+/** 桌面端手动收起侧栏标记 */
+const railManuallyCollapsed = ref(false);
+/** 窄屏侧栏收起标记（默认收起，可展开为浮层） */
+const narrowRailCollapsed = ref(true);
+/** 侧栏收起态：桌面手动切换；窄屏默认收起、可点切换钮展开（浮层不挤主区） */
+const railCollapsed = computed(() => (isMobile.value ? narrowRailCollapsed.value : railManuallyCollapsed.value));
+
+/**
+ * 切换侧栏收起/展开状态（按当前断点翻转对应标记）
+ */
+function toggleRail(): void {
+  if (isMobile.value) {
+    narrowRailCollapsed.value = !narrowRailCollapsed.value;
+  } else {
+    railManuallyCollapsed.value = !railManuallyCollapsed.value;
+  }
+}
+
 const confirmDialogStyle = computed(() =>
   isMobile.value
-    ? { width: 'calc(100vw - 2rem)', maxWidth: '26rem' }
-    : { width: '24rem', maxWidth: 'calc(100vw - 2rem)' },
+    ? { width: 'calc(100dvw - 2rem)', maxWidth: '26rem' }
+    : { width: '24rem', maxWidth: 'calc(100dvw - 2rem)' },
 );
 
 const contentStyle = { padding: '0', overflow: 'hidden' } as const;
@@ -367,7 +390,7 @@ const contentStyle = { padding: '0', overflow: 'hidden' } as const;
 const activeTab = useLocalStorage<NavValue>('cosmos-vision:settings-active-tab', 'main');
 
 type NovelAISubTab = 'api' | 'config' | 'preset' | 'test';
-type ComfyUISubTab = 'api' | 'config' | 'test';
+type ComfyUISubTab = 'api' | 'workflow' | 'preset' | 'test';
 type PromptLlmSubTab = 'settings' | 'builder' | 'test';
 type PromptProfilesSubTab = 'user' | 'character';
 type MainSubTab = 'general' | 'data' | 'portability';
@@ -387,7 +410,8 @@ const NOVELAI_SUB_TABS = [
 
 const COMFYUI_SUB_TABS = [
   { value: 'api', label: 'API' },
-  { value: 'config', label: '配置' },
+  { value: 'workflow', label: '工作流' },
+  { value: 'preset', label: '预设' },
   { value: 'test', label: '测试' },
 ] as const;
 
@@ -404,8 +428,13 @@ const PROMPT_PROFILES_SUB_TABS = [
 
 const novelaiSubTab = useLocalStorage<NovelAISubTab>('cosmos-vision:settings-novelai-sub-tab', 'api');
 const comfyuiSubTab = useLocalStorage<ComfyUISubTab>('cosmos-vision:settings-comfyui-sub-tab', 'api');
+// 旧版存储值 'config' 已拆分为 工作流/预设 两个子页签，一次性迁移到工作流
+if ((comfyuiSubTab.value as string) === 'config') comfyuiSubTab.value = 'workflow';
 const promptLlmSubTab = useLocalStorage<PromptLlmSubTab>('cosmos-vision:settings-prompt-llm-sub-tab', 'settings');
-const promptProfilesSubTab = useLocalStorage<PromptProfilesSubTab>('cosmos-vision:settings-prompt-profiles-sub-tab', 'character');
+const promptProfilesSubTab = useLocalStorage<PromptProfilesSubTab>(
+  'cosmos-vision:settings-prompt-profiles-sub-tab',
+  'character',
+);
 const mainSubTab = useLocalStorage<MainSubTab>('cosmos-vision:settings-main-sub-tab', 'general');
 
 const sections = ref<SectionInfo[]>([]);
@@ -527,10 +556,22 @@ function showCustomPrompt(options: CustomPromptOptions): Promise<string | null> 
 
 provide('showConfirm', showCustomConfirm);
 provide('showPrompt', showCustomPrompt);
-provide(FOCUSED_PARAGRAPH_MESSAGE_ID_KEY, computed(() => props.initialFocusMessageId));
-provide(FOCUSED_PARAGRAPH_MESSAGE_PARAGRAPHS_KEY, computed(() => props.initialFocusMessageParagraphs));
-provide(FOCUSED_PARAGRAPH_TEXT_KEY, computed(() => props.initialFocusParagraphText));
-provide(FOCUSED_PARAGRAPH_ELEMENTS_KEY, computed(() => props.initialFocusParagraphElements));
+provide(
+  FOCUSED_PARAGRAPH_MESSAGE_ID_KEY,
+  computed(() => props.initialFocusMessageId),
+);
+provide(
+  FOCUSED_PARAGRAPH_MESSAGE_PARAGRAPHS_KEY,
+  computed(() => props.initialFocusMessageParagraphs),
+);
+provide(
+  FOCUSED_PARAGRAPH_TEXT_KEY,
+  computed(() => props.initialFocusParagraphText),
+);
+provide(
+  FOCUSED_PARAGRAPH_ELEMENTS_KEY,
+  computed(() => props.initialFocusParagraphElements),
+);
 
 const dialogVisible = computed({
   get: () => visible.value,
@@ -717,7 +758,8 @@ function scrollToSection(section: SectionInfo): void {
   if (!container) return;
 
   currentSection.value = section.title;
-  const targetTop = section.element.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
+  const targetTop =
+    section.element.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop;
   container.scrollTop = targetTop;
   showSectionMenu.value = false;
 }

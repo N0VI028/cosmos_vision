@@ -33,6 +33,7 @@ describe('comfyui object-info', () => {
     LoadImage: {
       display_name: 'Load Image',
       category: 'image',
+      output_node: false,
       input: {
         required: {
           image: ['IMAGEUPLOAD', { image_upload: true }],
@@ -43,6 +44,7 @@ describe('comfyui object-info', () => {
     },
     PreviewImage: {
       display_name: 'Preview Image',
+      output_node: true,
       input: {
         required: {
           images: ['IMAGE'],
@@ -55,6 +57,7 @@ describe('comfyui object-info', () => {
   it('normalizes object_info payload correctly', () => {
     const normalized = normalizeObjectInfo(rawObjectInfo);
     expect(normalized.CLIPTextEncode.displayName).toBe('CLIP Text Encode');
+    expect(normalized.CLIPTextEncode.outputNode).toBe(false);
     expect(normalized.CLIPTextEncode.inputs[0]).toEqual({
       name: 'text',
       type: 'STRING',
@@ -69,7 +72,9 @@ describe('comfyui object-info', () => {
       controlAfterGenerate: false,
     });
     expect(normalized.LoadImage.inputs[0].imageUpload).toBe(true);
+    expect(normalized.LoadImage.outputNode).toBe(false);
     expect(normalized.PreviewImage.inputs[0].type).toBe('IMAGE');
+    expect(normalized.PreviewImage.outputNode).toBe(true);
   });
 
   it('fetches object_info with caching and error handling', async () => {
@@ -126,6 +131,133 @@ describe('comfyui object-info', () => {
     const candidates = listOutputCandidates(workflow, objectInfoMap);
     expect(candidates).toContain('2');
     expect(candidates).toContain('3');
+  });
+
+  it('maps resolution_json string inputs to the resolution control', () => {
+    const objectInfoMap = normalizeObjectInfo({
+      ResolutionPreset: {
+        display_name: 'Resolution Preset',
+        input: { required: { resolution_json: ['STRING', { default: '{"version":1,"width":1024,"height":1536}' }] } },
+        output: ['INT', 'INT'],
+        output_name: ['width', 'height'],
+      },
+    });
+    const workflow = {
+      '1': {
+        class_type: 'ResolutionPreset',
+        inputs: { resolution_json: '{"version":1,"width":1024,"height":1536}' },
+      },
+    };
+
+    const controls = listInputControls(workflow, '1', objectInfoMap);
+    expect(controls[0].kind).toBe('resolution');
+  });
+
+  it('同节点 width 与 height 均为数字时合并为 size 分辨率控件', () => {
+    const objectInfoMap = normalizeObjectInfo({
+      EmptyLatentImage: {
+        display_name: 'Empty Latent Image',
+        input: {
+          required: {
+            width: ['INT', { default: 1024 }],
+            height: ['INT', { default: 1024 }],
+            batch_size: ['INT', { default: 1 }],
+          },
+        },
+        output: ['LATENT'],
+        output_name: ['latent'],
+      },
+    });
+    const workflow = {
+      '31': {
+        class_type: 'EmptyLatentImage',
+        inputs: { width: 1024, height: 1024, batch_size: 1 },
+      },
+    };
+
+    const controls = listInputControls(workflow, '31', objectInfoMap);
+    expect(controls).toHaveLength(2);
+    const size = controls.find(control => control.kind === 'size');
+    expect(size).toBeDefined();
+    expect(size?.inputName).toBe('width');
+    expect(size?.label).toBe('分辨率');
+    expect(size?.value).toBe(1024);
+    expect(size?.heightInputName).toBe('height');
+    expect(size?.heightValue).toBe(1024);
+    expect(controls.some(control => control.inputName === 'height')).toBe(false);
+  });
+
+  it('仅有 width 无 height 时不合并，维持 number 控件', () => {
+    const objectInfoMap = normalizeObjectInfo({
+      EmptyLatentImage: {
+        display_name: 'Empty Latent Image',
+        input: { required: { width: ['INT', { default: 1024 }] } },
+        output: ['LATENT'],
+        output_name: ['latent'],
+      },
+    });
+    const workflow = {
+      '1': { class_type: 'EmptyLatentImage', inputs: { width: 1024 } },
+    };
+
+    const controls = listInputControls(workflow, '1', objectInfoMap);
+    expect(controls).toHaveLength(1);
+    expect(controls[0].kind).toBe('number');
+    expect(controls[0].inputName).toBe('width');
+  });
+
+  it('width 为连线引用时不合并，height 维持独立 number 控件', () => {
+    const objectInfoMap = normalizeObjectInfo({
+      EmptyLatentImage: {
+        display_name: 'Empty Latent Image',
+        input: {
+          required: {
+            width: ['INT', { default: 1024 }],
+            height: ['INT', { default: 1024 }],
+          },
+        },
+        output: ['LATENT'],
+        output_name: ['latent'],
+      },
+    });
+    const workflow = {
+      '1': {
+        class_type: 'EmptyLatentImage',
+        inputs: { width: ['6', 0], height: 1024 },
+      },
+    };
+
+    const controls = listInputControls(workflow, '1', objectInfoMap);
+    expect(controls).toHaveLength(2);
+    expect(controls.find(control => control.inputName === 'width')?.kind).toBe('link');
+    expect(controls.find(control => control.inputName === 'height')?.kind).toBe('number');
+  });
+
+  it('treats generic output ports as image candidates but not generic inputs', () => {
+    const objectInfoMap = normalizeObjectInfo({
+      SwitchNode: {
+        input: { required: { input1: ['COMFY_MATCHTYPE_V3'] } },
+        output: ['COMFY_MATCHTYPE_V3'],
+      },
+      StringNode: {
+        input: { required: { text: ['STRING'] } },
+        output: ['STRING'],
+      },
+      PreviewAnyNode: {
+        input: { required: { source: ['*'] } },
+        output: ['STRING'],
+      },
+    });
+    const workflow = {
+      '1': { class_type: 'SwitchNode', inputs: {} },
+      '2': { class_type: 'StringNode', inputs: {} },
+      '3': { class_type: 'PreviewAnyNode', inputs: {} },
+    };
+
+    const candidates = listOutputCandidates(workflow, objectInfoMap);
+    expect(candidates).toContain('1');
+    expect(candidates).not.toContain('2');
+    expect(candidates).not.toContain('3');
   });
 
   it('detects image filenames and image input controls correctly', () => {

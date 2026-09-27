@@ -16,21 +16,24 @@
           @toggle="togglePerson(person.id)"
         >
           <template #title>
-            <div v-if="editingPersonId === person.id" class="flex h-8 min-w-0 flex-1 items-center gap-(--cv-space-md)">
+            <div
+              v-if="editingPersonId === person.id"
+              class="flex h-full min-w-0 flex-1 items-center gap-(--cv-space-md)"
+            >
               <InputText
                 v-model="editingDraft"
                 class="h-8 min-w-0 flex-1"
                 size="small"
                 autofocus
                 @click.stop
-                @keydown.enter="finishEditing(person)"
-                @keydown.esc="finishEditing(person)"
+                @keydown.enter.stop.prevent="finishEditing(person)"
+                @keydown.esc.stop.prevent="finishEditing(person)"
               />
               <CvMiniButton icon="fa-regular fa-check" aria-label="完成" @click.stop="finishEditing(person)" />
             </div>
-            <div v-else class="flex h-8 min-w-0 items-center gap-(--cv-space-sm)">
+            <div v-else class="flex h-full min-w-0 items-center gap-(--cv-space-sm)">
               <span
-                class="block min-w-0 flex-[0_1_auto] overflow-hidden leading-8 font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
+                class="block min-w-0 flex-[0_1_auto] overflow-hidden text-(length:--cv-font-size-xs) font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
               >
                 {{ person.name || '未命名人物' }}
               </span>
@@ -82,7 +85,7 @@
                 />
               </div>
               <div class="cv-field-control">
-                <Textarea v-model="person.staticTags" rows="3" auto-resize class="w-full font-mono" />
+                <CvExpandableTextarea v-model="person.staticTags" rows="3" auto-resize class="w-full font-mono" />
                 <div class="cv-field-hint">固定tag中的内容将在发送到LLM时，被强调原样保留在最终tag中</div>
               </div>
             </div>
@@ -153,11 +156,11 @@
         </button>
         <label v-if="option.value === 'custom' && tagParseMode === 'custom'" class="cv-field">
           <span>输入内容</span>
-          <Textarea
+          <CvExpandableTextarea
             v-model="tagParseInput"
             rows="6"
             auto-resize
-            class="custom-scrollbar min-h-36 w-full resize-y"
+            class="custom-scrollbar min-h-36 w-full"
             placeholder="输入人物资料、设定或描述..."
           />
         </label>
@@ -207,6 +210,7 @@ import {
   parsePromptPersonStaticTags,
   parsePromptPersonStaticTagsFromText,
 } from '@/services/tavern-helper/prompt-profiles-tags';
+import { copyWithToast } from '@/utils/clipboard';
 
 type TagParseMode = 'template' | 'custom' | 'image';
 
@@ -277,7 +281,7 @@ const showConfirm =
       severity?: string;
     }) => Promise<boolean>
   >('showConfirm');
-const tagParseDialogStyle = { width: '30rem', maxWidth: 'calc(100vw - 2rem)' } as const;
+const tagParseDialogStyle = { width: '30rem', maxWidth: 'calc(100dvw - 2rem)' } as const;
 
 const filteredProfiles = computed(() =>
   settings.promptProfiles.profiles.filter(person => person.kind === activeKind.value),
@@ -552,12 +556,7 @@ function showTagParseError(message: string): void {
  * @param draft 用户编辑后的草稿
  */
 async function copyTagDraft(draft: string): Promise<void> {
-  try {
-    await navigator.clipboard.writeText(draft);
-    toastr.success('tag 草稿已复制');
-  } catch {
-    toastr.error('复制失败，请手动复制');
-  }
+  await copyWithToast(draft, 'tag 草稿已复制');
 }
 
 /**

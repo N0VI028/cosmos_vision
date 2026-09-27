@@ -5,7 +5,7 @@ export type TutorialSource = 'novelai' | 'comfyui';
 export type TutorialSettingsScene =
   | { kind: 'settings'; tab: 'main'; subTab: 'general' }
   | { kind: 'settings'; tab: 'novelai'; subTab: 'api' | 'config' }
-  | { kind: 'settings'; tab: 'comfyui'; subTab: 'api' | 'config' }
+  | { kind: 'settings'; tab: 'comfyui'; subTab: 'api' | 'workflow' }
   | { kind: 'settings'; tab: 'prompt-llm'; subTab: 'settings' | 'builder' }
   | { kind: 'settings'; tab: 'prompt-profiles'; subTab: 'character' | 'user' };
 
@@ -98,7 +98,7 @@ const COMFYUI_STEPS: readonly TutorialStep[] = [
     id: 'comfyui-workflow',
     title: '准备工作流',
     description: '导入 API 格式工作流或选择预设，插件已经准备了默认工作流。',
-    scene: { kind: 'settings', tab: 'comfyui', subTab: 'config' },
+    scene: { kind: 'settings', tab: 'comfyui', subTab: 'workflow' },
     target: {
       selectors: ['[data-cv-tutorial="comfyui-workflow"]'],
       missingText: 'ComfyUI 工作流区域暂不可见，你仍可继续教程。',
@@ -110,7 +110,7 @@ const COMFYUI_STEPS: readonly TutorialStep[] = [
     description:
       '为了将最终图像展示到酒馆，你需要选择一个节点绑定到图像输出。默认预设已经绑定了节点，你无需修改；全工作流只能绑定一个。',
     tip: '如果不连接 ComfyUI，将不会显示绑定按钮。请先在连接设置中测试并成功连接服务。',
-    scene: { kind: 'settings', tab: 'comfyui', subTab: 'config' },
+    scene: { kind: 'settings', tab: 'comfyui', subTab: 'workflow' },
     target: {
       selectors: [
         '[data-cv-tutorial="comfyui-output-binding"]',
@@ -123,10 +123,10 @@ const COMFYUI_STEPS: readonly TutorialStep[] = [
   },
   {
     id: 'comfyui-positive-binding',
-    title: '绑定正向提示词',
-    description: 'LLM 生成的正向 Prompt 需要绑定到工作流的正向提示词节点。默认预设已经绑定了节点，你无需修改。',
+    title: '绑定正面提示词',
+    description: 'LLM 生成的正面 Prompt 需要绑定到工作流的正面提示词节点。默认预设已经绑定了节点，你无需修改。',
     tip: '如果不连接 ComfyUI，将不会显示绑定按钮。请先在连接设置中测试并成功连接服务。',
-    scene: { kind: 'settings', tab: 'comfyui', subTab: 'config' },
+    scene: { kind: 'settings', tab: 'comfyui', subTab: 'workflow' },
     target: {
       selectors: [
         '[data-cv-tutorial="comfyui-positive-binding"]',
@@ -139,10 +139,10 @@ const COMFYUI_STEPS: readonly TutorialStep[] = [
   },
   {
     id: 'comfyui-negative-binding',
-    title: '绑定负向提示词',
-    description: 'LLM 生成的负向 Prompt 需要绑定到工作流的负向提示词节点。默认预设已经绑定了节点，你无需修改。',
+    title: '绑定负面提示词',
+    description: 'LLM 生成的负面 Prompt 需要绑定到工作流的负面提示词节点。默认预设已经绑定了节点，你无需修改。',
     tip: '如果不连接 ComfyUI，将不会显示绑定按钮。请先在连接设置中测试并成功连接服务。',
-    scene: { kind: 'settings', tab: 'comfyui', subTab: 'config' },
+    scene: { kind: 'settings', tab: 'comfyui', subTab: 'workflow' },
     target: {
       selectors: [
         '[data-cv-tutorial="comfyui-negative-binding"]',
@@ -158,7 +158,7 @@ const COMFYUI_STEPS: readonly TutorialStep[] = [
     title: '配置 LoRA 组节点',
     description: '插件已经兼容 ComfyUI-Lora-Manager 的 Lora 组节点用于设置 Lora 组。',
     tip: '若提示节点丢失，需要先在 ComfyUI 中下载并安装 [ComfyUI-Lora-Manager](https://github.com/willmiao/ComfyUI-Lora-Manager) 自定义节点插件。',
-    scene: { kind: 'settings', tab: 'comfyui', subTab: 'config' },
+    scene: { kind: 'settings', tab: 'comfyui', subTab: 'workflow' },
     target: {
       selectors: [
         '[data-cv-tutorial="comfyui-lora-binding"]',

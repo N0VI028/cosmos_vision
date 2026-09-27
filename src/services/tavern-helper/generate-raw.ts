@@ -1,8 +1,9 @@
 import { getOptionalTavernHelper } from '@/services/tavern-helper/availability';
 import { stopTavernHelperGeneration } from '@/services/tavern-helper/generation-control';
 import {
-  formatPromptLlmRawResult,
+  readGenerateRawOutcome,
   type TavernHelperGenerateRawConfig,
+  type TavernHelperGenerateRawOutcome,
   type TavernHelperRolePrompt,
 } from '@/services/tavern-helper/prompt-llm';
 
@@ -18,17 +19,17 @@ export interface TavernHelperGenerateRawOptions {
  * @param tavernHelper 酒馆助手实例
  * @param request 原始 generateRaw 请求
  * @param options 请求控制选项
- * @returns 格式化后的 LLM 原始响应
+ * @returns 正文读取结果
  */
 export async function requestTavernHelperGenerateRaw(
   tavernHelper: TavernHelperInstance,
   request: TavernHelperGenerateRawConfig,
   options: TavernHelperGenerateRawOptions = {},
-): Promise<string> {
+): Promise<TavernHelperGenerateRawOutcome> {
   const generationId = request.generation_id || createGenerateRawGenerationId();
   const resolvedRequest = resolveGenerateRawRequestMacros(tavernHelper, { ...request, generation_id: generationId });
   const result = await requestGenerateRawWithTimeout(tavernHelper, resolvedRequest, generationId, options.timeoutSeconds);
-  return formatPromptLlmRawResult(result);
+  return readGenerateRawOutcome(result);
 }
 
 /**

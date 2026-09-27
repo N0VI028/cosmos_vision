@@ -18,7 +18,7 @@ describe('prompt-llm message-trigger', () => {
       triggerModels: [],
       triggerImageSources: [],
     };
-    const context = { historyContent: 'hello', imageSource: 'comfyui' as const, modelId: 'm1' };
+    const context = { historyContent: 'hello', imageSource: 'comfyui' as const, modelIds: ['m1'] };
     expect(shouldSendPromptLlmMessage(message, context)).toBe(true);
   });
 
@@ -31,11 +31,62 @@ describe('prompt-llm message-trigger', () => {
     };
 
     expect(
-      shouldSendPromptLlmMessage(message, { historyContent: 'A big dragon appears', imageSource: 'novelai', modelId: 'm2' }),
+      shouldSendPromptLlmMessage(message, {
+        historyContent: 'A big dragon appears',
+        imageSource: 'novelai',
+        modelIds: ['m2'],
+      }),
     ).toBe(true);
 
     expect(
-      shouldSendPromptLlmMessage(message, { historyContent: 'Nothing match', imageSource: 'novelai', modelId: 'm2' }),
+      shouldSendPromptLlmMessage(message, { historyContent: 'Nothing match', imageSource: 'novelai', modelIds: ['m2'] }),
+    ).toBe(false);
+  });
+
+  it('matches trigger models by regex body without delimiters', () => {
+    const message = {
+      triggerMatchMode: 'all_match' as const,
+      triggerKeywordGroups: [],
+      triggerModels: ['animal.*'],
+      triggerImageSources: [],
+    };
+
+    expect(
+      shouldSendPromptLlmMessage(message, { historyContent: '', imageSource: 'comfyui', modelIds: ['animal_xl_v2'] }),
+    ).toBe(true);
+    expect(
+      shouldSendPromptLlmMessage(message, { historyContent: '', imageSource: 'comfyui', modelIds: ['ANIMAL'] }),
+    ).toBe(true);
+    expect(
+      shouldSendPromptLlmMessage(message, { historyContent: '', imageSource: 'comfyui', modelIds: ['creature'] }),
+    ).toBe(false);
+  });
+
+  it('matches any model in runtime model collection', () => {
+    const message = {
+      triggerMatchMode: 'all_match' as const,
+      triggerKeywordGroups: [],
+      triggerModels: ['noob.*'],
+      triggerImageSources: [],
+    };
+    const context = { historyContent: '', imageSource: 'comfyui' as const, modelIds: ['illustrious_v15', 'noobxl'] };
+    expect(shouldSendPromptLlmMessage(message, context)).toBe(true);
+    expect(shouldSendPromptLlmMessage({ ...message, triggerModels: ['flux'] }, context)).toBe(false);
+  });
+
+  it('falls back to exact comparison for invalid regex model pattern', () => {
+    const message = {
+      triggerMatchMode: 'all_match' as const,
+      triggerKeywordGroups: [],
+      triggerModels: ['[animal'],
+      triggerImageSources: [],
+    };
+
+    expect(
+      shouldSendPromptLlmMessage(message, { historyContent: '', imageSource: 'comfyui', modelIds: ['[animal'] }),
+    ).toBe(true);
+    expect(
+      shouldSendPromptLlmMessage(message, { historyContent: '', imageSource: 'comfyui', modelIds: ['animal'] }),
     ).toBe(false);
   });
 });

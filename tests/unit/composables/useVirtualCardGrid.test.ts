@@ -98,6 +98,44 @@ describe('useVirtualCardGrid', () => {
     wrapper.unmount();
   });
 
+  it('renders one item per row in list layout', async () => {
+    const source = ref(Array.from({ length: 90 }, (_, index) => index));
+
+    const GridHost = defineComponent({
+      setup() {
+        const grid = useVirtualCardGrid<number>(source, { layout: () => 'list' });
+        return () =>
+          h('div', grid.containerProps, [
+            h(
+              'div',
+              grid.wrapperProps.value,
+              grid.visibleRows.value.map(row =>
+                h(
+                  'div',
+                  {
+                    key: row.rowIndex,
+                    'data-row-index': row.rowIndex,
+                    ref: grid.rowRef(row.rowIndex),
+                  },
+                  row.items.map(item => h('span', { key: item }, String(item))),
+                ),
+              ),
+            ),
+          ]);
+      },
+    });
+
+    const wrapper = mount(GridHost, { attachTo: document.body });
+    await nextTick();
+
+    // 列表布局恒为单列：首行只含首项
+    const initialRows = readRenderedRows(wrapper);
+    expect(initialRows.length).toBeGreaterThan(0);
+    expect(initialRows[0]).toEqual([0]);
+
+    wrapper.unmount();
+  });
+
   /**
    * 读取当前渲染出的行内容
    * @param wrapper 挂载实例

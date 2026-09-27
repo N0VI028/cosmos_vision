@@ -119,7 +119,7 @@ function buildLoraManagerEntries(loras: readonly ComfyUILoraSetting[]): LoraMana
  * @param value ComfyUI 模型列表返回的 LoRA 路径
  * @returns LoraManager 可精确匹配的名称
  */
-function normalizeLoraManagerName(value: string): string {
+export function normalizeLoraManagerName(value: string): string {
   const filename = value.trim().replaceAll('\\', '/').split('/').pop() ?? '';
   return filename.replace(/\.(?:safetensors|sft)$/i, '');
 }

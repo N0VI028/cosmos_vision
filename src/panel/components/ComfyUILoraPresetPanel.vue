@@ -17,64 +17,117 @@
         <PresetSelector
           :presets="presetOptions"
           :active-preset-id="props.presetSettings.activePresetId"
-          :default-preset-id="defaultPresetId"
+          show-portability
+          import-via-dialog
           @update:active-preset-id="updateActivePresetId"
           @create="createPreset"
           @clone="clonePreset"
           @rename="renamePreset"
+          @export-preset="exportActivePreset"
+          @import-click="isImportVisible = true"
           @delete-preset="deletePreset"
         />
 
-        <Fluid v-if="activePreset?.loras.length" class="flex flex-col gap-(--cv-space-xl)">
-          <div
-            v-for="lora in activePreset.loras"
-            :key="lora.id"
-            class="grid grid-cols-[auto_minmax(0,1fr)_5.75rem_auto] items-center gap-(--cv-space-md) border-b border-(--cv-surface-variant) pb-(--cv-space-lg) last:border-b-0 last:pb-0 max-[32rem]:grid-cols-[auto_minmax(0,1fr)_auto] max-[32rem]:[&_.cv-lora-strength]:col-start-2"
+        <Fluid v-if="activePreset?.loras.length">
+          <VueDraggable
+            v-model="loras"
+            v-bind="loraDragOptions"
+            class="group/list flex w-full flex-col gap-(--cv-space-sm)"
+            :class="{ 'is-dragging': isDraggingLoras }"
+            @start="isDraggingLoras = true"
+            @end="isDraggingLoras = false"
           >
-            <ToggleSwitch
-              :model-value="lora.enabled"
-              class="self-center"
-              :aria-label="`${lora.name || '未命名 LoRA'} 启用状态`"
-              @update:model-value="updateLora(lora.id, { enabled: Boolean($event) })"
-            />
-            <Select
-              :model-value="lora.name"
-              :options="props.loraOptions"
-              option-label="label"
-              option-value="value"
-              placeholder="选择 ComfyUI LoRA"
-              class="w-full max-w-full min-w-0"
-              fluid
-              :loading="props.isLoadingLoras"
-              aria-label="LoRA 文件"
-              filter
-              @update:model-value="updateLora(lora.id, { name: String($event ?? '') })"
-            />
-            <InputNumber
-              :model-value="lora.strength"
-              :min="-5"
-              :max="5"
-              :step="0.05"
-              :min-fraction-digits="0"
-              :max-fraction-digits="3"
-              :use-grouping="false"
-              fluid
-              placeholder="强度"
-              class="cv-lora-strength min-w-0"
-              :pt="loraStrengthPt"
-              aria-label="LoRA 强度"
-              @update:model-value="updateLora(lora.id, { strength: normalizeStrength($event) })"
-            />
-            <Button
-              icon="fa-solid fa-trash"
-              severity="danger"
-              variant="outlined"
-              rounded
-              class="self-center"
-              aria-label="删除 LoRA"
-              @click="removeLora(lora.id)"
-            />
-          </div>
+            <section
+              v-for="lora in activePreset.loras"
+              :key="lora.id"
+              class="group/row grid grid-cols-[auto_minmax(0,1fr)] items-stretch overflow-hidden rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) transition-[border-color,box-shadow] duration-150 ease-in-out hover:border-(--cv-outline) hover:shadow-[0_var(--cv-space-sm)_var(--cv-space-3xl)_color-mix(in_srgb,var(--cv-on-surface)_12%,transparent)]"
+              :class="{ 'opacity-55': !lora.enabled }"
+            >
+              <!-- 把手：恢复 border-r（人物模板同款） -->
+              <button
+                type="button"
+                class="cv-lora-handle flex w-8 cursor-grab touch-none items-center justify-center border-0 border-r-(length:--cv-border-width) border-r-solid border-r-(--cv-surface-variant) bg-transparent p-0 text-(length:--cv-font-size-xs) text-[color-mix(in_srgb,var(--cv-on-surface)_25%,transparent)] transition-[color,background] duration-150 ease-in-out select-none group-hover/row:bg-[color-mix(in_srgb,var(--cv-on-surface)_3%,transparent)] group-hover/row:text-[color-mix(in_srgb,var(--cv-on-surface)_50%,transparent)] hover:text-(--cvp-primary-color)! active:cursor-grabbing"
+                title="拖拽排序"
+                aria-label="拖拽排序"
+              >
+                <i class="fa-solid fa-grip-vertical" />
+              </button>
+
+              <!-- 条目主体：固定高度统一两态节奏，与 PromptEntryList 对齐 -->
+              <div class="flex h-[2.375rem] min-w-0 flex-1 items-center justify-between gap-(--cv-space-md) px-(--cv-space-md) py-(--cv-space-sm)">
+                <div v-if="editingLoraId !== lora.id" class="flex min-w-0 flex-1 items-center gap-(--cv-space-md)">
+                  <span
+                    class="size-1.5 shrink-0 rounded-full transition-colors duration-150"
+                    :class="
+                      lora.enabled
+                        ? 'bg-(--cvp-primary-color) shadow-[0_0_6px_var(--cvp-primary-color)]'
+                        : 'bg-[color-mix(in_srgb,var(--cv-on-surface)_20%,transparent)] shadow-none'
+                    "
+                  />
+                  <span class="shrink-0 text-(length:--cv-font-size-xs) font-semibold tracking-normal whitespace-nowrap text-(--cv-on-surface-variant)">{{ lora.strength }}</span>
+                  <ComfyUILoraPreviewButton :comfyui-url="props.comfyuiUrl" :lora-name="lora.name" />
+                </div>
+                <div
+                  v-else
+                  class="grid w-full grid-cols-[minmax(0,1fr)_4.25rem_auto_auto] items-center gap-(--cv-space-md)"
+                  @keydown.enter.stop="editingLoraId = null"
+                >
+                  <Select
+                    :model-value="lora.name"
+                    :options="props.loraOptions"
+                    option-label="label"
+                    option-value="value"
+                    placeholder="选择 ComfyUI LoRA"
+                    class="w-full max-w-full min-w-0"
+                    fluid
+                    size="small"
+                    :loading="props.isLoadingLoras"
+                    aria-label="LoRA 文件"
+                    filter
+                    @update:model-value="updateLora(lora.id, { name: String($event ?? '') })"
+                  >
+                    <template #option="{ option }">
+                      <div class="flex min-w-0 items-center gap-(--cv-space-md)">
+                        <ComfyUILoraOptionThumb :comfyui-url="props.comfyuiUrl" :lora-name="(option as TextOption).value" />
+                        <span class="min-w-0 truncate">{{ option.label }}</span>
+                      </div>
+                    </template>
+                  </Select>
+                  <InputNumber
+                    :model-value="lora.strength"
+                    :min="-5"
+                    :max="5"
+                    :step="0.05"
+                    :min-fraction-digits="0"
+                    :max-fraction-digits="3"
+                    :use-grouping="false"
+                    fluid
+                    size="small"
+                    placeholder="强度"
+                    class="cv-lora-strength min-w-0"
+                    :pt="loraStrengthPt"
+                    aria-label="LoRA 强度"
+                    @update:model-value="updateLora(lora.id, { strength: normalizeStrength($event) })"
+                  />
+                  <CvMiniButton icon="fa-regular fa-check" tone="success" aria-label="完成编辑" @click="editingLoraId = null" />
+                  <CvMiniButton icon="fa-regular fa-trash" tone="danger" aria-label="删除 LoRA" @click="removeLora(lora.id)" />
+                </div>
+
+                <!-- 默认态操作区：悬停渐显（编辑态隐藏） -->
+                <div
+                  v-if="editingLoraId !== lora.id"
+                  class="flex shrink-0 items-center gap-(--cv-space-sm) opacity-35 transition-opacity duration-200 ease-in-out group-hover/row:opacity-100 group-[.is-dragging]/list:pointer-events-none group-[.is-dragging]/list:opacity-35"
+                >
+                  <CvMiniButton icon="fa-regular fa-pen" aria-label="编辑 LoRA" @click="editingLoraId = lora.id" />
+                  <CvMiniToggleSwitch
+                    :model-value="lora.enabled"
+                    :aria-label="`${lora.name || '未命名 LoRA'} 启用状态`"
+                    @update:model-value="updateLora(lora.id, { enabled: Boolean($event) })"
+                  />
+                </div>
+              </div>
+            </section>
+          </VueDraggable>
         </Fluid>
         <div
           v-else
@@ -93,11 +146,20 @@
         </button>
       </div>
     </div>
+
+    <ComfyUILoraImportDialog
+      v-model:visible="isImportVisible"
+      :comfyui-url="props.comfyuiUrl"
+      :lora-options="props.loraOptions"
+      @import-file="importPresetFile"
+      @import-recipes="importRecipes"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { uuidv4 } from '@sillytavern/scripts/utils';
+import { VueDraggable } from 'vue-draggable-plus';
 
 import {
   DEFAULT_COMFYUI_LORA_PRESET_ID,
@@ -107,8 +169,25 @@ import {
   type ComfyUILoraPresetSettings,
   type ComfyUILoraSetting,
 } from '@/constants/comfyui';
+import ComfyUILoraImportDialog from '@/panel/components/comfyui/ComfyUILoraImportDialog.vue';
+import ComfyUILoraOptionThumb from '@/panel/components/comfyui/ComfyUILoraOptionThumb.vue';
+import ComfyUILoraPreviewButton from '@/panel/components/comfyui/ComfyUILoraPreviewButton.vue';
+import CvMiniButton from '@/panel/components/CvMiniButton.vue';
+import CvMiniToggleSwitch from '@/panel/components/CvMiniToggleSwitch.vue';
 import PresetSelector from '@/panel/components/PresetSelector.vue';
 import { findComfyUILoraPreset } from '@/services/comfyui/lora-presets';
+import {
+  buildRecipePresetName,
+  createLoraOptionIndex,
+  downloadLoraRecipeFile,
+  mapRecipeLorasToSettings,
+  parseLoraRecipeFilePayload,
+  type ComfyUILoraRecipe,
+} from '@/services/comfyui/lora-recipes';
+import { removePresetReferences } from '@/services/image-prompt/random-preset-pool';
+import { fetchComfyUILoraNames } from '@/services/comfyui/api';
+import { useSettingsStore } from '@/store/settings';
+import { useSyncCacheStore } from '@/store/sync-cache';
 
 interface TextOption {
   value: string;
@@ -131,12 +210,16 @@ const props = defineProps<{
   presetSettings: ComfyUILoraPresetSettings;
   loraOptions: TextOption[];
   isLoadingLoras: boolean;
+  comfyuiUrl: string;
 }>();
 
 const emit = defineEmits<{
   'update:preset-settings': [settings: ComfyUILoraPresetSettings];
   'refresh-options': [];
 }>();
+
+const { settings } = useSettingsStore();
+const syncCacheStore = useSyncCacheStore();
 
 const showPrompt =
   inject<(options: { title?: string; message: string; defaultValue?: string }) => Promise<string | null>>('showPrompt');
@@ -145,6 +228,57 @@ const presetOptions = computed<PresetOption[]>(() => props.presetSettings.preset
 const activePreset = computed(() =>
   findComfyUILoraPreset(props.presetSettings.presets, props.presetSettings.activePresetId),
 );
+
+/** 当前激活组的 LoRA 列表（供拖拽排序双向绑定） */
+const loras = computed({
+  get: () => activePreset.value?.loras ?? [],
+  set: value => {
+    if (activePreset.value) updatePreset(activePreset.value.id, preset => ({ ...preset, loras: [...value] }));
+  },
+});
+
+/** Sortable 配置：与提示词条目列表一致（仅把手拖动、触屏长按延迟、fallback 克隆作唯一虚线幽灵，原条目隐形） */
+const loraDragOptions = {
+  handle: '.cv-lora-handle',
+  animation: 150,
+  ghostClass: 'cv-message-row-ghost',
+  // 跟随鼠标的克隆幽灵（fallbackClass 样式定义在 PromptEntryList.vue 的全局样式中，勿重复定义）
+  fallbackClass: 'cv-message-row-fallback',
+  chosenClass: 'cv-message-row-chosen',
+  // 原生 HTML5 拖放会导致屏幕闪烁，改用 fallback 跟随幽灵（ghost/fallback 样式定义在 PromptEntryList.vue 的全局样式中）
+  forceFallback: true,
+  fallbackOnBody: true,
+  delayOnTouchOnly: true,
+  delay: 120,
+  touchStartThreshold: 5,
+};
+
+/** 拖拽进行中（禁用操作区点击、去过渡动画） */
+const isDraggingLoras = ref(false);
+
+/** 当前处于编辑态的 LoRA 条目 ID（单行独占编辑） */
+const editingLoraId = ref<string | null>(null);
+
+/** 控制导入预设弹窗的显示状态 */
+const isImportVisible = ref(false);
+
+// 打开导入弹窗时若 LoRA 库尚未拉取会导致配方映射失败（显示本地缺失），先静默拉取一次
+// 注意：不能看 loraOptions 是否为空——它并入了当前预设组里的 LoRA 名，库空时也可能非空
+watch(isImportVisible, opened => {
+  if (opened && !syncCacheStore.fetchedComfyUiLoras.length && props.comfyuiUrl.trim()) void ensureLoraOptionsLoaded();
+});
+
+/**
+ * 拉取 ComfyUI LoRA 列表并写入同步缓存（父级 loraOptions 由同一 store 派生，自动更新）
+ */
+async function ensureLoraOptionsLoaded(): Promise<void> {
+  try {
+    syncCacheStore.setComfyUiLoras(await fetchComfyUILoraNames({ url: props.comfyuiUrl }));
+  } catch (error) {
+    // 拉取失败不弹窗：导入弹窗内已有"LoRA 库尚未加载"警告兜底
+    console.error('[ComfyUILoraPresetPanel] 自动拉取 LoRA 列表失败', error);
+  }
+}
 
 /**
  * 转换预设选择器选项
@@ -209,7 +343,102 @@ async function renamePreset(): Promise<void> {
 function deletePreset(id: string): void {
   const presets = props.presetSettings.presets.filter(preset => preset.id !== id);
   emitPresetSettings(presets, getFallbackPresetId(presets, props.presetSettings.activePresetId));
+  // 级联清理：移除随机预设池 lora 侧对该预设组的引用
+  settings.randomPresetPools.pools = removePresetReferences(settings.randomPresetPools.pools, 'lora', id);
   toastr.success('预设组已删除');
+}
+
+/**
+ * 导出当前激活的 LoRA 预设组
+ */
+function exportActivePreset(): void {
+  if (!activePreset.value) return;
+  try {
+    downloadLoraRecipeFile(activePreset.value);
+    toastr.success('已导出当前 LoRA 预设');
+  } catch (error) {
+    toastr.error('导出 LoRA 预设失败');
+    console.error('[ComfyUILoraPresetPanel] 导出 LoRA 预设失败', error);
+  }
+}
+
+/**
+ * 从本地 JSON 文件导入 LoRA 预设组
+ * @param file 本地预设文件
+ */
+async function importPresetFile(file: File): Promise<void> {
+  try {
+    const text = await file.text();
+    const content = parseLoraRecipeFilePayload(JSON.parse(text));
+    if (!content.loras.length) {
+      toastr.warning('该文件没有可导入的 LoRA');
+      return;
+    }
+    const index = createLoraOptionIndex(props.loraOptions.map(o => o.value));
+    const { entries, unmatched } = mapRecipeLorasToSettings(content.loras, index, { keepExcluded: true });
+    const existingNames = props.presetSettings.presets.map(p => p.name);
+    const rawTitle = content.title.trim() || file.name.replace(/\.json$/i, '').trim();
+    const name = buildRecipePresetName(rawTitle, '', existingNames);
+    const loras = entries.map(entry => createComfyUILoraSetting(uuidv4(), entry));
+    const preset = createComfyUILoraPreset(uuidv4(), name, loras);
+    emitPresetSettings([...props.presetSettings.presets, preset], preset.id);
+    toastr.success(`已导入 LoRA 预设 "${name}"`);
+    if (unmatched.length) {
+      toastr.warning(`${unmatched.length} 个 LoRA 本地缺失，已禁用`);
+    }
+  } catch (error) {
+    toastr.error(describeImportError(error));
+    console.error('[ComfyUILoraPresetPanel] 导入 LoRA 预设失败', error);
+  }
+}
+
+/**
+ * 解析导入失败的用户提示文案
+ * @param error 捕获的异常
+ * @returns 提示文案
+ */
+function describeImportError(error: unknown): string {
+  if (error instanceof SyntaxError) return '文件不是有效的 JSON';
+  if (error instanceof Error) return error.message;
+  return '导入 LoRA 预设失败';
+}
+
+/**
+ * 从 LoRA Manager 批量导入配方为预设组
+ * @param recipes 选中的配方列表
+ */
+function importRecipes(recipes: ComfyUILoraRecipe[]): void {
+  if (!recipes.length) return;
+  const index = createLoraOptionIndex(props.loraOptions.map(o => o.value));
+  const existingNames = props.presetSettings.presets.map(p => p.name);
+  const newPresets: ComfyUILoraPreset[] = [];
+  let skippedCount = 0;
+  let totalUnmatched = 0;
+
+  for (const recipe of recipes) {
+    const { entries, unmatched } = mapRecipeLorasToSettings(recipe.loras, index);
+    if (!entries.length) {
+      skippedCount += 1;
+      continue;
+    }
+    const name = buildRecipePresetName(recipe.title, recipe.baseModel, existingNames);
+    existingNames.push(name);
+    totalUnmatched += unmatched.length;
+    const loras = entries.map(entry => createComfyUILoraSetting(uuidv4(), entry));
+    newPresets.push(createComfyUILoraPreset(uuidv4(), name, loras));
+  }
+
+  if (newPresets.length > 0) {
+    const lastPreset = newPresets[newPresets.length - 1];
+    emitPresetSettings([...props.presetSettings.presets, ...newPresets], lastPreset.id);
+    toastr.success(`已从 LoRA Manager 导入 ${newPresets.length} 个预设`);
+  }
+  if (skippedCount > 0) {
+    toastr.warning(`${skippedCount} 个配方没有可导入的 LoRA，已跳过`);
+  }
+  if (totalUnmatched > 0) {
+    toastr.warning(`${totalUnmatched} 个 LoRA 本地缺失，已禁用`);
+  }
 }
 
 /**
@@ -217,7 +446,9 @@ function deletePreset(id: string): void {
  */
 function addLora(): void {
   if (!activePreset.value) return;
-  updatePreset(activePreset.value.id, preset => ({ ...preset, loras: [...preset.loras, createBlankLora()] }));
+  const newLora = createBlankLora();
+  updatePreset(activePreset.value.id, preset => ({ ...preset, loras: [...preset.loras, newLora] }));
+  editingLoraId.value = newLora.id;
 }
 
 /**
@@ -226,13 +457,16 @@ function addLora(): void {
  */
 function removeLora(id: string): void {
   if (!activePreset.value) return;
+  if (editingLoraId.value === id) {
+    editingLoraId.value = null;
+  }
   updatePreset(activePreset.value.id, preset => ({ ...preset, loras: preset.loras.filter(lora => lora.id !== id) }));
 }
 
 /**
  * 更新当前激活组中的单个 LoRA
  * @param id LoRA 条目 ID
- * @param overrides 需要覆写的字段
+ * @param overrides 需要覆盖的字段
  */
 function updateLora(id: string, overrides: Partial<Omit<ComfyUILoraSetting, 'id'>>): void {
   if (!activePreset.value) return;

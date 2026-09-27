@@ -1,0 +1,80 @@
+@reference '../../global.css';
+
+/**
+ * LLM 请求监视窗的通用小部件（角色徽章 / 复制按钮 / 流式光标）
+ *
+ * 气泡卡片样式已并入行式条目面板（见 llm-inspector-requests.css），
+ * 此文件仅保留跨小节复用的基础小部件。契约同 llm-inspector.css：
+ * 禁止 .p-* 选择器，纯 --cv-* token 驱动，状态色 --cvp-* 带回退。
+ */
+
+/* 角色 Badge 标签：小圆角、不加粗 */
+.cv-llm-inspector-role-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--cv-space-xs);
+  padding: 0.18em var(--cv-space-sm);
+  border-radius: var(--cv-radius-sm);
+  font-family: var(--cv-font-label);
+  font-size: var(--cv-font-size-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cv-llm-inspector-role--system,
+.cv-llm-inspector-role--user,
+.cv-llm-inspector-role--assistant,
+.cv-llm-inspector-role--thinking {
+  background: color-mix(in srgb, var(--cv-on-surface-variant) 12%, var(--cv-surface-container-high));
+  color: var(--cv-on-surface-variant);
+}
+
+/* 失败徽章保留错误语义色（与侧栏失败指示器一致） */
+.cv-llm-inspector-role--error {
+  background: color-mix(in srgb, var(--cvp-red-500, #ef4444) 14%, var(--cv-surface-container-high));
+  color: var(--cvp-red-500, #ef4444);
+}
+
+/* 复制按钮（固定宽不参与行收缩：超长预览触发 flex-shrink 分摊时，若被压到 min-content 会导致各行图标横向错位、热区缩小） */
+.cv-llm-inspector-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.8em;
+  height: 1.8em;
+  padding: 0;
+  border: none;
+  border-radius: var(--cv-radius-sm);
+  background: transparent;
+  color: var(--cv-on-surface-variant);
+  font-size: var(--cv-font-size-xs);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.cv-llm-inspector-copy-btn:hover {
+  background: var(--cv-surface-container-high);
+  color: var(--cv-on-surface);
+}
+
+/* 流式呼吸光标 */
+.cv-llm-inspector-cursor {
+  display: inline-block;
+  width: 0.45em;
+  height: 1.05em;
+  margin-left: 0.15em;
+  background: var(--cv-primary-container);
+  animation: cv-llm-inspector-blink 1s step-start infinite;
+  vertical-align: text-bottom;
+}
+
+@keyframes cv-llm-inspector-blink {
+  50% {
+    opacity: 0;
+  }
+}

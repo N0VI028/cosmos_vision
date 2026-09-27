@@ -35,101 +35,85 @@
       <div class="cv-field-hint">{{ triggerMatchModeHint }}</div>
     </div>
 
-    <Accordion :value="activePanel" :pt="ACCORDION_PT" @update:value="val => (activePanel = val)">
-      <AccordionPanel v-for="(row, index) in conditionRows" :key="row.id" :value="row.id" :pt="ACCORDION_PANEL_PT">
-        <AccordionHeader :pt="ACCORDION_HEADER_PT">
-          <!-- gap 在内层：header 根受官方 all:unset，utility 无效 -->
-          <div
-            class="flex min-w-0 flex-1 items-center gap-(--cv-space-lg) bg-(--cv-surface-container-low) p-(--cv-space-md) text-(--cv-on-surface) transition-colors duration-200 select-none hover:bg-(--cv-surface-container)"
-          >
-            <span
-              class="min-w-0 flex-1 overflow-hidden text-(length:--cv-font-size-xs) font-medium text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
-            >
-              {{ getConditionSummary(row) }}
-            </span>
+    <CollapsiblePanelItem
+      v-for="(row, index) in conditionRows"
+      :key="row.id"
+      :title="getConditionSummary(row)"
+      :collapsed="!expandedRowIds.has(row.id)"
+      @toggle="toggleRowExpanded(row.id)"
+    >
+      <template #actions>
+        <CvMiniButton icon="fa-regular fa-trash" tone="danger" title="删除条件" aria-label="删除条件" @click="removeConditionRow(index)" />
+      </template>
+      <div class="flex flex-col gap-(--cv-space-lg)">
+        <div class="cv-field">
+          <span>条件类型</span>
+          <Select
+            :model-value="row.type"
+            :options="buildTypeOptions()"
+            option-label="label"
+            option-value="value"
+            fluid
+            class="w-full"
+            @update:model-value="value => updateRowType(index, value)"
+          />
+        </div>
+
+        <div class="cv-field">
+          <span>配置内容</span>
+
+          <!-- 关键词输入 -->
+          <InputTags
+            v-if="row.type === 'keyword'"
+            :model-value="row.keywords"
+            :allow-duplicate="false"
+            add-on-blur
+            delimiter=","
+            fluid
+            class="min-w-0"
+            @update:model-value="value => updateKeywordRow(index, value)"
+          />
+
+          <!-- 模型选择：AutoComplete 可输可选；Select editable+filter 会被下拉过滤框抢焦点 -->
+          <div v-else-if="row.type === 'model'" class="flex min-w-0 items-center gap-(--cv-space-md)">
+            <AutoComplete
+              :model-value="row.value"
+              :suggestions="modelSuggestions"
+              placeholder="选择或输入模型 ID（支持正则，如 animal.*；ComfyUI 按工作流主模型匹配）"
+              class="min-w-0 flex-1"
+              dropdown
+              fluid
+              :pt="cosmosAutocompleteFieldPt"
+              @update:model-value="value => updateModelRow(index, value)"
+              @complete="event => searchModelSuggestions(event, row.value)"
+              @dropdown-click="showAllModelSuggestions(row.value)"
+            />
             <Button
-              icon="fa-solid fa-trash"
-              severity="danger"
-              text
-              size="small"
-              aria-label="删除条件"
-              class="shrink-0"
-              @click.stop="removeConditionRow(index)"
+              icon="fa-solid fa-rotate"
+              severity="secondary"
+              outlined
+              rounded
+              :loading="isLoadingCheckpoints"
+              aria-label="同步 ComfyUI checkpoint"
+              @click="syncCheckpoints"
             />
           </div>
-        </AccordionHeader>
-        <AccordionContent :pt="ACCORDION_CONTENT_PT">
-          <div class="flex flex-col gap-(--cv-space-lg) p-(--cv-space-lg)">
-            <div class="cv-field">
-              <span>条件类型</span>
-              <Select
-                :model-value="row.type"
-                :options="buildTypeOptions()"
-                option-label="label"
-                option-value="value"
-                fluid
-                class="w-full"
-                @update:model-value="value => updateRowType(index, value)"
-              />
-            </div>
 
-            <div class="cv-field">
-              <span>配置内容</span>
-
-              <!-- 关键词输入 -->
-              <InputTags
-                v-if="row.type === 'keyword'"
-                :model-value="row.keywords"
-                :allow-duplicate="false"
-                add-on-blur
-                delimiter=","
-                fluid
-                class="min-w-0"
-                @update:model-value="value => updateKeywordRow(index, value)"
-              />
-
-              <!-- 模型选择 -->
-              <div v-else-if="row.type === 'model'" class="flex min-w-0 items-center gap-(--cv-space-md)">
-                <Select
-                  :model-value="row.value || null"
-                  :options="buildModelOptions(row.value)"
-                  option-label="label"
-                  option-value="value"
-                  placeholder="选择或输入模型 ID"
-                  filter
-                  editable
-                  fluid
-                  class="min-w-0 flex-1"
-                  @update:model-value="value => updateModelRow(index, value)"
-                />
-                <Button
-                  icon="fa-solid fa-rotate"
-                  severity="secondary"
-                  outlined
-                  rounded
-                  :loading="isLoadingCheckpoints"
-                  aria-label="同步 ComfyUI checkpoint"
-                  @click="syncCheckpoints"
-                />
-              </div>
-
-              <!-- 生图源选择 -->
-              <Select
-                v-else
-                :model-value="row.value || null"
-                :options="IMAGE_SOURCE_OPTIONS"
-                option-label="label"
-                option-value="value"
-                placeholder="选择生图源"
-                fluid
-                class="w-full min-w-0"
-                @update:model-value="value => updateImageSourceRow(index, value)"
-              />
-            </div>
-          </div>
-        </AccordionContent>
-      </AccordionPanel>
-    </Accordion>
+          <!-- 生图源选择 -->
+          <Select
+            v-else
+            :model-value="row.value || null"
+            :options="IMAGE_SOURCE_OPTIONS"
+            option-label="label"
+            option-value="value"
+            placeholder="选择生图源"
+            fluid
+            class="w-full min-w-0"
+            @update:model-value="value => updateImageSourceRow(index, value)"
+          />
+        </div>
+      </div>
+    </CollapsiblePanelItem>
 
     <button
       type="button"
@@ -144,6 +128,8 @@
 <script setup lang="ts">
 import { IMAGE_SOURCES, type ImageSource } from '@/constants/comfyui';
 import { NOVELAI_MODELS, type PromptLlmMessage, type PromptLlmMessageTriggerMatchMode } from '@/constants/novelai';
+import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
+import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import { fetchComfyUICheckpointNames } from '@/services/comfyui/api';
 import {
   normalizePromptLlmMessageImageSources,
@@ -152,6 +138,7 @@ import {
   normalizePromptLlmMessageModels,
   resolvePromptLlmMessageTriggerMatchMode,
 } from '@/services/prompt-llm/message-trigger';
+import { cosmosAutocompleteFieldPt } from '@/services/primevue/primevue-pt';
 import { useSettingsStore } from '@/store/settings';
 
 type TopMode = 'always' | 'condition';
@@ -170,11 +157,6 @@ interface TypeOption {
   value: ConditionType;
 }
 
-interface TextOption {
-  label: string;
-  value: string;
-}
-
 const TOP_MODE_OPTIONS: Array<{ label: string; value: TopMode }> = [
   { label: '始终触发', value: 'always' },
   { label: '条件触发', value: 'condition' },
@@ -189,13 +171,15 @@ const CONDITION_MATCH_MODE_OPTIONS: Array<{ label: string; value: ConditionMatch
 
 const DEFAULT_CONDITION_MATCH_MODE: ConditionMatchMode = 'all_match';
 const IMAGE_SOURCE_OPTIONS = IMAGE_SOURCES.map(item => ({ label: item.label, value: item.value }));
-const NAI_MODEL_OPTIONS: TextOption[] = NOVELAI_MODELS.map(item => ({ label: item.label, value: item.value }));
+const NAI_MODEL_VALUES: string[] = NOVELAI_MODELS.map(item => item.value);
 
 const message = defineModel<PromptLlmMessage>({ required: true });
 const { settings } = useSettingsStore();
 
 const checkpointNames = ref<string[]>([]);
 const isLoadingCheckpoints = ref(false);
+/** AutoComplete 筛选后的模型建议列表 */
+const modelSuggestions = ref<string[]>([]);
 let rowIdSeed = 0;
 const conditionRows = ref<ConditionRow[]>(readConditionRowsFromMessage(message.value));
 
@@ -206,52 +190,8 @@ const conditionMatchMode = computed<ConditionMatchMode>(() =>
   matchMode.value === 'always' ? DEFAULT_CONDITION_MATCH_MODE : matchMode.value,
 );
 
-/** 展开/收起手风琴的激活面板 ID */
-const activePanel = ref<string | string[] | null | undefined>(null);
-
-/**
- * Accordion 业务壳 PT：布局/边框用 Tailwind 规范任意值；视觉不依赖 .p-accordion*
- */
-const ACCORDION_PT = {
-  root: {
-    class: 'flex w-full flex-col gap-(--cv-space-md)',
-  },
-};
-
-const ACCORDION_PANEL_PT = {
-  root: {
-    class:
-      'overflow-hidden rounded-(--cv-radius-sm) border border-(--cv-surface-variant) bg-[color-mix(in_srgb,var(--cv-surface-container-low)_42%,transparent)]',
-  },
-};
-
-/**
- * Header 根：布局/gap/底色放 slot 内层（避开 all:unset）。
- * padding:0 用 inline style（特异性高于官方 all:unset 后再写回的 token padding）。
- */
-const ACCORDION_HEADER_PT = {
-  root: {
-    class: 'cv-trigger-accordion-header cursor-pointer',
-    style: { padding: '0' },
-  },
-  toggleicon: {
-    class: 'shrink-0 text-(--cv-on-surface-variant)',
-  },
-};
-
-/**
- * 顶部分隔线用 inline style：官方 .p-accordioncontent-content 写死 border-width token(0)，
- * 会盖掉 Tailwind border-t utility；inline 特异性更高
- */
-const ACCORDION_CONTENT_PT = {
-  content: {
-    class:
-      'bg-[color-mix(in_srgb,var(--cv-surface-container-low)_20%,transparent)] p-(--cv-space-2xl) md:p-(--cv-space-3xl)',
-    style: {
-      borderTop: 'var(--cv-border-width) solid var(--cv-surface-variant)',
-    },
-  },
-};
+/** 处于展开状态的条件行 ID 集合 */
+const expandedRowIds = ref<Set<string>>(new Set());
 
 /**
  * 获取条件的只读摘要文本
@@ -329,8 +269,20 @@ function updateConditionMatchMode(value: ConditionMatchMode | null | undefined):
 function addConditionRow(): void {
   const newRow = createKeywordRow([]);
   conditionRows.value.push(newRow);
-  activePanel.value = newRow.id; // 新条件自动展开
+  expandedRowIds.value.add(newRow.id); // 新条件自动展开
   writeConditionRows(conditionRows.value);
+}
+
+/**
+ * 切换指定条件行的展开/折叠状态（有则删、无则加）
+ * @param rowId 条件行 ID
+ */
+function toggleRowExpanded(rowId: string): void {
+  if (expandedRowIds.value.has(rowId)) {
+    expandedRowIds.value.delete(rowId);
+  } else {
+    expandedRowIds.value.add(rowId);
+  }
 }
 
 /**
@@ -372,13 +324,14 @@ function updateKeywordRow(index: number, keywords: string[] | null | undefined):
 
 /**
  * 更新模型行
+ * 逐键触发，行内不 trim（避免吞掉输入中的空格），落库 trim 由 normalize 承担
  * @param index 行下标
  * @param value 模型 ID
  */
 function updateModelRow(index: number, value: string | null | undefined): void {
   const current = conditionRows.value[index];
   if (!current || current.type !== 'model') return;
-  current.value = (value ?? '').trim();
+  current.value = value ?? '';
   writeConditionRows(conditionRows.value);
 }
 
@@ -407,20 +360,38 @@ function buildTypeOptions(): TypeOption[] {
 }
 
 /**
- * 合并 NAI 内置与已同步 Comfy checkpoint 选项
- * @param selected 当前行已选值
- * @returns 选项
+ * 构建模型候选全集（NAI 内置 + 已同步 Comfy checkpoint + 当前行已填值）
+ * @param selected 当前行已填值
+ * @returns 模型候选列表
  */
-function buildModelOptions(selected: string): TextOption[] {
-  const options = new Map<string, TextOption>();
-  for (const option of NAI_MODEL_OPTIONS) options.set(option.value, option);
+function buildModelValues(selected: string): string[] {
+  const values = new Set(NAI_MODEL_VALUES);
   for (const name of checkpointNames.value) {
     const trimmed = name.trim();
-    if (trimmed) options.set(trimmed, { label: trimmed, value: trimmed });
+    if (trimmed) values.add(trimmed);
   }
   const current = selected.trim();
-  if (current && !options.has(current)) options.set(current, { label: current, value: current });
-  return [...options.values()];
+  if (current) values.add(current);
+  return [...values];
+}
+
+/**
+ * AutoComplete 输入时按前缀过滤模型建议
+ * @param event complete 事件（query 为当前输入）
+ * @param selected 当前行已填值
+ */
+function searchModelSuggestions(event: { query: string }, selected: string): void {
+  const query = event.query.toLowerCase().trim();
+  const all = buildModelValues(selected);
+  modelSuggestions.value = query ? all.filter(value => value.toLowerCase().includes(query)) : all;
+}
+
+/**
+ * 点击 AutoComplete 下拉按钮时展示全部模型候选
+ * @param selected 当前行已填值
+ */
+function showAllModelSuggestions(selected: string): void {
+  modelSuggestions.value = buildModelValues(selected);
 }
 
 /**

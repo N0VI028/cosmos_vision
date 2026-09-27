@@ -18,9 +18,9 @@ describe('prompt-llm settings schema and recovery', () => {
     };
 
     const recovered = recoverPromptLlmSettings(corrupted);
-    expect(recovered.temperature).toBe(DEFAULT_SETTINGS.promptLlm.temperature);
+    expect(recovered.accounts[0].temperature).toBe(DEFAULT_SETTINGS.promptLlm.accounts[0].temperature);
     expect(recovered.historyFloorCount).toBe(DEFAULT_SETTINGS.promptLlm.historyFloorCount);
-    expect(recovered.shouldStream).toBe(false);
+    expect(recovered.accounts[0].shouldStream).toBe(false);
     expect(recovered.autoCharacterInfo).toBe(false);
   });
 
@@ -123,5 +123,84 @@ describe('prompt-llm settings schema and recovery', () => {
     expect(recovered.accounts[1].proxyPreset).toBe('');
     expect(recovered.accounts[1].model).toBe('');
     expect(recovered.accounts[1].source).toBe('openai');
+  });
+
+  it('migrates legacy global generation params to multiple accounts without params', () => {
+    const legacy = {
+      temperature: 1.2,
+      maxTokens: 4096,
+      topP: 0.85,
+      topK: 40,
+      shouldStream: true,
+      accounts: [
+        { id: 'acc-1', name: 'Acc1', apiUrl: 'https://1.example.com', apiKey: 'k1', enabled: true },
+        { id: 'acc-2', name: 'Acc2', apiUrl: 'https://2.example.com', apiKey: 'k2', enabled: true },
+      ],
+    };
+
+    const recovered = recoverPromptLlmSettings(legacy);
+    expect(recovered).not.toHaveProperty('temperature');
+    expect(recovered).not.toHaveProperty('maxTokens');
+    expect(recovered).not.toHaveProperty('topP');
+    expect(recovered).not.toHaveProperty('topK');
+    expect(recovered).not.toHaveProperty('shouldStream');
+
+    expect(recovered.accounts[0].temperature).toBe(1.2);
+    expect(recovered.accounts[0].maxTokens).toBe(4096);
+    expect(recovered.accounts[0].topP).toBe(0.85);
+    expect(recovered.accounts[0].topK).toBe(40);
+    expect(recovered.accounts[0].shouldStream).toBe(true);
+
+    expect(recovered.accounts[1].temperature).toBe(1.2);
+    expect(recovered.accounts[1].maxTokens).toBe(4096);
+    expect(recovered.accounts[1].topP).toBe(0.85);
+    expect(recovered.accounts[1].topK).toBe(40);
+    expect(recovered.accounts[1].shouldStream).toBe(true);
+  });
+
+  it('preserves account-level generation params over legacy global fallback', () => {
+    const legacy = {
+      temperature: 1.5,
+      maxTokens: 8192,
+      accounts: [
+        {
+          id: 'acc-1',
+          name: 'Custom',
+          temperature: 0.2,
+          maxTokens: 1024,
+          topP: 0.9,
+          topK: 20,
+          enabled: true,
+        },
+        {
+          id: 'acc-2',
+          name: 'Fallback',
+          enabled: true,
+        },
+      ],
+    };
+
+    const recovered = recoverPromptLlmSettings(legacy);
+    expect(recovered.accounts[0].temperature).toBe(0.2);
+    expect(recovered.accounts[0].maxTokens).toBe(1024);
+    expect(recovered.accounts[0].topP).toBe(0.9);
+    expect(recovered.accounts[0].topK).toBe(20);
+
+    expect(recovered.accounts[1].temperature).toBe(1.5);
+    expect(recovered.accounts[1].maxTokens).toBe(8192);
+    expect(recovered.accounts[1].topP).toBe(1.0); // 账号默认值
+    expect(recovered.accounts[1].topK).toBe(0); // 账号默认值
+  });
+
+  it('uses default generation params when neither legacy global nor account specifies them', () => {
+    const raw = {
+      accounts: [{ id: 'acc-1', name: 'Fresh', enabled: true }],
+    };
+
+    const recovered = recoverPromptLlmSettings(raw);
+    expect(recovered.accounts[0].temperature).toBe(0.7);
+    expect(recovered.accounts[0].maxTokens).toBe(32000);
+    expect(recovered.accounts[0].topP).toBe(1.0);
+    expect(recovered.accounts[0].topK).toBe(0);
   });
 });

@@ -11,6 +11,7 @@ import {
   type ImageSource,
 } from '@/constants/comfyui';
 import { createImagePromptPresetSettings } from '@/constants/image-prompt';
+import { createRandomPresetPoolSettings } from '@/constants/random-preset-pool';
 import {
   createNovelAIVibePresetSettings,
   DEFAULT_NOVELAI_VIBE_PRESET_ID,
@@ -105,11 +106,12 @@ export const DARK_CLASS = 'cosmos-vision-app-dark';
 /** 暗色模式默认值,仅用于 localStorage 初始化与回退,不进入 ST extension_settings */
 export const DEFAULT_DARK_MODE = true;
 
-/** 插件默认设置,缺字段时由 _.defaultsDeep 补齐(darkMode 不走 ST,由 localStorage 单独管理) */
+/** 插件默认设置,缺字段时由数组原子化深合并补齐(darkMode 不走 ST,由 localStorage 单独管理;见 store/settings.ts 的 defaultsDeepArrayAtomic) */
 export const DEFAULT_SETTINGS: CosmosVisionSettings = {
   enabled: true,
   temporaryImageLimit: 50,
   imageSource: DEFAULT_IMAGE_SOURCE,
+  inlineQuickPhrases: ['只绘制{{user}}', '只绘制{{char}}'],
   imagePromptPresets: createImagePromptPresetSettings(
     DEFAULT_POSITIVE_PROMPT_PRESET_ID,
     DEFAULT_POSITIVE_PROMPT_PRESET_NAME,
@@ -147,6 +149,7 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     qualityPreset: 'Standard',
     ucPreset: 'Heavy',
     autoCharacterCoords: true,
+    streamImage: false,
   },
   comfyui: {
     url: 'http://127.0.0.1:8188',
@@ -160,11 +163,6 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
     accounts: [createPromptLlmAccount(PROMPT_LLM_DEFAULT_ACCOUNT_ID)],
     routingMode: 'sequential',
     timeout: 60,
-    temperature: 0.7,
-    maxTokens: 32000,
-    topP: 1.0,
-    topK: 0,
-    shouldStream: false,
     historyFloorCount: 2,
     ignoreUserMessagesInHistory: false,
     autoCharacterInfo: false,
@@ -188,4 +186,5 @@ export const DEFAULT_SETTINGS: CosmosVisionSettings = {
   promptProfiles: {
     profiles: [],
   },
+  randomPresetPools: createRandomPresetPoolSettings(),
 };

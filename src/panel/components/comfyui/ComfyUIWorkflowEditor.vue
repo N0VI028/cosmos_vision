@@ -40,32 +40,10 @@
         />
       </DefineNodeSelect>
 
-      <!-- 非全屏下才渲染 toolbar 和 JSON 编辑 textarea -->
-      <template v-if="!fullscreen">
-        <ComfyUIWorkflowToolbar
-          :show-advanced-json="showAdvancedJson"
-          :status-text="statusTone !== 'info' ? statusText : undefined"
-          :status-tone="statusTone"
-          @import="emit('import')"
-          @toggle-json="showAdvancedJson = !showAdvancedJson"
-        />
-
-        <label v-if="showAdvancedJson" class="cv-field">
-          <span>API 格式工作流 JSON</span>
-          <div class="cv-field-control">
-            <Textarea
-              :model-value="modelValue"
-              rows="8"
-              class="w-full resize-y overflow-y-auto font-mono text-(length:--cv-font-size-xs)"
-              :invalid="Boolean(parseError)"
-              @update:model-value="onJsonEdit"
-            />
-            <div class="cv-field-hint">请使用 ComfyUI 的 Save (API Format) 导出</div>
-          </div>
-        </label>
-
-        <div v-if="parseError" class="cv-field-warn">{{ parseError }}</div>
-      </template>
+      <!-- 非全屏状态提示行（statusTone 非 info 时显示 statusText） -->
+      <div v-if="!fullscreen && statusTone !== 'info' && statusText" class="cv-field-hint" :class="statusClass">
+        {{ statusText }}
+      </div>
 
       <div
         v-if="workflow"
@@ -120,7 +98,8 @@
               <i class="fa-solid fa-location-crosshairs" aria-hidden="true" />
             </ReuseIconButton>
 
-            <Popover ref="locatePopover" :base-z-index="3200" :pt="locatePopoverPt">
+            <!-- 不传 base-z-index：回落全局 zIndex.overlay (100100)，高于全屏容器 z-99999 -->
+            <Popover ref="locatePopover" :pt="locatePopoverPt">
               <div class="flex w-full flex-col items-stretch gap-(--cv-space-xs) p-(--cv-space-xs)">
                 <button
                   v-for="option in bindingLocateOptions"
@@ -282,12 +261,7 @@ import {
   listInputControls,
 } from '@/services/comfyui/object-info';
 import { parseComfyUIWorkflow, serializeComfyUIWorkflow } from '@/services/comfyui/parse';
-import type {
-  ComfyUIObjectInfoMap,
-  ComfyUIWorkflow,
-  PromptBinding,
-  SeedMode,
-} from '@/services/comfyui/types';
+import type { ComfyUIObjectInfoMap, ComfyUIWorkflow, PromptBinding, SeedMode } from '@/services/comfyui/types';
 import type { TavernAvatarSource } from '@/services/tavern-helper/avatar';
 import {
   buildFavoriteLocateOptions,
@@ -298,7 +272,6 @@ import { createReusableTemplate } from '@vueuse/core';
 import { storeToRefs } from 'pinia';
 import ComfyUIWorkflowCanvas from '@/panel/components/comfyui/ComfyUIWorkflowCanvas.vue';
 import ComfyUIWorkflowInspector from '@/panel/components/comfyui/ComfyUIWorkflowInspector.vue';
-import ComfyUIWorkflowToolbar from '@/panel/components/comfyui/ComfyUIWorkflowToolbar.vue';
 import { useSettingsStore } from '@/store/settings';
 
 const [DefineIconButton, ReuseIconButton] = createReusableTemplate<{
@@ -324,7 +297,6 @@ const emit = defineEmits<{
   'update:modelValue': [value: string];
   'update:favorite-node-ids': [ids: string[]];
   'update:lora-preset-settings': [settings: ComfyUILoraPresetSettings];
-  import: [];
   'refresh-lora-options': [];
 }>();
 
@@ -341,7 +313,6 @@ const showConfirm =
 
 const canvasRef = ref<{ fitView: () => void; focusNode: (nodeId: string) => void } | null>(null);
 const selectedNodeId = ref<string | null>(null);
-const showAdvancedJson = ref(false);
 const fullscreen = ref(false);
 
 const locatePopover = ref<any>(null);
@@ -525,6 +496,12 @@ const statusTone = computed(() => {
   return 'info' as const;
 });
 
+const statusClass = computed(() => {
+  if (statusTone.value === 'error') return 'text-(--cvp-red-500,var(--cv-on-surface))';
+  if (statusTone.value === 'warn') return 'text-(--cvp-orange-500,var(--cv-on-surface))';
+  return 'text-(--cv-on-surface-variant)';
+});
+
 const isStatusFloatingVisible = computed(() => {
   if (!statusText.value) return false;
   return (fullscreen.value && statusTone.value !== 'info') || showSyncStatus.value;
@@ -536,14 +513,6 @@ const isStatusFloatingVisible = computed(() => {
  */
 function commitWorkflow(next: ComfyUIWorkflow): void {
   emit('update:modelValue', serializeComfyUIWorkflow(next));
-}
-
-/**
- * JSON 文本编辑
- * @param value 新文本
- */
-function onJsonEdit(value: string | undefined): void {
-  emit('update:modelValue', value ?? '');
 }
 
 /**
@@ -641,7 +610,9 @@ function tryClearParagraphResult(next: ComfyUIWorkflow, nodeId: string): boolean
  */
 function canBindParagraphResult(nodeId: string): boolean {
   if (outputCandidates.value.includes(nodeId)) return true;
-  const message = objectInfo.value ? '当前节点没有可用的 IMAGE 输入或输出端口' : '未同步节点定义，不能设置段落生图结果';
+  const message = objectInfo.value
+    ? '当前节点没有可用的图片输出（IMAGE/通配）或 IMAGE 输入端口'
+    : '未同步节点定义，不能设置段落生图结果';
   toastr.warning(message);
   return false;
 }
@@ -772,7 +743,7 @@ onBeforeUnmount(() => {
 .cv-workflow-locate-popover {
   width: max-content;
   min-width: 160px;
-  max-width: min(15rem, 80vw);
+  max-width: min(15rem, 80dvw);
 }
 
 .cv-workflow-node-select .p-select-label {

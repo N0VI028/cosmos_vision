@@ -1,10 +1,9 @@
-import { DEFAULT_PROMPT_LLM_OUTPUT_FIELDS } from '@/constants/default-settings';
+import { DEFAULT_PROMPT_LLM_OUTPUT_FIELDS, DEFAULT_SETTINGS } from '@/constants/default-settings';
 import type { CharacterPromptItem, PromptLlmOutputFields, PromptLlmSettings } from '@/constants/novelai';
 import type { PromptLlmAccount } from '@/constants/prompt-llm';
 import { getAvailablePromptLlmAccounts } from '@/services/prompt-llm/router';
 import { findProxyPreset } from '@/services/sillytavern/openai-config';
 import yaml from 'yaml';
-import { z } from 'zod';
 
 export type { PromptLlmOutputFields } from '@/constants/novelai';
 
@@ -75,6 +74,7 @@ export interface TavernHelperGenerateRawConfig {
   json_schema?: TavernHelperJsonSchema;
   should_stream?: boolean;
   should_silence?: boolean;
+  should_return_reasoning?: boolean;
 }
 
 /**
@@ -87,15 +87,6 @@ export interface TavernHelperJsonSchema {
   strict?: boolean;
 }
 
-const promptLlmRequestSchema = z.object({
-  temperature: z.number(),
-  maxTokens: z.number(),
-  topP: z.number(),
-  topK: z.number(),
-});
-
-/** 提示词 LLM 请求所需的生成参数（来源与模型由账号承载） */
-type PromptLlmRequestSettings = z.infer<typeof promptLlmRequestSchema>;
 const PROMPT_LLM_JSON_SCHEMA_NAME = 'cosmos_vision_prompt_output';
 const PROMPT_LLM_JSON_SCHEMA_DESCRIPTION = '文生图正负提示词输出';
 const PROMPT_OUTPUT_LABELS = {
@@ -125,13 +116,32 @@ interface PromptExtractRule {
   flags: string;
 }
 
+/** TavernHelper 新版 generateRaw 详情对象形态（should_return_reasoning 为 true 时返回） */
+export interface TavernHelperGenerateRawResult {
+  readonly content: string;
+  readonly reasoning?: string;
+  readonly reasoning_signature?: string;
+  readonly tool_calls?: unknown[];
+}
+
+/** generateRaw 返回值的统一读取结果 */
+export interface TavernHelperGenerateRawOutcome {
+  /** 正文（纯字符串值或详情对象的 content） */
+  text: string;
+  /** 推理内容（仅详情对象携带；纯字符串返回时为 undefined） */
+  reasoning?: string;
+}
+
 /**
- * 格式化 generateRaw 返回值为可提取文本
+ * 读取 generateRaw 返回值（请求统一携带 should_return_reasoning，返回详情对象）
  * @param rawResult generateRaw 原始返回
- * @returns 可用于正则提取的响应文本
+ * @returns 正文与推理内容读取结果
  */
-export function formatPromptLlmRawResult(rawResult: unknown): string {
-  return typeof rawResult === 'string' ? rawResult : JSON.stringify(rawResult, null, 2);
+export function readGenerateRawOutcome(rawResult: unknown): TavernHelperGenerateRawOutcome {
+  const rawObj = (rawResult ?? {}) as Record<string, unknown>;
+  const text = typeof rawObj.content === 'string' ? rawObj.content : '';
+  if (typeof rawObj.reasoning !== 'string') return { text };
+  return { text, reasoning: rawObj.reasoning };
 }
 
 /**
@@ -141,7 +151,9 @@ export function formatPromptLlmRawResult(rawResult: unknown): string {
  */
 function collectPromptOutputFields(fields: PromptLlmOutputFields | null): string[] {
   if (!fields) return [];
-  return [fields.positive, fields.negative, fields.characterPrompts].filter((name): name is string => Boolean(name?.trim()));
+  return [fields.positive, fields.negative, fields.characterPrompts].filter((name): name is string =>
+    Boolean(name?.trim()),
+  );
 }
 
 /**
@@ -172,7 +184,8 @@ export function buildJsonSchema(
  * @returns Schema 属性定义
  */
 function buildPromptOutputProperty(name: string, fields: PromptLlmOutputFields): Record<string, unknown> {
-  if (name !== fields.characterPrompts) return { type: 'string', description: name === fields.positive ? '正向提示词' : '负向提示词' };
+  if (name !== fields.characterPrompts)
+    return { type: 'string', description: name === fields.positive ? '正面提示词' : '负面提示词' };
   const xKey = fields.characterPositionX ?? 'x';
   const yKey = fields.characterPositionY ?? 'y';
   return {
@@ -209,8 +222,6 @@ function buildPromptOutputProperty(name: string, fields: PromptLlmOutputFields):
  * @returns 不可请求时返回提示文案
  */
 export function getPromptLlmRequestError(settings: PromptLlmSettings): string | null {
-  const result = promptLlmRequestSchema.safeParse(settings);
-  if (!result.success) return getFirstIssueMessage(result.error);
   return getAvailablePromptLlmAccounts(settings).length
     ? null
     : '没有可用的 LLM 账号，请先启用至少一组填写完整来源、模型与接口信息的账号';
@@ -218,22 +229,20 @@ export function getPromptLlmRequestError(settings: PromptLlmSettings): string | 
 
 /**
  * 构建 custom_api 配置对象
- * 来源与模型取自账号；账号配置了酒馆代理预设时走预设，否则用账号的地址与密钥
- * @param settings 提示词 LLM 配置
- * @param account 本次尝试的账号
+ * 来源、模型与生成参数均取自账号；账号配置了酒馆代理预设时走预设，否则用账号的地址与密钥
+ * @param account 本次尝试的账号（缺省时生成参数回退默认账号）
  * @returns TavernHelper custom_api 配置
  */
-export function buildCustomApi(settings: PromptLlmSettings, account?: PromptLlmAccount): TavernHelperCustomApiConfig {
-  const parsedSettings = parsePromptLlmRequestSettings(settings);
-
+export function buildCustomApi(account?: PromptLlmAccount): TavernHelperCustomApiConfig {
+  const { temperature, maxTokens, topP, topK } = account ?? DEFAULT_SETTINGS.promptLlm.accounts[0];
   const proxyPreset = findProxyPreset(account?.proxyPreset ?? '');
   const api: TavernHelperCustomApiConfig = {
     model: account?.model.trim() ?? '',
     source: account?.source.trim() ?? '',
-    temperature: parsedSettings.temperature,
-    max_tokens: parsedSettings.maxTokens,
-    top_p: parsedSettings.topP,
-    top_k: parsedSettings.topK,
+    temperature,
+    max_tokens: maxTokens,
+    top_p: topP,
+    top_k: topK,
   };
 
   if (proxyPreset) {
@@ -317,26 +326,6 @@ function parseCustomYaml(text: string, fieldLabel: string): unknown {
 }
 
 /**
- * 解析可发送的提示词 LLM 配置
- * @param settings 提示词 LLM 配置
- * @returns 已清理空白的配置
- */
-function parsePromptLlmRequestSettings(settings: PromptLlmSettings): PromptLlmRequestSettings {
-  const result = promptLlmRequestSchema.safeParse(settings);
-  if (result.success) return result.data;
-  throw new Error(getFirstIssueMessage(result.error));
-}
-
-/**
- * 读取首个 Zod 校验问题文案
- * @param error Zod 校验错误
- * @returns 首个错误文案
- */
-function getFirstIssueMessage(error: z.ZodError): string {
-  return error.issues[0]?.message ?? 'LLM 配置不完整';
-}
-
-/**
  * 构建显式消息列表 generateRaw 请求
  * @param orderedPrompts 按顺序发送的消息列表
  * @param customApi 自定义接口配置
@@ -394,13 +383,14 @@ export function parsePromptLlmOutput(
   }
 
   const output = fields ? normalizePromptLlmOutput(parsed, fields) : null;
-  if (!output) throw new Error('LLM 返回值缺少正向或负向提示词字段');
+  if (!output) throw new Error('LLM 返回值缺少正面或负面提示词字段');
   return output;
 }
 
 /**
  * 尝试从 LLM 原始文本读取正负提示词
  * @param rawText LLM 原始文本
+ * @param fields JSON 字段名
  * @returns 可读取时返回正负提示词,否则返回 null
  */
 export function readPromptLlmOutput(
@@ -610,6 +600,7 @@ function createPromptExtractRegex(rule: PromptExtractRule, label: string): RegEx
 /**
  * 归一化提示词 LLM 输出对象
  * @param value 待归一化值
+ * @param fields 输出字段配置
  * @returns 正负提示词对象或 null
  */
 function normalizePromptLlmOutput(value: unknown, fields: PromptLlmOutputFields): PromptLlmOutput | null {
@@ -651,4 +642,3 @@ export function extractOutputBlock(text: string): string {
   }
   return content;
 }
-

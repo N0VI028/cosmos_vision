@@ -23,23 +23,23 @@
       <CvMiniButton icon="fa-regular fa-copy" title="克隆当前预设" aria-label="克隆当前预设" @click="$emit('clone')" />
       <CvMiniButton
         icon="fa-regular fa-pen"
-        title="重命名当前预设"
-        aria-label="重命名当前预设"
+        :title="renameTitle"
+        :aria-label="renameTitle"
         @click="$emit('rename')"
       />
       <CvMiniButton
         v-if="showPortability"
         icon="fa-regular fa-file-export"
-        title="导出当前预设"
-        aria-label="导出当前预设"
+        :title="exportTitle"
+        :aria-label="exportTitle"
         @click="$emit('export-preset')"
       />
       <CvMiniButton
         v-if="showPortability"
         icon="fa-regular fa-file-import"
-        title="导入预设"
-        aria-label="导入预设"
-        @click="openFilePicker"
+        :title="importTitle"
+        :aria-label="importTitle"
+        @click="handleImportClick"
       />
       <CvMiniButton
         icon="fa-regular fa-trash"
@@ -65,13 +65,20 @@ const props = withDefaults(
   defineProps<{
     presets: PresetOption[];
     activePresetId: string;
-    defaultPresetId: string;
     showPortability?: boolean;
     importAccept?: string;
+    importViaDialog?: boolean;
+    renameTitle?: string;
+    exportTitle?: string;
+    importTitle?: string;
   }>(),
   {
     showPortability: false,
     importAccept: 'application/json,.json',
+    importViaDialog: false,
+    renameTitle: '重命名当前预设',
+    exportTitle: '导出当前预设',
+    importTitle: '导入预设',
   },
 );
 
@@ -82,6 +89,7 @@ const emit = defineEmits<{
   rename: [];
   'export-preset': [];
   'import-presets': [file: File];
+  'import-click': [];
   'delete-preset': [id: string];
 }>();
 const PRESET_SELECT_DT = {
@@ -120,9 +128,13 @@ const showConfirm =
 const fileInput = ref<HTMLInputElement | null>(null);
 
 /**
- * 打开预设文件选择器
+ * 触发导入预设操作：弹窗导入时向外抛出事件，否则调起本地文件选择器
  */
-function openFilePicker(): void {
+function handleImportClick(): void {
+  if (props.importViaDialog) {
+    emit('import-click');
+    return;
+  }
   fileInput.value?.click();
 }
 
@@ -140,10 +152,6 @@ function handleFileChange(event: Event): void {
  * 触发删除当前预设，执行前置校验与二次确认
  */
 async function handleDeleteActiveClick(): Promise<void> {
-  if (props.activePresetId === props.defaultPresetId) {
-    toastr.warning('默认预设不能删除');
-    return;
-  }
   if (props.presets.length <= 1) {
     toastr.warning('至少保留一个预设');
     return;

@@ -21,20 +21,20 @@
       <template v-else>
         <div class="cv-field">
           <span>正面提示词</span>
-          <Textarea
+          <CvExpandableTextarea
             v-model="directPositivePrompt"
             rows="3"
             auto-resize
-            class="w-full resize-y text-(length:--cv-font-size-base)"
+            class="w-full text-(length:--cv-font-size-base)"
           />
         </div>
         <div class="cv-field">
           <span>负面提示词</span>
-          <Textarea
+          <CvExpandableTextarea
             v-model="directNegativePrompt"
             rows="3"
             auto-resize
-            class="w-full resize-y text-(length:--cv-font-size-base)"
+            class="w-full text-(length:--cv-font-size-base)"
           />
         </div>
       </template>
@@ -58,10 +58,21 @@
       >
         <div
           v-if="testStatus === 'running'"
-          class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-primary-color)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-primary-color)_10%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-primary-color)"
+          class="mb-(--cv-space-2xl) flex flex-col gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-primary-color)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-primary-color)_10%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-primary-color)"
         >
-          <i class="fa-solid fa-spinner fa-spin" />
-          <span class="whitespace-normal break-all">{{ runningStateText }}</span>
+          <div class="flex items-center justify-between gap-(--cv-space-lg)">
+            <span class="flex min-w-0 items-center gap-(--cv-space-lg)">
+              <i class="fa-solid fa-spinner fa-spin" />
+              <span class="whitespace-normal break-all">{{ runningStateText }}</span>
+            </span>
+            <span v-if="progressPercent !== null" class="shrink-0">{{ progressPercent }}%</span>
+          </div>
+          <ProgressBar
+            v-if="progressPercent !== null"
+            :value="progressPercent ?? 0"
+            :show-value="false"
+            :style="{ height: '6px' }"
+          />
         </div>
         <div
           v-else-if="testStatus === 'success'"
@@ -187,10 +198,15 @@ import { useFocusedParagraphInput } from '@/composables/useFocusedParagraphInput
 import { useTestActionButton } from '@/composables/useTestActionButton';
 import { useTestRequestSession, type TestRequestSession } from '@/composables/useTestRequestSession';
 import type { PromptLlmAccount } from '@/constants/prompt-llm';
+import { getPromptLlmRequestAccounts } from '@/services/prompt-llm/router';
+import CvExpandableTextarea from '@/panel/components/CvExpandableTextarea.vue';
 import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue';
 import TestImageGallery from '@/panel/components/TestImageGallery.vue';
 
 import { generateComfyUIImagesFromResolvedRequest } from '@/services/comfyui/api';
+import type { ComfyUIProgress } from '@/services/comfyui/progress-ws';
+import { formatLoraDisplayName, getActiveComfyUILoraPreset } from '@/services/comfyui/lora-presets';
+import { resolveActiveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
 import {
   buildComfyUIResolvedRequest,
   type ComfyUILoraSnapshot,
@@ -208,11 +224,9 @@ import {
   extractPromptLlmResult,
 } from '@/services/prompt-llm/runtime-request';
 import {
-  buildPromptLlmLogParams,
-  buildPromptLlmParamRows,
+  buildPromptLlmAccountParamRows,
   formatPromptLlmRequestLog,
   requestPromptLlmRaw,
-  type PromptLlmLogParams,
 } from '@/services/tavern-helper/prompt-llm-test';
 
 type TestMode = 'direct' | 'llm';
@@ -240,7 +254,13 @@ const directNegativePrompt = ref('');
 const requestSnapshot = ref<ComfyUIRequestSnapshot | null>(null);
 const llmRawResponse = ref('');
 const llmSentPromptLog = ref('');
-const llmLogParams = ref<PromptLlmLogParams | null>(null);
+const routedAccount = ref<PromptLlmAccount | undefined>(undefined);
+const generationProgress = ref<ComfyUIProgress | null>(null);
+
+const progressPercent = computed<number | null>(() => {
+  if (!generationProgress.value) return null;
+  return Math.round((generationProgress.value.value / generationProgress.value.max) * 100);
+});
 
 const isRunning = computed(() => testStatus.value === 'running');
 const useLlmMode = computed({
@@ -286,9 +306,6 @@ const previewPromptSnapshot = computed<InlinePromptSnapshot | undefined>(() => {
     comfyui: snapshot,
   };
 });
-const displayLlmLogParams = computed(() => {
-  return llmLogParams.value ?? buildPromptLlmLogParams(settings.promptLlm);
-});
 
 const snapshotRows = computed<ParamRow[]>(() => {
   if (!requestSnapshot.value) return [];
@@ -310,7 +327,9 @@ const snapshotRows = computed<ParamRow[]>(() => {
   ];
 });
 
-const llmParamRows = computed(() => buildPromptLlmParamRows(displayLlmLogParams.value));
+const llmParamRows = computed(() =>
+  buildPromptLlmAccountParamRows(routedAccount.value ?? getPromptLlmRequestAccounts(settings.promptLlm)[0]),
+);
 
 /**
  * 格式化快照中的 LoRA 列表
@@ -319,7 +338,7 @@ const llmParamRows = computed(() => buildPromptLlmParamRows(displayLlmLogParams.
  */
 function formatSnapshotLoras(loras: ComfyUILoraSnapshot[]): string {
   if (!loras.length) return '无';
-  return loras.map(lora => `${lora.name} (${lora.strength})`).join(', ');
+  return loras.map(lora => `${formatLoraDisplayName(lora.name)} (${lora.strength})`).join(', ');
 }
 
 /**
@@ -360,11 +379,14 @@ async function runTest(): Promise<void> {
 
   await requestSession.run(
     async session => {
-      const request = currentMode.value === 'llm' ? await runLlmModeTest(session) : runDirectModeTest();
+      const request = currentMode.value === 'llm' ? await runLlmModeTest(session) : await runDirectModeTest(session);
       if (!requestSession.isCurrent(session)) return;
       requestSnapshot.value = request.snapshot;
       const blobs = await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request, {
         signal: session.signal,
+        onProgress: p => {
+          if (requestSession.isCurrent(session)) generationProgress.value = p;
+        },
       });
       if (!requestSession.isCurrent(session)) return;
       if (!blobs.length) throw new Error('段落生图结果节点未返回任何图片');
@@ -396,13 +418,23 @@ function markAborted(): void {
 
 /**
  * 执行直接提示词测试
+ * @param session 当前测试会话
  * @returns 已解析的 ComfyUI 请求
  */
-function runDirectModeTest(): ComfyUIResolvedRequest {
-  return buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, {
-    positivePrompt: directPositivePrompt.value,
-    negativePrompt: directNegativePrompt.value,
-  });
+async function runDirectModeTest(session: TestRequestSession): Promise<ComfyUIResolvedRequest> {
+  const effectiveLoraPreset = getActiveComfyUILoraPreset(settings.comfyui.loraPresets);
+  const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings.comfyui, session.signal);
+  return buildComfyUIResolvedRequest(
+    settings.comfyui,
+    settings.imagePromptPresets,
+    {
+      positivePrompt: directPositivePrompt.value,
+      negativePrompt: directNegativePrompt.value,
+    },
+    loraTriggerWords,
+    undefined,
+    effectiveLoraPreset,
+  );
 }
 
 /**
@@ -411,7 +443,6 @@ function runDirectModeTest(): ComfyUIResolvedRequest {
  * @returns 已解析的 ComfyUI 请求
  */
 async function runLlmModeTest(session: TestRequestSession): Promise<ComfyUIResolvedRequest> {
-  llmLogParams.value = buildPromptLlmLogParams(settings.promptLlm);
   const requestError = getPromptLlmRequestError(settings.promptLlm);
   if (requestError) throw new Error(requestError);
 
@@ -419,6 +450,7 @@ async function runLlmModeTest(session: TestRequestSession): Promise<ComfyUIResol
   const result = await requestPromptLlmRaw(
     settings.promptLlm,
     async account => {
+      routedAccount.value = account;
       const request = await buildLlmModeRequest(schemaFields, account);
       if (requestSession.isCurrent(session)) llmSentPromptLog.value = formatPromptLlmRequestLog(request);
       return request;
@@ -432,7 +464,16 @@ async function runLlmModeTest(session: TestRequestSession): Promise<ComfyUIResol
 
   llmRawResponse.value = result.rawText;
   const { output } = extractPromptLlmResult(result.rawText, settings.promptLlm, schemaFields);
-  return buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, output);
+  const effectiveLoraPreset = getActiveComfyUILoraPreset(settings.comfyui.loraPresets);
+  const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings.comfyui, session.signal);
+  return buildComfyUIResolvedRequest(
+    settings.comfyui,
+    settings.imagePromptPresets,
+    output,
+    loraTriggerWords,
+    undefined,
+    effectiveLoraPreset,
+  );
 }
 
 /**
@@ -463,8 +504,9 @@ function resetTestResult(): void {
   requestSnapshot.value = null;
   llmRawResponse.value = '';
   llmSentPromptLog.value = '';
-  llmLogParams.value = null;
+  routedAccount.value = undefined;
   previewBlobs.value = [];
+  generationProgress.value = null;
 }
 
 /**

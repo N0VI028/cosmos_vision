@@ -159,13 +159,46 @@ export function getUcPresetPrompt(model: NovelAIModel, preset: NovelAIUcPreset):
 
 export type NovelAIPromptMode = PromptLlmPromptMode;
 
+/** 单侧提示词组装产物：可变 core、实际预设 ID 与最终串 */
+export interface NovelAIPromptSideParts {
+  core: string;
+  presetId: string;
+  prompt: string;
+}
+
 /**
- * 组合 NovelAI 正向提示词
+ * 组合 NovelAI 正面提示词部件（唯一计算路径，最终串与部件同源）
  * @param settings NovelAI 设置
  * @param presetSettings 共享生图提示词预设
  * @param extractSettings Prompt LLM 正则提取规则
- * @param llmPrompt LLM 正向提示词
+ * @param llmPrompt LLM 正面提示词
  * @param mode 提取模式
+ * @param presetIdOverride 预设覆写（随机池抽中时传入），缺省用面板当前预设
+ * @returns core / presetId / 最终串
+ */
+export function buildPositivePromptParts(
+  settings: NovelAISettings,
+  presetSettings: ImagePromptPresetSettings,
+  extractSettings: PromptLlmExtractSettings,
+  llmPrompt = '',
+  mode: NovelAIPromptMode = 'extract',
+  presetIdOverride?: string,
+): NovelAIPromptSideParts {
+  const core = resolvePromptLlmSource(llmPrompt, mode, extractSettings, 'positive');
+  const presetId = presetIdOverride ?? settings.positivePromptPresetId;
+  const custom = resolveImagePromptPreset(getImagePromptPreset(presetSettings.positive, presetId), core);
+  const qualityTags = getQualityPresetPrompt(settings.model, settings.qualityPreset);
+  return { core, presetId, prompt: [custom, qualityTags].filter(Boolean).join(', ') };
+}
+
+/**
+ * 组合 NovelAI 正面提示词（buildPositivePromptParts 的薄包装）
+ * @param settings NovelAI 设置
+ * @param presetSettings 共享生图提示词预设
+ * @param extractSettings Prompt LLM 正则提取规则
+ * @param llmPrompt LLM 正面提示词
+ * @param mode 提取模式
+ * @param presetIdOverride 预设覆写（随机池抽中时传入），缺省用面板当前预设
  * @returns 最终发送给官方 API 的 input
  */
 export function buildPositivePrompt(
@@ -174,22 +207,59 @@ export function buildPositivePrompt(
   extractSettings: PromptLlmExtractSettings,
   llmPrompt = '',
   mode: NovelAIPromptMode = 'extract',
+  presetIdOverride?: string,
 ): string {
-  const prompt = resolvePromptLlmSource(llmPrompt, mode, extractSettings, 'positive');
-  const preset = getImagePromptPreset(presetSettings.positive, settings.positivePromptPresetId);
-  const custom = resolveImagePromptPreset(preset, prompt);
-  const qualityTags = getQualityPresetPrompt(settings.model, settings.qualityPreset);
-  return [custom, qualityTags].filter(Boolean).join(', ');
+  return buildPositivePromptParts(settings, presetSettings, extractSettings, llmPrompt, mode, presetIdOverride).prompt;
 }
 
 /**
- * 组合 NovelAI 负向提示词
+ * 组合 NovelAI 负面提示词部件（唯一计算路径，最终串与部件同源）
  * @param settings NovelAI 设置
  * @param presetSettings 共享生图提示词预设
  * @param extractSettings Prompt LLM 正则提取规则
- * @param llmPrompt LLM 负向提示词
+ * @param llmPrompt LLM 负面提示词
  * @param mode 提取模式
- * @param positivePrompt 正向提示词（用于 V3 系列检测是否缺少 nsfw）
+ * @param positivePrompt 正面提示词（用于 V3 系列检测是否缺少 nsfw）
+ * @param presetIdOverride 预设覆写（随机池抽中时传入），缺省用面板当前预设
+ * @returns core / presetId / 最终串
+ */
+export function buildNegativePromptParts(
+  settings: NovelAISettings,
+  presetSettings: ImagePromptPresetSettings,
+  extractSettings: PromptLlmExtractSettings,
+  llmPrompt = '',
+  mode: NovelAIPromptMode = 'extract',
+  positivePrompt = '',
+  presetIdOverride?: string,
+): NovelAIPromptSideParts {
+  const core = resolvePromptLlmSource(llmPrompt, mode, extractSettings, 'negative');
+  const presetId = presetIdOverride ?? settings.negativePromptPresetId;
+  const custom = resolveImagePromptPreset(getImagePromptPreset(presetSettings.negative, presetId), core);
+  const presetPrompt = UC_PRESETS[settings.model]?.[settings.ucPreset] ?? '';
+  let prompt = [presetPrompt, custom].filter(Boolean).join(', ');
+
+  // 仅针对 V3 系列旧模型：开启预设且正面未包含 "nsfw" 时自动在最前添加 "nsfw, "
+  if (
+    isNovelAIV3Model(settings.model) &&
+    settings.ucPreset !== 'None' &&
+    presetPrompt &&
+    !positivePrompt.toLowerCase().includes('nsfw')
+  ) {
+    prompt = prompt ? `nsfw, ${prompt}` : 'nsfw';
+  }
+
+  return { core, presetId, prompt };
+}
+
+/**
+ * 组合 NovelAI 负面提示词（buildNegativePromptParts 的薄包装）
+ * @param settings NovelAI 设置
+ * @param presetSettings 共享生图提示词预设
+ * @param extractSettings Prompt LLM 正则提取规则
+ * @param llmPrompt LLM 负面提示词
+ * @param mode 提取模式
+ * @param positivePrompt 正面提示词（用于 V3 系列检测是否缺少 nsfw）
+ * @param presetIdOverride 预设覆写（随机池抽中时传入），缺省用面板当前预设
  * @returns 最终发送给官方 API 的 negative_prompt
  */
 export function buildNegativePrompt(
@@ -199,24 +269,17 @@ export function buildNegativePrompt(
   llmPrompt = '',
   mode: NovelAIPromptMode = 'extract',
   positivePrompt = '',
+  presetIdOverride?: string,
 ): string {
-  const presetPrompt = UC_PRESETS[settings.model]?.[settings.ucPreset] ?? '';
-  const prompt = resolvePromptLlmSource(llmPrompt, mode, extractSettings, 'negative');
-  const preset = getImagePromptPreset(presetSettings.negative, settings.negativePromptPresetId);
-  const custom = resolveImagePromptPreset(preset, prompt);
-  let result = [presetPrompt, custom].filter(Boolean).join(', ');
-
-  // 仅针对 V3 系列旧模型：开启预设且正面未包含 "nsfw" 时自动在最前添加 "nsfw, "
-  if (
-    isNovelAIV3Model(settings.model) &&
-    settings.ucPreset !== 'None' &&
-    presetPrompt &&
-    !positivePrompt.toLowerCase().includes('nsfw')
-  ) {
-    result = result ? `nsfw, ${result}` : 'nsfw';
-  }
-
-  return result;
+  return buildNegativePromptParts(
+    settings,
+    presetSettings,
+    extractSettings,
+    llmPrompt,
+    mode,
+    positivePrompt,
+    presetIdOverride,
+  ).prompt;
 }
 
 /**
@@ -251,7 +314,7 @@ export function buildNovelAIFinalPromptsFromEditable(
 
 /**
  * 转换 NovelAI UC 预设为官方数值 (非 V5 旧模型)
- * @param preset 负向提示词程度
+ * @param preset 负面提示词程度
  * @param model 模型 ID（用于区分 Furry 模型）
  * @returns NovelAI API 的 ucPreset 数值
  */

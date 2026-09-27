@@ -1,20 +1,16 @@
 <template>
-  <div class="block">
+  <div class="relative" :class="embedded ? 'flex min-h-0 flex-1 flex-col' : 'block'">
     <div
+      ref="editorEl"
       class="min-h-24 rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cvp-content-border-color) bg-(--cvp-inputtext-background) p-(--cv-space-3xl) leading-[1.5] wrap-break-word whitespace-pre-wrap text-(--cvp-inputtext-color) outline-none focus-within:border-(--cvp-primary-color) focus-within:shadow-[0_0_0_1px_color-mix(in_srgb,var(--cvp-primary-color)_45%,transparent)]"
-      :class="{ 'is-dragging': isDragging }"
+      :class="{ 'is-dragging': isDragging, 'flex-1': embedded }"
+      contenteditable="plaintext-only"
       role="textbox"
       aria-multiline="true"
-      @pointerdown="handleContainerPointerDown"
+      @input="syncFromDom"
+      @paste.prevent="pastePlainText"
     >
-      <span
-        ref="beforeEl"
-        class="min-w-[0.5em] outline-none"
-        contenteditable="plaintext-only"
-        data-part="before"
-        @input="syncFromDom"
-        @paste.prevent="pastePlainText"
-      />
+      <span ref="beforeEl" class="min-w-[0.5em]" />
       <span
         ref="tokenEl"
         class="mx-(--cv-space-sm) inline-flex min-h-5 cursor-grab touch-none items-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-[color-mix(in_srgb,var(--cvp-primary-color)_60%,var(--cvp-content-border-color))] bg-[color-mix(in_srgb,var(--cvp-primary-color)_14%,transparent)] px-(--cv-space-lg) text-(--cvp-primary-color) select-none active:cursor-grabbing"
@@ -27,23 +23,55 @@
         @pointermove="movePlaceholder"
         @pointerup="finishMove"
         @pointercancel="cancelMove"
+        @keydown="handleTokenKeydown"
       >
         <span>LLM提取结果</span>
       </span>
-      <span
-        ref="afterEl"
-        class="min-w-[0.5em] outline-none"
-        contenteditable="plaintext-only"
-        data-part="after"
-        @input="syncFromDom"
-        @paste.prevent="pastePlainText"
-      />
+      <span ref="afterEl" class="min-w-[0.5em]" />
     </div>
+    <button
+      v-if="!embedded"
+      type="button"
+      class="cv-expandable-trigger"
+      title="全屏编辑"
+      aria-label="全屏编辑"
+      @click="openFullscreen()"
+    >
+      <i class="fa-solid fa-maximize" aria-hidden="true" />
+    </button>
+    <Dialog
+      v-if="!embedded"
+      v-model:visible="fullscreenVisible"
+      modal
+      :show-header="false"
+      :style="EXPANDABLE_DIALOG_STYLE"
+      :content-style="EXPANDABLE_DIALOG_CONTENT_STYLE"
+      :pt="EXPANDABLE_DIALOG_PT"
+    >
+      <div class="flex h-full min-h-0 flex-1 flex-col p-(--cv-space-md)">
+        <PromptPlaceholderEditor
+          embedded
+          :model-value="modelValue"
+          @update:model-value="value => emit('update:modelValue', value)"
+        />
+      </div>
+      <template #footer>
+        <div class="flex w-full items-center justify-end gap-(--cv-space-sm)">
+          <Button label="取消" text :fluid="false" @click="cancelFullscreen" />
+          <Button label="完成" icon="fa-solid fa-check" :fluid="false" @click="fullscreenVisible = false" />
+        </div>
+      </template>
+    </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { clampImagePromptPlaceholderOffset } from '@/constants/image-prompt';
+import {
+  EXPANDABLE_DIALOG_CONTENT_STYLE,
+  EXPANDABLE_DIALOG_PT,
+  EXPANDABLE_DIALOG_STYLE,
+} from '@/panel/components/expandable-editor-dialog';
 
 interface PromptPlaceholderValue {
   text: string;
@@ -65,9 +93,22 @@ type CaretDocument = Document & {
   caretRangeFromPoint?: (x: number, y: number) => Range | null;
 };
 
-const props = defineProps<{ modelValue: PromptPlaceholderValue }>();
+const props = withDefaults(
+  defineProps<{
+    /** 结构化值（v-model） */
+    modelValue: PromptPlaceholderValue;
+    /** 是否嵌入大窗内（嵌入实例不再渲染触发按钮，避免递归） */
+    embedded?: boolean;
+  }>(),
+  { embedded: false },
+);
 const emit = defineEmits<{ 'update:modelValue': [PromptPlaceholderValue] }>();
 
+const fullscreenVisible = ref(false);
+/** 打开全屏大窗时的值快照，用于取消回滚 */
+let fullscreenSnapshot: PromptPlaceholderValue = { text: '', placeholderOffset: 0 };
+
+const editorEl = ref<HTMLElement | null>(null);
 const beforeEl = ref<HTMLElement | null>(null);
 const afterEl = ref<HTMLElement | null>(null);
 const tokenEl = ref<HTMLElement | null>(null);
@@ -92,8 +133,18 @@ watch(
 );
 
 onMounted(() => {
+  ensurePlaintextOnlySupport();
   renderValue(props.modelValue);
 });
+
+/**
+ * 检测并降级兼容不支持 plaintext-only 的环境，回退为标准 contenteditable
+ */
+function ensurePlaintextOnlySupport(): void {
+  if (editorEl.value && !editorEl.value.isContentEditable) {
+    editorEl.value.contentEditable = 'true';
+  }
+}
 
 /**
  * 渲染当前结构化文本
@@ -119,9 +170,48 @@ function normalizeValue(value: PromptPlaceholderValue): PromptPlaceholderValue {
 }
 
 /**
+ * 打开全屏大窗并快照当前值，供取消时回滚
+ */
+function openFullscreen(): void {
+  fullscreenSnapshot = { ...normalizeValue(props.modelValue) };
+  fullscreenVisible.value = true;
+}
+
+/**
+ * 取消全屏编辑并回滚到打开时的快照（直接 emit，不走 emitValue，确保外层编辑器回渲染快照内容）
+ */
+function cancelFullscreen(): void {
+  emit('update:modelValue', fullscreenSnapshot);
+  fullscreenVisible.value = false;
+}
+
+/**
+ * 徽章防删恢复：框选跨徽章删除时把失联节点重挂回编辑器
+ * 前后段仍在则原位插回徽章；前后段被连带删除（如全选删除）则按宿主残留文本整体重建，徽章置于文本末尾
+ */
+function recoverTokenIfNeeded(): void {
+  const editor = editorEl.value;
+  const before = beforeEl.value;
+  const token = tokenEl.value;
+  const after = afterEl.value;
+  if (!editor || !token || !before || !after || editor.contains(token)) return;
+  if (editor.contains(before) && editor.contains(after)) {
+    editor.insertBefore(token, after);
+    return;
+  }
+  // 前后段被连带删除（如全选删除）时游离节点仍残留旧文本，须按宿主残留文本整体重建
+  const survivingText = editor.textContent ?? '';
+  editor.textContent = '';
+  editor.append(before, token, after);
+  before.textContent = survivingText;
+  after.textContent = '';
+}
+
+/**
  * 从 DOM 同步文本到外部模型
  */
 function syncFromDom(): void {
+  recoverTokenIfNeeded();
   const before = beforeEl.value?.textContent ?? '';
   const after = afterEl.value?.textContent ?? '';
   emitValue({ text: before + after, placeholderOffset: before.length });
@@ -151,6 +241,7 @@ function pastePlainText(event: ClipboardEvent): void {
  * @param event 指针事件
  */
 function startMove(event: PointerEvent): void {
+  event.preventDefault();
   pointerId.value = event.pointerId;
   startPoint.value = { x: event.clientX, y: event.clientY };
   dragText.value = readFullText();
@@ -167,9 +258,7 @@ function movePlaceholder(event: PointerEvent): void {
   if (!isDragging.value && !hasMovedEnough(event, startPoint.value)) return;
   event.preventDefault();
   isDragging.value = true;
-  const nextOffset = getOffsetFromPoint(event.clientX, event.clientY);
-  if (nextOffset === null || nextOffset === draftOffset.value) return;
-  draftOffset.value = nextOffset;
+  draftOffset.value = getOffsetFromPoint(event.clientX, event.clientY);
   renderValue({ text: dragText.value, placeholderOffset: draftOffset.value });
 }
 
@@ -179,11 +268,9 @@ function movePlaceholder(event: PointerEvent): void {
  */
 function finishMove(event: PointerEvent): void {
   if (event.pointerId !== pointerId.value) return;
-  const wasDragging = isDragging.value;
-  const nextOffset = wasDragging ? draftOffset.value : normalizeValue(props.modelValue).placeholderOffset;
+  const nextOffset = isDragging.value ? draftOffset.value : normalizeValue(props.modelValue).placeholderOffset;
   tokenEl.value?.releasePointerCapture(event.pointerId);
   resetPointerState();
-  if (!wasDragging) focusEditableByTokenSide(event.clientX);
   emitValue({ text: dragText.value || readFullText(), placeholderOffset: nextOffset });
 }
 
@@ -219,99 +306,6 @@ function hasMovedEnough(event: PointerEvent, point: Point): boolean {
 }
 
 /**
- * 容器兜底聚焦：仅点击落在空白区域时把光标交给相邻可编辑区
- * @param event 指针事件
- */
-function handleContainerPointerDown(event: PointerEvent): void {
-  if (eventPathHits(event, isInsideEditable) || eventPathHits(event, isInsideToken)) return;
-  event.preventDefault();
-  const caret = getCaretFromPoint(event.clientX, event.clientY);
-  if (caret && focusEditableAtCaret(caret)) return;
-  focusEditableByTokenSide(event.clientX);
-}
-
-/**
- * 判断事件路径中是否有节点满足命中条件
- * @param event 指针事件
- * @param hit 命中判定
- * @returns 是否命中
- */
-function eventPathHits(event: PointerEvent, hit: (node: Node) => boolean): boolean {
-  return event.composedPath().some((node) => node instanceof Node && hit(node));
-}
-
-/**
- * 判断命中节点是否为可编辑区
- * @param node 命中节点
- * @returns 是否属于可编辑区
- */
-function isInsideEditable(node: Node): boolean {
-  return resolveEditableSpan(node) !== null;
-}
-
-/**
- * 判断命中节点是否为徽章（含其内部子元素）
- * @param node 命中节点
- * @returns 是否属于徽章
- */
-function isInsideToken(node: Node): boolean {
-  return !!tokenEl.value?.contains(node);
-}
-
-/**
- * 定位节点所属的可编辑区
- * @param node 命中节点
- * @returns 可编辑区元素
- */
-function resolveEditableSpan(node: Node): HTMLElement | null {
-  if (beforeEl.value?.contains(node)) return beforeEl.value;
-  if (afterEl.value?.contains(node)) return afterEl.value;
-  return null;
-}
-
-/**
- * 按浏览器光标位置聚焦对应可编辑区
- * @param caret 浏览器光标位置
- * @returns 是否命中可编辑区
- */
-function focusEditableAtCaret(caret: CaretPoint): boolean {
-  const target = resolveEditableSpan(caret.offsetNode);
-  if (!target) return false;
-  target.focus();
-  const range = document.createRange();
-  range.setStart(caret.offsetNode, caret.offset);
-  range.collapse(true);
-  applySelection(range);
-  return true;
-}
-
-/**
- * 按点击位置与徽章的关系聚焦相邻可编辑区
- * @param x 屏幕 X
- */
-function focusEditableByTokenSide(x: number): void {
-  const rect = tokenEl.value?.getBoundingClientRect();
-  const onLeft = rect ? x < rect.left : false;
-  const target = onLeft ? beforeEl.value : afterEl.value;
-  if (!target) return;
-  target.focus();
-  const range = document.createRange();
-  range.selectNodeContents(target);
-  range.collapse(!onLeft);
-  applySelection(range);
-}
-
-/**
- * 应用光标选区
- * @param range 目标选区
- */
-function applySelection(range: Range): void {
-  const selection = window.getSelection();
-  selection?.removeAllRanges();
-  selection?.addRange(range);
-}
-
-/**
  * 读取完整固定文本
  * @returns 固定文本
  */
@@ -323,13 +317,14 @@ function readFullText(): string {
  * 根据屏幕坐标计算占位符位置
  * @param x 屏幕 X
  * @param y 屏幕 Y
- * @returns 占位符 offset，命中点无法解析时为 null
+ * @returns 占位符 offset
  */
-function getOffsetFromPoint(x: number, y: number): number | null {
+function getOffsetFromPoint(x: number, y: number): number {
   const caret = getCaretFromPoint(x, y);
-  if (!caret) return null;
-  const offset = getOffsetFromNode(caret.offsetNode, caret.offset);
-  return offset === null ? null : clampImagePromptPlaceholderOffset(dragText.value, offset);
+  if (caret) {
+    return clampImagePromptPlaceholderOffset(dragText.value, getOffsetFromNode(caret.offsetNode, caret.offset, x));
+  }
+  return fallbackOffsetFromPoint(x);
 }
 
 /**
@@ -350,14 +345,27 @@ function getCaretFromPoint(x: number, y: number): CaretPoint | null {
  * 把 DOM 节点位置换算为逻辑 offset
  * @param node DOM 节点
  * @param offset 节点内 offset
- * @returns 逻辑 offset，节点不在可编辑区内时为 null
+ * @param x 屏幕 X
+ * @returns 逻辑 offset
  */
-function getOffsetFromNode(node: Node, offset: number): number | null {
+function getOffsetFromNode(node: Node, offset: number, x = 0): number {
   const before = beforeEl.value;
   const after = afterEl.value;
   if (before?.contains(node)) return getLocalOffset(before, node, offset);
   if (after?.contains(node)) return getBeforeLength() + getLocalOffset(after, node, offset);
-  return null;
+  if (editorEl.value?.contains(node)) return getBoundaryOffset(node, offset);
+  return fallbackOffsetFromPoint(x);
+}
+
+/**
+ * 命中徽章本体或编辑器容器时维持占位符当前位置，避免拖动振荡
+ * @param node 命中节点
+ * @param offset 节点内 offset
+ * @returns 逻辑 offset
+ */
+function getBoundaryOffset(node: Node, offset: number): number {
+  if (node === editorEl.value && offset === 0) return 0;
+  return getBeforeLength();
 }
 
 /**
@@ -372,6 +380,49 @@ function getLocalOffset(root: HTMLElement, node: Node, offset: number): number {
     return clampImagePromptPlaceholderOffset(root.textContent ?? '', offset);
   }
   return offset <= 0 ? 0 : (root.textContent ?? '').length;
+}
+
+/**
+ * 粗粒度回退落点
+ * @param x 屏幕 X
+ * @returns 逻辑 offset
+ */
+function fallbackOffsetFromPoint(x: number): number {
+  const rect = editorEl.value?.getBoundingClientRect();
+  if (!rect) return normalizeValue(props.modelValue).placeholderOffset;
+  return x < rect.left + rect.width / 2 ? 0 : readFullText().length;
+}
+
+/**
+ * 把光标放置到元素文本的开头或末尾
+ * @param el 目标元素
+ * @param position 放置位置
+ */
+function placeCaret(el: HTMLElement, position: 'start' | 'end'): void {
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  range.collapse(position === 'start');
+  const selection = window.getSelection();
+  if (!selection) return;
+  selection.removeAllRanges();
+  selection.addRange(range);
+  el.focus();
+}
+
+/**
+ * 徽章按键处理：方向键把光标送到前后段，像越过一个字符
+ * @param event 键盘事件
+ */
+function handleTokenKeydown(event: KeyboardEvent): void {
+  if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+  event.stopPropagation();
+  if (event.key === 'ArrowRight' && afterEl.value) {
+    event.preventDefault();
+    placeCaret(afterEl.value, 'start');
+  } else if (event.key === 'ArrowLeft' && beforeEl.value) {
+    event.preventDefault();
+    placeCaret(beforeEl.value, 'end');
+  }
 }
 
 /**

@@ -3,7 +3,6 @@
     <PresetSelector
       :presets="presetOptions"
       :active-preset-id="props.presetSettings.activePresetId"
-      :default-preset-id="defaultPresetId"
       import-accept="application/json,.json,image/*,.naiv4vibe,.naiv4vibebundle"
       show-portability
       @update:active-preset-id="updateActivePresetId"
@@ -129,10 +128,6 @@ async function renamePreset(): Promise<void> {
  * @param id 预设 ID
  */
 function deletePreset(id: string): void {
-  if (id === defaultPresetId) {
-    toastr.warning('默认预设不能删除');
-    return;
-  }
   const presets = props.presetSettings.presets.filter(preset => preset.id !== id);
   emitPresetSettings(presets, getFallbackPresetId(presets, props.presetSettings.activePresetId));
   toastr.success('预设已删除');

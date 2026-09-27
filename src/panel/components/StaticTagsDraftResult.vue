@@ -2,7 +2,7 @@
   <section class="flex flex-col gap-(--cv-space-xl)">
     <label class="cv-field">
       <span>解析结果草稿</span>
-      <Textarea
+      <CvExpandableTextarea
         :model-value="draft"
         rows="8"
         auto-resize
@@ -20,6 +20,8 @@
 </template>
 
 <script setup lang="ts">
+import CvExpandableTextarea from '@/panel/components/CvExpandableTextarea.vue';
+
 /**
  * 统一解析草稿结果组件
  */

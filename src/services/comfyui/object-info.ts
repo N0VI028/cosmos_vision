@@ -10,11 +10,11 @@ import type {
   CosmosVisionNodeMeta,
 } from '@/services/comfyui/types';
 import { isLinkRef } from '@/services/comfyui/link';
-import { isImageFilename } from '@/services/comfyui/object-info-elementary';
+import { isImageCapablePortType, isImageFilename } from '@/services/comfyui/object-info-elementary';
 import { readNodeMeta } from '@/services/comfyui/meta';
 import { normalizeComfyUIUrl } from '@/services/comfyui/parse';
 
-export { isImageFilename } from '@/services/comfyui/object-info-elementary';
+export { isGenericPortType, isImageCapablePortType, isImageFilename } from '@/services/comfyui/object-info-elementary';
 
 /** 按规范化 URL 缓存最近一次成功的 object_info */
 const objectInfoCache = new Map<string, ComfyUIObjectInfoMap>();
@@ -113,9 +113,35 @@ export function listInputControls(
   const meta = readNodeMeta(node);
   // objectInfo 非 null 即在线；某 class_type 缺失时 schema 仍可能为 undefined
   const online = objectInfo != null;
-  return Object.entries(node.inputs ?? {}).map(([inputName, value]) =>
+  const controls = Object.entries(node.inputs ?? {}).map(([inputName, value]) =>
     buildInputControl(nodeId, inputName, value, schema, meta, online),
   );
+  return mergeSizeControls(controls);
+}
+
+/**
+ * 将同一节点的 width/height 数字输入合并为 size 分辨率组合控件
+ * 仅当两者都是普通 number 控件（link 引用或下拉等非 number 不合并）时生效
+ * @param controls 输入控件列表
+ * @returns 合并后的控件列表
+ */
+function mergeSizeControls(controls: ComfyUIInputControlDesc[]): ComfyUIInputControlDesc[] {
+  const width = controls.find(control => control.inputName === 'width');
+  const height = controls.find(control => control.inputName === 'height');
+  if (!width || !height || width.kind !== 'number' || height.kind !== 'number') return controls;
+  return controls
+    .filter(control => control !== height)
+    .map(control =>
+      control === width
+        ? {
+            ...width,
+            kind: 'size' as const,
+            label: '分辨率',
+            heightInputName: height.inputName,
+            heightValue: Number(height.value),
+          }
+        : control,
+    );
 }
 
 /**
@@ -136,6 +162,7 @@ export function listOutputCandidates(
 
 /**
  * 判断节点是否可作为图片输出候选
+ * 输入侧仅认 IMAGE；输出侧额外接受通配/泛型端口（运行时可能流转图片）
  * @param node 工作流节点
  * @param objectInfo 节点 schema 表
  * @returns 是否候选
@@ -147,7 +174,7 @@ function isImageOutputCandidate(
   const schema = objectInfo[node.class_type];
   if (!schema) return false;
   const hasImageInput = schema.inputs.some(input => input.type === 'IMAGE');
-  const hasImageOutput = schema.outputs.some(output => output.type === 'IMAGE');
+  const hasImageOutput = schema.outputs.some(output => isImageCapablePortType(output.type));
   return hasImageInput || hasImageOutput;
 }
 
@@ -212,7 +239,7 @@ function buildInputControl(
     canImageBind: online && Boolean(isImageInput || imageBinding),
     seedMode: meta.seedModes?.[inputName],
     controlAfterGenerate: Boolean(spec?.controlAfterGenerate),
-    ...resolveScalarControlFields(value, spec),
+    ...resolveScalarControlFields(inputName, value, spec),
   };
 }
 
@@ -244,14 +271,20 @@ function buildLinkControl(
 
 /**
  * 解析标量/JSON 控件字段
+ * @param inputName 输入名
  * @param value 当前值
  * @param spec 输入 schema
  * @returns kind 与附加约束
  */
 function resolveScalarControlFields(
+  inputName: string,
   value: unknown,
   spec: ComfyUIObjectInfoInputSpec | undefined,
 ): Pick<ComfyUIInputControlDesc, 'kind' | 'options' | 'min' | 'max' | 'step' | 'multiline'> {
+  // ResolutionPreset 第三方节点：resolution_json 为宽高 JSON 字符串，走分辨率快速选择控件
+  if (inputName === 'resolution_json' && typeof value === 'string') {
+    return { kind: 'resolution' };
+  }
   if (spec?.options?.length) return { kind: 'select', options: spec.options };
   if (typeof value === 'boolean') return { kind: 'boolean' };
   if (typeof value === 'number') {
@@ -297,6 +330,7 @@ function normalizeObjectInfoNode(
     classType,
     displayName: readString(rawNode.display_name) ?? readString(rawNode.name),
     category: readString(rawNode.category),
+    outputNode: rawNode.output_node === true,
     outputs: normalizeOutputSpecs(rawNode),
     inputs,
   };

@@ -30,7 +30,12 @@
           />
         </div>
         <div class="relative w-full">
-          <InputText v-model="searchKeyword" placeholder="搜索变量名称、路径或摘要..." size="small" class="w-full text-(length:--cv-font-size-base)" />
+          <InputText
+            v-model="searchKeyword"
+            placeholder="搜索变量名称、路径或摘要..."
+            size="small"
+            class="w-full text-(length:--cv-font-size-base)"
+          />
         </div>
       </div>
 
@@ -83,7 +88,12 @@
                 <span class="font-mono text-(length:--cv-font-size-xs) font-bold break-all text-(--cv-on-surface)">
                   {{ slotProps.node.label }}{{ slotProps.node.summary ? ':' : '' }}
                 </span>
-                <span v-if="!slotProps.node.insertable" class="shrink-0 text-(length:--cv-font-size-xs) text-(--cv-error)"> (不可用) </span>
+                <span
+                  v-if="!slotProps.node.insertable"
+                  class="shrink-0 text-(length:--cv-font-size-xs) text-(--cv-error)"
+                >
+                  (不可用)
+                </span>
               </div>
               <span
                 v-if="slotProps.node.summary"
@@ -99,17 +109,21 @@
       <!-- 底部预览与确认 -->
       <div class="flex shrink-0 flex-col gap-(--cv-space-xs) pt-1.5">
         <div v-if="selectedNode" class="flex flex-col gap-1 text-(length:--cv-font-size-xs)">
-          <div class="flex items-start gap-2 font-mono min-w-0">
+          <div class="flex min-w-0 items-start gap-2 font-mono">
             <span class="shrink-0 pt-0.5 text-(--cv-on-surface-variant)">宏预览:</span>
-            <span class="min-w-0 flex-1 rounded bg-(--cv-surface-container) px-1.5 py-0.5 font-bold text-(--cv-on-surface) break-all whitespace-normal">
+            <span
+              class="min-w-0 flex-1 rounded bg-(--cv-surface-container) px-1.5 py-0.5 font-bold break-all whitespace-normal text-(--cv-on-surface)"
+            >
               {{ currentMacroPreview }}
             </span>
           </div>
-          <div v-if="!selectedNode.insertable" class="text-(length:--cv-font-size-xs) text-(--cv-error) break-all">
+          <div v-if="!selectedNode.insertable" class="text-(length:--cv-font-size-xs) break-all text-(--cv-error)">
             {{ selectedNode.disableReason }}
           </div>
         </div>
-        <div v-else class="py-0.5 text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">请选择要插入的变量节点</div>
+        <div v-else class="py-0.5 text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
+          请选择要插入的变量节点
+        </div>
       </div>
     </div>
 
@@ -197,8 +211,8 @@ const dialogClass = computed(() => [
 
 const dialogStyle = computed(() =>
   isMobile.value
-    ? { width: 'calc(100vw - 2rem)', maxWidth: '36rem', maxHeight: 'calc(100dvh - 2rem)' }
-    : { width: '38rem', maxWidth: 'calc(100vw - 3rem)', maxHeight: 'calc(100dvh - 3rem)' },
+    ? { width: 'calc(100dvw - 2rem)', maxWidth: '36rem', maxHeight: 'calc(100dvh - 2rem)' }
+    : { width: '38rem', maxWidth: 'calc(100dvw - 3rem)', maxHeight: 'calc(100dvh - 3rem)' },
 );
 
 const contentStyle = {

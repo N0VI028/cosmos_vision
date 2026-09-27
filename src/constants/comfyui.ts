@@ -1,5 +1,6 @@
 import type { ImagePromptPresetReferences } from '@/constants/image-prompt';
 import defaultComfyUIWorkflowJson from './default-comfyui-workflow.json?raw';
+import defaultComfyUIWorkflowK2AnimaJson from './default-comfyui-workflow-k2-anima.json?raw';
 
 /** 图像生成来源 */
 export const IMAGE_SOURCES = [
@@ -10,16 +11,12 @@ export const IMAGE_SOURCES = [
 /** ComfyUI 可用的最大安全 seed */
 export const COMFYUI_MAX_SEED = Number.MAX_SAFE_INTEGER;
 
-/**
- * width/height 常用尺寸（对齐 NAI 分辨率预设轴值去重）
- * 不 import novelai，避免循环依赖
- */
-export const COMFYUI_DIMENSION_PRESETS: number[] = [512, 640, 768, 832, 1024, 1088, 1216, 1472, 1536, 1920];
-
 export const DEFAULT_COMFYUI_LORA_PRESET_ID = 'comfyui-lora-default-preset';
 export const DEFAULT_COMFYUI_LORA_PRESET_NAME = '默认 LoRA 组';
 export const DEFAULT_COMFYUI_WORKFLOW_PRESET_ID = 'comfyui-workflow-default';
 export const DEFAULT_COMFYUI_WORKFLOW_PRESET_NAME = '默认工作流';
+export const DEFAULT_COMFYUI_WORKFLOW_PRESET_ID_K2_ANIMA = 'comfyui-workflow-k2-anima';
+export const DEFAULT_COMFYUI_WORKFLOW_PRESET_NAME_K2_ANIMA = 'Krea2/Anima默认工作流';
 
 /** 默认工作流中用于教程演示的绑定节点 */
 export const DEFAULT_COMFYUI_TUTORIAL_NODE_IDS = {
@@ -33,6 +30,9 @@ export const DEFAULT_COMFYUI_TUTORIAL_NODE_IDS = {
  * 来自 https://github.com/willmiao/ComfyUI-Lora-Manager 的示例模板
  */
 export const DEFAULT_COMFYUI_WORKFLOW_JSON = defaultComfyUIWorkflowJson.trim();
+
+/** ComfyUI K2/Anima默认工作流（UNETLoader + RegexMatch 分流 Krea-2 / Anima） */
+export const DEFAULT_COMFYUI_WORKFLOW_K2_ANIMA_JSON = defaultComfyUIWorkflowK2AnimaJson.trim();
 
 /**
  * 创建默认 ComfyUI LoRA 设置
@@ -103,12 +103,25 @@ export function createComfyUIWorkflowPreset(
 }
 
 /**
+ * 创建默认工作流预设（Krea-2 / Anima）
+ * @returns 默认工作流预设
+ */
+export function createDefaultComfyUIWorkflowK2AnimaPreset(): ComfyUIWorkflowPreset {
+  return createComfyUIWorkflowPreset(
+    DEFAULT_COMFYUI_WORKFLOW_PRESET_ID_K2_ANIMA,
+    DEFAULT_COMFYUI_WORKFLOW_PRESET_NAME_K2_ANIMA,
+    DEFAULT_COMFYUI_WORKFLOW_K2_ANIMA_JSON,
+  );
+}
+
+/**
  * 创建默认 ComfyUI 工作流预设集合
+ * 含原默认工作流与Krea-2 / Anima工作流，当前预设保持原默认，不打扰用户已选工作流
  * @returns 工作流预设集合
  */
 export function createComfyUIWorkflowPresetSettings(): ComfyUIWorkflowPresetSettings {
   const preset = createComfyUIWorkflowPreset(DEFAULT_COMFYUI_WORKFLOW_PRESET_ID, DEFAULT_COMFYUI_WORKFLOW_PRESET_NAME);
-  return { activePresetId: preset.id, presets: [preset] };
+  return { activePresetId: preset.id, presets: [preset, createDefaultComfyUIWorkflowK2AnimaPreset()] };
 }
 
 /**

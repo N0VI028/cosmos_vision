@@ -21,20 +21,20 @@
       <template v-else>
         <div class="cv-field">
           <span>正面提示词</span>
-          <Textarea
+          <CvExpandableTextarea
             v-model="directPositivePrompt"
             rows="3"
             auto-resize
-            class="w-full resize-y text-(length:--cv-font-size-base)"
+            class="w-full text-(length:--cv-font-size-base)"
           />
         </div>
         <div class="cv-field">
           <span>负面提示词</span>
-          <Textarea
+          <CvExpandableTextarea
             v-model="directNegativePrompt"
             rows="3"
             auto-resize
-            class="w-full resize-y text-(length:--cv-font-size-base)"
+            class="w-full text-(length:--cv-font-size-base)"
           />
         </div>
         <div class="flex flex-col gap-(--cv-space-xl)">
@@ -56,20 +56,20 @@
             <div class="flex flex-col gap-(--cv-space-xl) p-(--cv-space-xl)">
               <div class="cv-field">
                 <span>角色正面提示词</span>
-                <Textarea
+                <CvExpandableTextarea
                   v-model="character.positivePrompt"
                   rows="3"
                   auto-resize
-                  class="w-full resize-y text-(length:--cv-font-size-base)"
+                  class="w-full text-(length:--cv-font-size-base)"
                 />
               </div>
               <div class="cv-field">
                 <span>角色负面提示词</span>
-                <Textarea
+                <CvExpandableTextarea
                   v-model="character.negativePrompt"
                   rows="3"
                   auto-resize
-                  class="w-full resize-y text-(length:--cv-font-size-base)"
+                  class="w-full text-(length:--cv-font-size-base)"
                 />
               </div>
               <div class="cv-field-grid">
@@ -126,23 +126,30 @@
           class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-primary-color)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-primary-color)_10%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-primary-color)"
         >
           <i class="fa-solid fa-spinner fa-spin" />
-          <span class="whitespace-normal break-all">{{ runningStateText }}</span>
+          <span class="break-all whitespace-normal">{{ runningStateText }}</span>
         </div>
+        <NovelAIStreamPreview
+          v-if="isRunning && streamSlots.length"
+          :slots="streamSlots"
+          class="mb-(--cv-space-2xl)"
+        />
         <div
           v-else-if="testStatus === 'success'"
           class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-green-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-green-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-green-500)"
         >
           <i class="fa-solid fa-circle-check" />
-          <span class="whitespace-normal break-all">{{ successStateText }}</span>
+          <span class="break-all whitespace-normal">{{ successStateText }}</span>
         </div>
         <div
           v-else-if="testStatus === 'error'"
           class="mb-(--cv-space-2xl) flex items-center gap-(--cv-space-lg) rounded-(--cv-radius-sm) border border-solid border-[color-mix(in_srgb,var(--cvp-red-500)_30%,transparent)] bg-[color-mix(in_srgb,var(--cvp-red-500)_12%,transparent)] p-(--cv-space-xl) font-semibold text-(--cvp-red-500)"
         >
           <i class="fa-solid fa-circle-exclamation" />
-          <span class="whitespace-normal break-all">{{ errorMessage }}</span>
+          <span class="break-all whitespace-normal">{{ errorMessage }}</span>
         </div>
+        <!-- 运行中有流式槽位时预览舞台替代画廊（预览末帧=成图，完成后画廊接管显示，尺寸一致切换自然） -->
         <TestImageGallery
+          v-else
           :image-blobs="previewBlobs"
           :snapshot="previewPromptSnapshot"
           :placeholder="previewPlaceholderText"
@@ -286,10 +293,13 @@ import { useTestActionButton } from '@/composables/useTestActionButton';
 import { useTestRequestSession, type TestRequestSession } from '@/composables/useTestRequestSession';
 import type { CharacterPromptItem } from '@/constants/novelai';
 import type { PromptLlmAccount } from '@/constants/prompt-llm';
+import { getPromptLlmRequestAccounts } from '@/services/prompt-llm/router';
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
 import CvAddEntryButton from '@/panel/components/CvAddEntryButton.vue';
+import CvExpandableTextarea from '@/panel/components/CvExpandableTextarea.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import FocusedParagraphField from '@/panel/components/FocusedParagraphField.vue';
+import NovelAIStreamPreview, { type StreamPreviewSlot } from '@/panel/components/NovelAIStreamPreview.vue';
 import TestImageGallery from '@/panel/components/TestImageGallery.vue';
 
 import {
@@ -299,6 +309,7 @@ import {
   type NovelAIPromptOverrides,
   type NovelAIRequestSnapshot,
 } from '@/services/novelai/api';
+import type { NovelAIStreamPreviewEvent } from '@/services/novelai/stream-api';
 import { useSettingsStore } from '@/store/settings';
 import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
 import {
@@ -307,11 +318,9 @@ import {
   extractPromptLlmResult,
 } from '@/services/prompt-llm/runtime-request';
 import {
-  buildPromptLlmLogParams,
-  buildPromptLlmParamRows,
+  buildPromptLlmAccountParamRows,
   formatPromptLlmRequestLog,
   requestPromptLlmRaw,
-  type PromptLlmLogParams,
 } from '@/services/tavern-helper/prompt-llm-test';
 
 type NovelAITestMode = 'direct' | 'llm';
@@ -350,6 +359,8 @@ const lastRunMode = ref<NovelAITestMode | null>(null);
 const testStatus = ref<TestStatus>('idle');
 const errorMessage = ref('');
 const previewBlobs = ref<Blob[]>([]);
+const streamSlots = ref<StreamPreviewSlot[]>([]);
+const streamProgress = ref<{ step: number; totalSteps: number } | null>(null);
 
 const directPositivePrompt = ref('1girl');
 const directNegativePrompt = ref('');
@@ -359,7 +370,7 @@ const novelaiSnapshot = ref<NovelAIRequestSnapshot | null>(null);
 const expandedCharacterIndexes = ref(new Set<number>());
 const llmRawResponse = ref('');
 const llmSentPromptLog = ref('');
-const llmLogParams = ref<PromptLlmLogParams | null>(null);
+const routedAccount = ref<PromptLlmAccount | undefined>(undefined);
 
 const isRunning = computed(() => testStatus.value === 'running');
 const useLlmMode = computed({
@@ -390,6 +401,9 @@ const {
   outlined: actionOutlined,
 } = useTestActionButton(isRunning, { label: idleActionLabel });
 const runningStateText = computed(() => {
+  if (streamProgress.value) {
+    return `正在生成图像... 第 ${streamProgress.value.step}/${streamProgress.value.totalSteps} 步`;
+  }
   return useLlmMode.value
     ? `正在请求 LLM 并等待 ${props.serviceName} 返回图像`
     : `正在等待 ${props.serviceName} 返回图像`;
@@ -408,9 +422,6 @@ const previewPromptSnapshot = computed<InlinePromptSnapshot | undefined>(() => {
     positivePrompt: novelaiSnapshot.value.positivePrompt,
     negativePrompt: novelaiSnapshot.value.negativePrompt,
   };
-});
-const displayLlmLogParams = computed(() => {
-  return llmLogParams.value ?? buildPromptLlmLogParams(settings.promptLlm);
 });
 
 const novelaiParamRows = computed<ParamRow[]>(() => {
@@ -432,13 +443,15 @@ const novelaiParamRows = computed<ParamRow[]>(() => {
     { label: '旧版提示词条件模式', value: novelaiSnapshot.value.legacyPromptMode ? '开启' : '关闭' },
     { label: '提示词引导重缩放', value: String(novelaiSnapshot.value.promptGuidanceRescale) },
     { label: '噪声调度', value: novelaiSnapshot.value.noiseSchedule, code: true },
-    { label: '负向提示词程度', value: novelaiSnapshot.value.ucPreset },
+    { label: '负面提示词程度', value: novelaiSnapshot.value.ucPreset },
     { label: '正面质量词预设', value: novelaiSnapshot.value.qualityPreset },
     ...buildVibeParamRows(novelaiSnapshot.value.vibes),
   ];
 });
 
-const llmParamRows = computed(() => buildPromptLlmParamRows(displayLlmLogParams.value));
+const llmParamRows = computed(() =>
+  buildPromptLlmAccountParamRows(routedAccount.value ?? getPromptLlmRequestAccounts(settings.promptLlm)[0]),
+);
 
 /**
  * 主操作按钮点击：运行中终止，否则启动测试
@@ -486,6 +499,7 @@ function stopTest(): void {
 function markAborted(): void {
   testStatus.value = 'error';
   errorMessage.value = '已终止测试';
+  clearStreamSlots();
   toastr.info('已终止测试');
 }
 
@@ -502,13 +516,13 @@ async function runDirectModeTest(session: TestRequestSession): Promise<void> {
  * @param session 当前测试会话
  */
 async function runLlmModeTest(session: TestRequestSession): Promise<void> {
-  llmLogParams.value = buildPromptLlmLogParams(settings.promptLlm);
   const requestError = getPromptLlmRequestError(settings.promptLlm);
   if (requestError) throw new Error(requestError);
 
   const result = await requestPromptLlmRaw(
     settings.promptLlm,
     async account => {
+      routedAccount.value = account;
       const request = await buildLlmModeRequest(account);
       if (requestSession.isCurrent(session)) llmSentPromptLog.value = formatPromptLlmRequestLog(request);
       return request;
@@ -521,7 +535,11 @@ async function runLlmModeTest(session: TestRequestSession): Promise<void> {
   if (!requestSession.isCurrent(session)) return;
 
   llmRawResponse.value = result.rawText;
-  const { output, characterPrompts } = extractPromptLlmResult(result.rawText, settings.promptLlm, buildPromptLlmSchemaFields(settings.promptLlm));
+  const { output, characterPrompts } = extractPromptLlmResult(
+    result.rawText,
+    settings.promptLlm,
+    buildPromptLlmSchemaFields(settings.promptLlm),
+  );
   await runNovelAIWithOverrides(buildNovelAIPromptOverrides(output, characterPrompts), session);
 }
 
@@ -540,10 +558,56 @@ async function runNovelAIWithOverrides(overrides: NovelAIPromptOverrides, sessio
   novelaiSnapshot.value = request.snapshot;
   const result = await generateNovelAIImagesFromResolvedRequest(request, settings.novelai.imageCount, {
     signal: session.signal,
+    onStreamPreview: event => {
+      if (!requestSession.isCurrent(session)) return;
+      applyStreamPreviewEvent(event);
+    },
   });
   if (!requestSession.isCurrent(session)) return;
+  clearStreamSlots();
   novelaiSnapshot.value = result.snapshot;
   previewBlobs.value = result.imageBlobs;
+}
+
+/**
+ * 按图片总数初始化流式预览槽位（已初始化则跳过）
+ * @param imageCount 本次请求图片总数
+ * @param totalSteps 总去噪步数
+ */
+function ensureStreamSlots(imageCount: number, totalSteps: number): void {
+  if (streamSlots.value.length === imageCount) return;
+  streamSlots.value = Array.from({ length: imageCount }, () => ({
+    previewUrl: null,
+    completed: false,
+    step: 0,
+    totalSteps,
+  }));
+}
+
+/**
+ * 应用一帧流式预览事件到对应槽位（旧预览 URL 先释放）
+ * @param event 流式预览事件
+ */
+function applyStreamPreviewEvent(event: NovelAIStreamPreviewEvent): void {
+  ensureStreamSlots(event.imageCount, event.totalSteps);
+  const slot = streamSlots.value[event.imageIndex];
+  if (!slot) return;
+  if (slot.previewUrl) URL.revokeObjectURL(slot.previewUrl);
+  slot.previewUrl = URL.createObjectURL(event.previewBlob);
+  slot.completed = event.isFinal;
+  slot.step = event.isFinal ? event.totalSteps : event.step;
+  streamProgress.value = { step: slot.step, totalSteps: event.totalSteps };
+}
+
+/**
+ * 清空流式预览状态并释放全部槽位的 objectURL
+ */
+function clearStreamSlots(): void {
+  streamSlots.value.forEach(slot => {
+    if (slot.previewUrl) URL.revokeObjectURL(slot.previewUrl);
+  });
+  streamSlots.value = [];
+  streamProgress.value = null;
 }
 
 /**
@@ -703,9 +767,12 @@ function resetTestResult(): void {
   expandedCharacterIndexes.value = new Set();
   llmRawResponse.value = '';
   llmSentPromptLog.value = '';
-  llmLogParams.value = null;
+  routedAccount.value = undefined;
   previewBlobs.value = [];
+  clearStreamSlots();
 }
+
+onBeforeUnmount(clearStreamSlots);
 
 /**
  * 记录测试失败状态
@@ -714,6 +781,7 @@ function resetTestResult(): void {
 function handleTestError(error: unknown): void {
   testStatus.value = 'error';
   errorMessage.value = error instanceof Error ? error.message : '测试失败，未知错误';
+  clearStreamSlots();
   toastr.error(errorMessage.value);
 }
 </script>

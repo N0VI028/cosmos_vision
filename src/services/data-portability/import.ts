@@ -8,6 +8,7 @@ import {
   type PromptProfilesSettings,
 } from '@/constants/novelai';
 import type { ImagePromptPreset, ImagePromptPresetSettings } from '@/constants/image-prompt';
+import type { RandomPresetPool, RandomPresetPoolSettings } from '@/constants/random-preset-pool';
 import {
   DEFAULT_IMAGE_PROMPT_VIBE_INFORMATION_EXTRACTED,
   MAX_NOVELAI_VIBES_PER_PRESET,
@@ -24,7 +25,12 @@ import {
 } from '@/services/novelai/vibe-file';
 import { importNovelAIVibePayloadsAsPreset } from '@/services/novelai/vibe-import';
 import type { NovelAIVibeCacheRecord } from '@/services/novelai/vibe-types';
-import { DATA_PORTABILITY_SECTIONS, isDataPortabilitySectionId, type DataPortabilitySectionId } from './sections';
+import {
+  DATA_PORTABILITY_LEGACY_SECTION_LABELS,
+  DATA_PORTABILITY_SECTIONS,
+  isDataPortabilitySectionId,
+  type DataPortabilitySectionId,
+} from './sections';
 import { isOtherPluginExport, parseOtherPluginExport } from './other-plugin';
 import {
   COSMOS_VISION_EXPORT_FORMAT,
@@ -180,7 +186,7 @@ function buildPreviewSection(id: DataPortabilitySectionId, payload: unknown, war
  * @returns 标签
  */
 function getSectionLabel(id: DataPortabilitySectionId): string {
-  return DATA_PORTABILITY_SECTIONS.find(section => section.id === id)?.label ?? id;
+  return DATA_PORTABILITY_SECTIONS.find(section => section.id === id)?.label ?? DATA_PORTABILITY_LEGACY_SECTION_LABELS[id] ?? id;
 }
 
 /**
@@ -193,6 +199,7 @@ function countPayloadItems(id: DataPortabilitySectionId, payload: unknown): numb
   if (id === 'novelAIVibeBundle') return countVibeBundle(payload);
   if (id === 'inlineFavoritesBundle' && Array.isArray(payload)) return payload.length;
   if (id === 'imagePromptPresets') return countPromptPresets(payload);
+  if (id === 'randomPresetPools') return readArray(toRecord(payload).pools).length;
   return 1;
 }
 
@@ -255,17 +262,26 @@ function createSectionImporters(result: DataImportResult): Record<DataPortabilit
     basicSettings: payload => assignObjectSection(
       result.settings,
       payload,
-      ['enabled', 'temporaryImageLimit', 'imageSource'],
+      ['enabled', 'temporaryImageLimit', 'imageSource', 'inlineQuickPhrases'],
       result,
     ),
     novelAISettings: payload => mergeNovelAISettings(result.settings.novelai, payload, result),
     novelAISecrets: payload => mergeObject(result.settings.novelai, payload, result),
     comfyUISettings: payload => mergeObject(result.settings.comfyui, payload, result),
+    comfyUIBasicSettings: payload => assignObjectSection(
+      result.settings.comfyui,
+      payload,
+      ['url', 'timeout', 'positivePromptPresetId', 'negativePromptPresetId'],
+      result,
+    ),
+    comfyUIWorkflowPresets: payload => mergeObject(result.settings.comfyui.workflowPresets, payload, result),
+    comfyUILoraPresets: payload => mergeObject(result.settings.comfyui.loraPresets, payload, result),
     imagePromptPresets: payload => importImagePromptPresets(result.settings, payload, result),
     novelAIVibeBundle: payload => importNovelAIVibeBundle(result.settings, payload, result),
     promptLlmSettings: payload => mergeObject(result.settings.promptLlm, payload, result),
     promptLlmMessagePresets: payload => importPromptLlmMessagePresets(result.settings, payload, result),
     promptProfiles: payload => importPromptProfiles(result.settings, payload, result),
+    randomPresetPools: payload => importRandomPresetPools(result.settings, payload, result),
     inlineFavoritesBundle: payload => importInlineFavoritesBundle(payload, result),
     uiPreferences: payload => importUiPreferences(payload, result),
   };
@@ -337,6 +353,18 @@ function importPromptProfiles(settings: CosmosVisionSettings, payload: unknown, 
   const incoming = toPromptProfilesSettings(payload);
   settings.promptProfiles = { profiles: mergeById(settings.promptProfiles.profiles, incoming.profiles) };
   result.imported += incoming.profiles.length;
+}
+
+/**
+ * 导入随机预设池(按 id 合并:相同 id 覆盖,本地独有保留,导入独有追加)
+ * @param settings 目标设置
+ * @param payload 外部 payload
+ * @param result 导入结果
+ */
+function importRandomPresetPools(settings: CosmosVisionSettings, payload: unknown, result: DataImportResult): void {
+  const incoming = toRandomPresetPoolSettings(payload);
+  settings.randomPresetPools = { enabled: incoming.enabled, pools: mergeById(settings.randomPresetPools.pools, incoming.pools) };
+  result.imported += incoming.pools.length;
 }
 
 /**
@@ -447,6 +475,16 @@ function toPromptProfilesSettings(payload: unknown): PromptProfilesSettings {
 }
 
 /**
+ * 转换随机预设池设置
+ * @param payload 外部 payload
+ * @returns 随机预设池设置
+ */
+function toRandomPresetPoolSettings(payload: unknown): RandomPresetPoolSettings {
+  const record = toRecord(payload);
+  return { enabled: typeof record.enabled === 'boolean' ? record.enabled : true, pools: readRandomPresetPools(record.pools) };
+}
+
+/**
  * 读取提示词预设列表
  * @param value 外部值
  * @returns 预设列表
@@ -471,6 +509,15 @@ function readLlmMessagePresets(value: unknown): PromptLlmMessagePreset[] {
  */
 function readPromptProfiles(value: unknown): PromptPerson[] {
   return readArray(value).filter(isPromptPerson).map(profile => _.cloneDeep(profile));
+}
+
+/**
+ * 读取随机预设池列表
+ * @param value 外部值
+ * @returns 随机预设池列表
+ */
+function readRandomPresetPools(value: unknown): RandomPresetPool[] {
+  return readArray(value).filter(isRandomPresetPool).map(pool => _.cloneDeep(pool));
 }
 
 /**
@@ -535,12 +582,12 @@ function mergeNovelAIVibePresetSettings(
 }
 
 /**
- * 按 id 合并列表:相同 id 用导入项覆盖,本地独有保留,导入独有追加
+ * 按 id 合并列表：incoming 覆盖同 id 条目、追加新条目，保持 current 顺序
  * @param current 当前列表
  * @param incoming 导入列表
  * @returns 合并后的列表
  */
-function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
+export function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
   const merged = new Map(current.map(item => [item.id, _.cloneDeep(item)]));
   incoming.forEach(item => merged.set(item.id, _.cloneDeep(item)));
   return [...merged.values()];
@@ -643,6 +690,16 @@ function isPromptLlmMessagePreset(value: unknown): value is PromptLlmMessagePres
 function isPromptPerson(value: unknown): value is PromptPerson {
   const record = toRecord(value);
   return typeof record.id === 'string' && typeof record.name === 'string' && Array.isArray(record.templateEntries);
+}
+
+/**
+ * 判断是否为随机预设池
+ * @param value 外部值
+ * @returns 是否匹配
+ */
+function isRandomPresetPool(value: unknown): value is RandomPresetPool {
+  const record = toRecord(value);
+  return typeof record.id === 'string' && typeof record.name === 'string' && Array.isArray(record.presetIds);
 }
 
 /**

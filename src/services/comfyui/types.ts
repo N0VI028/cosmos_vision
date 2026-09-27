@@ -15,6 +15,7 @@ export interface CosmosVisionNodeMeta {
   seedModes?: Record<string, SeedMode>;
   imageBindings?: Record<string, ImageBindingSource>;
   imageOutput?: boolean;
+  modelMatch?: boolean;
 }
 
 /** 工作流节点元数据 */
@@ -98,6 +99,8 @@ export type ComfyUIInputControlKind =
   | 'boolean'
   | 'select'
   | 'json'
+  | 'resolution'
+  | 'size'
   | 'link';
 
 /** 参数控件描述 */
@@ -123,6 +126,10 @@ export interface ComfyUIInputControlDesc {
   canPromptBind?: boolean;
   /** 图片绑定来源 */
   imageBinding?: ImageBindingSource | null;
+  /** kind='size' 时的配对高度输入名（如 'height'），value 为宽度当前值 */
+  heightInputName?: string;
+  /** kind='size' 时的配对高度当前值 */
+  heightValue?: number;
   /**
    * 是否展示改图片绑定 UI：已同步 object_info 且（已识别为图片输入或已有图片绑定）。
    * 离线恒 false。
@@ -162,6 +169,7 @@ export interface ComfyUIObjectInfoNode {
   classType: string;
   displayName?: string;
   category?: string;
+  outputNode: boolean;
   outputs: ComfyUIObjectInfoOutputSpec[];
   inputs: ComfyUIObjectInfoInputSpec[];
 }

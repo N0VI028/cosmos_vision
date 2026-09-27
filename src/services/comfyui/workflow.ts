@@ -14,6 +14,7 @@ export {
 export {
   buildComfyUIResolvedRequest,
   buildComfyUIResolvedRequestFromPrompts,
+  createComfyUILoraPresetFromSnapshots,
   getComfyUIRequestError,
 } from '@/services/comfyui/request';
 

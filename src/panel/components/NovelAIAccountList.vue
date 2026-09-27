@@ -18,15 +18,15 @@
         @toggle="toggleCollapse(account.id)"
       >
         <template #title>
-          <div v-if="editingAccountId === account.id" class="flex h-8 min-w-0 flex-1 items-center gap-(--cv-space-md)">
+          <div v-if="editingAccountId === account.id" class="flex h-full min-w-0 flex-1 items-center gap-(--cv-space-md)">
             <InputText
               v-model="editingDraft"
               class="h-8 min-w-0 flex-1"
               size="small"
               autofocus
               @click.stop
-              @keydown.enter="finishEditing(account)"
-              @keydown.esc="finishEditing(account)"
+              @keydown.enter.stop.prevent="finishEditing(account)"
+              @keydown.esc.stop.prevent="finishEditing(account)"
             />
             <CvMiniButton
               icon="fa-regular fa-check"
@@ -34,9 +34,9 @@
               @click.stop="finishEditing(account)"
             />
           </div>
-          <div v-else class="flex h-8 min-w-0 items-center gap-(--cv-space-sm)">
+          <div v-else class="flex h-full min-w-0 items-center gap-(--cv-space-sm)">
             <span
-              class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface) leading-8"
+              class="block min-w-0 flex-[0_1_auto] overflow-hidden text-(length:--cv-font-size-xs) text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)"
             >
               {{ getAccountTitle(account) }}
             </span>

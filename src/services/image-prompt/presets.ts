@@ -49,6 +49,34 @@ export function resolveImagePromptPreset(preset: ImagePromptPreset, llmPrompt = 
 }
 
 /**
+ * 从套用预设模板后的完整提示词中精确剥离模板，提取中间的核心提示词
+ * 前缀 = preset.text.slice(0, placeholderOffset)，后缀 = preset.text.slice(placeholderOffset)
+ * 若整体文本匹配前后缀则返回中间部分，若模板被用户改动导致剥离失败则返回 null
+ * @param resolved 套用模板后的完整文本
+ * @param preset 目标预设
+ * @returns 剥离出的核心文本；若与模板不匹配则返回 null
+ */
+export function stripImagePromptPresetText(resolved: string, preset: ImagePromptPreset): string | null {
+  const text = preset.text ?? '';
+  const offset = clampImagePromptPlaceholderOffset(text, preset.placeholderOffset);
+  const prefix = text.slice(0, offset);
+  const suffix = text.slice(offset);
+
+  const tryStrip = (target: string): string | null => {
+    if (!target.startsWith(prefix)) return null;
+    if (!suffix) return target.slice(prefix.length);
+    if (target.length >= prefix.length + suffix.length && target.endsWith(suffix)) {
+      return target.slice(prefix.length, target.length - suffix.length);
+    }
+    return null;
+  };
+
+  const direct = tryStrip(resolved);
+  if (direct !== null) return direct;
+  return tryStrip(resolved.trim());
+}
+
+/**
  * 按渠道引用解析共享生图提示词预设
  * @param presetSettings 共享预设集合
  * @param references 渠道引用的预设 ID

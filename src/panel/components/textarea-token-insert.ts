@@ -6,16 +6,22 @@ export interface TextRange {
   end: number;
 }
 
-/** PrimeVue Textarea 模板引用 */
-export type TextareaRef = { $el?: HTMLElement } | HTMLElement | null;
+/**
+ * 文本输入框模板引用
+ *
+ * 兼容三种形态：PrimeVue Textarea 组件实例、暴露 textareaEl 的包装组件实例、原生元素
+ */
+export type TextareaRef = { $el?: HTMLElement; textareaEl?: HTMLTextAreaElement | null } | HTMLElement | null;
 
 /**
  * 读取 Textarea 原生元素
- * @param textareaRef Textarea 模板引用
+ *
+ * 非原生元素时优先取包装组件暴露的 textareaEl，再回退组件根节点 $el
+ * @param textareaRef 文本输入框模板引用
  * @returns 原生文本框元素
  */
 export function getTextareaElement(textareaRef: TextareaRef): HTMLTextAreaElement | null {
-  const el = textareaRef instanceof HTMLElement ? textareaRef : textareaRef?.$el;
+  const el = textareaRef instanceof HTMLElement ? textareaRef : (textareaRef?.textareaEl ?? textareaRef?.$el);
   return el instanceof HTMLTextAreaElement ? el : null;
 }
 

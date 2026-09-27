@@ -12,7 +12,7 @@
         -->
         <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-(--cv-space-5xl) gap-y-(--cv-space-xs)">
           <!-- 第一行：Chevron + Title -->
-          <div class="flex h-8 min-w-0 flex-1 items-center gap-(--cv-space-3xl)">
+          <div class="flex h-[2.375rem] min-w-0 flex-1 items-center gap-(--cv-space-3xl)">
             <i
               :class="[
                 'fa-solid',
@@ -21,10 +21,10 @@
                 'text-(--cv-on-surface-variant)',
               ]"
             />
-            <div class="flex h-8 min-w-0 flex-1 items-center gap-(--cv-space-lg) overflow-hidden">
+            <div class="flex h-full min-w-0 flex-1 items-center gap-(--cv-space-lg) overflow-hidden">
               <slot name="title">
                 <span
-                  class="block min-w-0 flex-[0_1_auto] overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)"
+                  class="block min-w-0 flex-[0_1_auto] overflow-hidden text-(length:--cv-font-size-xs) text-ellipsis whitespace-nowrap font-semibold text-(--cv-on-surface)"
                 >
                   {{ title }}
                 </span>
@@ -35,7 +35,7 @@
           <div
             v-if="$slots.actions"
             class="ml-auto flex items-center justify-end gap-(--cv-space-sm)"
-            :class="isEditing ? 'w-full basis-full mt-(--cv-space-xs)' : 'h-8 shrink-0'"
+            :class="isEditing ? 'w-full basis-full mt-(--cv-space-xs)' : 'h-[2.375rem] shrink-0'"
             @click.stop
             @keydown.stop
           >
@@ -82,11 +82,11 @@ const panelPt = {
   root: { class: 'cv-collapsible-panel__panel min-w-0 w-full max-w-full' },
 } as const;
 
-/** Header：只隐藏默认 toggle；禁用态 opacity 写在 PT，避免 :deep */
+/** Header：只隐藏默认 toggle；内边距收紧对齐全局 38px 节奏；禁用态 opacity 写在 PT，避免 :deep */
 const headerPt = computed(() => ({
   root: {
     class: [
-      'cv-collapsible-panel__header',
+      'cv-collapsible-panel__header px-(--cv-space-md) py-0',
       props.disabled ? 'opacity-[0.62]' : '',
     ],
   },

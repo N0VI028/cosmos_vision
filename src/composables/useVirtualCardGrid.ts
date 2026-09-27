@@ -13,6 +13,10 @@ export interface VirtualCardGridOptions {
   overscan?: number;
   /** 未实测行估算行高使用的卡片文字区高度（rem） */
   estimatedTextBlockRem?: number;
+  /** 展示布局：'grid' 多列网格（默认）、'list' 单列列表 */
+  layout?: MaybeRefOrGetter<'grid' | 'list'>;
+  /** 列表布局的估算行高（px） */
+  estimatedListRowHeightPx?: number;
 }
 
 export interface VirtualCardGrid<T> {
@@ -35,6 +39,7 @@ const ROW_GAP_EM = 0.9333;
 const REM_FALLBACK_PX = 16;
 const DEFAULT_TEXT_BLOCK_REM = 9;
 const MIN_ROW_HEIGHT_PX = 120;
+const DEFAULT_LIST_ROW_HEIGHT_PX = 56;
 
 /**
  * 按视口宽度解析卡片网格列数（断点与面板 Tailwind 类一致；移动端保持两列）
@@ -92,9 +97,15 @@ export function useVirtualCardGrid<T>(
 ): VirtualCardGrid<T> {
   const overscan = options.overscan ?? 2;
   const estimatedTextBlockRem = options.estimatedTextBlockRem ?? DEFAULT_TEXT_BLOCK_REM;
+  const estimatedListRowHeightPx = options.estimatedListRowHeightPx ?? DEFAULT_LIST_ROW_HEIGHT_PX;
+  const layout = computed<'grid' | 'list'>(() => toValue(options.layout) ?? 'grid');
 
   const matchesTwoColumns = useMediaQuery(`(max-width: ${TWO_COLUMNS_MAX_REM}rem)`);
-  const columns = computed(() => (matchesTwoColumns.value ? 2 : 3));
+  // 列表布局恒为单列（忽略两列断点）
+  const columns = computed(() => {
+    if (layout.value === 'list') return 1;
+    return matchesTwoColumns.value ? 2 : 3;
+  });
 
   const rows = computed(() => chunkIntoRows(toValue(items), columns.value));
 
@@ -107,6 +118,8 @@ export function useVirtualCardGrid<T>(
   const { width: containerWidth } = useElementSize(containerRef);
 
   const estimatedRowHeight = computed(() => {
+    // 列表行高固定，不按卡片宽度估算
+    if (layout.value === 'list') return estimatedListRowHeightPx;
     const width = containerWidth.value;
     if (width <= 0) return MIN_ROW_HEIGHT_PX;
     const remPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || REM_FALLBACK_PX;
@@ -138,6 +151,12 @@ export function useVirtualCardGrid<T>(
 
   // 任一行实测高度更新后，可视窗口与总高度需要重算
   watch(rowHeights, () => {
+    void nextTick(() => containerProps.onScroll());
+  });
+
+  // 布局切换后旧行高实测值不再适用，清空让新布局逐行重新实测
+  watch(layout, () => {
+    rowHeights.clear();
     void nextTick(() => containerProps.onScroll());
   });
 

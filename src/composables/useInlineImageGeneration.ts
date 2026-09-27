@@ -7,12 +7,15 @@ import { preventInlineEventBubbling } from '@/composables/inlineImageDom';
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { useGalleryRuntimesStore, type GalleryGenerationContext } from '@/store/gallery-runtimes';
 import { generateComfyUIImagesFromResolvedRequest } from '@/services/comfyui/api';
+import { resolveActiveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
+import { findComfyUILoraPreset, getActiveComfyUILoraPreset } from '@/services/comfyui/lora-presets';
 import { buildComfyUIResolvedRequest, getComfyUIRequestError } from '@/services/comfyui/workflow';
 import {
   buildNovelAIResolvedRequest,
   buildNovelAIPromptOverrides,
   generateNovelAIImagesFromResolvedRequest,
 } from '@/services/novelai/api';
+import type { NovelAIStreamPreviewEvent } from '@/services/novelai/stream-api';
 import { createSelectionShellController } from '@/composables/inlineSelectionShell';
 import { hasMixedRoute, nextParagraphSelection } from '@/composables/inlineParagraphSelection';
 import {
@@ -26,9 +29,12 @@ import {
   buildPromptLlmTriggerContext,
   generatePromptFromRuntimeContext,
 } from '@/services/prompt-llm/runtime-request';
+import { buildLlmInspectorLabel } from '@/services/prompt-llm/llm-inspector';
+import { buildLlmInspectorStoreHooks } from '@/store/llm-inspector';
 import { buildPromptLlmSchemaFields, getPromptLlmRequestError } from '@/services/tavern-helper/prompt-llm';
 import { useSettingsStore } from '@/store/settings';
-import { getCurrentInstance, ref } from 'vue';
+import { resolveFreshPresetIdOverrides } from '@/services/image-prompt/random-preset-pool';
+import { getCurrentInstance, nextTick, ref } from 'vue';
 import { downloadInlineImageBlob } from '@/services/inline-image/image-download-transform';
 import {
   buildInlineImageDownloadBaseName,
@@ -36,7 +42,7 @@ import {
   createNovelAISnapshot,
 } from '@/composables/inlineGenerationSnapshot';
 import { resolveInlineRoute } from '@/services/inline-image/route-resolve';
-import { resolveFrontendBubbleRoot } from '@/services/inline-image/frontend-text-extract';
+import { locateFrontendParagraphFromPoint } from '@/services/inline-image/frontend-paragraph-locate';
 import { ensureFloorTailHost } from '@/services/inline-image/floor-tail-host';
 import { writeFloorTailSlot, findFloorTailSlotByTarget } from '@/services/inline-image/floor-tail-slot';
 import { newSlotId } from '@/services/inline-image/slot-shortcode';
@@ -260,14 +266,16 @@ export function useInlineImageGeneration(
           return;
         }
       } else {
-        const bubble = resolveFrontendBubbleRoot(target);
-        e.preventDefault();
-        if (hasMixedRoute(selectedParagraphs.value, bubble)) {
-          setSelection([bubble]);
-        } else {
-          setSelection(nextParagraphSelection(selectedParagraphs.value, bubble));
+        const bubble = locateFrontendParagraphFromPoint(target.ownerDocument, e.clientX, e.clientY);
+        if (bubble && bubble !== bubble.closest('.mes_text')) {
+          e.preventDefault();
+          if (hasMixedRoute(selectedParagraphs.value, bubble)) {
+            setSelection([bubble]);
+          } else {
+            setSelection(nextParagraphSelection(selectedParagraphs.value, bubble));
+          }
+          return;
         }
-        return;
       }
     } catch (error) {
       toastr?.warning?.(error instanceof Error ? error.message : '选段失败');
@@ -542,6 +550,7 @@ export function useInlineImageGeneration(
 
   /**
    * 应用生成结果并按顺序插入全部图片
+   * 状态条在图片全部插入后延迟一帧再移除：成图先出现，状态条（含预览末帧）平滑退场形成交叉过渡
    * @param paragraph 目标段落或气泡
    * @param result 批量生成结果
    * @param session 生成会话
@@ -553,10 +562,11 @@ export function useInlineImageGeneration(
     floorTailContext?: GalleryGenerationContext,
   ): Promise<void> {
     generationSession.ensureActive(session);
-    session.status.remove();
     const route = resolveInlineRoute(paragraph);
     if (route === 'frontend') {
       await applyFrontendGenerationResult(paragraph, result, floorTailContext);
+      await nextTick();
+      session.status.remove();
       return;
     }
     for (const imageBlob of result.imageBlobs) {
@@ -565,6 +575,8 @@ export function useInlineImageGeneration(
         promptSnapshot: result.promptSnapshot,
       });
     }
+    await nextTick();
+    session.status.remove();
   }
 
   /**
@@ -700,7 +712,18 @@ export function useInlineImageGeneration(
     session: InlineGenerationSession,
   ): Promise<InlineGenerationBatchResult> {
     session.status.setStatus('正在生成图片...');
-    return generateImagesFromSnapshot(settings, snapshot, session.controller.signal);
+    const streamPreview = createNovelAIStreamPreviewSync(session);
+    try {
+      return await generateImagesFromSnapshot(
+        settings,
+        snapshot,
+        session.controller.signal,
+        p => session.status.setProgress(p),
+        streamPreview.onStreamPreview,
+      );
+    } finally {
+      streamPreview.clear();
+    }
   }
 
   /**
@@ -716,7 +739,13 @@ export function useInlineImageGeneration(
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
   ): Promise<InlineGenerationBatchResult> {
     const { output, characterPrompts } = await generateRuntimePrompt(context, session, 'novelai');
-    const overrides = buildNovelAIPromptOverrides(output, characterPrompts);
+    // 随机预设池：新鲜生图掷一次，抽中则覆写面板当前预设（编辑再生链路不进入此处）
+    const presetOverrides = resolveFreshPresetIdOverrides(settings, 'novelai');
+    const overrides = {
+      ...buildNovelAIPromptOverrides(output, characterPrompts),
+      positivePresetIdOverride: presetOverrides.positive,
+      negativePresetIdOverride: presetOverrides.negative,
+    };
     const request = buildNovelAIResolvedRequest(
       settings.novelai,
       settings.imagePromptPresets,
@@ -733,6 +762,40 @@ export function useInlineImageGeneration(
   }
 
   /**
+   * 创建 NovelAI 流式预览同步器：把预览事件转成状态条进度与中间帧预览
+   * @param session 生成会话
+   * @returns onStreamPreview 回调与清理方法
+   */
+  function createNovelAIStreamPreviewSync(session: InlineGenerationSession) {
+    let currentUrl: string | null = null;
+    return {
+      /** 预览事件回调：同步进度条并替换中间帧预览图（旧帧 URL 先释放） */
+      onStreamPreview(event: NovelAIStreamPreviewEvent): void {
+        // final 帧的步数已计入 completedCount，再叠加 step 会超出 100%
+        const done = event.completedCount * event.totalSteps;
+        session.status.setProgress({
+          value: event.isFinal ? done : done + event.step,
+          max: event.imageCount * event.totalSteps,
+          step: event.isFinal ? event.totalSteps : event.step,
+          totalSteps: event.totalSteps,
+        });
+        if (currentUrl) URL.revokeObjectURL(currentUrl);
+        currentUrl = URL.createObjectURL(event.previewBlob);
+        session.status.setStreamPreview({ imageUrl: currentUrl });
+      },
+      /**
+       * 释放残留预览 URL
+       * 只 revoke 不清除状态：已显示的预览图不受 revoke 影响，保留显示末帧，
+       * 舞台随状态条 remove 的平滑退场（或错误态渲染）自然消失
+       */
+      clear(): void {
+        if (currentUrl) URL.revokeObjectURL(currentUrl);
+        currentUrl = null;
+      },
+    };
+  }
+
+  /**
    * 请求 NovelAI 图片并同步已提升的临时 Vibe
    * @param request 已解析请求
    * @param temporarySourceHashes 临时 Vibe 哈希
@@ -744,12 +807,15 @@ export function useInlineImageGeneration(
     temporarySourceHashes: readonly string[],
     session: InlineGenerationSession,
   ): Promise<InlineGenerationBatchResult> {
+    const streamPreview = createNovelAIStreamPreviewSync(session);
     try {
       const result = await generateNovelAIImagesFromResolvedRequest(request, settings.novelai.imageCount, {
         signal: session.controller.signal,
+        onStreamPreview: streamPreview.onStreamPreview,
       });
       return { promptSnapshot: createNovelAISnapshot(result.prompts), imageBlobs: result.imageBlobs };
     } finally {
+      streamPreview.clear();
       if (hasPromotedTemporaryVibes(request.prompts.vibeReferences, temporarySourceHashes)) {
         settingsStore.persistSavedSettings();
       }
@@ -769,14 +835,44 @@ export function useInlineImageGeneration(
     onSnapshotResolved?: (snapshot: InlinePromptSnapshot) => void,
   ): Promise<InlineGenerationBatchResult> {
     const { output } = await generateRuntimePrompt(context, session, 'comfyui');
-    const request = buildComfyUIResolvedRequest(settings.comfyui, settings.imagePromptPresets, output);
+    // 随机预设池：抽中则覆写面板当前预设，并把部件写入快照供编辑链路使用
+    const randomPresetIds = resolveFreshPresetIdOverrides(settings, 'comfyui');
+    const presetIds = {
+      positive: randomPresetIds.positive ?? settings.comfyui.positivePromptPresetId,
+      negative: randomPresetIds.negative ?? settings.comfyui.negativePromptPresetId,
+    };
+    // 随机预设池：lora 侧抽中则覆写面板当前激活组
+    const loraPreset = randomPresetIds.lora
+      ? findComfyUILoraPreset(settings.comfyui.loraPresets.presets, randomPresetIds.lora)
+      : undefined;
+    // 捕获不可变有效 LoRA 预设组，避免 await 期间面板切组导致触发词与工作流 LoRA 错配
+    const effectiveLoraPreset = loraPreset ?? getActiveComfyUILoraPreset(settings.comfyui.loraPresets);
+    // 触发词按本次实际生效的 LoRA 组解析（传递 signal 支持中断）
+    const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(
+      { url: settings.comfyui.url, loraPresets: { ...settings.comfyui.loraPresets, activePresetId: effectiveLoraPreset.id } },
+      session.controller.signal,
+    );
+    generationSession.ensureActive(session);
+    const request = buildComfyUIResolvedRequest(
+      settings.comfyui,
+      settings.imagePromptPresets,
+      output,
+      loraTriggerWords,
+      presetIds,
+      effectiveLoraPreset,
+    );
+    const promptParts = {
+      positive: { core: output.positivePrompt, presetId: presetIds.positive },
+      negative: { core: output.negativePrompt, presetId: presetIds.negative },
+    };
     return runImageStep(
       session,
-      createComfyUISnapshot(request.snapshot),
+      createComfyUISnapshot(request.snapshot, promptParts),
       async () => ({
-        promptSnapshot: createComfyUISnapshot(request.snapshot),
+        promptSnapshot: createComfyUISnapshot(request.snapshot, promptParts),
         imageBlobs: await generateComfyUIImagesFromResolvedRequest(settings.comfyui, request, {
           signal: session.controller.signal,
+          onProgress: p => session.status.setProgress(p),
         }),
       }),
       onSnapshotResolved,
@@ -801,7 +897,11 @@ export function useInlineImageGeneration(
       settings.promptLlmMessagePresets,
       settings.promptProfiles,
       schemaFields,
-      { generationId: session.promptGenerationId, triggerContext: buildPromptLlmTriggerContext(settings, imageSource) },
+      {
+        generationId: session.promptGenerationId,
+        triggerContext: buildPromptLlmTriggerContext(settings, imageSource),
+        inspector: buildLlmInspectorStoreHooks(session.promptGenerationId, buildLlmInspectorLabel(context)),
+      },
     ));
   }
 

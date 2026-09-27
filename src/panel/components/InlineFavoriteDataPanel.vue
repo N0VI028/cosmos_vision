@@ -1,6 +1,7 @@
 <template>
   <StaticPanel title="图片管理" class="[--cv-favorite-grid-max-h:36rem]">
     <template #actions>
+      <CvLayoutToggle v-model="layout" />
       <CvMiniButton
         :label="isSelecting ? '取消选择' : '选择'"
         icon="fa-regular fa-check-double"
@@ -10,7 +11,22 @@
     </template>
 
     <div
-      v-if="loading"
+      v-if="loading && layout === 'list'"
+      class="flex max-h-(--cv-favorite-grid-max-h,36rem) flex-col gap-(--cv-space-sm) overflow-y-auto"
+    >
+      <CvDataCard v-for="index in 4" :key="index">
+        <div class="flex items-center gap-(--cv-space-md) px-(--cv-space-md) py-(--cv-space-sm)">
+          <Skeleton height="2.5rem" width="2.5rem" border-radius="var(--cv-radius-sm)" />
+          <div class="flex min-w-0 flex-1 flex-col gap-(--cv-space-xs)">
+            <Skeleton height="1rem" width="60%" />
+            <Skeleton height="0.9rem" width="42%" />
+          </div>
+        </div>
+      </CvDataCard>
+    </div>
+
+    <div
+      v-else-if="loading"
       class="grid max-h-(--cv-favorite-grid-max-h,36rem) grid-cols-3 gap-(--cv-space-4xl) overflow-y-auto max-[56rem]:grid-cols-2"
     >
       <CvDataCard v-for="index in 4" :key="index">
@@ -76,140 +92,228 @@
             v-for="row in visibleRows"
             :key="row.rowIndex"
             :ref="rowRef(row.rowIndex)"
-            class="grid grid-cols-3 gap-x-(--cv-space-4xl) pb-(--cv-space-4xl) max-[56rem]:grid-cols-2"
+            :class="
+              layout === 'list'
+                ? 'flex flex-col gap-(--cv-space-sm) pb-(--cv-space-sm)'
+                : 'grid grid-cols-3 gap-x-(--cv-space-4xl) pb-(--cv-space-4xl) max-[56rem]:grid-cols-2'
+            "
           >
-            <CvDataCard
-              v-for="item in row.items"
-              :key="item.key"
-              :selected="isItemSelected(item.key)"
-              :selecting="isSelecting"
-              :disabled="busy && isSelecting"
-              @toggle="toggleItem(item.key)"
-            >
-              <div class="relative flex min-w-0 flex-col">
-                <!-- 选择模式勾选框放右上角：左上角已让位给类型徽章 -->
-                <div v-if="isSelecting" class="absolute top-(--cv-space-lg) right-(--cv-space-lg) z-1" @click.stop>
-                  <Checkbox
-                    binary
-                    :model-value="isItemSelected(item.key)"
-                    :disabled="busy"
-                    @update:model-value="toggleItem(item.key)"
-                  />
-                </div>
+            <template v-for="item in row.items" :key="item.key">
+              <!-- 列表态：单行横向卡片 -->
+              <CvDataCard
+                v-if="layout === 'list'"
+                :selected="isItemSelected(item.key)"
+                :selecting="isSelecting"
+                :disabled="busy && isSelecting"
+                @toggle="toggleItem(item.key)"
+              >
+                <div class="flex items-center gap-(--cv-space-md) px-(--cv-space-md) py-(--cv-space-sm)">
+                  <div v-if="isSelecting" @click.stop>
+                    <Checkbox
+                      binary
+                      :model-value="isItemSelected(item.key)"
+                      :disabled="busy"
+                      @update:model-value="toggleItem(item.key)"
+                    />
+                  </div>
 
-                <div
-                  class="relative aspect-square overflow-hidden border-(length:--cv-border-width) border-b border-solid border-[color-mix(in_srgb,var(--cv-surface-variant)_72%,transparent)] bg-(--cv-surface-container-high)"
-                >
+                  <!-- 缩略图三态：就绪可进灯箱 / 失败降级图标 / 加载中骨架 -->
+                  <div
+                    class="size-10 shrink-0 overflow-hidden rounded-(--cv-radius-sm) bg-(--cv-surface-container-high)"
+                  >
+                    <LightboxImage
+                      v-if="previewStatus(item.key) === 'ready'"
+                      :src="getPreviewUrl(item.key)"
+                      :snapshot="item.promptSnapshot"
+                      :download-action="() => $emit('download-items', [item.key])"
+                      :disabled="isSelecting"
+                      alt="图片预览"
+                      class="block size-full object-cover"
+                    />
+                    <div
+                      v-else-if="previewStatus(item.key) === 'error'"
+                      class="flex size-full items-center justify-center text-(--cv-on-surface-variant)"
+                      title="缩略图加载失败"
+                    >
+                      <i class="fa-regular fa-image text-(length:--cv-font-size-2xl)" aria-hidden="true" />
+                    </div>
+                    <Skeleton v-else height="100%" class="block size-full" />
+                  </div>
+
+                  <div class="flex min-w-0 flex-1 flex-col gap-(--cv-space-xs)">
+                    <div class="truncate text-(length:--cv-font-size-xs) font-semibold text-(--cv-on-surface)">
+                      {{ formatImageLabel(item.createdAt) }}
+                    </div>
+                    <div class="truncate text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
+                      {{ stripPngExtension(item.characterKey) }} · {{ stripPngExtension(item.chatId) }}
+                    </div>
+                  </div>
+
                   <span
-                    class="pointer-events-none absolute top-(--cv-space-md) left-(--cv-space-md) z-1 rounded-(--cv-radius-sm) px-[0.35rem] py-[0.1rem] text-(length:--cv-font-size-xs) leading-[1.2] font-semibold"
+                    class="shrink-0 rounded-(--cv-radius-sm) px-[0.35rem] py-[0.1rem] text-(length:--cv-font-size-xs) leading-[1.2] font-semibold"
                     :class="kindBadgeClass(item.kind)"
                     >{{ kindLabel(item.kind) }}</span
                   >
-                  <!-- 缩略图按需加载：就绪后可点击进灯箱；加载中骨架占位；失败降级为图片图标 -->
-                  <LightboxImage
-                    v-if="previewStatus(item.key) === 'ready'"
-                    :src="getPreviewUrl(item.key)"
-                    :snapshot="item.promptSnapshot"
-                    :download-action="() => $emit('download-items', [item.key])"
-                    :disabled="isSelecting"
-                    alt="图片预览"
-                    class="block size-full object-cover"
-                  />
-                  <div
-                    v-else-if="previewStatus(item.key) === 'error'"
-                    class="flex size-full items-center justify-center text-(--cv-on-surface-variant)"
-                    title="缩略图加载失败"
-                  >
-                    <i class="fa-regular fa-image text-(length:--cv-font-size-2xl)" aria-hidden="true" />
-                  </div>
-                  <Skeleton v-else height="100%" class="block size-full" />
 
-                  <!-- 移动端窄卡片：缩略图右下角三点按钮呼出箭头气泡菜单（半透明方形底增强辨识度） -->
-                  <!-- 底色放在容器上：按钮自带 bg-transparent 工具类会压掉同属性的背景类 -->
+                  <div v-if="!isSelecting" class="flex shrink-0 items-center gap-(--cv-space-sm)" @click.stop>
+                    <CvMiniButton
+                      class="relative text-(--cv-on-surface-variant)"
+                      :icon="item.kind === 'favorite' ? 'fa-regular fa-star-half-alt' : 'fa-regular fa-star'"
+                      :aria-label="kindToggleLabel(item.kind)"
+                      :title="kindToggleLabel(item.kind)"
+                      :disabled="busy"
+                      @click="$emit('toggle-kind', item.key)"
+                    />
+                    <CvMiniButton
+                      icon="fa-regular fa-download"
+                      aria-label="下载"
+                      :disabled="busy"
+                      @click="$emit('download-items', [item.key])"
+                    />
+                    <CvMiniButton
+                      icon="fa-regular fa-trash"
+                      tone="error"
+                      aria-label="删除"
+                      :disabled="busy"
+                      @click="$emit('delete-items', [item.key])"
+                    />
+                  </div>
+                </div>
+              </CvDataCard>
+
+              <!-- 网格态：现有卡片 -->
+              <CvDataCard
+                v-else
+                :selected="isItemSelected(item.key)"
+                :selecting="isSelecting"
+                :disabled="busy && isSelecting"
+                @toggle="toggleItem(item.key)"
+              >
+                <div class="relative flex min-w-0 flex-col">
+                  <!-- 选择模式勾选框放右上角：左上角已让位给类型徽章 -->
+                  <div v-if="isSelecting" class="absolute top-(--cv-space-lg) right-(--cv-space-lg) z-1" @click.stop>
+                    <Checkbox
+                      binary
+                      :model-value="isItemSelected(item.key)"
+                      :disabled="busy"
+                      @update:model-value="toggleItem(item.key)"
+                    />
+                  </div>
+
+                  <div
+                    class="relative aspect-square overflow-hidden border-(length:--cv-border-width) border-b border-solid border-[color-mix(in_srgb,var(--cv-surface-variant)_72%,transparent)] bg-(--cv-surface-container-high)"
+                  >
+                    <span
+                      class="pointer-events-none absolute top-(--cv-space-md) left-(--cv-space-md) z-1 rounded-(--cv-radius-sm) px-[0.35rem] py-[0.1rem] text-(length:--cv-font-size-xs) leading-[1.2] font-semibold"
+                      :class="kindBadgeClass(item.kind)"
+                      >{{ kindLabel(item.kind) }}</span
+                    >
+                    <!-- 缩略图按需加载：就绪后可点击进灯箱；加载中骨架占位；失败降级为图片图标 -->
+                    <LightboxImage
+                      v-if="previewStatus(item.key) === 'ready'"
+                      :src="getPreviewUrl(item.key)"
+                      :snapshot="item.promptSnapshot"
+                      :download-action="() => $emit('download-items', [item.key])"
+                      :disabled="isSelecting"
+                      alt="图片预览"
+                      class="block size-full object-cover"
+                    />
+                    <div
+                      v-else-if="previewStatus(item.key) === 'error'"
+                      class="flex size-full items-center justify-center text-(--cv-on-surface-variant)"
+                      title="缩略图加载失败"
+                    >
+                      <i class="fa-regular fa-image text-(length:--cv-font-size-2xl)" aria-hidden="true" />
+                    </div>
+                    <Skeleton v-else height="100%" class="block size-full" />
+
+                    <!-- 移动端窄卡片：缩略图右下角三点按钮呼出箭头气泡菜单（半透明方形底增强辨识度） -->
+                    <!-- 底色放在容器上：按钮自带 bg-transparent 工具类会压掉同属性的背景类 -->
+                    <div
+                      v-if="!isSelecting"
+                      class="absolute right-(--cv-space-md) bottom-(--cv-space-md) z-1 hidden rounded-(--cv-radius-sm) bg-[color-mix(in_srgb,var(--cv-surface)_82%,transparent)] max-[56rem]:flex"
+                      @click.stop
+                    >
+                      <CvMiniButton
+                        class="text-(--cv-on-surface-variant)"
+                        icon="fa-solid fa-ellipsis-vertical"
+                        aria-label="更多操作"
+                        title="更多操作"
+                        :disabled="busy"
+                        @click="toggleCardMenu($event, item.key)"
+                      />
+                      <Popover :ref="el => setCardMenuPopover(item.key, el)" :base-z-index="MACRO_POPOVER_BASE_Z_INDEX">
+                        <div class="flex w-max flex-col items-stretch gap-(--cv-space-xs)">
+                          <CvMiniButton
+                            class="cv-card-menu-action"
+                            :icon="item.kind === 'favorite' ? 'fa-regular fa-star-half-alt' : 'fa-regular fa-star'"
+                            :label="kindToggleLabel(item.kind)"
+                            :disabled="busy"
+                            @click="invokeCardMenu(item.key, () => $emit('toggle-kind', item.key))"
+                          />
+                          <CvMiniButton
+                            class="cv-card-menu-action"
+                            icon="fa-regular fa-download"
+                            label="下载"
+                            :disabled="busy"
+                            @click="invokeCardMenu(item.key, () => $emit('download-items', [item.key]))"
+                          />
+                          <CvMiniButton
+                            class="cv-card-menu-action"
+                            icon="fa-regular fa-trash"
+                            tone="error"
+                            label="删除"
+                            :disabled="busy"
+                            @click="invokeCardMenu(item.key, () => $emit('delete-items', [item.key]))"
+                          />
+                        </div>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  <div class="flex min-w-0 flex-col gap-(--cv-space-sm) p-(--cv-space-4xl)">
+                    <div
+                      class="overflow-hidden text-(length:--cv-font-size-xs) font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
+                    >
+                      {{ formatImageLabel(item.createdAt) }}
+                    </div>
+                    <div
+                      class="overflow-hidden text-(length:--cv-font-size-xs) text-ellipsis whitespace-nowrap text-(--cv-on-surface-variant)"
+                    >
+                      {{ stripPngExtension(item.characterKey) }} · {{ stripPngExtension(item.chatId) }}
+                    </div>
+                  </div>
+
                   <div
                     v-if="!isSelecting"
-                    class="absolute right-(--cv-space-md) bottom-(--cv-space-md) z-1 hidden rounded-(--cv-radius-sm) bg-[color-mix(in_srgb,var(--cv-surface)_82%,transparent)] max-[56rem]:flex"
+                    class="flex flex-wrap items-center justify-end gap-(--cv-space-sm) px-(--cv-space-4xl) pb-(--cv-space-4xl) max-[56rem]:hidden"
                     @click.stop
                   >
                     <CvMiniButton
-                      class="text-(--cv-on-surface-variant)"
-                      icon="fa-solid fa-ellipsis-vertical"
-                      aria-label="更多操作"
-                      title="更多操作"
+                      class="relative text-(--cv-on-surface-variant)"
+                      :icon="item.kind === 'favorite' ? 'fa-regular fa-star-half-alt' : 'fa-regular fa-star'"
+                      :aria-label="kindToggleLabel(item.kind)"
+                      :title="kindToggleLabel(item.kind)"
                       :disabled="busy"
-                      @click="toggleCardMenu($event, item.key)"
+                      @click="$emit('toggle-kind', item.key)"
                     />
-                    <Popover :ref="el => setCardMenuPopover(item.key, el)" :base-z-index="MACRO_POPOVER_BASE_Z_INDEX">
-                      <div class="flex w-max flex-col items-stretch gap-(--cv-space-xs)">
-                        <CvMiniButton
-                          class="cv-card-menu-action"
-                          :icon="item.kind === 'favorite' ? 'fa-regular fa-star-half-alt' : 'fa-regular fa-star'"
-                          :label="kindToggleLabel(item.kind)"
-                          :disabled="busy"
-                          @click="invokeCardMenu(item.key, () => $emit('toggle-kind', item.key))"
-                        />
-                        <CvMiniButton
-                          class="cv-card-menu-action"
-                          icon="fa-regular fa-download"
-                          label="下载"
-                          :disabled="busy"
-                          @click="invokeCardMenu(item.key, () => $emit('download-items', [item.key]))"
-                        />
-                        <CvMiniButton
-                          class="cv-card-menu-action"
-                          icon="fa-regular fa-trash"
-                          tone="error"
-                          label="删除"
-                          :disabled="busy"
-                          @click="invokeCardMenu(item.key, () => $emit('delete-items', [item.key]))"
-                        />
-                      </div>
-                    </Popover>
+                    <CvMiniButton
+                      icon="fa-regular fa-download"
+                      aria-label="下载"
+                      :disabled="busy"
+                      @click="$emit('download-items', [item.key])"
+                    />
+                    <CvMiniButton
+                      icon="fa-regular fa-trash"
+                      tone="error"
+                      aria-label="删除"
+                      :disabled="busy"
+                      @click="$emit('delete-items', [item.key])"
+                    />
                   </div>
                 </div>
-
-                <div class="flex min-w-0 flex-col gap-(--cv-space-sm) p-(--cv-space-4xl)">
-                  <div
-                    class="overflow-hidden text-(length:--cv-font-size-xs) font-semibold text-ellipsis whitespace-nowrap text-(--cv-on-surface)"
-                  >
-                    {{ formatImageLabel(item.createdAt) }}
-                  </div>
-                  <div
-                    class="overflow-hidden text-(length:--cv-font-size-xs) text-ellipsis whitespace-nowrap text-(--cv-on-surface-variant)"
-                  >
-                    {{ stripPngExtension(item.characterKey) }} · {{ stripPngExtension(item.chatId) }}
-                  </div>
-                </div>
-
-                <div
-                  v-if="!isSelecting"
-                  class="flex flex-wrap items-center justify-end gap-(--cv-space-sm) px-(--cv-space-4xl) pb-(--cv-space-4xl) max-[56rem]:hidden"
-                  @click.stop
-                >
-                  <CvMiniButton
-                    class="relative text-(--cv-on-surface-variant)"
-                    :icon="item.kind === 'favorite' ? 'fa-regular fa-star-half-alt' : 'fa-regular fa-star'"
-                    :aria-label="kindToggleLabel(item.kind)"
-                    :title="kindToggleLabel(item.kind)"
-                    :disabled="busy"
-                    @click="$emit('toggle-kind', item.key)"
-                  />
-                  <CvMiniButton
-                    icon="fa-regular fa-download"
-                    aria-label="下载"
-                    :disabled="busy"
-                    @click="$emit('download-items', [item.key])"
-                  />
-                  <CvMiniButton
-                    icon="fa-regular fa-trash"
-                    tone="error"
-                    aria-label="删除"
-                    :disabled="busy"
-                    @click="$emit('delete-items', [item.key])"
-                  />
-                </div>
-              </div>
-            </CvDataCard>
+              </CvDataCard>
+            </template>
           </div>
         </div>
       </div>
@@ -245,10 +349,12 @@ import Checkbox from 'primevue/checkbox';
 import Popover from 'primevue/popover';
 import Select from 'primevue/select';
 import Skeleton from 'primevue/skeleton';
+import { useLocalStorage } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
 import { useManagedImagePreviews } from '@/composables/useManagedImagePreviews';
 import { useVirtualCardGrid } from '@/composables/useVirtualCardGrid';
 import CvDataCard from '@/panel/components/CvDataCard.vue';
+import CvLayoutToggle from '@/panel/components/CvLayoutToggle.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import LightboxImage from '@/panel/components/LightboxImage.vue';
 import { MACRO_POPOVER_BASE_Z_INDEX, type MacroPopoverInstance } from '@/panel/components/prompt-llm-macro-popover';
@@ -306,9 +412,11 @@ const isAllSelected = computed(
   () => visibleItems.value.length > 0 && selectedCount.value === visibleItems.value.length,
 );
 const isSelectionToggleDisabled = computed(() => props.loading || props.busy || !visibleItems.value.length);
+const layout = useLocalStorage<'grid' | 'list'>('cosmos-vision:managed-images-layout', 'grid');
 // 顶层解构以获得模板自动解包（嵌套在普通对象里的 ref 不会解包）
 const { containerProps, wrapperProps, visibleRows, rowRef, scrollToRow } = useVirtualCardGrid<ManagedImageItem>(
   () => visibleItems.value,
+  { layout: () => layout.value },
 );
 
 // 可见窗口 key → 按需加载缩略图 object URL（滚出窗口即回收）
