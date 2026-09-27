@@ -106,7 +106,7 @@ export const DARK_CLASS = 'cosmos-vision-app-dark';
 /** 暗色模式默认值,仅用于 localStorage 初始化与回退,不进入 ST extension_settings */
 export const DEFAULT_DARK_MODE = true;
 
-/** 插件默认设置,缺字段时由 _.defaultsDeep 补齐(darkMode 不走 ST,由 localStorage 单独管理) */
+/** 插件默认设置,缺字段时由数组原子化深合并补齐(darkMode 不走 ST,由 localStorage 单独管理;见 store/settings.ts 的 defaultsDeepArrayAtomic) */
 export const DEFAULT_SETTINGS: CosmosVisionSettings = {
   enabled: true,
   temporaryImageLimit: 50,

@@ -90,8 +90,8 @@ const novelAISeedSchema = z.number().int().min(0).max(NOVELAI_MAX_SEED).nullable
 const novelAIAccountSchema = z.object({
   id: z.string().min(1),
   name: z.string().default(''),
-  url: z.string(),
-  apiKey: z.string(),
+  url: z.string().default(''),
+  apiKey: z.string().default(''),
   enabled: z.boolean().default(true),
 });
 const comfyUILoraPresetSettingsSchema = createPresetSettingsSchema(
@@ -105,7 +105,7 @@ const comfyUILoraPresetSettingsSchema = createPresetSettingsSchema(
         strength: z.number(),
         enabled: z.boolean(),
       }),
-    ),
+    ).default([]),
   }),
   'activePresetId 必须指向已有 ComfyUI LoRA 预设',
 );
@@ -131,7 +131,8 @@ const imagePromptPresetSchema = z.object({
   id: z.string().min(1),
   name: z.string().default(DEFAULT_PRESET_NAME),
   text: z.string(),
-  placeholderOffset: z.number().int().min(0),
+  // default(0)：数组原子化合并后由 schema 兜底补齐缺失键的旧数据
+  placeholderOffset: z.number().int().min(0).default(0),
 });
 
 const imagePromptPresetSettingsSchema = z.object({
@@ -142,7 +143,7 @@ const imagePromptPresetSettingsSchema = z.object({
 const novelAIVibePresetSchema = z.object({
   id: z.string().min(1),
   name: z.string().default(DEFAULT_PRESET_NAME),
-  vibes: z.array(imagePromptVibeRefSchema).max(MAX_NOVELAI_VIBES_PER_PRESET),
+  vibes: z.array(imagePromptVibeRefSchema).max(MAX_NOVELAI_VIBES_PER_PRESET).default([]),
 });
 const novelAIVibePresetSettingsBaseSchema = z.object({
   activePresetId: z.string().min(1),
@@ -316,44 +317,26 @@ function normalizeSettings(value: unknown): PlainRecord {
   const record = _.cloneDeep(toPlainRecord(value)) as PlainRecord;
   normalizeLegacyNovelAIGuidance(record);
   normalizeLegacyPromptLlmConnection(record);
-  const normalized = _.defaultsDeep({}, record, DEFAULT_SETTINGS);
-  restoreUserWorkflowPresets(normalized, record);
-  restoreUserPromptLlmMessagePresets(normalized, record);
-  return normalized;
+  return defaultsDeepArrayAtomic(record);
 }
 
 /**
- * 还原用户持久化的工作流预设列表
- * defaultsDeep 会按下标合并数组，默认预设会混入用户自定义列表，故用原始记录覆盖
- * @param settings 已补齐默认值的设置记录
- * @param source 用户持久化的原始记录
+ * 数组原子化地补齐默认设置
+ * 与 _.defaultsDeep 语义一致（record 有值即胜出、缺失由默认补、undefined 源值跳过），唯一差异是数组不按下标合并、record 侧存在即整体生效——否则用户删过的数组条目会在重载时按下标错位复活（如删除默认预设/默认 LLM 条目后复活重复项）
+ * 数组项缺失的字段由各 schema 的 .default() 补齐，不再依赖按下标回填
+ * 调用约束：record 必须是调用方私有的深拷贝（customizer 会原样挂载 record 侧数组引用，不再克隆）
+ * @param record 用户持久化的设置记录
+ * @returns 补齐默认值的设置记录
  */
-function restoreUserWorkflowPresets(settings: PlainRecord, source: PlainRecord): void {
-  const sourcePresets = _.get(source, 'comfyui.workflowPresets.presets');
-  if (!Array.isArray(sourcePresets) || !sourcePresets.length) return;
-  const comfyui = toPlainRecord(settings.comfyui);
-  comfyui.workflowPresets = { ...toPlainRecord(comfyui.workflowPresets), presets: _.cloneDeep(sourcePresets) };
-  settings.comfyui = comfyui;
-}
-
-/**
- * 还原用户持久化的提示词 LLM 消息预设列表
- * defaultsDeep 会按下标合并数组：用户删过中间条目会错位复活重复项，新增默认条目会被漏补给旧触发配置的用户（新旧规则同时生效互相矛盾），故用原始记录覆盖
- * @param settings 已补齐默认值的设置记录
- * @param source 用户持久化的原始记录
- */
-function restoreUserPromptLlmMessagePresets(settings: PlainRecord, source: PlainRecord): void {
-  const sourcePresets = _.get(source, 'promptLlmMessagePresets.presets');
-  if (!Array.isArray(sourcePresets) || !sourcePresets.length) return;
-  settings.promptLlmMessagePresets = {
-    ...toPlainRecord(settings.promptLlmMessagePresets),
-    presets: _.cloneDeep(sourcePresets),
-  };
+function defaultsDeepArrayAtomic(record: PlainRecord): PlainRecord {
+  return _.mergeWith({}, DEFAULT_SETTINGS, record, (defaultsValue, recordValue) => {
+    return _.isArray(defaultsValue) && _.isArray(recordValue) ? recordValue : undefined;
+  });
 }
 
 /**
  * 兼容旧版提示词 LLM 单账号字段
- * 旧字段只用于迁移，迁移必须在 defaultsDeep 补默认账号之前完成，
+ * 旧字段只用于迁移，迁移必须在默认值合并补齐默认账号之前完成，
  * 否则 schema 会带着默认空账号直接通过，旧连接信息被静默剥离
  * @param settings 原始设置记录
  */
