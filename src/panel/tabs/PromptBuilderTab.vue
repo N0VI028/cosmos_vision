@@ -40,38 +40,32 @@
     </div>
 
     <div data-cv-tutorial="prompt-llm-builder-preset">
-      <div class="mb-(--cv-space-5xl) flex items-center gap-(--cv-space-sm)">
-        <h2 class="cv-section-title inline-flex items-center gap-(--cv-space-sm)">
-          <span>提示词生成预设</span>
-          <div
-            v-if="isDefaultPresetActive"
-            class="inline-flex size-[1.65em] shrink-0 cursor-pointer items-center justify-center rounded-(--cv-radius-sm) text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant) transition-all duration-150 ease-in-out outline-none hover:bg-[color-mix(in_srgb,var(--cvp-red-500)_10%,transparent)] hover:text-(--cvp-red-500) focus-visible:bg-[color-mix(in_srgb,var(--cvp-red-500)_10%,transparent)] focus-visible:text-(--cvp-red-500)"
-            role="button"
-            tabindex="0"
-            title="重置内置预设"
-            aria-label="重置内置预设"
-            @click="resetDefaultPreset"
-            @keydown.enter.prevent="resetDefaultPreset"
-            @keydown.space.prevent="resetDefaultPreset"
-          >
-            <i class="fa-solid fa-rotate-left" />
-          </div>
-        </h2>
+      <div class="mb-(--cv-space-5xl)">
+        <h2 class="cv-section-title">提示词生成预设</h2>
       </div>
 
       <PresetSelector
         class="mb-(--cv-space-5xl)"
         :presets="presetOptions"
         :active-preset-id="settings.promptLlmMessagePresets.activePresetId"
-        :default-preset-id="DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID"
         show-portability
+        import-via-dialog
         @update:active-preset-id="updatePresetId"
         @create="createPresetPrompt"
         @clone="clonePreset"
         @rename="renamePreset"
         @export-preset="exportPresetPackage"
-        @import-presets="importPresetPackage"
+        @import-click="isImportVisible = true"
         @delete-preset="deletePreset"
+      />
+
+      <PresetImportDialog
+        v-model:visible="isImportVisible"
+        title="导入提示词生成预设"
+        :defaults="defaultPresetImportOptions"
+        :existing-ids="settings.promptLlmMessagePresets.presets.map(preset => preset.id)"
+        @import-file="importPresetPackage"
+        @import-defaults="importDefaults"
       />
     </div>
 
@@ -197,6 +191,7 @@
 
 <script setup lang="ts">
 import { uuidv4 } from '@sillytavern/scripts/utils';
+import PresetImportDialog from '@/panel/components/PresetImportDialog.vue';
 import PresetSelector from '@/panel/components/PresetSelector.vue';
 import PromptLlmMessageList from '@/panel/components/PromptLlmMessageList.vue';
 import defaultPromptLlmPresetSettings from '@/constants/default-prompt-llm-preset';
@@ -208,6 +203,7 @@ import {
   DEFAULT_SETTINGS,
 } from '@/constants/default-settings';
 import { type PromptLlmMessage, type PromptLlmMessagePreset } from '@/constants/novelai';
+import { mergeById } from '@/services/data-portability/import';
 import {
   downloadActivePromptLlmPresetPackage,
   importPresetPackageFile,
@@ -304,9 +300,14 @@ const showPrompt =
   inject<(options: { title?: string; message: string; defaultValue?: string }) => Promise<string | null>>('showPrompt');
 const showConfirm = inject<(options: ConfirmOptions) => Promise<boolean>>('showConfirm');
 
-const isDefaultPresetActive = computed(
-  () => settings.promptLlmMessagePresets.activePresetId === DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID,
-);
+/** 控制导入预设弹窗的显示状态 */
+const isImportVisible = ref(false);
+
+/** 可导入的默认提示词生成预设选项 */
+const defaultPresetImportOptions = defaultPromptLlmPresetSettings.presets.map(preset => ({
+  id: preset.id,
+  name: preset.name,
+}));
 
 const presetOptions = computed(() => {
   return settings.promptLlmMessagePresets.presets.map(preset => ({
@@ -401,18 +402,31 @@ async function renamePreset(): Promise<void> {
  * @param id 预设 ID
  */
 function deletePreset(id: string): void {
-  if (id === DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID) {
-    toastr.warning('默认预设不能删除');
-    return;
-  }
   const index = settings.promptLlmMessagePresets.presets.findIndex(p => p.id === id);
-  if (index !== -1) {
-    settings.promptLlmMessagePresets.presets.splice(index, 1);
-    if (settings.promptLlmMessagePresets.activePresetId === id) {
-      settings.promptLlmMessagePresets.activePresetId = DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID;
-    }
-    toastr.success('预设已删除');
+  if (index === -1) return;
+  settings.promptLlmMessagePresets.presets.splice(index, 1);
+  if (settings.promptLlmMessagePresets.activePresetId === id) {
+    settings.promptLlmMessagePresets.activePresetId = settings.promptLlmMessagePresets.presets[0].id;
   }
+  toastr.success('预设已删除');
+}
+
+/**
+ * 按合并结果导入选中的默认预设（已存在的覆盖为初始内容）
+ * @param ids 选中的默认预设 ID 列表
+ */
+function importDefaults(ids: string[]): void {
+  const incoming = ids
+    .map(id => defaultPromptLlmPresetSettings.presets.find(preset => preset.id === id))
+    .filter(preset => preset !== undefined);
+  if (!incoming.length) return;
+
+  const merged = mergeById(settings.promptLlmMessagePresets.presets, incoming);
+  settings.promptLlmMessagePresets.presets = merged;
+  if (!merged.some(preset => preset.id === settings.promptLlmMessagePresets.activePresetId)) {
+    settings.promptLlmMessagePresets.activePresetId = merged[0].id;
+  }
+  toastr.success(`已导入 ${incoming.length} 个默认预设`);
 }
 
 /**
@@ -452,26 +466,6 @@ function reportPresetToolbarError(fallback: string, error: unknown): void {
 }
 
 /**
- * 确认后重置内置提示词生成预设
- */
-async function resetDefaultPreset(): Promise<void> {
-  const message = '确定要重置内置预设到初始状态吗？这会覆盖你对默认预设的修改。';
-  const confirmed = showConfirm
-    ? await showConfirm({
-        title: '重置内置预设',
-        message,
-        acceptLabel: '确认重置',
-        cancelLabel: '取消',
-        severity: 'danger',
-      })
-    : confirm(message);
-
-  if (!confirmed) return;
-  restoreDefaultPreset();
-  toastr.success('内置预设已重置为初始状态');
-}
-
-/**
  * 确认后重置Tag提取规则为默认值
  */
 async function resetTagExtractionRules(): Promise<void> {
@@ -506,25 +500,6 @@ async function resetTagExtractionRules(): Promise<void> {
   settings.promptLlm.characterPositionYExtractPattern = defaults.characterPositionYExtractPattern;
 
   toastr.success('Tag提取规则已重置为默认值');
-}
-
-/**
- * 用初始配置替换内置默认预设
- */
-function restoreDefaultPreset(): void {
-  const preset = defaultPromptLlmPresetSettings.presets.find(item => item.id === DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID);
-  if (!preset) throw new Error('未找到内置提示词预设初始配置');
-
-  const defaultPreset = _.cloneDeep(preset);
-  const presets = settings.promptLlmMessagePresets.presets;
-  const index = presets.findIndex(p => p.id === DEFAULT_PROMPT_LLM_MESSAGE_PRESET_ID);
-
-  if (index === -1) {
-    presets.unshift(defaultPreset);
-    settings.promptLlmMessagePresets.activePresetId = defaultPreset.id;
-  } else {
-    presets.splice(index, 1, defaultPreset);
-  }
 }
 
 const messages = computed<PromptLlmMessage[]>({

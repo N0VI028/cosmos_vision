@@ -48,7 +48,7 @@
     </div>
 
     <!-- 列表态：勾选导入列表 / 错误重试 / 空提示 -->
-    <div v-else-if="mode === 'list'" class="flex flex-col gap-(--cv-space-md)">
+    <div v-else class="flex flex-col gap-(--cv-space-md)">
       <!-- 错误状态 -->
       <div
         v-if="errorMessage"
@@ -66,7 +66,6 @@
         LoRA Manager 中还没有配方，可先在管理器里保存一个配方
       </div>
 
-      <!-- 配方勾选列表 -->
       <template v-else>
         <!-- 本地 LoRA 库未加载警告 -->
         <div
@@ -76,64 +75,8 @@
           LoRA 库尚未加载，导入的 LoRA 会全部处于禁用状态，建议先刷新 LoRA 库
         </div>
 
-        <!-- 全选与统计 -->
-        <div class="flex items-center justify-between pb-(--cv-space-lg) text-(length:--cv-font-size-xs)">
-          <label class="inline-flex cursor-pointer items-center gap-(--cv-space-sm) select-none">
-            <Checkbox :model-value="isAllSelected" :indeterminate="isIndeterminate" binary @change="toggleSelectAll" />
-            <span class="font-medium text-(--cv-on-surface)">全选</span>
-          </label>
-          <span class="text-(--cv-on-surface-variant)">已选 {{ selectedCount }} / 共 {{ recipes.length }}</span>
-        </div>
-
-        <!-- 列表滚动区 -->
-        <div class="custom-scrollbar flex max-h-[min(52vh,26rem)] min-h-[10rem] flex-col gap-(--cv-space-md) overflow-y-auto overscroll-contain">
-          <div
-            v-for="recipe in recipes"
-            :key="recipe.id"
-            role="checkbox"
-            :aria-checked="selectedIds.has(recipe.id)"
-            tabindex="0"
-            class="flex w-full cursor-pointer items-center gap-(--cv-space-md) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-transparent px-(--cv-space-md) py-(--cv-space-sm) transition-colors duration-150 hover:bg-(--cv-surface-container-highest)"
-            :class="{ 'bg-(--cv-surface-container-low)': selectedIds.has(recipe.id) }"
-            @click="toggleRecipe(recipe.id)"
-            @keydown.space.prevent="toggleRecipe(recipe.id)"
-            @keydown.enter.prevent="toggleRecipe(recipe.id)"
-          >
-            <Checkbox
-              binary
-              :model-value="selectedIds.has(recipe.id)"
-              class="pointer-events-none"
-              :tabindex="-1"
-            />
-            <img
-              v-if="recipe.previewUrl && !failedPreviewIds.has(recipe.id)"
-              :src="recipe.previewUrl"
-              :alt="`${recipe.title || '配方'} 预览图`"
-              class="size-11 shrink-0 rounded-(--cv-radius-sm) object-cover"
-              loading="lazy"
-              @error="markPreviewFailed(recipe.id)"
-            >
-            <span
-              v-else
-              class="flex size-11 shrink-0 items-center justify-center rounded-(--cv-radius-sm) bg-(--cv-surface-container-highest) text-(--cv-on-surface-variant)"
-            >
-              <i class="fa-solid fa-image" aria-hidden="true" />
-            </span>
-            <span class="flex min-w-0 flex-1 flex-col gap-(--cv-space-2xs)">
-              <span
-                class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-xs) font-medium text-(--cv-on-surface)"
-                :title="recipe.title"
-              >
-                {{ recipe.title || '未命名配方' }}
-              </span>
-              <span
-                class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
-              >
-                {{ describeRecipe(recipe) }}
-              </span>
-            </span>
-          </div>
-        </div>
+        <!-- 配方勾选列表 -->
+        <ImportSelectionList v-model:selected-ids="selectedIds" :rows="recipeRows" show-preview-placeholder />
       </template>
     </div>
 
@@ -146,7 +89,7 @@
           icon="fa-solid fa-file-import"
           :disabled="selectedCount === 0"
           :fluid="false"
-          @click="confirmImportRecipes"
+          @click="confirmImport"
         />
       </div>
     </template>
@@ -156,6 +99,15 @@
 <script setup lang="ts">
 import { fetchAllComfyUILoraRecipes, type ComfyUILoraRecipe } from '@/services/comfyui/lora-recipes';
 import { formatLoraDisplayName } from '@/services/comfyui/lora-presets';
+import ImportSelectionList from '@/panel/components/ImportSelectionList.vue';
+
+/** 列表行模型 */
+interface ImportRow {
+  id: string;
+  title: string;
+  subtitle: string;
+  previewUrl?: string | null;
+}
 
 /** 弹窗样式 */
 const DIALOG_STYLE = {
@@ -184,18 +136,19 @@ const emit = defineEmits<{
 const mode = ref<DialogMode>('entry');
 const recipes = ref<ComfyUILoraRecipe[]>([]);
 const selectedIds = ref<ReadonlySet<string>>(new Set());
-const failedPreviewIds = ref<ReadonlySet<string>>(new Set());
 const errorMessage = ref<string | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
 const isComfyuiUrlEmpty = computed(() => !props.comfyuiUrl.trim());
 
 const selectedCount = computed(() => selectedIds.value.size);
-const isAllSelected = computed(
-  () => recipes.value.length > 0 && selectedIds.value.size === recipes.value.length,
-);
-const isIndeterminate = computed(
-  () => selectedIds.value.size > 0 && selectedIds.value.size < recipes.value.length,
+const recipeRows = computed<ImportRow[]>(() =>
+  recipes.value.map(recipe => ({
+    id: recipe.id,
+    title: recipe.title || '未命名配方',
+    subtitle: describeRecipe(recipe),
+    previewUrl: recipe.previewUrl,
+  })),
 );
 
 watch(visible, opened => {
@@ -237,7 +190,6 @@ async function startFetchRecipes(): Promise<void> {
     const items = await fetchAllComfyUILoraRecipes(props.comfyuiUrl);
     recipes.value = items;
     selectedIds.value = new Set(items.map(recipe => recipe.id));
-    failedPreviewIds.value = new Set();
     mode.value = 'list';
   } catch (error) {
     const message = error instanceof Error ? error.message : '获取配方列表失败';
@@ -245,41 +197,6 @@ async function startFetchRecipes(): Promise<void> {
     console.error('[ComfyUILoraImportDialog] 获取配方列表失败', error);
     mode.value = 'list';
   }
-}
-
-/**
- * 切换全选/全不选状态
- */
-function toggleSelectAll(): void {
-  if (isAllSelected.value) {
-    selectedIds.value = new Set();
-  } else {
-    selectedIds.value = new Set(recipes.value.map(recipe => recipe.id));
-  }
-}
-
-/**
- * 切换单个配方的勾选状态
- * @param id 配方 ID
- */
-function toggleRecipe(id: string): void {
-  const next = new Set(selectedIds.value);
-  if (next.has(id)) {
-    next.delete(id);
-  } else {
-    next.add(id);
-  }
-  selectedIds.value = next;
-}
-
-/**
- * 记录预览图加载失败的配方 ID
- * @param id 配方 ID
- */
-function markPreviewFailed(id: string): void {
-  const next = new Set(failedPreviewIds.value);
-  next.add(id);
-  failedPreviewIds.value = next;
 }
 
 /**
@@ -296,9 +213,9 @@ function describeRecipe(recipe: ComfyUILoraRecipe): string {
 }
 
 /**
- * 提交选中的配方列表并关闭弹窗
+ * 提交勾选的条目并关闭弹窗
  */
-function confirmImportRecipes(): void {
+function confirmImport(): void {
   const selected = recipes.value.filter(recipe => selectedIds.value.has(recipe.id));
   if (!selected.length) return;
   emit('import-recipes', selected);
@@ -313,7 +230,6 @@ function resetState(): void {
   errorMessage.value = null;
   recipes.value = [];
   selectedIds.value = new Set();
-  failedPreviewIds.value = new Set();
   if (fileInputRef.value) {
     fileInputRef.value.value = '';
   }

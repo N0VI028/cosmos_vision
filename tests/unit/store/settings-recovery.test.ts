@@ -3,7 +3,6 @@ import { createPinia, setActivePinia } from 'pinia';
 import { extension_settings } from '@sillytavern/scripts/extensions';
 import {
   DEFAULT_COMFYUI_WORKFLOW_JSON,
-  DEFAULT_COMFYUI_WORKFLOW_K2_ANIMA_JSON,
   DEFAULT_COMFYUI_WORKFLOW_PRESET_ID,
   DEFAULT_COMFYUI_WORKFLOW_PRESET_ID_K2_ANIMA,
   DEFAULT_COMFYUI_WORKFLOW_PRESET_NAME,
@@ -109,7 +108,7 @@ describe('settings store recovery and state management', () => {
     expect(promptLlm.accounts[0].temperature).toBe(0.9);
   });
 
-  it('backfills the k2-anima workflow preset for legacy settings', () => {
+  it('does not backfill the k2-anima workflow preset for legacy settings', () => {
     extensionSettings.cosmos_vision = {
       comfyui: {
         workflowPresets: {
@@ -129,12 +128,30 @@ describe('settings store recovery and state management', () => {
     const store = useSettingsStore();
     const workflowPresets = store.settings.comfyui.workflowPresets;
 
-    expect(workflowPresets.presets.map(preset => preset.id)).toEqual([
-      DEFAULT_COMFYUI_WORKFLOW_PRESET_ID,
-      DEFAULT_COMFYUI_WORKFLOW_PRESET_ID_K2_ANIMA,
-    ]);
-    expect(workflowPresets.presets[1].workflowJson).toBe(DEFAULT_COMFYUI_WORKFLOW_K2_ANIMA_JSON);
+    expect(workflowPresets.presets.map(preset => preset.id)).toEqual([DEFAULT_COMFYUI_WORKFLOW_PRESET_ID]);
     expect(workflowPresets.activePresetId).toBe(DEFAULT_COMFYUI_WORKFLOW_PRESET_ID);
+  });
+
+  it('does not revive deleted default workflow presets on reload', () => {
+    extensionSettings.cosmos_vision = {
+      comfyui: {
+        workflowPresets: {
+          activePresetId: 'my-workflow',
+          presets: [{ id: 'my-workflow', name: '我的工作流', workflowJson: '{"1":{}}', favoriteNodeIds: [] }],
+        },
+      },
+    };
+
+    const firstLoad = useSettingsStore();
+    expect(firstLoad.settings.comfyui.workflowPresets.presets.map(preset => preset.id)).toEqual(['my-workflow']);
+
+    setActivePinia(createPinia());
+    const secondLoad = useSettingsStore();
+    const presetIds = secondLoad.settings.comfyui.workflowPresets.presets.map(preset => preset.id);
+
+    expect(presetIds).toEqual(['my-workflow']);
+    expect(presetIds).not.toContain(DEFAULT_COMFYUI_WORKFLOW_PRESET_ID);
+    expect(presetIds).not.toContain(DEFAULT_COMFYUI_WORKFLOW_PRESET_ID_K2_ANIMA);
   });
 
   it('leaves rebuilt workflow preset lists untouched', () => {

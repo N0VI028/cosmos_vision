@@ -65,7 +65,6 @@ const props = withDefaults(
   defineProps<{
     presets: PresetOption[];
     activePresetId: string;
-    defaultPresetId: string;
     showPortability?: boolean;
     importAccept?: string;
     importViaDialog?: boolean;
@@ -129,20 +128,13 @@ const showConfirm =
 const fileInput = ref<HTMLInputElement | null>(null);
 
 /**
- * 触发导入预设操作：若配置为弹窗导入则向外抛出事件，否则调起本地文件选择器
+ * 触发导入预设操作：弹窗导入时向外抛出事件，否则调起本地文件选择器
  */
 function handleImportClick(): void {
   if (props.importViaDialog) {
     emit('import-click');
     return;
   }
-  openFilePicker();
-}
-
-/**
- * 打开预设文件选择器
- */
-function openFilePicker(): void {
   fileInput.value?.click();
 }
 
@@ -160,10 +152,6 @@ function handleFileChange(event: Event): void {
  * 触发删除当前预设，执行前置校验与二次确认
  */
 async function handleDeleteActiveClick(): Promise<void> {
-  if (props.activePresetId === props.defaultPresetId) {
-    toastr.warning('默认预设不能删除');
-    return;
-  }
   if (props.presets.length <= 1) {
     toastr.warning('至少保留一个预设');
     return;

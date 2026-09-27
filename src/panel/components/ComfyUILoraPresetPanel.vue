@@ -17,7 +17,6 @@
         <PresetSelector
           :presets="presetOptions"
           :active-preset-id="props.presetSettings.activePresetId"
-          :default-preset-id="defaultPresetId"
           show-portability
           import-via-dialog
           @update:active-preset-id="updateActivePresetId"

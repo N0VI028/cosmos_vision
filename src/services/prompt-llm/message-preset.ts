@@ -1,6 +1,4 @@
-import { DEFAULT_PROMPT_LLM_PRESET_ID, DEFAULT_PROMPT_LLM_SPECIAL_REQUEST_MESSAGE_ID } from '@/constants/default-prompt-llm-preset';
 import {
-  DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
   PROMPT_LLM_FOCUS_PARAGRAPH_TOKEN,
   PROMPT_LLM_HISTORY_MESSAGE_ID,
   PROMPT_LLM_HISTORY_MESSAGE_TITLE,
@@ -106,19 +104,7 @@ function readPromptLlmSourceText(sourceMessage: Awaited<ReturnType<typeof resolv
  */
 function normalizePromptLlmPreset(preset: PromptLlmMessagePreset): PromptLlmMessagePreset {
   const messages = preset.messages.map(normalizePromptLlmMessage);
-  return { ...preset, messages: ensureDefaultSpecialRequestMessage(preset.id, messages) };
-}
-
-/**
- * 为默认内置预设补齐本次特别要求消息
- * @param presetId 预设 ID
- * @param messages 当前消息列表
- * @returns 补齐后的消息列表
- */
-function ensureDefaultSpecialRequestMessage(presetId: string, messages: PromptLlmMessage[]): PromptLlmMessage[] {
-  if (presetId !== DEFAULT_PROMPT_LLM_PRESET_ID) return messages;
-  if (messages.some(message => message.id === DEFAULT_PROMPT_LLM_SPECIAL_REQUEST_MESSAGE_ID)) return messages;
-  return [...messages, createSpecialRequestMessage()];
+  return { ...preset, messages };
 }
 
 /**
@@ -139,18 +125,4 @@ function migrateLegacyRuntimeMessage(message: PromptLlmMessage): PromptLlmMessag
   const config = LEGACY_RUNTIME_MESSAGE_CONFIGS.find(item => item.id === message.id);
   if (!config) return message;
   return { ...message, title: message.title.trim() || config.title, content: config.token };
-}
-
-/**
- * 创建默认预设中的本次特别要求消息
- * @returns 特别要求消息条目
- */
-function createSpecialRequestMessage(): PromptLlmMessage {
-  return withPromptLlmMessageTriggerDefaults({
-    id: DEFAULT_PROMPT_LLM_SPECIAL_REQUEST_MESSAGE_ID,
-    title: '本次临时追加要求',
-    role: 'user',
-    content: ['', '<special_request>', `    ${PROMPT_LLM_SPECIAL_REQUEST_TOKEN}`, '</special_request>', ''].join('\n'),
-    enabled: DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
-  });
 }

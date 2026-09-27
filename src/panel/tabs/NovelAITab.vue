@@ -246,7 +246,7 @@
           <div class="cv-field-control">
             <label class="cv-field-inline">
               <ToggleSwitch v-model="settings.novelai.streamImage" />
-              <span>流式生图（实时预览生成过程）</span>
+              <span>流式生图</span>
             </label>
           </div>
         </div>

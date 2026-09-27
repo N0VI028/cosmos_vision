@@ -582,12 +582,12 @@ function mergeNovelAIVibePresetSettings(
 }
 
 /**
- * 按 id 合并列表:相同 id 用导入项覆盖,本地独有保留,导入独有追加
+ * 按 id 合并列表：incoming 覆盖同 id 条目、追加新条目，保持 current 顺序
  * @param current 当前列表
  * @param incoming 导入列表
  * @returns 合并后的列表
  */
-function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
+export function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
   const merged = new Map(current.map(item => [item.id, _.cloneDeep(item)]));
   incoming.forEach(item => merged.set(item.id, _.cloneDeep(item)));
   return [...merged.values()];

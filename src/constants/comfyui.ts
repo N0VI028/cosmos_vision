@@ -16,7 +16,7 @@ export const DEFAULT_COMFYUI_LORA_PRESET_NAME = '默认 LoRA 组';
 export const DEFAULT_COMFYUI_WORKFLOW_PRESET_ID = 'comfyui-workflow-default';
 export const DEFAULT_COMFYUI_WORKFLOW_PRESET_NAME = '默认工作流';
 export const DEFAULT_COMFYUI_WORKFLOW_PRESET_ID_K2_ANIMA = 'comfyui-workflow-k2-anima';
-export const DEFAULT_COMFYUI_WORKFLOW_PRESET_NAME_K2_ANIMA = 'K2/Anima默认工作流';
+export const DEFAULT_COMFYUI_WORKFLOW_PRESET_NAME_K2_ANIMA = 'Krea2/Anima默认工作流';
 
 /** 默认工作流中用于教程演示的绑定节点 */
 export const DEFAULT_COMFYUI_TUTORIAL_NODE_IDS = {
