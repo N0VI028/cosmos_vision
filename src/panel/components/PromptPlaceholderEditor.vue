@@ -4,18 +4,13 @@
       ref="editorEl"
       class="min-h-24 rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cvp-content-border-color) bg-(--cvp-inputtext-background) p-(--cv-space-3xl) leading-[1.5] wrap-break-word whitespace-pre-wrap text-(--cvp-inputtext-color) outline-none focus-within:border-(--cvp-primary-color) focus-within:shadow-[0_0_0_1px_color-mix(in_srgb,var(--cvp-primary-color)_45%,transparent)]"
       :class="{ 'is-dragging': isDragging, 'flex-1': embedded }"
+      contenteditable="plaintext-only"
       role="textbox"
       aria-multiline="true"
+      @input="syncFromDom"
+      @paste.prevent="pastePlainText"
     >
-      <span
-        ref="beforeEl"
-        class="min-w-[0.5em] outline-none"
-        contenteditable="plaintext-only"
-        data-part="before"
-        @input="syncFromDom"
-        @paste.prevent="pastePlainText"
-        @keydown="handleBeforeKeydown"
-      />
+      <span ref="beforeEl" class="min-w-[0.5em]" />
       <span
         ref="tokenEl"
         class="mx-(--cv-space-sm) inline-flex min-h-5 cursor-grab touch-none items-center gap-(--cv-space-sm) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-[color-mix(in_srgb,var(--cvp-primary-color)_60%,var(--cvp-content-border-color))] bg-[color-mix(in_srgb,var(--cvp-primary-color)_14%,transparent)] px-(--cv-space-lg) text-(--cvp-primary-color) select-none active:cursor-grabbing"
@@ -32,15 +27,7 @@
       >
         <span>LLM提取结果</span>
       </span>
-      <span
-        ref="afterEl"
-        class="min-w-[0.5em] outline-none"
-        contenteditable="plaintext-only"
-        data-part="after"
-        @input="syncFromDom"
-        @paste.prevent="pastePlainText"
-        @keydown="handleAfterKeydown"
-      />
+      <span ref="afterEl" class="min-w-[0.5em]" />
     </div>
     <button
       v-if="!embedded"
@@ -146,8 +133,18 @@ watch(
 );
 
 onMounted(() => {
+  ensurePlaintextOnlySupport();
   renderValue(props.modelValue);
 });
+
+/**
+ * 检测并降级兼容不支持 plaintext-only 的环境，回退为标准 contenteditable
+ */
+function ensurePlaintextOnlySupport(): void {
+  if (editorEl.value && !editorEl.value.isContentEditable) {
+    editorEl.value.contentEditable = 'true';
+  }
+}
 
 /**
  * 渲染当前结构化文本
@@ -189,9 +186,32 @@ function cancelFullscreen(): void {
 }
 
 /**
+ * 徽章防删恢复：框选跨徽章删除时把失联节点重挂回编辑器
+ * 前后段仍在则原位插回徽章；前后段被连带删除（如全选删除）则按宿主残留文本整体重建，徽章置于文本末尾
+ */
+function recoverTokenIfNeeded(): void {
+  const editor = editorEl.value;
+  const before = beforeEl.value;
+  const token = tokenEl.value;
+  const after = afterEl.value;
+  if (!editor || !token || !before || !after || editor.contains(token)) return;
+  if (editor.contains(before) && editor.contains(after)) {
+    editor.insertBefore(token, after);
+    return;
+  }
+  // 前后段被连带删除（如全选删除）时游离节点仍残留旧文本，须按宿主残留文本整体重建
+  const survivingText = editor.textContent ?? '';
+  editor.textContent = '';
+  editor.append(before, token, after);
+  before.textContent = survivingText;
+  after.textContent = '';
+}
+
+/**
  * 从 DOM 同步文本到外部模型
  */
 function syncFromDom(): void {
+  recoverTokenIfNeeded();
   const before = beforeEl.value?.textContent ?? '';
   const after = afterEl.value?.textContent ?? '';
   emitValue({ text: before + after, placeholderOffset: before.length });
@@ -390,22 +410,6 @@ function placeCaret(el: HTMLElement, position: 'start' | 'end'): void {
 }
 
 /**
- * before 段按键处理：末尾按 → 直接越过徽章落到 after 开头
- * @param event 键盘事件
- */
-function handleBeforeKeydown(event: KeyboardEvent): void {
-  if (event.key !== 'ArrowRight') return;
-  event.stopPropagation();
-  const el = beforeEl.value;
-  const selection = window.getSelection();
-  if (!el || !selection) return;
-  if (selection.focusOffset >= (el.textContent ?? '').length) {
-    event.preventDefault();
-    if (afterEl.value) placeCaret(afterEl.value, 'start');
-  }
-}
-
-/**
  * 徽章按键处理：方向键把光标送到前后段，像越过一个字符
  * @param event 键盘事件
  */
@@ -418,21 +422,6 @@ function handleTokenKeydown(event: KeyboardEvent): void {
   } else if (event.key === 'ArrowLeft' && beforeEl.value) {
     event.preventDefault();
     placeCaret(beforeEl.value, 'end');
-  }
-}
-
-/**
- * after 段按键处理：开头按 ← 直接越过徽章落到 before 末尾
- * @param event 键盘事件
- */
-function handleAfterKeydown(event: KeyboardEvent): void {
-  if (event.key !== 'ArrowLeft') return;
-  event.stopPropagation();
-  const selection = window.getSelection();
-  if (!selection) return;
-  if (selection.focusOffset <= 0) {
-    event.preventDefault();
-    if (beforeEl.value) placeCaret(beforeEl.value, 'end');
   }
 }
 
