@@ -74,6 +74,7 @@ export interface TavernHelperGenerateRawConfig {
   json_schema?: TavernHelperJsonSchema;
   should_stream?: boolean;
   should_silence?: boolean;
+  should_return_reasoning?: boolean;
 }
 
 /**
@@ -115,7 +116,7 @@ interface PromptExtractRule {
   flags: string;
 }
 
-/** TavernHelper 新版 generateRaw 详情对象形态（无元数据时直接返回 string） */
+/** TavernHelper 新版 generateRaw 详情对象形态（should_return_reasoning 为 true 时返回） */
 export interface TavernHelperGenerateRawResult {
   readonly content: string;
   readonly reasoning?: string;
@@ -127,25 +128,20 @@ export interface TavernHelperGenerateRawResult {
 export interface TavernHelperGenerateRawOutcome {
   /** 正文（纯字符串值或详情对象的 content） */
   text: string;
+  /** 推理内容（仅详情对象携带；纯字符串返回时为 undefined） */
+  reasoning?: string;
 }
 
 /**
- * 读取 generateRaw 返回值：兼容旧版纯字符串与新版详情对象（String 子类 / plain object）
+ * 读取 generateRaw 返回值（请求统一携带 should_return_reasoning，返回详情对象）
  * @param rawResult generateRaw 原始返回
- * @returns 正文读取结果
+ * @returns 正文与推理内容读取结果
  */
 export function readGenerateRawOutcome(rawResult: unknown): TavernHelperGenerateRawOutcome {
-  if (typeof rawResult === 'string') {
-    return { text: rawResult };
-  }
-  if (!rawResult || typeof rawResult !== 'object') {
-    return { text: '' };
-  }
-  const rawObj = rawResult as Record<string, unknown>;
-  const text = typeof rawObj.content === 'string'
-    ? rawObj.content
-    : (rawResult instanceof String ? String(rawResult) : '');
-  return { text };
+  const rawObj = (rawResult ?? {}) as Record<string, unknown>;
+  const text = typeof rawObj.content === 'string' ? rawObj.content : '';
+  if (typeof rawObj.reasoning !== 'string') return { text };
+  return { text, reasoning: rawObj.reasoning };
 }
 
 /**

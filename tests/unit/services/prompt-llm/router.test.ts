@@ -91,9 +91,7 @@ describe('getPromptLlmRequestAccounts 负载均衡模式', () => {
       [createEnabledAccount('a'), createEnabledAccount('b'), createEnabledAccount('c')],
       'load_balance',
     );
-    const sequences = Array.from({ length: 4 }, () =>
-      getPromptLlmRequestAccounts(settings).map(account => account.id),
-    );
+    const sequences = Array.from({ length: 4 }, () => getPromptLlmRequestAccounts(settings).map(account => account.id));
     expect(sequences).toEqual([
       ['a', 'b', 'c'],
       ['b', 'c', 'a'],
@@ -155,9 +153,7 @@ describe('requestPromptLlmWithAccounts', () => {
   });
 
   it('无名账号回退为默认展示名而非序号', async () => {
-    requestTavernHelperGenerateRaw
-      .mockRejectedValueOnce(new Error('失败'))
-      .mockResolvedValueOnce({ text: 'raw-ok' });
+    requestTavernHelperGenerateRaw.mockRejectedValueOnce(new Error('失败')).mockResolvedValueOnce({ text: 'raw-ok' });
     const { requestPromptLlmWithAccounts } = await loadRuntimeRequest();
     const settings = buildSettings([createEnabledAccount('a'), createEnabledAccount('b')]);
 
@@ -190,27 +186,37 @@ describe('requestPromptLlmWithAccounts', () => {
     expect(result).toEqual({ rawText: 'ok-text', accountName: '账号B' });
     expect(onRequestBuilt).toHaveBeenCalledTimes(2);
     expect(onAttemptFailed).toHaveBeenCalledTimes(1);
-    expect(onSucceeded).toHaveBeenCalledWith('ok-text', '账号B');
+    expect(onSucceeded).toHaveBeenCalledWith('ok-text', '账号B', undefined);
     expect(onFailed).not.toHaveBeenCalled();
+  });
+
+  it('返回值携带 reasoning 时透传到结果与 onSucceeded 钩子', async () => {
+    requestTavernHelperGenerateRaw.mockResolvedValue({ text: '正文', reasoning: '推理过程' });
+    const { requestPromptLlmWithAccounts } = await loadRuntimeRequest();
+    const settings = buildSettings([{ ...createEnabledAccount('a'), name: '推理账号' }]);
+    const onSucceeded = vi.fn();
+
+    const result = await requestPromptLlmWithAccounts(
+      tavernHelper,
+      settings,
+      { inspector: { onSucceeded } },
+      buildRequest,
+    );
+
+    expect(result).toEqual({ rawText: '正文', accountName: '推理账号', reasoning: '推理过程' });
+    expect(onSucceeded).toHaveBeenCalledWith('正文', '推理账号', '推理过程');
   });
 
   it('全部账号失败时抛出聚合错误并触发 onFailed 钩子', async () => {
     const error1 = new Error('连接失败1');
     const error2 = new Error('连接失败2');
-    requestTavernHelperGenerateRaw
-      .mockRejectedValueOnce(error1)
-      .mockRejectedValueOnce(error2);
+    requestTavernHelperGenerateRaw.mockRejectedValueOnce(error1).mockRejectedValueOnce(error2);
     const { requestPromptLlmWithAccounts } = await loadRuntimeRequest();
     const settings = buildSettings([createEnabledAccount('a'), createEnabledAccount('b')]);
 
     const onFailed = vi.fn();
     await expect(
-      requestPromptLlmWithAccounts(
-        tavernHelper,
-        settings,
-        { inspector: { onFailed } },
-        buildRequest,
-      ),
+      requestPromptLlmWithAccounts(tavernHelper, settings, { inspector: { onFailed } }, buildRequest),
     ).rejects.toThrow(/已尝试多组账号但均失败.*未命名账号.*未命名账号/s);
 
     expect(onFailed).toHaveBeenCalledTimes(1);

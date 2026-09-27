@@ -62,10 +62,7 @@ declare global {
       context?: Record<string, unknown> | null,
       options?: Record<string, unknown>,
     ): Promise<string>;
-    prepareContext?(
-      context?: Record<string, unknown>,
-      end?: number,
-    ): Promise<Record<string, unknown>>;
+    prepareContext?(context?: Record<string, unknown>, end?: number): Promise<Record<string, unknown>>;
   }
 
   const EjsTemplate: EjsTemplateInterface | undefined;
@@ -79,7 +76,7 @@ declare global {
         /**
          * 调用 LLM 生成文本,使用对象式 generateRaw 配置
          * @param config generateRaw 请求配置
-         * @returns LLM 返回的结果（无元数据时为字符串；有思维链/工具调用时为详情对象）
+         * @returns LLM 返回的结果（仅在 should_return_reasoning 或 tools 生效时返回详情对象,否则为字符串）
          */
         generateRaw(config: TavernHelperGenerateRawConfig): Promise<string | TavernHelperGenerateRawResult>;
         /**

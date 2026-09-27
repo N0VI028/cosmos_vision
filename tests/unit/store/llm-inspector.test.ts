@@ -10,7 +10,10 @@ function buildSnapshot(id: string, overrides: Partial<LlmInspectorRequestSnapsho
     id,
     label: `段落 ${id}`,
     startedAt: 1000,
-    prompts: [{ role: 'system', content: '你是提示词生成器' }, { role: 'user', content: '生成图片' }],
+    prompts: [
+      { role: 'system', content: '你是提示词生成器' },
+      { role: 'user', content: '生成图片' },
+    ],
     model: 'test-model',
     endpoint: '代理预设 测试',
     accountName: '账号一',
@@ -118,6 +121,17 @@ describe('useLlmInspectorStore', () => {
     expect(store.sessions[0]!.contentText).toBe('正文内容');
   });
 
+  it('markSucceeded 携带 reasoning 时思考区写入', () => {
+    const store = useLlmInspectorStore();
+    store.recordRequest(buildSnapshot('gen-1'));
+    store.markSucceeded('gen-1', '完整响应', '账号二', '返回值里的思考');
+    expect(store.sessions[0]).toMatchObject({
+      status: 'completed',
+      thinkingText: '返回值里的思考',
+      contentText: '完整响应',
+    });
+  });
+
   it('markSucceeded / markFailed 更新状态与账号信息', () => {
     const store = useLlmInspectorStore();
     store.recordRequest(buildSnapshot('gen-1'));
@@ -192,7 +206,7 @@ describe('useLlmInspectorStore', () => {
     const store = useLlmInspectorStore();
     store.recordRequest(buildSnapshot('gen-1'));
 
-    // 1. 独立 reasoning 事件到达，写入思考过程
+    // 1. 独立 reasoning 事件到达，写入推理过程
     eventSource.emit('js_reasoning_token_received_fully', '模型正在思考中...', 'gen-1');
     expect(store.sessions[0]!.thinkingText).toBe('模型正在思考中...');
     expect(store.sessions[0]!.thinkingStreaming).toBe(true);

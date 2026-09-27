@@ -1,20 +1,17 @@
 /**
- * LLM 响应思考/正文流式分离
+ * LLM 响应推理/正文流式分离
  *
- * 部分模型与中转会把思考过程以标签形式内联在正文里（DeepSeek R1 风格的
- * <think>、中转站常见的 <thinking> / <reasoning>）。TavernHelper 的流式
- * 事件只转发合并后的文本，独立 reasoning_content 字段不会流出；这里在
- * 展示侧按标签边界二次分离，得到 ChatGPT 风格的可折叠思考块。
+ * 部分模型与中转会把推理过程以标签形式内联在正文里（DeepSeek R1 风格的
+ * <think>、中转站常见的 <thinking> / <reasoning>）；独立 reasoning 字段
+ * 的模型由 TavernHelper 的 reasoning 流式事件单独送出（见 llm-inspector
+ * store），这里只负责按标签边界分离内联形态，得到可折叠的推理块。
  */
 
 /** 支持识别的思考标签名 */
 const THINKING_TAG_NAMES = ['think', 'thinking', 'reasoning'] as const;
 
 /** 匹配思考标签块（闭合或流式未闭合到文末） */
-const THINKING_TAG_PATTERN = new RegExp(
-  `<(${THINKING_TAG_NAMES.join('|')})>([\\s\\S]*?)(</\\1>|$)`,
-  'gi',
-);
+const THINKING_TAG_PATTERN = new RegExp(`<(${THINKING_TAG_NAMES.join('|')})>([\\s\\S]*?)(</\\1>|$)`, 'gi');
 
 /** 是否包含思考标签的快速探测 */
 const HAS_THINKING_TAG_PATTERN = new RegExp(`<(${THINKING_TAG_NAMES.join('|')})>`, 'i');

@@ -37,7 +37,7 @@ export interface LlmInspectorAttempt {
 /** 监视会话完整记录 */
 export interface LlmInspectorSession extends LlmInspectorRequestSnapshot {
   status: LlmInspectorSessionStatus;
-  /** 思考过程（含正文内联思考标签分离结果） */
+  /** 推理过程（含正文内联思考标签分离结果） */
   thinkingText: string;
   /** 正文（流式累积或最终全文） */
   contentText: string;
@@ -92,7 +92,9 @@ export const useLlmInspectorStore = defineStore('cosmos_vision_llm_inspector', (
           thinkingText: '',
           contentText: '',
           thinkingStreaming: false,
-          attempts: [{ accountName: snapshot.accountName, startedAt: snapshot.startedAt, paramRows: snapshot.paramRows }],
+          attempts: [
+            { accountName: snapshot.accountName, startedAt: snapshot.startedAt, paramRows: snapshot.paramRows },
+          ],
         },
         ...sessions.value,
       ].slice(0, MAX_SESSIONS);
@@ -114,11 +116,12 @@ export const useLlmInspectorStore = defineStore('cosmos_vision_llm_inspector', (
    * @param id generation_id
    * @param rawText LLM 原始响应全文
    * @param accountName 实际成功的账号名
+   * @param reasoning 推理内容
    */
-  function markSucceeded(id: string, rawText: string, accountName: string): void {
+  function markSucceeded(id: string, rawText: string, accountName: string, reasoning?: string): void {
     const session = findSession(id);
     if (!session) return;
-    completeSession(session, rawText, accountName);
+    completeSession(session, rawText, accountName, reasoning);
   }
 
   /**
@@ -214,7 +217,7 @@ export const useLlmInspectorStore = defineStore('cosmos_vision_llm_inspector', (
    * 处理生成结束事件：写入最终全文并标记完成
    * @param message 最终消息
    * @param generationId 请求标识
-   * @param reasoning 独立字段思维链（新版结束事件携带）
+   * @param reasoning 独立字段思维链
    */
   function handleGenerationEnded(message: string, generationId: string, reasoning?: string): void {
     const session = findSession(generationId);
@@ -227,9 +230,14 @@ export const useLlmInspectorStore = defineStore('cosmos_vision_llm_inspector', (
    * @param session 目标会话
    * @param rawText 响应全文
    * @param accountName 实际成功的账号名（ended 事件侧无此信息则不覆盖）
-   * @param reasoning 独立字段思维链（由 handleGenerationEnded 传入）
+   * @param reasoning 独立字段思维链（ended 事件第三参与成功钩子均可能传入）
    */
-  function completeSession(session: LlmInspectorSession, rawText: string, accountName?: string, reasoning?: string): void {
+  function completeSession(
+    session: LlmInspectorSession,
+    rawText: string,
+    accountName?: string,
+    reasoning?: string,
+  ): void {
     const { thinking, content } = splitThinkingContent(rawText);
     session.status = 'completed';
     session.finishedAt = Date.now();
@@ -277,17 +285,14 @@ export const useLlmInspectorStore = defineStore('cosmos_vision_llm_inspector', (
  * @param label 会话标签（快照侧展示用）
  * @returns 请求监视钩子
  */
-export function buildLlmInspectorStoreHooks(
-  generationId: string,
-  label: string,
-): PromptLlmInspectorHooks {
+export function buildLlmInspectorStoreHooks(generationId: string, label: string): PromptLlmInspectorHooks {
   const store = useLlmInspectorStore();
   return {
     onRequestBuilt: (request, account) =>
       store.recordRequest(buildLlmInspectorRequestSnapshot(generationId, request, account, label)),
-    onSucceeded: (rawText, accountName) => store.markSucceeded(generationId, rawText, accountName),
+    onSucceeded: (rawText, accountName, reasoning) =>
+      store.markSucceeded(generationId, rawText, accountName, reasoning),
     onAttemptFailed: error => store.appendAttemptError(generationId, error),
     onFailed: error => store.markFailed(generationId, error),
   };
 }
-

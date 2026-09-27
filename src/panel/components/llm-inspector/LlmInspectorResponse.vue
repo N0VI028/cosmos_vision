@@ -16,7 +16,7 @@
           <div class="cv-llm-inspector-request-header" @click="toggleThinkingExpanded">
             <span class="cv-llm-inspector-role-badge cv-llm-inspector-role--thinking">
               <i v-if="thinkingStreaming" class="fa-solid fa-circle-notch fa-spin" aria-hidden="true" />
-              {{ thinkingStreaming ? '正在思考' : '思考过程' }}
+              {{ thinkingStreaming ? '正在推理' : '推理过程' }}
             </span>
             <span class="cv-llm-inspector-request-preview">
               {{ thinkingText }}
@@ -24,8 +24,8 @@
             <button
               type="button"
               class="cv-llm-inspector-copy-btn"
-              title="复制思考过程"
-              aria-label="复制思考过程"
+              title="复制推理过程"
+              aria-label="复制推理过程"
               @click.stop="copyWithToast(thinkingText)"
             >
               <i class="fa-regular fa-copy" aria-hidden="true" />
@@ -36,11 +36,7 @@
               aria-hidden="true"
             />
           </div>
-          <div
-            v-if="isThinkingExpanded"
-            ref="thinkingEl"
-            class="cv-llm-inspector-request-content custom-scrollbar"
-          >
+          <div v-if="isThinkingExpanded" ref="thinkingEl" class="cv-llm-inspector-request-content custom-scrollbar">
             {{ thinkingText }}
           </div>
         </div>
@@ -138,7 +134,7 @@ const streamEl = ref<HTMLElement | null>(null);
 /** 思维链内容框（流式跟随锚点） */
 const thinkingEl = ref<HTMLElement | null>(null);
 
-/** 用户手动设置的思考过程展开状态（null 表示遵从流式默认态） */
+/** 用户手动设置的推理过程展开状态（null 表示遵从流式默认态） */
 const manualThinkingExpanded = ref<boolean | null>(null);
 
 /** 回复正文与失败条目的展开状态（默认展开） */
@@ -147,7 +143,7 @@ const replyExpanded = ref(true);
 /** 是否没有任何可展示的内容 */
 const isEmpty = computed(() => !props.thinkingText && !props.contentText && !props.error && !props.running);
 
-/** 思考过程条目是否展开（手动操作优先，未操作时流式中展开、完成后折叠） */
+/** 推理过程条目是否展开（手动操作优先，未操作时流式中展开、完成后折叠） */
 const isThinkingExpanded = computed(() => {
   if (manualThinkingExpanded.value !== null) return manualThinkingExpanded.value;
   return props.thinkingStreaming;
@@ -165,7 +161,7 @@ watch(
 );
 
 /**
- * 切换思考过程的展开/收起状态
+ * 切换推理过程的展开/收起状态
  */
 function toggleThinkingExpanded(): void {
   manualThinkingExpanded.value = !isThinkingExpanded.value;

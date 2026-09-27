@@ -49,7 +49,7 @@ export interface PromptLlmInspectorHooks {
   /** 每次账号尝试构建完请求体后调用（多账号故障转移时按次触发） */
   onRequestBuilt?: (request: TavernHelperGenerateRawConfig, account?: PromptLlmAccount) => void;
   /** 请求成功后调用 */
-  onSucceeded?: (rawText: string, accountName: string) => void;
+  onSucceeded?: (rawText: string, accountName: string, reasoning?: string) => void;
   /** 多账号故障转移中单次账号尝试失败后调用（后续仍会切换下一个账号） */
   onAttemptFailed?: (error: unknown) => void;
   /** 全部账号尝试失败或请求异常后调用 */
@@ -228,15 +228,16 @@ async function generatePromptTextFromRuntimeContext(
       tavernHelper,
       settings,
       { ...options, inspector: options.inspector },
-      account => buildPromptLlmRuntimeRequestFromContext(
-        context,
-        settings,
-        presetSettings,
-        promptProfiles,
-        schemaFields,
-        options.triggerContext,
-        account,
-      ),
+      account =>
+        buildPromptLlmRuntimeRequestFromContext(
+          context,
+          settings,
+          presetSettings,
+          promptProfiles,
+          schemaFields,
+          options.triggerContext,
+          account,
+        ),
     );
     return result.rawText;
   } catch (error) {
@@ -258,6 +259,8 @@ export interface PromptLlmAccountsRequestContext {
 export interface PromptLlmRawRequestResult {
   rawText: string;
   accountName: string;
+  /** 推理内容（经 should_return_reasoning 返回；普通模型为空） */
+  reasoning?: string;
 }
 
 /**
@@ -284,11 +287,14 @@ export async function requestPromptLlmWithAccounts(
     try {
       const request = await buildRequest(account);
       context.inspector?.onRequestBuilt?.(request, account);
-      const { text } = await requestTavernHelperGenerateRaw(tavernHelper, buildSilentGenerateRawRequest(request, context), {
-        timeoutSeconds: context.timeoutSeconds ?? settings.timeout,
-      });
-      context.inspector?.onSucceeded?.(text, getPromptLlmAccountDisplayName(account));
-      return { rawText: text, accountName: getPromptLlmAccountDisplayName(account) };
+      const { text, reasoning } = await requestTavernHelperGenerateRaw(
+        tavernHelper,
+        buildSilentGenerateRawRequest(request, context),
+        { timeoutSeconds: context.timeoutSeconds ?? settings.timeout },
+      );
+      const accountName = getPromptLlmAccountDisplayName(account);
+      context.inspector?.onSucceeded?.(text, accountName, reasoning);
+      return { rawText: text, accountName, reasoning };
     } catch (error) {
       context.onAttemptFailed?.(error);
       context.inspector?.onAttemptFailed?.(error);
@@ -318,6 +324,7 @@ function formatPromptLlmAccountError(account: PromptLlmAccount, error: unknown):
 
 /**
  * 构建静默 generateRaw 请求
+ * 统一注入 should_return_reasoning：据此在返回值中携带推理内容
  * @param request 原始请求
  * @param options 生成选项
  * @returns 可发送给 TavernHelper 的请求
@@ -326,7 +333,7 @@ function buildSilentGenerateRawRequest(
   request: TavernHelperGenerateRawConfig,
   options: PromptLlmAccountsRequestContext,
 ): TavernHelperGenerateRawConfig {
-  return { ...request, should_silence: true, generation_id: options.generationId };
+  return { ...request, should_silence: true, should_return_reasoning: true, generation_id: options.generationId };
 }
 
 /**
