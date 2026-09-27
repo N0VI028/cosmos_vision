@@ -55,9 +55,7 @@
 
               <!-- 条目主体：固定高度统一两态节奏，与 PromptEntryList 对齐 -->
               <div class="flex h-[2.375rem] min-w-0 flex-1 items-center justify-between gap-(--cv-space-md) px-(--cv-space-md) py-(--cv-space-sm)">
-                <!-- 默认态 -->
                 <div v-if="editingLoraId !== lora.id" class="flex min-w-0 flex-1 items-center gap-(--cv-space-md)">
-                  <!-- 灯：启用亮灯（主题色+辉光），禁用灭灯 -->
                   <span
                     class="size-1.5 shrink-0 rounded-full transition-colors duration-150"
                     :class="
@@ -66,13 +64,14 @@
                         : 'bg-[color-mix(in_srgb,var(--cv-on-surface)_20%,transparent)] shadow-none'
                     "
                   />
-                  <!-- 权重：名称前暗色小字（人物模板"来源标签"同款样式） -->
                   <span class="shrink-0 text-(length:--cv-font-size-xs) font-semibold tracking-normal whitespace-nowrap text-(--cv-on-surface-variant)">{{ lora.strength }}</span>
-                  <!-- 名称：可悬停预览，flex-1 截断 -->
                   <ComfyUILoraPreviewButton :comfyui-url="props.comfyuiUrl" :lora-name="lora.name" />
                 </div>
-                <div v-else class="grid w-full grid-cols-[minmax(0,1fr)_4.25rem_auto_auto] items-center gap-(--cv-space-md)">
-                  <!-- Select / InputNumber：现有绑定不变，加 size="small" -->
+                <div
+                  v-else
+                  class="grid w-full grid-cols-[minmax(0,1fr)_4.25rem_auto_auto] items-center gap-(--cv-space-md)"
+                  @keydown.enter.stop="editingLoraId = null"
+                >
                   <Select
                     :model-value="lora.name"
                     :options="props.loraOptions"
