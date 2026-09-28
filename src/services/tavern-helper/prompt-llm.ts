@@ -133,11 +133,13 @@ export interface TavernHelperGenerateRawOutcome {
 }
 
 /**
- * 读取 generateRaw 返回值（请求统一携带 should_return_reasoning，返回详情对象）
+ * 读取 generateRaw 返回值：新版助手返回详情对象，旧版普通模型返回纯字符串
+ * （旧版推理模型的 String 子类 typeof 为 object，走对象分支经其自带的 content getter 读取）
  * @param rawResult generateRaw 原始返回
  * @returns 正文与推理内容读取结果
  */
 export function readGenerateRawOutcome(rawResult: unknown): TavernHelperGenerateRawOutcome {
+  if (typeof rawResult === 'string') return { text: rawResult };
   const rawObj = (rawResult ?? {}) as Record<string, unknown>;
   const text = typeof rawObj.content === 'string' ? rawObj.content : '';
   if (typeof rawObj.reasoning !== 'string') return { text };

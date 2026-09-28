@@ -13,8 +13,8 @@
  * 3. 宿主选择器：`[mesid]:has(.cv-inline-selected)` / `.mes_text:has(...)` /
  *    `.dark-mode` / `body.dark` / `.cosmos-vision-app-dark`。
  * 4. 交互态：`@media (hover: hover)` 防移动端 hover 粘滞；focus-within 浮现操作条。
- * 5. ST 主题绑定：`--SmartThemeQuoteColor`（running Message / 模式指示条 / 收藏高亮），
- *    Message token 无法表达宿主变量。
+ * 5. 主题色绑定：`--cv-quote-color`（running Message / 模式指示条 / 收藏高亮），
+ *    由 syncThemeColorToPrimary 写入 :root（含对比度回退结论），Message token 无法表达。
  * 6. Galleria 业务布局：`.cv-prime-galleria*` 宽度/item flex + 缩略图条导航，
  *    属舞台布局而非组件视觉 token（Phase 3 Galleria 已记录）。
  * 7. Vue transition class：`cv-speed-dial-menu-*` / `cv-fade-*`。
@@ -308,7 +308,7 @@ body.dark .cv-inline-toolbar {
   border-radius: 50% !important;
 
   /* 默认使用系统高亮主题色，圆圈去除阴影，避免看起来像空洞 */
-  background-color: var(--SmartThemeQuoteColor, var(--cvp-blue-500)) !important;
+  background-color: var(--cv-quote-color, var(--cvp-blue-500)) !important;
   box-shadow: none !important;
 
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -676,10 +676,10 @@ body.dark .cv-inline-toolbar {
 
 /* 活动缩略图：主题色边框高亮 */
 .cv-inline-gallery-strip-item[data-p-active='true'] {
-  border-color: var(--SmartThemeQuoteColor, var(--cvp-blue-500)) !important;
+  border-color: var(--cv-quote-color, var(--cvp-blue-500)) !important;
   box-shadow:
-    0 2px 6px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 25%, transparent),
-    0 1px 3px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 15%, transparent) !important;
+    0 2px 6px color-mix(in srgb, var(--cv-quote-color, var(--cvp-blue-500)) 25%, transparent),
+    0 1px 3px color-mix(in srgb, var(--cv-quote-color, var(--cvp-blue-500)) 15%, transparent) !important;
 }
 
 /* 暗色模式：缩略图按钮深灰底 */
@@ -700,10 +700,10 @@ body.dark .cv-inline-toolbar {
 }
 
 .cosmos-vision-app-dark .cv-inline-gallery-strip-item[data-p-active='true'] {
-  border-color: var(--SmartThemeQuoteColor, var(--cvp-blue-500)) !important;
+  border-color: var(--cv-quote-color, var(--cvp-blue-500)) !important;
   box-shadow:
-    0 2px 6px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 40%, transparent),
-    0 1px 3px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 25%, transparent) !important;
+    0 2px 6px color-mix(in srgb, var(--cv-quote-color, var(--cvp-blue-500)) 40%, transparent),
+    0 1px 3px color-mix(in srgb, var(--cv-quote-color, var(--cvp-blue-500)) 25%, transparent) !important;
 }
 
 /* 导航按钮：完全圆形 + 白底 + 主题色图标 */
@@ -722,7 +722,7 @@ body.dark .cv-inline-toolbar {
   border-radius: 9999px !important;
   background: #ffffff !important;
   background-image: none !important;
-  color: var(--SmartThemeQuoteColor, var(--cvp-blue-500)) !important;
+  color: var(--cv-quote-color, var(--cvp-blue-500)) !important;
   box-shadow:
     0 2px 4px rgba(31, 36, 33, 0.08),
     0 1px 2px rgba(31, 36, 33, 0.04) !important;
@@ -739,10 +739,10 @@ body.dark .cv-inline-toolbar {
 .cv-inline-gallery-strip-nav:not(:disabled):focus-visible {
   transform: translateY(-2px) !important;
   background: #ffffff !important;
-  border-color: var(--SmartThemeQuoteColor, var(--cvp-blue-500)) !important;
+  border-color: var(--cv-quote-color, var(--cvp-blue-500)) !important;
   box-shadow:
-    0 4px 10px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 25%, transparent),
-    0 2px 4px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 15%, transparent) !important;
+    0 4px 10px color-mix(in srgb, var(--cv-quote-color, var(--cvp-blue-500)) 25%, transparent),
+    0 2px 4px color-mix(in srgb, var(--cv-quote-color, var(--cvp-blue-500)) 15%, transparent) !important;
 }
 
 .cv-inline-gallery-strip-nav:not(:disabled):active {
@@ -763,7 +763,7 @@ body.dark .cv-inline-toolbar {
 .cosmos-vision-app-dark .cv-inline-gallery-strip-nav {
   background: #2a2a34 !important;
   border-color: #3a3a44 !important;
-  color: var(--SmartThemeQuoteColor, var(--cvp-blue-500)) !important;
+  color: var(--cv-quote-color, var(--cvp-blue-500)) !important;
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.25),
     0 1px 2px rgba(0, 0, 0, 0.15) !important;
@@ -772,10 +772,10 @@ body.dark .cv-inline-toolbar {
 .cosmos-vision-app-dark .cv-inline-gallery-strip-nav:not(:disabled):hover,
 .cosmos-vision-app-dark .cv-inline-gallery-strip-nav:not(:disabled):focus-visible {
   background: #34343f !important;
-  border-color: var(--SmartThemeQuoteColor, var(--cvp-blue-500)) !important;
+  border-color: var(--cv-quote-color, var(--cvp-blue-500)) !important;
   box-shadow:
-    0 4px 10px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 35%, transparent),
-    0 2px 4px color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 20%, transparent) !important;
+    0 4px 10px color-mix(in srgb, var(--cv-quote-color, var(--cvp-blue-500)) 35%, transparent),
+    0 2px 4px color-mix(in srgb, var(--cv-quote-color, var(--cvp-blue-500)) 20%, transparent) !important;
 }
 
 .cosmos-vision-app-dark .cv-inline-gallery-strip-nav:disabled {
@@ -954,17 +954,17 @@ body.dark .cv-inline-toolbar {
 }
 
 /*
- * running 态：绑定 ST SmartThemeQuoteColor，非固定 primary。
- * Message token 无法表达宿主主题引用，故保留业务变体覆盖。
+ * running 态：绑定 --cv-quote-color（含回退结论的主题色），非固定 primary。
+ * Message token 无法表达该变量，故保留业务变体覆盖。
  */
 .cv-inline-generation-message--running {
   background: color-mix(
     in srgb,
-    var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 14%,
+    var(--cv-quote-color, var(--cvp-blue-500)) 14%,
     var(--cv-surface-container-high)
   ) !important;
-  border-color: color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 30%, transparent) !important;
-  color: var(--SmartThemeQuoteColor, var(--cvp-blue-500)) !important;
+  border-color: color-mix(in srgb, var(--cv-quote-color, var(--cvp-blue-500)) 30%, transparent) !important;
+  color: var(--cv-quote-color, var(--cvp-blue-500)) !important;
 }
 
 /* 状态条内部元素样式 */
@@ -1076,8 +1076,8 @@ body.dark .cv-inline-toolbar {
   pointer-events: none;
   background: linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 35%, transparent) 0%,
-    color-mix(in srgb, var(--SmartThemeQuoteColor, var(--cvp-blue-500)) 15%, transparent) 40%,
+    color-mix(in srgb, var(--cv-quote-color, var(--cvp-blue-500)) 35%, transparent) 0%,
+    color-mix(in srgb, var(--cv-quote-color, var(--cvp-blue-500)) 15%, transparent) 40%,
     transparent 100%
   );
 }
@@ -1100,15 +1100,15 @@ body.dark .cv-inline-toolbar {
   gap: 0.5rem;
   padding: 0.35rem 1rem;
   border: 1px solid
-    color-mix(in srgb, var(--cvp-primary-color, var(--SmartThemeQuoteColor, var(--cvp-blue-500))) 40%, transparent);
+    color-mix(in srgb, var(--cvp-primary-color, var(--cv-quote-color, var(--cvp-blue-500))) 40%, transparent);
   border-radius: var(--cv-radius-full, 9999px);
   background: color-mix(
     in srgb,
-    var(--cvp-primary-color, var(--SmartThemeQuoteColor, var(--cvp-blue-500))) 16%,
+    var(--cvp-primary-color, var(--cv-quote-color, var(--cvp-blue-500))) 16%,
     transparent
   );
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  color: var(--cvp-primary-color, var(--SmartThemeQuoteColor, var(--cvp-blue-500)));
+  color: var(--cvp-primary-color, var(--cv-quote-color, var(--cvp-blue-500)));
   font-size: 0.85rem;
   font-weight: 500;
   -webkit-backdrop-filter: blur(8px);
