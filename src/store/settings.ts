@@ -4,6 +4,7 @@ import { useLocalStorage } from '@vueuse/core';
 import { z } from 'zod';
 import { IMAGE_SOURCES } from '@/constants/comfyui';
 import {
+  DARK_MODE_STORAGE_KEY,
   DEFAULT_DARK_MODE,
   DEFAULT_PRESET_NAME,
   DEFAULT_PROMPT_LLM_MESSAGE_ENABLED,
@@ -60,7 +61,6 @@ import {
 } from '@/store/prompt-llm-settings';
 /** ST extension_settings 中本扩展的 key */
 const SETTINGS_KEY = 'cosmos_vision';
-const DARK_MODE_STORAGE_KEY = 'cosmos-vision-dark-mode';
 type PlainRecord = Record<string, unknown>;
 /**
  * 提取下拉常量中的 value 作为 Zod 枚举

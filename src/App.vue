@@ -171,6 +171,7 @@ import {
   type InlineImageDownloadOptions,
 } from '@/services/inline-image/download-options';
 import { ensurePromptStripRegex } from '@/services/inline-image/prompt-strip-regex';
+import { syncThemeColorToPrimary } from '@/services/primevue/theme-adapter';
 import { checkExtensionUpdate, updateDetected } from '@/services/version-check/st-update';
 import type { TextInputCharacterDraft, TextInputDialogSubmitValue } from '@/panel/components/TextInputDialog.vue';
 
@@ -277,8 +278,14 @@ const { isSelectionMode, toggleSelectionMode, exitSelectionMode, refreshGalleryT
 
 provide(IMAGE_DOWNLOAD_OPTIONS_REQUEST_KEY, showImageDownloadDialog);
 
-/** 日夜模式切换时立即刷新画廊主题 */
-watch(darkMode, () => refreshGalleryTheme());
+/**
+ * 日夜模式切换时刷新画廊主题并重新评估同步主色
+ * 深浅切换后主题色对比度结论可能翻转，需按新背景重评估主色
+ */
+watch(darkMode, () => {
+  refreshGalleryTheme();
+  syncThemeColorToPrimary();
+});
 
 // ── 悬浮球拖动 ─────────────────────────────────────────────
 
