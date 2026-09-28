@@ -1,9 +1,11 @@
 import { eventSource } from '@sillytavern/script';
 import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
+import { computed, ref, toRaw } from 'vue';
 
 import {
   buildLlmInspectorRequestSnapshot,
+  countPromptTokens,
+  type LlmInspectorPromptEntry,
   type LlmInspectorRequestSnapshot,
 } from '@/services/prompt-llm/llm-inspector';
 import type { PromptLlmInspectorHooks } from '@/services/prompt-llm/runtime-request';
@@ -37,6 +39,8 @@ export interface LlmInspectorAttempt {
 /** 监视会话完整记录 */
 export interface LlmInspectorSession extends LlmInspectorRequestSnapshot {
   status: LlmInspectorSessionStatus;
+  /** 发送消息总 token，异步计数完成后回填 */
+  promptTokens?: number;
   /** 推理过程（含正文内联思考标签分离结果） */
   thinkingText: string;
   /** 正文（流式累积或最终全文） */
@@ -98,17 +102,36 @@ export const useLlmInspectorStore = defineStore('cosmos_vision_llm_inspector', (
         },
         ...sessions.value,
       ].slice(0, MAX_SESSIONS);
-      return;
+    } else {
+      // 故障转移重试：封口上一次尝试后追加新账号，更新请求侧信息并保留已流出的响应文本
+      const session = sessions.value[existing]!;
+      sealLlmInspectorAttempt(session.attempts, snapshot.startedAt);
+      session.attempts.push({
+        accountName: snapshot.accountName,
+        startedAt: snapshot.startedAt,
+        paramRows: snapshot.paramRows,
+      });
+      Object.assign(session, snapshot);
+      // 快照覆盖后作废旧计数，待新快照的异步统计回填
+      session.promptTokens = undefined;
     }
-    // 故障转移重试：封口上一次尝试后追加新账号，更新请求侧信息并保留已流出的响应文本
-    const session = sessions.value[existing]!;
-    sealLlmInspectorAttempt(session.attempts, snapshot.startedAt);
-    session.attempts.push({
-      accountName: snapshot.accountName,
-      startedAt: snapshot.startedAt,
-      paramRows: snapshot.paramRows,
-    });
-    Object.assign(session, snapshot);
+    triggerPromptTokenCount(snapshot.id, snapshot.prompts);
+  }
+
+  /**
+   * 触发发送消息 token 异步统计（fire-and-forget，不阻塞主流程）
+   * 完成后按 snapshot.id 重新查找会话回填；若故障转移已写入新快照导致 prompts 引用不一致则丢弃
+   * @param id generation_id
+   * @param expectedPrompts 本次快照写入的 prompts 数组引用
+   */
+  function triggerPromptTokenCount(id: string, expectedPrompts: LlmInspectorPromptEntry[]): void {
+    void countPromptTokens(expectedPrompts)
+      .then(tokens => {
+        const session = findSession(id);
+        if (!session || toRaw(session.prompts) !== expectedPrompts) return;
+        session.promptTokens = tokens;
+      })
+      .catch(() => {});
   }
 
   /**

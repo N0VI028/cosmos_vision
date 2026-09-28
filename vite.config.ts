@@ -48,8 +48,8 @@ export default defineConfig(({ mode }) => ({
     }),
     !process.env.VITEST && {
       name: 'sillytavern_resolver',
-      enforce: 'pre',
-      resolveId(id) {
+      enforce: 'pre' as const,
+      resolveId(id: string) {
         if (id.startsWith('@sillytavern/')) {
           return {
             id: path.join(relative_sillytavern_path, id.replace('@sillytavern/', '')).replaceAll('\\', '/') + '.js',
@@ -79,6 +79,7 @@ export default defineConfig(({ mode }) => ({
             '@sillytavern/scripts/openai': path.resolve(__dirname, 'tests/helpers/sillytavern-openai-mock.ts'),
             '@sillytavern/scripts/world-info': path.resolve(__dirname, 'tests/helpers/sillytavern-world-info-mock.ts'),
             '@sillytavern/lib/jszip.min': path.resolve(__dirname, 'tests/helpers/sillytavern-jszip-mock.ts'),
+            '@sillytavern/scripts/tokenizers': path.resolve(__dirname, 'tests/helpers/sillytavern-tokenizers-mock.ts'),
           }
         : {}),
     },

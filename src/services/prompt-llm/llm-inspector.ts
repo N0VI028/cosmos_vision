@@ -1,3 +1,4 @@
+import { getTokenCountAsync } from '@sillytavern/scripts/tokenizers';
 import type { PromptLlmAccount, PromptLlmContext } from '@/constants/prompt-llm';
 import { getPromptLlmAccountDisplayName } from '@/constants/prompt-llm';
 import { buildPromptLlmAccountParamRows, type PromptLlmParamRow } from '@/services/tavern-helper/prompt-llm-test';
@@ -7,6 +8,17 @@ import type { TavernHelperGenerateRawConfig, TavernHelperRolePrompt } from '@/se
 export interface LlmInspectorPromptEntry {
   role: 'system' | 'user' | 'assistant';
   content: string;
+}
+
+/**
+ * 统计发送指令的 token 总数（异步）
+ * 对每条 prompt.content 调用酒馆 getTokenCountAsync 后求和
+ * @param prompts 指令快照列表
+ * @returns token 总数
+ */
+export async function countPromptTokens(prompts: LlmInspectorPromptEntry[]): Promise<number> {
+  const counts = await Promise.all(prompts.map(prompt => getTokenCountAsync(prompt.content)));
+  return counts.reduce((sum, count) => sum + count, 0);
 }
 
 /** LLM 监视请求快照（发送侧，可安全展示） */
