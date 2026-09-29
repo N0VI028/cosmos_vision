@@ -10,7 +10,7 @@ import { generateComfyUIImagesFromPrompts } from '@/services/comfyui/api';
 import type { ComfyUIProgress } from '@/services/comfyui/progress-ws';
 import type { ComfyUILoraSnapshot } from '@/services/comfyui/types';
 import { resolveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
-import { generateNovelAIImageFromPrompts } from '@/services/novelai/api';
+import { generateNovelAIImageFromPrompts, type NovelAIFinalPrompts } from '@/services/novelai/api';
 import type { NovelAIStreamPreviewEvent } from '@/services/novelai/stream-api';
 import type { ImagePromptPair } from '@/services/image-prompt/presets';
 import {
@@ -41,7 +41,8 @@ export async function generateImagesFromSnapshot(
   if (imageSource === 'comfyui') {
     return generateComfyUIImagesFromSnapshot(settings, snapshot, signal, onProgress);
   }
-  const prompts = snapshot.novelai ?? snapshot;
+  // 极旧 NAI 快照无 novelai 子对象，顶层必写提示词（NAI 链路始终写顶层），收窄转换安全
+  const prompts = snapshot.novelai ?? (snapshot as NovelAIFinalPrompts);
   const imageBlob = await generateNovelAIImageFromPrompts(settings.novelai, prompts, { signal, onStreamPreview });
   return { promptSnapshot: snapshot, imageBlobs: [imageBlob] };
 }
@@ -101,8 +102,6 @@ async function generateComfyUIImagesFromSnapshot(
 
   const promptSnapshot: InlinePromptSnapshot = {
     imageSource: 'comfyui',
-    positivePrompt: result.requestSnapshot.positivePrompt,
-    negativePrompt: result.requestSnapshot.negativePrompt,
     comfyui: {
       ...result.requestSnapshot,
       ...(nextLoraPresetId ? { loraPresetId: nextLoraPresetId } : {}),

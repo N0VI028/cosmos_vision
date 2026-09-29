@@ -192,10 +192,18 @@ const collapsedCharIndexes = ref(new Set<number>());
 let copiedTimer = 0;
 
 /** 正面提示词文本（无快照时占位提示） */
-const positivePrompt = computed(() => inlineLightboxState.snapshot?.positivePrompt || '无正面提示词');
+const positivePrompt = computed(() => {
+  const snapshot = inlineLightboxState.snapshot;
+  const prompt = snapshot?.comfyui?.positivePrompt ?? snapshot?.positivePrompt;
+  return prompt || '无正面提示词';
+});
 
 /** 负面提示词文本（无快照时占位提示） */
-const negativePrompt = computed(() => inlineLightboxState.snapshot?.negativePrompt || '无负面提示词');
+const negativePrompt = computed(() => {
+  const snapshot = inlineLightboxState.snapshot;
+  const prompt = snapshot?.comfyui?.negativePrompt ?? snapshot?.negativePrompt;
+  return prompt || '无负面提示词';
+});
 
 /** 角色提示词列表 */
 const characters = computed(() => inlineLightboxState.snapshot?.novelai?.characterPrompts ?? []);

@@ -129,7 +129,10 @@ function readSnapshotPromptParts(
   if (snapshot.promptParts) return snapshot.promptParts;
   const fallback = snapshot.novelai
     ? readNovelAIEditablePrompts(settings.novelai, snapshot.novelai)
-    : { positivePrompt: snapshot.positivePrompt, negativePrompt: snapshot.negativePrompt };
+    : {
+        positivePrompt: snapshot.comfyui?.positivePrompt ?? snapshot.positivePrompt ?? '',
+        negativePrompt: snapshot.comfyui?.negativePrompt ?? snapshot.negativePrompt ?? '',
+      };
   return {
     positive: { core: fallback.positivePrompt, presetId: '' },
     negative: { core: fallback.negativePrompt, presetId: '' },

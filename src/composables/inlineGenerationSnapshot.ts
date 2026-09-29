@@ -21,7 +21,7 @@ export function createNovelAISnapshot(prompts: NovelAIFinalPrompts): InlinePromp
 }
 
 /**
- * 创建 ComfyUI 内联提示词快照
+ * 创建 ComfyUI 内联提示词快照（ComfyUI 新链路不写顶层提示词，读取走 comfyui 子对象）
  * @param snapshot ComfyUI 请求快照
  * @param promptParts 部件分解（新鲜生图链路由调用方组装）
  * @returns 内联提示词快照
@@ -31,8 +31,6 @@ export function createComfyUISnapshot(
   promptParts?: InlinePromptSnapshot['promptParts'],
 ): InlinePromptSnapshot {
   return {
-    positivePrompt: snapshot.positivePrompt,
-    negativePrompt: snapshot.negativePrompt,
     imageSource: 'comfyui',
     comfyui: snapshot,
     promptParts,

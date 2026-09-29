@@ -89,4 +89,29 @@ describe('InlineImageLightbox 组件', () => {
     expect(zoomIn.attributes('disabled')).toBeUndefined();
     expect(zoomOut.attributes('disabled')).toBeDefined();
   });
+
+  it('ComfyUI 新快照（无顶层字段）正确从 comfyui 子对象回显提示词', async () => {
+    const modernSnapshot: InlinePromptSnapshot = {
+      imageSource: 'comfyui',
+      comfyui: {
+        endpoint: 'http://127.0.0.1:8188',
+        positivePrompt: 'comfyui modern positive',
+        negativePrompt: 'comfyui modern negative',
+        imageOutputNodeId: '9',
+        promptBindings: [],
+        seedValues: [],
+        imageBindings: [],
+        loras: [],
+      },
+    };
+
+    const wrapper = mountLightbox();
+    openInlineImageLightbox('https://example.com/a.png', modernSnapshot);
+    await wrapper.vm.$nextTick();
+
+    await wrapper.find('.cv-lightbox-toggle-btn').trigger('click');
+    const promptContents = wrapper.findAll('.cv-lightbox-prompt-content');
+    expect(promptContents[0].text()).toBe('comfyui modern positive');
+    expect(promptContents[1].text()).toBe('comfyui modern negative');
+  });
 });

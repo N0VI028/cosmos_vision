@@ -127,12 +127,76 @@ describe('generateImagesFromSnapshot 再生与回放', () => {
         loraTriggerWords: ['freshTrigger'],
       },
     );
-    // 验证返回新快照包含实际 requestSnapshot 与编辑 parts
+    // 验证返回新快照包含实际 requestSnapshot 与编辑 parts，且新快照无顶层提示词
     expect(result.imageBlobs).toEqual([mockImageBlob]);
     expect(result.promptSnapshot).toEqual({
       imageSource: 'comfyui',
+      comfyui: mockRequestSnapshot,
+      promptParts: snapshot.promptParts,
+    });
+  });
+
+  it('ComfyUI 新快照（无顶层字段）：回放走 promptParts 路径正常出新快照且新快照无顶层', async () => {
+    const settings = createTestSettings();
+    const controller = new AbortController();
+    const mockImageBlob = new Blob(['image-data']);
+    const snapshotLoras = [{ name: 'character_lora', strength: 0.8 }];
+
+    const snapshot: InlinePromptSnapshot = {
+      imageSource: 'comfyui',
+      comfyui: {
+        endpoint: 'http://127.0.0.1:8188',
+        positivePrompt: 'oldTrigger, oldPositive',
+        negativePrompt: 'oldNegative',
+        imageOutputNodeId: '9',
+        promptBindings: [],
+        seedValues: [],
+        imageBindings: [],
+        loras: snapshotLoras,
+      },
+      promptParts: {
+        positive: { core: 'freshCore', presetId: 'P1' },
+        negative: { core: 'freshNeg', presetId: '' },
+      },
+    };
+
+    vi.mocked(resolveComfyUILoraTriggerWords).mockResolvedValueOnce(['freshTrigger']);
+    const mockRequestSnapshot = {
+      endpoint: 'http://127.0.0.1:8188',
       positivePrompt: 'freshTrigger, template one, freshCore',
       negativePrompt: 'freshNeg',
+      imageOutputNodeId: '9',
+      promptBindings: [],
+      seedValues: [],
+      imageBindings: [],
+      loras: snapshotLoras,
+    };
+    vi.mocked(generateComfyUIImagesFromPrompts).mockResolvedValueOnce({
+      imageBlobs: [mockImageBlob],
+      requestSnapshot: mockRequestSnapshot,
+      resolvedRequest: {} as any,
+    });
+
+    const result = await generateImagesFromSnapshot(settings, snapshot, controller.signal);
+
+    expect(generateComfyUIImagesFromPrompts).toHaveBeenCalledWith(
+      settings.comfyui,
+      {
+        positivePrompt: 'template one, freshCore',
+        negativePrompt: 'freshNeg',
+      },
+      {
+        signal: controller.signal,
+        loras: snapshotLoras,
+        loraTriggerWords: ['freshTrigger'],
+      },
+    );
+    expect(result.promptSnapshot.positivePrompt).toBeUndefined();
+    expect(result.promptSnapshot.negativePrompt).toBeUndefined();
+    expect('positivePrompt' in result.promptSnapshot).toBe(false);
+    expect('negativePrompt' in result.promptSnapshot).toBe(false);
+    expect(result.promptSnapshot).toEqual({
+      imageSource: 'comfyui',
       comfyui: mockRequestSnapshot,
       promptParts: snapshot.promptParts,
     });
@@ -194,7 +258,8 @@ describe('generateImagesFromSnapshot 再生与回放', () => {
       },
     );
     expect(result.promptSnapshot.promptParts).toBeUndefined();
-    expect(result.promptSnapshot.positivePrompt).toBe('legacy positive with trigger');
+    expect(result.promptSnapshot.positivePrompt).toBeUndefined();
+    expect(result.promptSnapshot.comfyui?.positivePrompt).toBe('legacy positive with trigger');
   });
 
   it('ComfyUI 生成失败或中止时向外抛错，不返回新快照', async () => {

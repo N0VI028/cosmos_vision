@@ -511,5 +511,42 @@ describe('ComfyUI 分支编辑行为', () => {
 
       expect(edited.comfyui?.loraPresetId).toBe('old-preset-id');
     });
+
+    it('无 parts 且无顶层的 ComfyUI 快照走 comfyui 子对象兜底', async () => {
+      const settings = createChainSettings();
+      vi.mocked(resolveComfyUILoraTriggerWords).mockResolvedValueOnce(['triggerA']);
+      const snapshotWithoutTopLevel: InlinePromptSnapshot = {
+        imageSource: 'comfyui',
+        comfyui: {
+          ...dummyComfyUISnapshot,
+          positivePrompt: 'triggerA, 1girl, solo',
+          negativePrompt: 'low quality, worst quality',
+          loras: [{ name: 'testLora', strength: 1.0 }],
+        },
+      };
+
+      let receivedOptions: InlinePromptPairInputOptions | undefined;
+      const edited = (await requestEditedPromptSnapshot(
+        settings,
+        snapshotWithoutTopLevel,
+        createDialogMock(
+          settings,
+          { positive: 'modified core prompt' },
+          opts => {
+            receivedOptions = opts;
+          },
+        ),
+      ))!;
+
+      expect(receivedOptions?.positiveDefaultValue).toBe('1girl, solo');
+      expect(receivedOptions?.positiveCore).toBe('1girl, solo');
+      expect(receivedOptions?.negativeDefaultValue).toBe('low quality, worst quality');
+      expect(receivedOptions?.negativeCore).toBe('low quality, worst quality');
+
+      expect(edited.promptParts?.positive).toEqual({ core: 'modified core prompt', presetId: '' });
+      expect(edited.positivePrompt).toBeUndefined();
+      expect(edited.negativePrompt).toBeUndefined();
+      expect(edited.comfyui?.positivePrompt).toBe('triggerA, 1girl, solo');
+    });
   });
 });

@@ -16,8 +16,10 @@ export interface InlinePromptParts {
 
 /** 内联生图提示词快照 */
 export interface InlinePromptSnapshot {
-  positivePrompt: string;
-  negativePrompt: string;
+  /** 正向提示词（ComfyUI 新链路不写顶层，读取需走 comfyui/novelai 子对象兜底链；NAI 与旧数据仍写入） */
+  positivePrompt?: string;
+  /** 负向提示词（ComfyUI 新链路不写顶层，读取需走 comfyui/novelai 子对象兜底链；NAI 与旧数据仍写入） */
+  negativePrompt?: string;
   imageSource?: ImageSource;
   novelai?: NovelAIFinalPrompts;
   comfyui?: ComfyUIRequestSnapshot;
@@ -70,8 +72,8 @@ export function closeInlineImageLightbox(): void {
  */
 export function cloneInlinePromptSnapshot(snapshot: InlinePromptSnapshot): InlinePromptSnapshot {
   return {
-    positivePrompt: snapshot.positivePrompt,
-    negativePrompt: snapshot.negativePrompt,
+    ...(snapshot.positivePrompt !== undefined ? { positivePrompt: snapshot.positivePrompt } : {}),
+    ...(snapshot.negativePrompt !== undefined ? { negativePrompt: snapshot.negativePrompt } : {}),
     imageSource: snapshot.imageSource,
     novelai: snapshot.novelai ? cloneNovelAIFinalPrompts(snapshot.novelai) : undefined,
     comfyui: snapshot.comfyui ? cloneComfyUIRequestSnapshot(snapshot.comfyui) : undefined,
