@@ -417,7 +417,7 @@ function rebuildEditorDom(before: string, after: string, caret: number | null): 
   editor.replaceChildren(beforeNode, tokenEl.value, afterNode);
   beforeNode.textContent = before;
   afterNode.textContent = after;
-  if (caret !== null) placeCaretAtOffset(caret, before, after);
+  if (caret !== null) placeCaretAtOffset(caret, before);
 }
 
 /**
@@ -458,7 +458,7 @@ function textBeforeNode(node: Node): number {
   const parent = node.parentNode;
   if (!parent || node === editorEl.value) return 0;
   const siblings = [...parent.childNodes];
-  const index = siblings.indexOf(node);
+  const index = siblings.findIndex(item => item === node);
   // 徽章自身文本不进入逻辑坐标系
   const prefix = siblings.slice(0, index).reduce((sum, item) => sum + (item === tokenEl.value ? 0 : extractText(item).length), 0);
   return textBeforeNode(parent) + prefix;
@@ -468,9 +468,8 @@ function textBeforeNode(node: Node): number {
  * 按逻辑偏移恢复光标，徽章之前的偏移落在前段，其后落在后段；越界或选区不可用时静默放弃
  * @param offset 逻辑偏移
  * @param before 前段文本
- * @param after 后段文本
  */
-function placeCaretAtOffset(offset: number, before: string, after: string): void {
+function placeCaretAtOffset(offset: number, before: string): void {
   const inBefore = offset <= before.length;
   const target = inBefore ? beforeEl.value : afterEl.value;
   const selection = window.getSelection();

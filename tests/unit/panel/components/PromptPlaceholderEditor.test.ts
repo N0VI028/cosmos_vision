@@ -3,6 +3,8 @@ import PrimeVue from 'primevue/config';
 import { describe, expect, it } from 'vitest';
 import PromptPlaceholderEditor from '@/panel/components/PromptPlaceholderEditor.vue';
 
+type EditorModelValue = { text: string; placeholderOffset: number };
+
 /**
  * 挂载提示词占位符编辑器组件
  * @param props 覆盖属性
@@ -66,7 +68,7 @@ describe('PromptPlaceholderEditor 边界与自愈行为', () => {
     editor.insertBefore(document.createElement('br'), tokenEl);
     await wrapper.find('[contenteditable]').trigger('input');
 
-    const lastEmitted = wrapper.emitted('update:modelValue')?.at(-1)?.[0];
+    const lastEmitted = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as EditorModelValue | undefined;
     expect(lastEmitted?.text).toBe('');
     expect(lastEmitted?.placeholderOffset).toBe(0);
     expect([...editor.childNodes]).toEqual([beforeEl, tokenEl, afterEl]);
@@ -82,7 +84,7 @@ describe('PromptPlaceholderEditor 边界与自愈行为', () => {
     beforeEl.append(document.createElement('br'));
     await wrapper.find('[contenteditable]').trigger('input');
 
-    const lastEmitted = wrapper.emitted('update:modelValue')?.at(-1)?.[0];
+    const lastEmitted = wrapper.emitted('update:modelValue')?.at(-1)?.[0] as EditorModelValue | undefined;
     expect(lastEmitted?.text).toContain('\n');
     expect(lastEmitted).toEqual({
       text: '固\n定A',

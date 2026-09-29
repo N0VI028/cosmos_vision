@@ -16,6 +16,9 @@ import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { stripLoraTriggerWords } from '@/services/comfyui/lora-presets';
 import { resolveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
 
+/** 旧快照触发词拉取超时（毫秒），超时降级为不剥离 */
+const LEGACY_TRIGGER_WORDS_TIMEOUT_MS = 5000;
+
 export type RuntimeEnabledGetter = () => boolean;
 
 export interface InlineTextInputOptions {
@@ -108,11 +111,17 @@ async function stripLegacyComfyUITriggerWords(
   positivePrompt: string,
 ): Promise<string> {
   if (!snapshot.comfyui || snapshot.promptParts) return positivePrompt;
-  const triggerWords = await resolveComfyUILoraTriggerWords(
-    url,
-    snapshot.comfyui.loras.map(l => l.name),
-  );
-  return stripLoraTriggerWords(positivePrompt, triggerWords);
+  try {
+    const triggerWords = await resolveComfyUILoraTriggerWords(
+      url,
+      snapshot.comfyui.loras.map(l => l.name),
+      AbortSignal.timeout(LEGACY_TRIGGER_WORDS_TIMEOUT_MS),
+    );
+    return stripLoraTriggerWords(positivePrompt, triggerWords);
+  } catch {
+    // 超时/中断降级为不剥离，保持旧快照原样回放语义
+    return positivePrompt;
+  }
 }
 
 /**

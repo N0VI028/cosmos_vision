@@ -7,19 +7,24 @@ describe('stripLoraTriggerWords', () => {
     expect(stripLoraTriggerWords('masterpiece, 1girl', ['   '])).toBe('masterpiece, 1girl');
   });
 
-  it('按逗号与换行拆分并精确匹配大小写剥离触发词', () => {
+  it('剥离头部连续触发词并保留正文同名标签，忽略大小写', () => {
     const prompt = 'triggerA, masterpiece,\nTRIGGERB, 1girl, triggerC\nsolo';
     const stripped = stripLoraTriggerWords(prompt, ['triggera', 'triggerb']);
-    expect(stripped).toBe('masterpiece, 1girl, triggerC, solo');
+    expect(stripped).toBe('masterpiece, TRIGGERB, 1girl, triggerC, solo');
+
+    const multiHeaderPrompt = 'triggerA, triggerB, masterpiece, 1girl, triggerA';
+    expect(stripLoraTriggerWords(multiHeaderPrompt, ['triggerA', 'triggerB'])).toBe('masterpiece, 1girl, triggerA');
   });
 
-  it('全匹配时返回空串', () => {
+  it('全部 tag 都是触发词时返回空串', () => {
     expect(stripLoraTriggerWords('triggerA, triggerB', ['triggerA', 'triggerB'])).toBe('');
     expect(stripLoraTriggerWords('triggerA\ntriggerB', ['triggerA', 'triggerB'])).toBe('');
   });
 
-  it('不存在触发词时保留原有标签并规范为逗号连接', () => {
-    expect(stripLoraTriggerWords('masterpiece,\n1girl', ['otherTrigger'])).toBe('masterpiece, 1girl');
+  it('头部无命中时直接原样返回原文，含换行保留零扰动', () => {
+    const prompt = 'masterpiece,\n1girl';
+    expect(stripLoraTriggerWords(prompt, ['otherTrigger'])).toBe(prompt);
+    expect(stripLoraTriggerWords('1girl, triggerA', ['triggerA'])).toBe('1girl, triggerA');
   });
 });
 

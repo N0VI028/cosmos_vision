@@ -302,13 +302,13 @@ describe('角色提示词展示与回写门控', () => {
     };
 
     let receivedOptions: InlinePromptPairInputOptions | undefined;
-    const edited = (await requestEditedPromptSnapshot(
+    await requestEditedPromptSnapshot(
       settings,
       snapshot,
       createDialogMock(settings, {}, opts => {
         receivedOptions = opts;
       }),
-    ))!;
+    );
 
     expect(receivedOptions!.enableCharacters).toBe(false);
     expect(receivedOptions!.message).toBe('直接编辑当前图片保存的提示词，确认后生成图片');
