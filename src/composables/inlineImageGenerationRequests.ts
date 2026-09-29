@@ -8,6 +8,7 @@ import type { GalleryGenerationContext } from '@/store/gallery-runtimes';
 import { getHostIframe } from '@/services/inline-image/iframe-utils';
 import { generateComfyUIImagesFromPrompts } from '@/services/comfyui/api';
 import type { ComfyUIProgress } from '@/services/comfyui/progress-ws';
+import type { ComfyUILoraSnapshot } from '@/services/comfyui/types';
 import { resolveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
 import { generateNovelAIImageFromPrompts } from '@/services/novelai/api';
 import type { NovelAIStreamPreviewEvent } from '@/services/novelai/stream-api';
@@ -46,6 +47,32 @@ export async function generateImagesFromSnapshot(
 }
 
 /**
+ * 解析 ComfyUI 快照重生成时使用的 LoRA 列表与预设组 ID
+ * 命中预设组时过滤 enabled 并转换，未命中或未选时回退快照原列表
+ * @param settings 扩展设置
+ * @param snapshot 提示词快照
+ * @returns 生效的 LoRA 列表与新快照应记录的预设组 ID
+ */
+function resolvePlaybackLoras(
+  settings: CosmosVisionSettings,
+  snapshot: InlinePromptSnapshot,
+): { chosenLoras: ComfyUILoraSnapshot[]; nextLoraPresetId?: string } {
+  const snapshotLoras = snapshot.comfyui?.loras ?? [];
+  const requestedPresetId = snapshot.comfyui?.loraPresetId;
+  const matched = requestedPresetId
+    ? settings.comfyui.loraPresets.presets.find(p => p.id === requestedPresetId)
+    : undefined;
+  // 未选组或组已失效：回退快照原列表并保留原组 ID（失效 ID 由弹窗展示"已失效"）
+  if (!requestedPresetId || !matched) {
+    return { chosenLoras: snapshotLoras, nextLoraPresetId: requestedPresetId };
+  }
+  const chosenLoras = matched.loras
+    .filter(l => l.enabled && l.name.trim())
+    .map(l => ({ name: l.name, strength: l.strength }));
+  return { chosenLoras, nextLoraPresetId: matched.id };
+}
+
+/**
  * 按快照记录回放生成 ComfyUI 图片并构建新快照
  * @param settings 扩展设置
  * @param snapshot 提示词快照
@@ -59,15 +86,15 @@ async function generateComfyUIImagesFromSnapshot(
   signal: AbortSignal,
   onProgress?: (progress: ComfyUIProgress) => void,
 ): Promise<InlineGenerationBatchResult> {
-  const snapshotLoras = snapshot.comfyui?.loras ?? [];
+  const { chosenLoras, nextLoraPresetId } = resolvePlaybackLoras(settings, snapshot);
   const prompts = resolveComfyUIPlaybackPrompts(settings, snapshot);
   const loraTriggerWords = snapshot.promptParts
-    ? await resolveComfyUILoraTriggerWords(settings.comfyui.url, snapshotLoras.map(l => l.name), signal)
+    ? await resolveComfyUILoraTriggerWords(settings.comfyui.url, chosenLoras.map(l => l.name), signal)
     : [];
 
   const result = await generateComfyUIImagesFromPrompts(settings.comfyui, prompts, {
     signal,
-    loras: snapshotLoras,
+    loras: chosenLoras,
     loraTriggerWords,
     onProgress,
   });
@@ -76,7 +103,10 @@ async function generateComfyUIImagesFromSnapshot(
     imageSource: 'comfyui',
     positivePrompt: result.requestSnapshot.positivePrompt,
     negativePrompt: result.requestSnapshot.negativePrompt,
-    comfyui: result.requestSnapshot,
+    comfyui: {
+      ...result.requestSnapshot,
+      ...(nextLoraPresetId ? { loraPresetId: nextLoraPresetId } : {}),
+    },
     ...(snapshot.promptParts ? { promptParts: snapshot.promptParts } : {}),
   };
   return { promptSnapshot, imageBlobs: result.imageBlobs };

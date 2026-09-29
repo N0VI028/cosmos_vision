@@ -269,4 +269,191 @@ describe('generateImagesFromSnapshot 再生与回放', () => {
       expect.objectContaining({ onProgress }),
     );
   });
+
+  it('ComfyUI 选中新预设组：过滤未启用 LoRA，按新组名单拉取触发词，新快照记录选中组 id', async () => {
+    const settings = createTestSettings();
+    settings.comfyui.loraPresets.presets = [
+      {
+        id: 'preset-chosen',
+        name: 'Chosen Group',
+        loras: [
+          { id: 'l1', name: 'active_lora.safetensors', strength: 0.7, enabled: true },
+          { id: 'l2', name: 'disabled_lora.safetensors', strength: 0.5, enabled: false },
+          { id: 'l3', name: '   ', strength: 0.9, enabled: true },
+        ],
+      },
+    ];
+    const controller = new AbortController();
+    const mockImageBlob = new Blob(['image-data']);
+    const snapshot: InlinePromptSnapshot = {
+      imageSource: 'comfyui',
+      positivePrompt: 'old positive',
+      negativePrompt: 'old neg',
+      comfyui: {
+        endpoint: 'http://127.0.0.1:8188',
+        positivePrompt: 'old positive',
+        negativePrompt: 'old neg',
+        imageOutputNodeId: '9',
+        promptBindings: [],
+        seedValues: [],
+        imageBindings: [],
+        loras: [{ name: 'original_lora', strength: 1.0 }],
+        loraPresetId: 'preset-chosen',
+      },
+      promptParts: {
+        positive: { core: 'freshCore', presetId: 'P1' },
+        negative: { core: 'freshNeg', presetId: '' },
+      },
+    };
+
+    vi.mocked(resolveComfyUILoraTriggerWords).mockResolvedValueOnce(['newTrigger']);
+    const mockRequestSnapshot = {
+      endpoint: 'http://127.0.0.1:8188',
+      positivePrompt: 'newTrigger, template one, freshCore',
+      negativePrompt: 'freshNeg',
+      imageOutputNodeId: '9',
+      promptBindings: [],
+      seedValues: [],
+      imageBindings: [],
+      loras: [{ name: 'active_lora.safetensors', strength: 0.7 }],
+    };
+    vi.mocked(generateComfyUIImagesFromPrompts).mockResolvedValueOnce({
+      imageBlobs: [mockImageBlob],
+      requestSnapshot: mockRequestSnapshot,
+      resolvedRequest: {} as any,
+    });
+
+    const result = await generateImagesFromSnapshot(settings, snapshot, controller.signal);
+
+    expect(resolveComfyUILoraTriggerWords).toHaveBeenCalledWith(
+      settings.comfyui.url,
+      ['active_lora.safetensors'],
+      controller.signal,
+    );
+    expect(generateComfyUIImagesFromPrompts).toHaveBeenCalledWith(
+      settings.comfyui,
+      expect.anything(),
+      expect.objectContaining({
+        loras: [{ name: 'active_lora.safetensors', strength: 0.7 }],
+        loraTriggerWords: ['newTrigger'],
+      }),
+    );
+    expect(result.promptSnapshot.comfyui?.loraPresetId).toBe('preset-chosen');
+  });
+
+  it('ComfyUI 预设组失效时回退快照原 loras 并继承原预设组 id', async () => {
+    const settings = createTestSettings();
+    settings.comfyui.loraPresets.presets = [];
+    const controller = new AbortController();
+    const mockImageBlob = new Blob(['image-data']);
+    const snapshotLoras = [{ name: 'fallback_lora', strength: 0.6 }];
+    const snapshot: InlinePromptSnapshot = {
+      imageSource: 'comfyui',
+      positivePrompt: 'pos',
+      negativePrompt: 'neg',
+      comfyui: {
+        endpoint: 'http://127.0.0.1:8188',
+        positivePrompt: 'pos',
+        negativePrompt: 'neg',
+        imageOutputNodeId: '9',
+        promptBindings: [],
+        seedValues: [],
+        imageBindings: [],
+        loras: snapshotLoras,
+        loraPresetId: 'stale-preset-id',
+      },
+      promptParts: {
+        positive: { core: 'freshCore', presetId: 'P1' },
+        negative: { core: 'freshNeg', presetId: '' },
+      },
+    };
+
+    vi.mocked(resolveComfyUILoraTriggerWords).mockResolvedValueOnce(['fallbackTrigger']);
+    const mockRequestSnapshot = {
+      endpoint: 'http://127.0.0.1:8188',
+      positivePrompt: 'fallbackTrigger, template one, freshCore',
+      negativePrompt: 'freshNeg',
+      imageOutputNodeId: '9',
+      promptBindings: [],
+      seedValues: [],
+      imageBindings: [],
+      loras: snapshotLoras,
+    };
+    vi.mocked(generateComfyUIImagesFromPrompts).mockResolvedValueOnce({
+      imageBlobs: [mockImageBlob],
+      requestSnapshot: mockRequestSnapshot,
+      resolvedRequest: {} as any,
+    });
+
+    const result = await generateImagesFromSnapshot(settings, snapshot, controller.signal);
+
+    expect(resolveComfyUILoraTriggerWords).toHaveBeenCalledWith(
+      settings.comfyui.url,
+      ['fallback_lora'],
+      controller.signal,
+    );
+    expect(generateComfyUIImagesFromPrompts).toHaveBeenCalledWith(
+      settings.comfyui,
+      expect.anything(),
+      expect.objectContaining({
+        loras: snapshotLoras,
+      }),
+    );
+    expect(result.promptSnapshot.comfyui?.loraPresetId).toBe('stale-preset-id');
+  });
+
+  it('ComfyUI 未选预设组（空串或未定义）时保持原快照 loras 且不写入新 loraPresetId', async () => {
+    const settings = createTestSettings();
+    const controller = new AbortController();
+    const mockImageBlob = new Blob(['image-data']);
+    const snapshotLoras = [{ name: 'original_lora', strength: 0.9 }];
+    const snapshot: InlinePromptSnapshot = {
+      imageSource: 'comfyui',
+      positivePrompt: 'pos',
+      negativePrompt: 'neg',
+      comfyui: {
+        endpoint: 'http://127.0.0.1:8188',
+        positivePrompt: 'pos',
+        negativePrompt: 'neg',
+        imageOutputNodeId: '9',
+        promptBindings: [],
+        seedValues: [],
+        imageBindings: [],
+        loras: snapshotLoras,
+        loraPresetId: '',
+      },
+      promptParts: {
+        positive: { core: 'freshCore', presetId: 'P1' },
+        negative: { core: 'freshNeg', presetId: '' },
+      },
+    };
+
+    vi.mocked(resolveComfyUILoraTriggerWords).mockResolvedValueOnce([]);
+    const mockRequestSnapshot = {
+      endpoint: 'http://127.0.0.1:8188',
+      positivePrompt: 'template one, freshCore',
+      negativePrompt: 'freshNeg',
+      imageOutputNodeId: '9',
+      promptBindings: [],
+      seedValues: [],
+      imageBindings: [],
+      loras: snapshotLoras,
+    };
+    vi.mocked(generateComfyUIImagesFromPrompts).mockResolvedValueOnce({
+      imageBlobs: [mockImageBlob],
+      requestSnapshot: mockRequestSnapshot,
+      resolvedRequest: {} as any,
+    });
+
+    const result = await generateImagesFromSnapshot(settings, snapshot, controller.signal);
+
+    expect(generateComfyUIImagesFromPrompts).toHaveBeenCalledWith(
+      settings.comfyui,
+      expect.anything(),
+      expect.objectContaining({
+        loras: snapshotLoras,
+      }),
+    );
+    expect(result.promptSnapshot.comfyui?.loraPresetId).toBeUndefined();
+  });
 });

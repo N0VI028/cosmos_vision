@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_SETTINGS } from '@/constants/default-settings';
 import { createImagePromptPreset, type ImagePromptPresetSettings } from '@/constants/image-prompt';
 import type { CosmosVisionSettings } from '@/constants/novelai';
@@ -13,7 +13,12 @@ import type {
 } from '@/composables/inlineGenerationInput';
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { stripImagePromptPresetText } from '@/services/image-prompt/presets';
+import { resolveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
 import { getQualityPresetPrompt, getUcPresetPrompt } from '@/services/novelai/prompt-presets';
+
+vi.mock('@/services/comfyui/lora-trigger-words', () => ({
+  resolveComfyUILoraTriggerWords: vi.fn().mockResolvedValue([]),
+}));
 
 /**
  * 创建链路测试设置（P1/P2 两个正面模板预设 + N1 负面模板预设）
@@ -67,6 +72,7 @@ function createDialogMock(
       characters: edits.characters ?? options.charactersDefaultValue ?? [],
       positivePresetId,
       negativePresetId,
+      loraPresetId: edits.loraPresetId !== undefined ? edits.loraPresetId : options.loraPresetId,
     };
   };
 }
@@ -343,6 +349,78 @@ describe('编辑提示词新交互模型：整体文本与精确剥离', () => {
 
       expect(edited.promptParts?.positive).toEqual({ core: 'modified legacy prompt', presetId: '' });
       expect(edited.positivePrompt).toBe('legacy comfyui prompt');
+    });
+
+    it('旧快照（无 parts）弹窗展示前剥离旧 LoRA 触发词', async () => {
+      const settings = createChainSettings();
+      vi.mocked(resolveComfyUILoraTriggerWords).mockResolvedValueOnce(['triggerA']);
+      const legacySnapshot: InlinePromptSnapshot = {
+        imageSource: 'comfyui',
+        positivePrompt: 'triggerA, 1girl, solo',
+        negativePrompt: 'low quality',
+        comfyui: {
+          ...dummyComfyUISnapshot,
+          positivePrompt: 'triggerA, 1girl, solo',
+          loras: [{ name: 'testLora', strength: 1.0 }],
+        },
+      };
+
+      let receivedOptions: InlinePromptPairInputOptions | undefined;
+      await requestEditedPromptSnapshot(
+        settings,
+        legacySnapshot,
+        createDialogMock(settings, {}, opts => {
+          receivedOptions = opts;
+        }),
+      );
+
+      expect(receivedOptions?.enableLoraSelector).toBe(true);
+      expect(receivedOptions?.positiveDefaultValue).toBe('1girl, solo');
+      expect(receivedOptions?.positiveCore).toBe('1girl, solo');
+    });
+
+    it('提交后写回选择的 loraPresetId', async () => {
+      const settings = createChainSettings();
+      vi.mocked(resolveComfyUILoraTriggerWords).mockResolvedValueOnce([]);
+      const snapshot: InlinePromptSnapshot = {
+        imageSource: 'comfyui',
+        positivePrompt: '1girl',
+        negativePrompt: '',
+        comfyui: {
+          ...dummyComfyUISnapshot,
+          loraPresetId: 'old-preset-id',
+        },
+      };
+
+      const edited = (await requestEditedPromptSnapshot(
+        settings,
+        snapshot,
+        createDialogMock(settings, { loraPresetId: 'new-preset-id' }),
+      ))!;
+
+      expect(edited.comfyui?.loraPresetId).toBe('new-preset-id');
+    });
+
+    it('弹窗未传 loraPresetId 时沿用初始值', async () => {
+      const settings = createChainSettings();
+      vi.mocked(resolveComfyUILoraTriggerWords).mockResolvedValueOnce([]);
+      const snapshot: InlinePromptSnapshot = {
+        imageSource: 'comfyui',
+        positivePrompt: '1girl',
+        negativePrompt: '',
+        comfyui: {
+          ...dummyComfyUISnapshot,
+          loraPresetId: 'old-preset-id',
+        },
+      };
+
+      const edited = (await requestEditedPromptSnapshot(
+        settings,
+        snapshot,
+        createDialogMock(settings, { loraPresetId: undefined }),
+      ))!;
+
+      expect(edited.comfyui?.loraPresetId).toBe('old-preset-id');
     });
   });
 });

@@ -13,6 +13,8 @@ import {
 import type { InlineGenerationSession } from '@/composables/inlineGenerationSession';
 import type { InlineImageDownloadOptions } from '@/services/inline-image/download-options';
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
+import { stripLoraTriggerWords } from '@/services/comfyui/lora-presets';
+import { resolveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
 
 export type RuntimeEnabledGetter = () => boolean;
 
@@ -48,6 +50,10 @@ export interface InlinePromptPairInputOptions {
   positivePresetId?: string;
   /** 负面预设选择器初始值；'' = 原提示词*/
   negativePresetId?: string;
+  /** 是否展示 LoRA 预设组选择器（仅 ComfyUI 且存在快照） */
+  enableLoraSelector?: boolean;
+  /** LoRA 预设组选择器初始值；'' = 原图 LoRA */
+  loraPresetId?: string;
 }
 
 export interface InlinePromptPairInputValue {
@@ -60,6 +66,8 @@ export interface InlinePromptPairInputValue {
   positivePresetId?: string;
   /** 弹窗选择的负面预设 ID；'' = 原提示词。未提供时沿用初始值 */
   negativePresetId?: string;
+  /** 弹窗选择的 LoRA 预设组 ID；'' = 原图 LoRA。未提供时沿用初始值 */
+  loraPresetId?: string;
 }
 
 export interface InlineImageGenerationOptions {
@@ -88,20 +96,42 @@ export type InlineGenerationTask = (
 ) => Promise<InlineGenerationBatchResult>;
 
 /**
- * 请求用户编辑当前图片保存的正负提示词（含角色与预设选择）
- * @param settings 设置项
- * @param snapshot 当前图片保存的提示词快照
- * @param requestPromptPairInput 弹窗请求回调
- * @returns 编辑后的快照,取消时返回 null
+ * 针对无 promptParts 的旧 ComfyUI 快照剥离触发词
+ * @param url ComfyUI 服务地址
+ * @param snapshot 提示词快照
+ * @param positivePrompt 原始正向提示词
+ * @returns 剥离旧触发词后的正向提示词
  */
-export async function requestEditedPromptSnapshot(
-  settings: CosmosVisionSettings,
+async function stripLegacyComfyUITriggerWords(
+  url: string,
   snapshot: InlinePromptSnapshot,
-  requestPromptPairInput: (options: InlinePromptPairInputOptions) => Promise<InlinePromptPairInputValue | null>,
-): Promise<InlinePromptSnapshot | null> {
-  const initialPrompts = readEditablePromptInput(settings, snapshot);
-  const canEditCharacters = canEditInlineCharacterPrompts(settings.novelai.model);
-  const prompts = await requestPromptPairInput({
+  positivePrompt: string,
+): Promise<string> {
+  if (!snapshot.comfyui || snapshot.promptParts) return positivePrompt;
+  const triggerWords = await resolveComfyUILoraTriggerWords(
+    url,
+    snapshot.comfyui.loras.map(l => l.name),
+  );
+  return stripLoraTriggerWords(positivePrompt, triggerWords);
+}
+
+/**
+ * 构建提示词双输入弹窗选项
+ * @param settings 设置项
+ * @param initialPrompts 初始提示词与预设状态
+ * @param canEditCharacters 是否允许编辑角色
+ * @param isComfyUI 是否为 ComfyUI 图源
+ * @param initialLoraPresetId 初始 LoRA 预设组 ID
+ * @returns 弹窗配置项
+ */
+function buildPromptPairDialogOptions(
+  settings: CosmosVisionSettings,
+  initialPrompts: ReturnType<typeof readEditablePromptInput>,
+  canEditCharacters: boolean,
+  isComfyUI: boolean,
+  initialLoraPresetId?: string,
+): InlinePromptPairInputOptions {
+  return {
     title: '编辑提示词后生图',
     message: canEditCharacters
       ? '直接编辑当前图片保存的全局提示词与角色提示词，确认后生成图片'
@@ -126,7 +156,41 @@ export async function requestEditedPromptSnapshot(
     charactersDefaultValue: initialPrompts.characters,
     positivePresetId: initialPrompts.positivePresetId,
     negativePresetId: initialPrompts.negativePresetId,
-  });
+    enableLoraSelector: isComfyUI,
+    loraPresetId: initialLoraPresetId,
+  };
+}
+
+/**
+ * 请求用户编辑当前图片保存的正负提示词（含角色与预设选择）
+ * @param settings 设置项
+ * @param snapshot 当前图片保存的提示词快照
+ * @param requestPromptPairInput 弹窗请求回调
+ * @returns 编辑后的快照,取消时返回 null
+ */
+export async function requestEditedPromptSnapshot(
+  settings: CosmosVisionSettings,
+  snapshot: InlinePromptSnapshot,
+  requestPromptPairInput: (options: InlinePromptPairInputOptions) => Promise<InlinePromptPairInputValue | null>,
+): Promise<InlinePromptSnapshot | null> {
+  const initialPrompts = readEditablePromptInput(settings, snapshot);
+  const canEditCharacters = canEditInlineCharacterPrompts(settings.novelai.model);
+  // 有 comfyui 快照且图源缺失（极旧快照）或为 ComfyUI 时，展示 LoRA 组选择器
+  const isComfyUI = Boolean(snapshot.comfyui) && (!snapshot.imageSource || snapshot.imageSource === 'comfyui');
+  const initialLoraPresetId = isComfyUI ? (snapshot.comfyui?.loraPresetId ?? '') : undefined;
+
+  if (isComfyUI) {
+    initialPrompts.positive = await stripLegacyComfyUITriggerWords(settings.comfyui.url, snapshot, initialPrompts.positive);
+  }
+
+  const dialogOptions = buildPromptPairDialogOptions(
+    settings,
+    initialPrompts,
+    canEditCharacters,
+    isComfyUI,
+    initialLoraPresetId,
+  );
+  const prompts = await requestPromptPairInput(dialogOptions);
   if (!prompts) return null;
   const positivePart = resolveStrippedPromptPart(
     settings.imagePromptPresets.positive,
@@ -138,13 +202,17 @@ export async function requestEditedPromptSnapshot(
     prompts.negativePresetId ?? initialPrompts.negativePresetId,
     prompts.negative,
   );
-  return createEditedPromptSnapshot(settings, snapshot, {
+  const edited = createEditedPromptSnapshot(settings, snapshot, {
     positive: positivePart.core,
     negative: negativePart.core,
     characters: prompts.characters,
     positivePresetId: positivePart.presetId,
     negativePresetId: negativePart.presetId,
   });
+  if (edited.comfyui) {
+    edited.comfyui.loraPresetId = prompts.loraPresetId ?? initialLoraPresetId;
+  }
+  return edited;
 }
 
 /**

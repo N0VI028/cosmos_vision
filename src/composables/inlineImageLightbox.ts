@@ -160,6 +160,7 @@ function cloneComfyUIRequestSnapshot(snapshot: ComfyUIRequestSnapshot): ComfyUIR
     promptBindings: snapshot.promptBindings.map(item => ({ ...item })),
     seedValues: snapshot.seedValues.map(item => ({ ...item })),
     loras: snapshot.loras.map(lora => ({ name: lora.name, strength: lora.strength })),
+    ...(snapshot.loraPresetId ? { loraPresetId: snapshot.loraPresetId } : {}),
   };
 }
 

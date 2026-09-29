@@ -125,6 +125,28 @@ export function prependLoraTriggerWords(positivePrompt: string, triggerWords: re
 }
 
 /**
+ * 从提示词文本中剥离指定的 LoRA 触发词
+ * 按逗号/换行拆分 tag，trim 后小写匹配触发词集合并过滤删除，重组为逗号连接字符串
+ * @param prompt 待剥离触发词的提示词文本
+ * @param triggerWords 待剥离的触发词列表
+ * @returns 剥离触发词后的提示词文本
+ */
+export function stripLoraTriggerWords(prompt: string, triggerWords: readonly string[]): string {
+  if (!triggerWords.length) return prompt;
+  const targetSet = new Set(
+    triggerWords
+      .map(word => word.trim().toLowerCase())
+      .filter(Boolean),
+  );
+  if (!targetSet.size) return prompt;
+  return prompt
+    .split(/[\n,]+/)
+    .map(token => token.trim())
+    .filter(token => token && !targetSet.has(token.toLowerCase()))
+    .join(', ');
+}
+
+/**
  * 读取提示词中的标签集合（按逗号/换行拆分，忽略大小写）
  * @param prompt 提示词文本
  * @returns 小写标签集合

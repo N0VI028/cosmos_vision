@@ -63,6 +63,21 @@ function resolveEffectiveLoraPreset(
 }
 
 /**
+ * 解析待存入快照的 LoRA 预设组 ID
+ * @param effectiveLoraPreset 生效的 LoRA 预设组
+ * @param loraPresetOrSnapshots 传入的显式预设组或快照列表
+ * @returns 真实预设组 ID，回放合成组返回 undefined
+ */
+function resolveSnapshotLoraPresetId(
+  effectiveLoraPreset: ComfyUILoraPreset,
+  loraPresetOrSnapshots?: ComfyUILoraPreset | readonly ComfyUILoraSnapshot[],
+): string | undefined {
+  if (!loraPresetOrSnapshots) return effectiveLoraPreset.id;
+  if ('id' in loraPresetOrSnapshots) return loraPresetOrSnapshots.id;
+  return undefined;
+}
+
+/**
  * 按共享生图预设解析并构建 ComfyUI 最终请求
  * @param settings ComfyUI 设置
  * @param presetSettings 共享生图提示词预设
@@ -124,6 +139,7 @@ export function buildComfyUIResolvedRequestFromPrompts(
   const promptBindings = readPromptBindings(workflow);
   const imageBindings = readImageBindings(workflow);
   const loras = readLoraSnapshotsFromWorkflow(workflow);
+  const loraPresetId = resolveSnapshotLoraPresetId(effectiveLoraPreset, loraPresetOrSnapshots);
   stripCosmosVisionMeta(workflow);
 
   return {
@@ -138,6 +154,7 @@ export function buildComfyUIResolvedRequestFromPrompts(
       seedValues,
       imageBindings,
       loras,
+      ...(loraPresetId ? { loraPresetId } : {}),
     },
   };
 }

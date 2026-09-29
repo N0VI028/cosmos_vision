@@ -330,6 +330,60 @@ describe('comfyui request builder', () => {
     // 节点被清空，快照记录为空，面板激活组未混入
     expect(resolved.workflow['10'].inputs.text).toBe('');
     expect(resolved.snapshot.loras).toEqual([]);
+    expect(resolved.snapshot.loraPresetId).toBeUndefined();
+  });
+
+  it('records loraPresetId in snapshot in three states (fallback active id, explicit preset id, or omitted on snapshot array)', () => {
+    const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
+    settings.workflowPresets.presets = [
+      {
+        id: 'preset-1',
+        name: 'SDXL Workflow',
+        workflowJson: JSON.stringify({
+          '6': {
+            class_type: 'CLIPTextEncode',
+            inputs: { text: 'positive placeholder' },
+            _meta: { cosmosVision: { promptBindings: { text: 'positive' }, imageOutput: true } },
+          },
+        }),
+        favoriteNodeIds: [],
+      },
+    ];
+    settings.workflowPresets.activePresetId = 'preset-1';
+    settings.loraPresets = {
+      activePresetId: 'active-group-1',
+      presets: [{ id: 'active-group-1', name: 'Active Group', loras: [] }],
+    };
+
+    // 1. 未传参：记录回退激活组 id
+    const resFallback = buildComfyUIResolvedRequest(
+      settings,
+      DEFAULT_SETTINGS.imagePromptPresets,
+      { positivePrompt: '1girl', negativePrompt: '' },
+    );
+    expect(resFallback.snapshot.loraPresetId).toBe('active-group-1');
+
+    // 2. 传入真实预设组：记录其 id
+    const resExplicitPreset = buildComfyUIResolvedRequest(
+      settings,
+      DEFAULT_SETTINGS.imagePromptPresets,
+      { positivePrompt: '1girl', negativePrompt: '' },
+      [],
+      undefined,
+      { id: 'custom-preset-2', name: 'Custom Group', loras: [] },
+    );
+    expect(resExplicitPreset.snapshot.loraPresetId).toBe('custom-preset-2');
+
+    // 3. 传入快照列表：不记录 loraPresetId
+    const resSnapshotList = buildComfyUIResolvedRequest(
+      settings,
+      DEFAULT_SETTINGS.imagePromptPresets,
+      { positivePrompt: '1girl', negativePrompt: '' },
+      [],
+      undefined,
+      [{ name: 'some_lora', strength: 0.8 }],
+    );
+    expect(resSnapshotList.snapshot.loraPresetId).toBeUndefined();
   });
 
   it('injects preview export node when bound output node is non-output image node', async () => {

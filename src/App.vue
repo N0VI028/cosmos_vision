@@ -26,6 +26,7 @@
     v-model:characters="textInputDialogState.characters"
     v-model:positive-preset-id="textInputDialogState.positivePresetId"
     v-model:negative-preset-id="textInputDialogState.negativePresetId"
+    v-model:lora-preset-id="textInputDialogState.loraPresetId"
     v-model:positive-core="textInputDialogState.positiveCore"
     v-model:negative-core="textInputDialogState.negativeCore"
     :title="textInputDialogState.title"
@@ -39,6 +40,7 @@
     :dark-mode="darkMode"
     :enable-characters="textInputDialogState.enableCharacters"
     :enable-preset-selector="textInputDialogState.enablePresetSelector"
+    :enable-lora-selector="textInputDialogState.enableLoraSelector"
     :quick-phrases="textInputDialogState.quickPhrases"
     @submit="handleTextInputDialog"
     @update-quick-phrases="handleQuickPhrasesUpdate"
@@ -188,8 +190,10 @@ interface TextInputDialogState {
   cancelLabel: string;
   enableCharacters: boolean;
   enablePresetSelector: boolean;
+  enableLoraSelector?: boolean;
   positivePresetId: string;
   negativePresetId: string;
+  loraPresetId?: string;
   positiveCore: string;
   negativeCore: string;
   characters: TextInputCharacterDraft[];
@@ -253,8 +257,10 @@ const textInputDialogState = ref<TextInputDialogState>({
   cancelLabel: '取消',
   enableCharacters: false,
   enablePresetSelector: false,
+  enableLoraSelector: false,
   positivePresetId: '',
   negativePresetId: '',
+  loraPresetId: '',
   positiveCore: '',
   negativeCore: '',
   characters: [],
@@ -424,8 +430,10 @@ function showTextInputDialog(options: InlineTextInputOptions): Promise<string | 
       cancelLabel: options.cancelLabel ?? '取消',
       enableCharacters: false,
       enablePresetSelector: false,
+      enableLoraSelector: false,
       positivePresetId: '',
       negativePresetId: '',
+      loraPresetId: '',
       positiveCore: '',
       negativeCore: '',
       characters: [],
@@ -456,8 +464,10 @@ function showPromptPairDialog(options: InlinePromptPairInputOptions): Promise<In
       cancelLabel: options.cancelLabel ?? '取消',
       enableCharacters: Boolean(options.enableCharacters),
       enablePresetSelector: true,
+      enableLoraSelector: Boolean(options.enableLoraSelector),
       positivePresetId: options.positivePresetId ?? '',
       negativePresetId: options.negativePresetId ?? '',
+      loraPresetId: options.loraPresetId ?? '',
       positiveCore: options.positiveCore ?? '',
       negativeCore: options.negativeCore ?? '',
       characters: toTextInputCharacterDrafts(options.charactersDefaultValue ?? []),
@@ -470,6 +480,7 @@ function showPromptPairDialog(options: InlinePromptPairInputOptions): Promise<In
                 characters: result.characters.map(toInlineCharacterDraft),
                 positivePresetId: result.positivePresetId,
                 negativePresetId: result.negativePresetId,
+                loraPresetId: result.loraPresetId,
               }
             : null,
         ),
