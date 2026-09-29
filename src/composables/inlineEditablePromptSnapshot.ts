@@ -117,7 +117,6 @@ export function createEditedPromptSnapshot(
 
 /**
  * 读取快照的提示词部件
- * 新链路快照直接用 parts；旧快照回退为剥质量词整串 + 原样（presetId = ''）
  * @param settings 扩展设置
  * @param snapshot 提示词快照
  * @returns 正负两侧部件

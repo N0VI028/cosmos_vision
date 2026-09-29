@@ -16,14 +16,11 @@ export interface InlinePromptParts {
 
 /** 内联生图提示词快照 */
 export interface InlinePromptSnapshot {
-  /** 正向提示词（ComfyUI 新链路不写顶层，读取需走 comfyui/novelai 子对象兜底链；NAI 与旧数据仍写入） */
   positivePrompt?: string;
-  /** 负向提示词（ComfyUI 新链路不写顶层，读取需走 comfyui/novelai 子对象兜底链；NAI 与旧数据仍写入） */
   negativePrompt?: string;
   imageSource?: ImageSource;
   novelai?: NovelAIFinalPrompts;
   comfyui?: ComfyUIRequestSnapshot;
-  /** 部件分解；新链路必写，旧快照无此字段时编辑回退原样 */
   promptParts?: { positive: InlinePromptParts; negative: InlinePromptParts };
 }
 
