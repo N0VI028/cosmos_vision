@@ -42,7 +42,7 @@ export interface InlinePromptPairInputOptions {
   negativeRows?: number;
   acceptLabel?: string;
   cancelLabel?: string;
-  /** 是否展示角色提示词编辑区（仅 NovelAI V4 / V4.5） */
+  /** 是否展示角色提示词编辑区（仅 NovelAI V4+ 且非 ComfyUI 图源） */
   enableCharacters?: boolean;
   /** 角色提示词初始值 */
   charactersDefaultValue?: InlineCharacterPromptDraft[];
@@ -174,10 +174,11 @@ export async function requestEditedPromptSnapshot(
   requestPromptPairInput: (options: InlinePromptPairInputOptions) => Promise<InlinePromptPairInputValue | null>,
 ): Promise<InlinePromptSnapshot | null> {
   const initialPrompts = readEditablePromptInput(settings, snapshot);
-  const canEditCharacters = canEditInlineCharacterPrompts(settings.novelai.model);
   // 有 comfyui 快照且图源缺失（极旧快照）或为 ComfyUI 时，展示 LoRA 组选择器
   const isComfyUI = Boolean(snapshot.comfyui) && (!snapshot.imageSource || snapshot.imageSource === 'comfyui');
   const initialLoraPresetId = isComfyUI ? (snapshot.comfyui?.loraPresetId ?? '') : undefined;
+  // ComfyUI 图源与不支持角色提示词的 NovelAI 模型（V3 等）均不展示角色提示词
+  const canEditCharacters = !isComfyUI && canEditInlineCharacterPrompts(settings.novelai.model);
 
   if (isComfyUI) {
     initialPrompts.positive = await stripLegacyComfyUITriggerWords(settings.comfyui.url, snapshot, initialPrompts.positive);
@@ -205,7 +206,7 @@ export async function requestEditedPromptSnapshot(
   const edited = createEditedPromptSnapshot(settings, snapshot, {
     positive: positivePart.core,
     negative: negativePart.core,
-    characters: prompts.characters,
+    characters: canEditCharacters ? prompts.characters : [],
     positivePresetId: positivePart.presetId,
     negativePresetId: negativePart.presetId,
   });
