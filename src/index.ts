@@ -2,6 +2,7 @@ import '@/global.css';
 import '@/styles/inline-image.css';
 import '@/styles/inline-lightbox.css';
 import App from '@/App.vue';
+import { installCosmosVisionApi } from '@/api';
 import { DARK_CLASS } from '@/constants/default-settings';
 import { cosmosPrimePt } from '@/services/primevue/primevue-pt';
 import { cosmosPrimePreset } from '@/services/primevue/primevue-theme';
@@ -52,6 +53,7 @@ $(async () => {
   syncThemeColorToPrimary();
   const $container = $('<div id="cosmos_vision">').appendTo('#extensions_settings');
   app.mount($container[0]);
+  installCosmosVisionApi();
 });
 
 // 使用命名空间 + 先 off 解绑：防止 HMR 或重复注入导致多次 unmount

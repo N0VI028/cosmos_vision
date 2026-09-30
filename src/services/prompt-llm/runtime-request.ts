@@ -38,6 +38,8 @@ import { getActiveComfyUIWorkflowJson } from '@/services/comfyui/workflow-preset
 /** Prompt LLM 运行时生成选项 */
 export interface PromptLlmGenerateOptions {
   generationId?: string;
+  /** 取消信号，透传给底层 generateRaw 请求以真终止 */
+  signal?: AbortSignal;
   /** 显式触发上下文；缺省时仅 history，模型/来源为空 */
   triggerContext?: PromptLlmTriggerContext;
   /** 请求监视钩子（仅内联生图路径传入；测试页与人物标签解析不捕获） */
@@ -203,31 +205,31 @@ function canSendPromptLlmMessage(
 }
 
 /**
- * 基于上下文发送 LLM 请求并返回原始文本
+ * 基于上下文发送 LLM 请求并返回原始文本与推理内容
  * @param context Prompt LLM 运行时上下文
  * @param settings LLM 配置
  * @param presetSettings 消息预设集合
  * @param promptProfiles 提示词Profile设置
  * @param schemaFields JSON Schema 字段配置
- * @returns LLM 原始响应文本
+ * @returns LLM 原始响应文本、实际成功账号与推理内容
  */
-async function generatePromptTextFromRuntimeContext(
+export async function generatePromptTextFromRuntimeContext(
   context: PromptLlmContext,
   settings: PromptLlmSettings,
   presetSettings: PromptLlmMessagePresetSettings,
   promptProfiles: PromptProfilesSettings,
   schemaFields: PromptLlmOutputFields | null = DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
   options: PromptLlmGenerateOptions = {},
-): Promise<string> {
+): Promise<PromptLlmRawRequestResult> {
   const tavernHelper = getTavernHelper({ silent: false });
   if (!tavernHelper) {
     throw new Error('TavernHelper 不可用,无法生成提示词');
   }
   try {
-    const result = await requestPromptLlmWithAccounts(
+    return await requestPromptLlmWithAccounts(
       tavernHelper,
       settings,
-      { ...options, inspector: options.inspector },
+      { generationId: options.generationId, signal: options.signal, inspector: options.inspector },
       account =>
         buildPromptLlmRuntimeRequestFromContext(
           context,
@@ -239,7 +241,6 @@ async function generatePromptTextFromRuntimeContext(
           account,
         ),
     );
-    return result.rawText;
   } catch (error) {
     throw new Error(`提示词生成失败: ${(error as Error).message}`);
   }
@@ -249,6 +250,8 @@ async function generatePromptTextFromRuntimeContext(
 export interface PromptLlmAccountsRequestContext {
   generationId?: string;
   timeoutSeconds?: number;
+  /** 取消信号，透传给底层 generateRaw 请求 */
+  signal?: AbortSignal;
   /** 请求监视钩子 */
   inspector?: PromptLlmInspectorHooks;
   /** 单次账号尝试失败回调（故障转移切换下一个账号前调用） */
@@ -290,7 +293,7 @@ export async function requestPromptLlmWithAccounts(
       const { text, reasoning } = await requestTavernHelperGenerateRaw(
         tavernHelper,
         buildSilentGenerateRawRequest(request, context),
-        { timeoutSeconds: context.timeoutSeconds ?? settings.timeout },
+        { timeoutSeconds: context.timeoutSeconds ?? settings.timeout, signal: context.signal },
       );
       const accountName = getPromptLlmAccountDisplayName(account);
       context.inspector?.onSucceeded?.(text, accountName, reasoning);
@@ -384,7 +387,7 @@ export async function generatePromptFromRuntimeContext(
   schemaFields: PromptLlmOutputFields | null = DEFAULT_PROMPT_LLM_OUTPUT_FIELDS,
   options: PromptLlmGenerateOptions = {},
 ): Promise<PromptLlmExtractionResult> {
-  const rawText = await generatePromptTextFromRuntimeContext(
+  const { rawText } = await generatePromptTextFromRuntimeContext(
     context,
     settings,
     presetSettings,

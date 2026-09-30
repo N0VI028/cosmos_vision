@@ -27,6 +27,8 @@ export interface LlmInspectorRequestSnapshot {
   id: string;
   /** 会话标签（焦点段落摘要） */
   label: string;
+  /** 是否为 window API 外部调用（详情页徽章展示用） */
+  isExternalCall?: boolean;
   startedAt: number;
   prompts: LlmInspectorPromptEntry[];
   model: string;
@@ -45,6 +47,7 @@ export interface LlmInspectorRequestSnapshot {
  * @param request generateRaw 请求体
  * @param account 本次尝试账号
  * @param label 会话标签
+ * @param isExternalCall 是否为 window API 外部调用
  * @returns 可展示的请求快照
  */
 export function buildLlmInspectorRequestSnapshot(
@@ -52,10 +55,12 @@ export function buildLlmInspectorRequestSnapshot(
   request: TavernHelperGenerateRawConfig,
   account: PromptLlmAccount | undefined,
   label: string,
+  isExternalCall = false,
 ): LlmInspectorRequestSnapshot {
   return {
     id,
     label,
+    isExternalCall: isExternalCall || undefined,
     startedAt: Date.now(),
     prompts: readLlmInspectorPrompts(request.ordered_prompts),
     model: request.custom_api?.model?.trim() || '(未配置)',

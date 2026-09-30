@@ -303,16 +303,21 @@ export const useLlmInspectorStore = defineStore('cosmos_vision_llm_inspector', (
 });
 
 /**
- * 构建绑定本 store 的请求监视钩子四件套（生图与测试页共用）
+ * 构建绑定本 store 的请求监视钩子四件套（生图、测试页与 window API 共用）
  * @param generationId 请求标识
  * @param label 会话标签（快照侧展示用）
+ * @param isExternalCall 是否为 window API 外部调用（详情页徽章展示用）
  * @returns 请求监视钩子
  */
-export function buildLlmInspectorStoreHooks(generationId: string, label: string): PromptLlmInspectorHooks {
+export function buildLlmInspectorStoreHooks(
+  generationId: string,
+  label: string,
+  isExternalCall = false,
+): PromptLlmInspectorHooks {
   const store = useLlmInspectorStore();
   return {
     onRequestBuilt: (request, account) =>
-      store.recordRequest(buildLlmInspectorRequestSnapshot(generationId, request, account, label)),
+      store.recordRequest(buildLlmInspectorRequestSnapshot(generationId, request, account, label, isExternalCall)),
     onSucceeded: (rawText, accountName, reasoning) =>
       store.markSucceeded(generationId, rawText, accountName, reasoning),
     onAttemptFailed: error => store.appendAttemptError(generationId, error),

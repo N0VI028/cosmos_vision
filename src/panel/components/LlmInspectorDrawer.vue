@@ -117,6 +117,10 @@
               </div>
 
               <div class="cv-llm-inspector-meta-chips">
+                <span v-if="selectedSession.isExternalCall" class="cv-llm-inspector-chip">
+                  <i class="fa-solid fa-code" aria-hidden="true" />
+                  外部调用
+                </span>
                 <span class="cv-llm-inspector-chip" :title="selectedSession.endpoint">
                   <i class="fa-solid fa-cube" aria-hidden="true" />
                   {{ selectedSession.model }}

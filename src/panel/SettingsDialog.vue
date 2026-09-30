@@ -210,10 +210,12 @@
     :is-last-step="tutorial.isLastStep"
     :dark-mode="darkMode"
     @select-source="tutorial.selectSource"
+    @open-api-doc="handleOpenApiDoc"
     @previous="tutorial.previous"
     @next="tutorial.next"
     @exit="tutorial.exit"
   />
+  <DeveloperApiDialog v-model:visible="isApiDocDialogOpen" />
   <Dialog
     v-model:visible="isConfirmVisible"
     modal
@@ -288,6 +290,7 @@ import { storeToRefs } from 'pinia';
 
 import { DARK_CLASS } from '@/constants/default-settings';
 import '@/panel/styles/settings-dialog.css';
+import DeveloperApiDialog from '@/panel/components/onboarding/DeveloperApiDialog.vue';
 import OnboardingTutorial from '@/panel/components/onboarding/OnboardingTutorial.vue';
 import SettingsSidebarControls from '@/panel/components/SettingsSidebarControls.vue';
 import SidebarRailToggle from '@/panel/components/SidebarRailToggle.vue';
@@ -455,6 +458,17 @@ const tutorial = useSettingsOnboardingTutorial({
   promptProfilesSubTab,
   scrollContainer,
 });
+
+/** 开发者 API 文档弹窗开合状态 */
+const isApiDocDialogOpen = ref(false);
+
+/**
+ * 退出新手教程并打开开发者 API 文档弹窗
+ */
+function handleOpenApiDoc(): void {
+  tutorial.exit();
+  isApiDocDialogOpen.value = true;
+}
 
 const customConfirmVisible = ref(false);
 const customConfirmState = ref<{
