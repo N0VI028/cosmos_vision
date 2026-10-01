@@ -6,11 +6,12 @@ import type { DataPortabilitySectionId } from '@/services/data-portability/secti
 
 export const COSMOS_VISION_EXPORT_FORMAT = 'cosmos-vision-portable-data';
 export const COSMOS_VISION_EXPORT_VERSION = 1;
+export const COSMOS_VISION_EXPORT_VERSION_ZIP = 2;
 
 /** CosmosVision 原生导出文件 */
 export interface CosmosVisionExportFile {
   format: typeof COSMOS_VISION_EXPORT_FORMAT;
-  version: typeof COSMOS_VISION_EXPORT_VERSION;
+  version: typeof COSMOS_VISION_EXPORT_VERSION | typeof COSMOS_VISION_EXPORT_VERSION_ZIP;
   exportedAt: string;
   appVersion?: string;
   sections: DataPortabilitySectionId[];
@@ -45,6 +46,8 @@ export interface DataImportPreview {
   payload: DataPortabilityPayload;
   warnings: string[];
   officialVibeImport?: OfficialVibeImportPreview;
+  /** 指向 ZIP 容器内的图片读取器（懒水合） */
+  zipImageReader?: (imageRef: string) => Promise<Blob | null>;
 }
 
 /** 导入结果摘要 */
@@ -63,7 +66,9 @@ export interface PortableInlineFavoriteRecord {
   chatId: string;
   /** 段落位点 slotId（画廊锚点） */
   slotId: string;
-  imageData: string;
+  imageData?: string;
+  /** 指向 ZIP 内图片文件路径 */
+  imageRef?: string;
   imageType: string;
   promptSnapshot: InlinePromptSnapshot;
   createdAt: number;

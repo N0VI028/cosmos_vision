@@ -1,17 +1,20 @@
 import type { CosmosVisionSettings, NovelAISettings } from '@/constants/novelai';
 import type { NovelAIVibePreset } from '@/constants/novelai-vibe';
 import { triggerBrowserDownload } from '@/services/browser-download';
+import type { InlineImageFavoriteListItem } from '@/services/inline-image/favorites-cache';
 import { exportInlineImageFavoriteRecords } from '@/services/inline-image/favorites-cache';
 import { exportNovelAIVibeCacheRecords } from '@/services/novelai/vibe-cache';
 import type { DataPortabilitySectionId } from '@/services/data-portability/sections';
 import {
   COSMOS_VISION_EXPORT_FORMAT,
   COSMOS_VISION_EXPORT_VERSION,
+  COSMOS_VISION_EXPORT_VERSION_ZIP,
   type CosmosVisionExportFile,
   type DataPortabilityPayload,
   type PortableInlineFavoriteRecord,
   type PortableNovelAIVibeBundle,
 } from '@/services/data-portability/types';
+import { writePortableZipFile } from '@/services/data-portability/zip-bundle';
 
 /**
  * 下载 CosmosVision 可迁移数据文件
@@ -26,9 +29,86 @@ export async function downloadPortableDataFile(
   sections: readonly DataPortabilitySectionId[],
   appVersion: string,
 ): Promise<void> {
+  if (sections.includes('inlineFavoritesBundle')) {
+    const favoriteRecords = await exportInlineImageFavoriteRecords();
+    if (favoriteRecords.length > 0) {
+      await downloadPortableZipFile(settings, darkMode, sections, appVersion, favoriteRecords);
+      return;
+    }
+  }
   const file = await buildPortableDataFile(settings, darkMode, sections, appVersion);
   const blob = new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' });
-  triggerBrowserDownload(blob, buildExportFileName());
+  triggerBrowserDownload(blob, buildExportFileName('json'));
+}
+
+/**
+ * 导出收藏图片及关联数据为 ZIP 文件
+ * @param settings 当前设置快照
+ * @param darkMode 当前暗色偏好
+ * @param sections 用户选中的 section
+ * @param appVersion 插件版本号
+ * @param favoriteRecords 收藏记录列表
+ */
+async function downloadPortableZipFile(
+  settings: CosmosVisionSettings,
+  darkMode: boolean,
+  sections: readonly DataPortabilitySectionId[],
+  appVersion: string,
+  favoriteRecords: InlineImageFavoriteListItem[],
+): Promise<void> {
+  const { bundle, images } = buildZipFavoritesBundle(favoriteRecords);
+  const sectionsWithoutFavorites = sections.filter(section => section !== 'inlineFavoritesBundle');
+  const payload = await buildPortablePayload(settings, darkMode, sectionsWithoutFavorites);
+  payload.inlineFavoritesBundle = bundle;
+
+  const manifest: CosmosVisionExportFile = {
+    format: COSMOS_VISION_EXPORT_FORMAT,
+    version: COSMOS_VISION_EXPORT_VERSION_ZIP,
+    exportedAt: new Date().toISOString(),
+    appVersion,
+    sections: [...sections],
+    payload,
+  };
+  const zipBlob = await writePortableZipFile(manifest, images);
+  triggerBrowserDownload(zipBlob, buildExportFileName('zip'));
+}
+
+/**
+ * 构建 ZIP 格式的收藏记录载荷与图片映射
+ * @param records 收藏记录列表
+ * @returns 序列化记录与图片映射
+ */
+function buildZipFavoritesBundle(records: InlineImageFavoriteListItem[]): {
+  bundle: PortableInlineFavoriteRecord[];
+  images: Map<string, Blob>;
+} {
+  const images = new Map<string, Blob>();
+  const bundle = records.map((record, index) => {
+    const extension = resolveImageExtension(record.imageBlob.type);
+    const ref = `images/${String(index + 1).padStart(4, '0')}-${record.id}.${extension}`;
+    images.set(ref, record.imageBlob);
+    return {
+      characterKey: record.characterKey,
+      chatId: record.chatId,
+      slotId: record.slotId,
+      imageRef: ref,
+      imageType: record.imageBlob.type || 'image/png',
+      promptSnapshot: _.cloneDeep(record.promptSnapshot),
+      createdAt: record.createdAt,
+    };
+  });
+  return { bundle, images };
+}
+
+/**
+ * 从 MIME 类型解析文件扩展名
+ * @param mimeType MIME 类型
+ * @returns 文件扩展名
+ */
+function resolveImageExtension(mimeType: string): string {
+  if (mimeType === 'image/jpeg') return 'jpg';
+  if (mimeType === 'image/webp') return 'webp';
+  return 'png';
 }
 
 /**
@@ -192,8 +272,9 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 
 /**
  * 构建导出文件名
+ * @param extension 文件扩展名
  * @returns 文件名
  */
-function buildExportFileName(): string {
-  return `cosmos-vision-data-${new Date().toISOString().slice(0, 10)}.json`;
+function buildExportFileName(extension: 'json' | 'zip' = 'json'): string {
+  return `cosmos-vision-data-${new Date().toISOString().slice(0, 10)}.${extension}`;
 }

@@ -43,9 +43,29 @@ import {
   type PortableInlineFavoriteRecord,
   type PortableNovelAIVibeBundle,
 } from './types';
+import { hasZipMagic, readPortableZipFile, toInlineFavoriteRecords } from './zip-bundle';
 
 interface DataImportPreviewOptions {
   fileName?: string;
+}
+
+/**
+ * 从文件构建导入预览（自动分流 ZIP 与 JSON）
+ * @param file 用户选择的文件
+ * @param options 导入选项
+ * @returns 导入预览
+ */
+export async function buildDataImportPreviewFromFile(
+  file: File,
+  options: DataImportPreviewOptions = {},
+): Promise<DataImportPreview> {
+  if (await hasZipMagic(file)) {
+    const { manifest, readImage } = await readPortableZipFile(file);
+    const preview = buildNativePreview(manifest);
+    preview.zipImageReader = async (ref: string) => (typeof ref === 'string' && ref.trim() ? readImage(ref) : null);
+    return preview;
+  }
+  return buildDataImportPreview(await file.text(), options);
 }
 
 /**
@@ -75,7 +95,7 @@ export async function applyDataImport(
 ): Promise<DataImportResult> {
   const result = createInitialResult(currentSettings, preview.warnings);
   for (const section of selectedSections) {
-    await importSection(section, resolvePreviewSectionPayload(preview, section), result);
+    await importSection(section, resolvePreviewSectionPayload(preview, section), result, preview.zipImageReader);
   }
   result.skipped += preview.sections.length - selectedSections.length;
   return result;
@@ -238,14 +258,20 @@ function createInitialResult(settings: CosmosVisionSettings, warnings: string[])
  * @param section section id
  * @param payload section payload
  * @param result 导入结果
+ * @param zipImageReader ZIP 图片读取器
  */
-async function importSection(section: DataPortabilitySectionId, payload: unknown, result: DataImportResult): Promise<void> {
+async function importSection(
+  section: DataPortabilitySectionId,
+  payload: unknown,
+  result: DataImportResult,
+  zipImageReader?: (imageRef: string) => Promise<Blob | null>,
+): Promise<void> {
   if (payload === undefined) {
     result.skipped += 1;
     return;
   }
   try {
-    await createSectionImporters(result)[section](payload);
+    await createSectionImporters(result, zipImageReader)[section](payload);
   } catch (error) {
     result.failed += 1;
     result.warnings.push(error instanceof Error ? error.message : `${section} 导入失败`);
@@ -255,9 +281,13 @@ async function importSection(section: DataPortabilitySectionId, payload: unknown
 /**
  * 创建 section 导入器表
  * @param result 导入结果
+ * @param zipImageReader ZIP 图片读取器
  * @returns 导入器表
  */
-function createSectionImporters(result: DataImportResult): Record<DataPortabilitySectionId, (payload: unknown) => Promise<void> | void> {
+function createSectionImporters(
+  result: DataImportResult,
+  zipImageReader?: (imageRef: string) => Promise<Blob | null>,
+): Record<DataPortabilitySectionId, (payload: unknown) => Promise<void> | void> {
   return {
     basicSettings: payload => assignObjectSection(
       result.settings,
@@ -282,7 +312,7 @@ function createSectionImporters(result: DataImportResult): Record<DataPortabilit
     promptLlmMessagePresets: payload => importPromptLlmMessagePresets(result.settings, payload, result),
     promptProfiles: payload => importPromptProfiles(result.settings, payload, result),
     randomPresetPools: payload => importRandomPresetPools(result.settings, payload, result),
-    inlineFavoritesBundle: payload => importInlineFavoritesBundle(payload, result),
+    inlineFavoritesBundle: payload => importInlineFavoritesBundle(payload, result, zipImageReader),
     uiPreferences: payload => importUiPreferences(payload, result),
   };
 }
@@ -426,9 +456,14 @@ async function importOfficialNovelAIVibeBundle(
  * 导入收藏图片完整包
  * @param payload 外部 payload
  * @param result 导入结果
+ * @param zipImageReader ZIP 图片读取器
  */
-async function importInlineFavoritesBundle(payload: unknown, result: DataImportResult): Promise<void> {
-  const records = await toInlineFavoriteRecords(payload);
+async function importInlineFavoritesBundle(
+  payload: unknown,
+  result: DataImportResult,
+  zipImageReader?: (imageRef: string) => Promise<Blob | null>,
+): Promise<void> {
+  const records = await toInlineFavoriteRecords(payload, zipImageReader);
   result.imported += await importInlineImageFavoriteRecords(records);
 }
 
@@ -614,45 +649,6 @@ function isOfficialVibeImportPreview(payload: unknown): payload is OfficialVibeI
 }
 
 /**
- * 转换收藏图片记录
- * @param payload 外部 payload
- * @returns IndexedDB 收藏记录
- */
-async function toInlineFavoriteRecords(payload: unknown): Promise<InlineImageFavoriteRecord[]> {
-  const records = readArray(payload).filter(isPortableFavoriteRecord);
-  return Promise.all(records.map(toInlineFavoriteRecord));
-}
-
-/**
- * 转换单条收藏图片记录
- * @param record JSON 收藏记录
- * @returns IndexedDB 收藏记录
- */
-async function toInlineFavoriteRecord(record: PortableInlineFavoriteRecord): Promise<InlineImageFavoriteRecord> {
-  return {
-    characterKey: record.characterKey,
-    chatId: record.chatId,
-    slotId: record.slotId,
-    imageBlob: dataUrlToBlob(record.imageData, record.imageType),
-    promptSnapshot: _.cloneDeep(record.promptSnapshot),
-    createdAt: record.createdAt,
-  };
-}
-
-/**
- * 转换 data URL 为 Blob
- * @param dataUrl data URL
- * @param fallbackType 兜底 MIME
- * @returns Blob
- */
-function dataUrlToBlob(dataUrl: string, fallbackType: string): Blob {
-  const [header = '', base64 = ''] = dataUrl.split(',', 2);
-  const mime = header.match(/^data:([^;]+);base64$/)?.[1] ?? fallbackType;
-  const bytes = Uint8Array.from(atob(base64), char => char.charCodeAt(0));
-  return new Blob([bytes], { type: mime });
-}
-
-/**
  * 判断是否为提示词预设
  * @param value 外部值
  * @returns 是否匹配
@@ -729,22 +725,6 @@ function isVibeRecord(value: unknown): value is NovelAIVibeCacheRecord {
  */
 function isNovelAIModel(value: unknown): value is NovelAIVibeCacheRecord['model'] {
   return typeof value === 'string' && NOVELAI_MODELS.some(model => model.value === value);
-}
-
-/**
- * 判断是否为 JSON 收藏图片记录（须含 slotId；缺字段视为畸形跳过）
- * @param value 外部值
- * @returns 是否匹配
- */
-function isPortableFavoriteRecord(value: unknown): value is PortableInlineFavoriteRecord {
-  const record = toRecord(value);
-  return (
-    typeof record.imageData === 'string' &&
-    typeof record.characterKey === 'string' &&
-    typeof record.chatId === 'string' &&
-    typeof record.slotId === 'string' &&
-    record.slotId.length > 0
-  );
 }
 
 /**
