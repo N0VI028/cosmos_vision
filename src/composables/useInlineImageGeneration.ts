@@ -505,7 +505,7 @@ export function useInlineImageGeneration(
     try {
       await applyGenerationResult(paragraph, await task(session, onSnapshotResolved), session, floorTailContext);
     } catch (error) {
-      // resolvedSnapshot 有值 → LLM 通过但生图失败 → 重试只需复用快照
+      // 生图失败或用户取消时均复用该回调（快照有值只重跑生图，无值重跑全流程）
       const retryTask = resolvedSnapshot
         ? () => void runImageGeneration(
           paragraph,
