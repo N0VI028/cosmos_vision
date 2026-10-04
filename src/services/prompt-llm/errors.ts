@@ -63,7 +63,6 @@ export function detectExtractionFailureType(
     return 'invalid_format';
   }
 
-  // 2. 有 Schema 时，尝试 JSON 解析
   try {
     JSON.parse(extractOutputBlock(rawText));
     return 'missing_required_field';

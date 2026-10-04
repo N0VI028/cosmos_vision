@@ -53,7 +53,6 @@ describe('locateFrontendParagraphFromPoint', () => {
     const el = document.createElement('div');
     document.body.appendChild(el);
 
-    // caret 返回 null
     const resNull = locateFrontendParagraphFromPoint(document, 0, 0, {
       caretFromPoint: () => null,
       hasRects: () => true,
@@ -241,7 +240,6 @@ describe('locateFrontendParagraphFromPoint', () => {
     const result = locateFrontendParagraphFromPoint(document, 0, 0, deps);
     expect(result).toBe(p2);
 
-    // 验证选区已恢复
     expect(sel.rangeCount).toBe(1);
     const restored = sel.getRangeAt(0);
     expect(restored.startContainer).toBe(initialRange.startContainer);
@@ -249,7 +247,6 @@ describe('locateFrontendParagraphFromPoint', () => {
     expect(restored.endContainer).toBe(initialRange.endContainer);
     expect(restored.endOffset).toBe(initialRange.endOffset);
 
-    // 验证调用了清空与重置
     expect(removeAllSpy).toHaveBeenCalled();
     expect(addRangeSpy).toHaveBeenCalled();
 

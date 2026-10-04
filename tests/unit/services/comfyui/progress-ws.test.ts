@@ -104,7 +104,6 @@ describe('listenComfyUIProgress WebSocket 监听', () => {
     const ws = MockWebSocket.instances[0];
     expect(ws.url).toBe('ws://127.0.0.1:8188/ws?clientId=client-abc');
 
-    // 发送 progress 文本帧
     ws.onmessage?.({
       data: JSON.stringify({
         type: 'progress',

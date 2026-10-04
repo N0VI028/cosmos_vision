@@ -17,7 +17,6 @@ describe('inlineGenerationSession setProgress and ProgressBar', () => {
     expect(host.querySelector('.cv-inline-generation-spinner')).not.toBeNull();
     expect(host.querySelector('.cv-inline-generation-progress')).toBeNull();
 
-    // 设置进度
     session.status.setProgress({ value: 10, max: 20 });
     expect(host.querySelector('.cv-inline-generation-spinner')).toBeNull();
     const progressEl = host.querySelector('.cv-inline-generation-progress');
@@ -25,13 +24,11 @@ describe('inlineGenerationSession setProgress and ProgressBar', () => {
     const textEl = host.querySelector('.cv-inline-generation-text');
     expect(textEl?.textContent).toBe('正在生图... 50%');
 
-    // 清除进度
     session.status.setProgress(null);
     expect(host.querySelector('.cv-inline-generation-spinner')).not.toBeNull();
     expect(host.querySelector('.cv-inline-generation-progress')).toBeNull();
     expect(textEl?.textContent).toBe('正在生图...');
 
-    // 清理
     session.status.remove();
     controller.cleanup();
   });
@@ -50,7 +47,6 @@ describe('inlineGenerationSession setProgress and ProgressBar', () => {
     session.status.setProgress({ value: 5, max: 20 });
     expect(host.querySelector('.cv-inline-generation-progress')).not.toBeNull();
 
-    // 切换到 error 态
     session.status.setStatus('生图失败', 'error');
     expect(host.querySelector('.cv-inline-generation-progress')).toBeNull();
     expect(host.querySelector('.cv-inline-generation-spinner')).toBeNull();

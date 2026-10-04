@@ -20,12 +20,6 @@ describe('theme 主题色亮度与对比度防御机制', () => {
       // #808080 线性化后真实值约为 0.2158605
       expect(relativeLuminance('#808080')).toBeCloseTo(0.21586, 4);
     });
-
-    it('非法输入返回 NaN', () => {
-      expect(relativeLuminance('')).toBeNaN();
-      expect(relativeLuminance('invalid')).toBeNaN();
-      expect(relativeLuminance('#12')).toBeNaN();
-    });
   });
 
   describe('contrastRatio 对比度计算', () => {
@@ -34,11 +28,6 @@ describe('theme 主题色亮度与对比度防御机制', () => {
       expect(contrastRatio('#e18a24', '#ffffff')).toBeCloseTo(2.67, 2);
       // #f49066 相对亮度约为 0.4014，对白底标准 WCAG 对比度约为 2.33:1（大于阈值 2）
       expect(contrastRatio('#f49066', '#ffffff')).toBeCloseTo(2.33, 2);
-    });
-
-    it('非法输入计算对比度返回 NaN', () => {
-      expect(contrastRatio('#ffffff', 'invalid')).toBeNaN();
-      expect(contrastRatio('invalid', '#000000')).toBeNaN();
     });
   });
 

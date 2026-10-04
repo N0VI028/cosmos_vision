@@ -237,12 +237,10 @@ export async function* parseMsgpackFrames(
       if (!value?.length) continue
       receivedData = true
 
-      // 追加新数据
       const next = new Uint8Array(buf.length + value.length)
       next.set(buf); next.set(value, buf.length)
       buf = next
 
-      // 按帧分割
       while (buf.length >= 4) {
         const frameLen = new DataView(buf.buffer, buf.byteOffset).getUint32(0, false)
         if (frameLen <= 0 || frameLen > MAX_FRAME_SIZE) throw new Error(`非法 msgpack 帧长度: ${frameLen}`)
@@ -318,7 +316,6 @@ export function decodeBase64Image(raw?: string | null): Uint8Array | undefined {
     str = str.slice(commaIndex + 1)
   }
 
-  // 校验有效 base64 字符
   if (/^\s*$/.test(str)) return undefined
 
   // 标准化 URL-safe base64 并移除内部空白字符

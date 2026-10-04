@@ -59,7 +59,6 @@ describe('TextInputDialog 弹窗预设切换与整体文本联动', () => {
     expect(textareas.length).toBeGreaterThanOrEqual(2);
     expect(textareas[0].value).toBe('template one, pristine pos');
 
-    // 切换正面预设为 P2
     await wrapper.setProps({ positivePresetId: 'P2' });
     await nextTick();
 
@@ -73,7 +72,6 @@ describe('TextInputDialog 弹窗预设切换与整体文本联动', () => {
 
     const textareas = document.querySelectorAll<HTMLTextAreaElement>('textarea');
 
-    // 切回原样（空字符串）
     await wrapper.setProps({ positivePresetId: '' });
     await nextTick();
 
@@ -89,14 +87,12 @@ describe('TextInputDialog 弹窗预设切换与整体文本联动', () => {
     expect(textareas.length).toBeGreaterThanOrEqual(2);
     expect(textareas[1].value).toBe('pristine neg, no bad stuff');
 
-    // 切换负面预设为 N2
     await wrapper.setProps({ negativePresetId: 'N2' });
     await nextTick();
 
     expect(textareas[1].value).toBe('pristine neg, other bad stuff');
     expect(wrapper.emitted('update:secondaryValue')?.at(-1)).toEqual(['pristine neg, other bad stuff']);
 
-    // 切回原样
     await wrapper.setProps({ negativePresetId: '' });
     await nextTick();
 

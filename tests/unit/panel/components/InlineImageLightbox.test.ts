@@ -132,12 +132,10 @@ describe('InlineImageLightbox 组件', () => {
     expect(infoBtn.exists()).toBe(true);
     expect(wrapper.findComponent({ name: 'LightboxImageInfoPanel' }).exists()).toBe(false);
 
-    // 点击切换为显示
     await infoBtn.trigger('click');
     expect(wrapper.findComponent({ name: 'LightboxImageInfoPanel' }).exists()).toBe(true);
     expect(infoBtn.classes()).toContain('active');
 
-    // 再次点击切换为隐藏
     await infoBtn.trigger('click');
     expect(wrapper.findComponent({ name: 'LightboxImageInfoPanel' }).exists()).toBe(false);
     expect(infoBtn.classes()).not.toContain('active');

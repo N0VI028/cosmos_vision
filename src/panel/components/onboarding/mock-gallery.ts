@@ -101,23 +101,18 @@ function buildMockGalleryContainer(avatarUrl: string): HTMLElement {
   container.className = 'cv-render';
   container.setAttribute(MOCK_ATTR, 'true');
 
-  // 构建画廊包装器
   const wrapper = document.createElement('div');
   wrapper.className = 'cv-inline-img-wrap cv-inline-favorite-wrap cosmos-vision-root';
 
-  // 构建画廊内容
   const content = document.createElement('div');
   content.className = 'cv-inline-favorite-content';
 
-  // 构建 Galleria 容器
   const galleria = document.createElement('div');
   galleria.className = 'cv-inline-favorite-galleria p-galleria p-component';
 
-  // 构建舞台
   const stage = document.createElement('div');
   stage.className = 'cv-inline-favorite-stage';
 
-  // 构建图片
   const img = document.createElement('img');
   img.className = 'cv-inline-favorite-img';
   img.src = avatarUrl;
@@ -139,7 +134,6 @@ function buildMockGalleryContainer(avatarUrl: string): HTMLElement {
   removeBtn.disabled = true;
   removeBtn.title = '删除功能（仅演示）';
 
-  // 构建操作条
   const actions = document.createElement('div');
   actions.className = 'cv-inline-img-actions';
   actions.innerHTML = `
@@ -159,7 +153,6 @@ function buildMockGalleryContainer(avatarUrl: string): HTMLElement {
     </div>
   `;
 
-  // 组装结构
   stage.append(img, favoriteBtn, removeBtn, actions);
   galleria.appendChild(stage);
   content.appendChild(galleria);
@@ -180,7 +173,6 @@ function buildMockSelectionShell(paragraph: HTMLElement, container: HTMLElement)
   shell.className = 'cv-inline-selection-shell';
   shell.setAttribute(MOCK_ATTR, 'shell');
 
-  // 计算段落相对容器的位置和尺寸
   const containerRect = container.getBoundingClientRect();
   const paragraphRect = paragraph.getBoundingClientRect();
 
@@ -191,12 +183,10 @@ function buildMockSelectionShell(paragraph: HTMLElement, container: HTMLElement)
   shell.style.height = `${paragraphRect.height}px`;
   shell.style.pointerEvents = 'none';
 
-  // 构建工具条
   const toolbar = document.createElement('div');
   toolbar.className = 'cv-inline-toolbar';
   toolbar.style.pointerEvents = 'none';
 
-  // 构建生图触发器（白色胶囊）
   const trigger = document.createElement('div');
   trigger.className = 'cv-inline-trigger';
   trigger.style.pointerEvents = 'none';

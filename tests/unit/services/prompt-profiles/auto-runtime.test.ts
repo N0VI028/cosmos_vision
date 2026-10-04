@@ -362,7 +362,6 @@ describe('auto-runtime service', () => {
       expect(result.participantContent).toContain('<world_info>\nMagic Realm\n</world_info>');
       expect(result.participantContent).toContain('Manual Profile Content');
 
-      // Verify that auto content comes before manual profile content
       const autoIndex = result.participantContent.indexOf('<world_info>');
       const manualIndex = result.participantContent.indexOf('Manual Profile Content');
       expect(autoIndex).toBeLessThan(manualIndex);

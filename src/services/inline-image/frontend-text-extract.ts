@@ -40,13 +40,11 @@ export function extractFrontendText(element: HTMLElement): string {
  * @returns 气泡容器元素
  */
 export function resolveFrontendBubbleRoot(element: HTMLElement): HTMLElement {
-  // 优先使用显式标记
   const custom = element.closest<HTMLElement>('[data-cv-selectable]');
   if (custom) {
     return custom;
   }
 
-  // 智能识别CSS气泡：查找最近的有class的div/section/article
   let current: HTMLElement | null = element;
   while (current) {
     const parent: HTMLElement | null = current.parentElement;
@@ -54,14 +52,12 @@ export function resolveFrontendBubbleRoot(element: HTMLElement): HTMLElement {
 
     // 停止条件：到达 .mes_text 边界
     if (parent.classList.contains('mes_text')) {
-      // 如果当前节点有class且包含文本，视为气泡
       if (current.className && current.textContent?.trim()) {
         return current;
       }
       break;
     }
 
-    // 识别气泡特征：div/section/article + 有class + 包含文本
     if (
       current.matches('div, section, article') &&
       current.className &&

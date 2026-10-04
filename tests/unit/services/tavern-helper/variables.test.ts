@@ -19,12 +19,6 @@ describe('tavern-helper variables service', () => {
     expect(res.error).toBe('酒馆助手不可用');
   });
 
-  it('handles invalid scope type', () => {
-    const res = fetchScopeVariables('invalid' as any);
-    expect(res.data).toBeNull();
-    expect(res.error).toBe('未知作用域类型');
-  });
-
   it('fetches global scope variables successfully', () => {
     const getVariablesMock = vi.fn().mockReturnValue({ foo: 'bar' });
     (globalThis as unknown as { TavernHelper: unknown }).TavernHelper = {

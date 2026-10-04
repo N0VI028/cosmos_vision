@@ -296,7 +296,6 @@ function handleSessionFailure(
   if (!onRetry) scheduleStatusRemoval(session.status, ERROR_REMOVE_DELAY_MS);
   console.error('[InlineImageGeneration]', error);
 
-  // 如果是提取错误，额外输出完整的原始内容
   if (isPromptLlmExtractionError(error)) {
     console.group('[LLM 原始输出]');
     console.log(error.rawOutput);

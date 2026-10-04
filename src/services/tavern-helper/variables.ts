@@ -43,10 +43,7 @@ export const VARIABLE_SCOPES: readonly VariableScopeMeta[] = [
  * @returns 变量快照与错误消息
  */
 export function fetchScopeVariables(scope: VariableScopeType): ScopeVariableFetchResult {
-  const meta = VARIABLE_SCOPES.find((item) => item.type === scope);
-  if (!meta) {
-    return { data: null, error: '未知作用域类型' };
-  }
+  const meta = VARIABLE_SCOPES.find((item) => item.type === scope)!;
   if (typeof TavernHelper === 'undefined' || typeof TavernHelper.getVariables !== 'function') {
     return { data: null, error: '酒馆助手不可用' };
   }

@@ -18,13 +18,10 @@ export const MIN_QUOTE_SURFACE_CONTRAST = 2;
  *
  * 各通道 c/255 后线性化（c<=0.03928 ? c/12.92 : ((c+0.055)/1.055)^2.4），L = 0.2126R + 0.7152G + 0.0722B。
  * @param hex 颜色十六进制字符串，形如 #rrggbb
- * @returns 相对亮度值 (0 - 1)，非法输入返回 NaN
+ * @returns 相对亮度值 (0 - 1)
  */
 export function relativeLuminance(hex: string): number {
   const fullHex = hex.trim().replace(/^#/, '');
-  if (!/^[0-9a-fA-F]{6}$/.test(fullHex)) {
-    return NaN;
-  }
   const r = parseInt(fullHex.slice(0, 2), 16) / 255;
   const g = parseInt(fullHex.slice(2, 4), 16) / 255;
   const b = parseInt(fullHex.slice(4, 6), 16) / 255;
@@ -38,14 +35,11 @@ export function relativeLuminance(hex: string): number {
  * 公式为 (L1+0.05)/(L2+0.05)，L1 为较亮者。
  * @param hexA 颜色 A (十六进制)
  * @param hexB 颜色 B (十六进制)
- * @returns 对比度比例 (1 - 21)，任一颜色非法时返回 NaN
+ * @returns 对比度比例 (1 - 21)
  */
 export function contrastRatio(hexA: string, hexB: string): number {
   const lumA = relativeLuminance(hexA);
   const lumB = relativeLuminance(hexB);
-  if (Number.isNaN(lumA) || Number.isNaN(lumB)) {
-    return NaN;
-  }
   const l1 = Math.max(lumA, lumB);
   const l2 = Math.min(lumA, lumB);
   return (l1 + 0.05) / (l2 + 0.05);

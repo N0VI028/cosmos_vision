@@ -140,7 +140,6 @@ export async function importNovelAIVibePresetPackageFile(
     return importNovelAIVibeTransferFile(file, currentSettings);
   }
 
-  // 否则作为原生预设包进行导入
   const text = await file.text();
   const preview = buildDataImportPreview(text);
   if (!preview.sections.some(section => section.id === 'novelAIVibeBundle')) {

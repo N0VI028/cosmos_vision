@@ -355,10 +355,8 @@ const { settings } = useSettingsStore();
 const props = defineProps<{ subTab: NovelAISubTab }>();
 const subTab = computed(() => props.subTab);
 
-// 注入父组件提供的刷新方法
 const refreshSections = inject<(() => void) | undefined>('refreshSections');
 
-// 监听 subTab 变化，通知父组件刷新 section
 watch(subTab, () => {
   nextTick(() => {
     refreshSections?.();

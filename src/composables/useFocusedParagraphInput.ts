@@ -48,7 +48,6 @@ export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInp
    * @returns 焦点段落数组，无焦点时返回空数组
    */
   function getFocusedParagraphsWithFallback(): HTMLElement[] {
-    // 优先从 DOM 读取当前选中的段落
     const domParagraphs = getFocusedChatParagraphs();
     if (domParagraphs.length) {
       return domParagraphs;
@@ -125,7 +124,6 @@ export function useFocusedParagraphInput(initialValue = ''): FocusedParagraphInp
     if (!messageParagraphs.value.length) {
       messageParagraphs.value = [...(initialMessageParagraphs?.value ?? [])];
     }
-    // 如果快照有 messageId，说明用户确实选择了段落，应该标记为有焦点
     if (messageId.value) {
       hasFocusedChatParagraph.value = true;
     }

@@ -283,7 +283,6 @@ export function useInlineImageGeneration(
       return;
     }
 
-    // 点击聊天区空白处取消选中
     const host = getHostIframe(target) ?? target;
     if (host.closest('.mes_text, [mesid]')) {
       clearSelection();

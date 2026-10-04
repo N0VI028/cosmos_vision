@@ -352,7 +352,6 @@ function buildPresetOptions(
   selectedId: string,
   specialLabel: string,
 ): PresetOption[] {
-  // 1. 基础预设选项映射（为空时兜底未命名预设）
   const options: PresetOption[] = presets.map(preset => ({
     id: preset.id,
     name: preset.name?.trim() || '未命名预设',
@@ -360,12 +359,10 @@ function buildPresetOptions(
 
   const isMatched = options.some(opt => opt.id === selectedId);
 
-  // 2. 当前选中值为空串或未命中列表时，在头部添加特殊项
   if (!selectedId || !isMatched) {
     options.unshift({ id: '', name: specialLabel });
   }
 
-  // 3. 当前选中值非空且未命中列表时，在尾部追加失效项
   if (selectedId && !isMatched) {
     options.push({ id: selectedId, name: `${selectedId} (已失效)` });
   }

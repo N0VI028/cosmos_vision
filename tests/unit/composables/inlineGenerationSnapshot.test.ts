@@ -61,7 +61,6 @@ describe('inlineGenerationSnapshot', () => {
     it('剔除提示词字段并保留参数字段', () => {
       const info = toNovelAIRequestInfo(mockSnapshot);
 
-      // 验证提示词相关字段被剔除
       expect('positivePrompt' in info).toBe(false);
       expect('negativePrompt' in info).toBe(false);
       expect('characterPrompts' in info).toBe(false);
