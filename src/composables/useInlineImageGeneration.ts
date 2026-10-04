@@ -857,7 +857,7 @@ export function useInlineImageGeneration(
       session.controller.signal,
     );
     generationSession.ensureActive(session);
-    const request = buildComfyUIResolvedRequest(
+    const request = await buildComfyUIResolvedRequest(
       settings.comfyui,
       settings.imagePromptPresets,
       output,

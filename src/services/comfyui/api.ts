@@ -91,9 +91,15 @@ export async function generateComfyUIImages(
   options: ComfyUIRequestOptions = {},
 ): Promise<Blob[]> {
   const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings, options.signal);
+  const resolvedRequest = await buildComfyUIResolvedRequest(
+    settings,
+    presetSettings,
+    prompts,
+    loraTriggerWords,
+  );
   return generateComfyUIImagesFromResolvedRequest(
     settings,
-    buildComfyUIResolvedRequest(settings, presetSettings, prompts, loraTriggerWords),
+    resolvedRequest,
     options,
   );
 }
@@ -116,7 +122,7 @@ export async function generateComfyUIImagesFromPrompts(
         ? await resolveComfyUILoraTriggerWords(settings.url, options.loras.map(l => l.name), options.signal)
         : await resolveActiveComfyUILoraTriggerWords(settings, options.signal));
 
-  const resolvedRequest = buildComfyUIResolvedRequestFromPrompts(
+  const resolvedRequest = await buildComfyUIResolvedRequestFromPrompts(
     settings,
     prompts,
     loraTriggerWords,
@@ -422,7 +428,7 @@ async function pollComfyUIHistory(
  * @param signal 取消信号
  * @returns 图片列表或未完成时的 null
  */
-async function fetchComfyUIHistoryResult(
+export async function fetchComfyUIHistoryResult(
   baseUrl: string,
   promptId: string,
   imageOutputNodeId: string,
@@ -445,7 +451,12 @@ async function fetchComfyUIHistoryResult(
   }
 
   const images = extractHistoryImages(entry, imageOutputNodeId);
-  if (!images) return null;
+  if (!images) {
+    if (entry.status?.completed === true) {
+      throw new Error(`ComfyUI 执行完成但结果节点 ${imageOutputNodeId} 未产出图片（该节点可能不是输出节点，请检查工作流结果节点配置）`);
+    }
+    return null;
+  }
 
   return { images };
 }

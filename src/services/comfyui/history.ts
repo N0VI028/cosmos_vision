@@ -5,6 +5,8 @@ export interface ComfyUIHistoryEntry {
   outputs?: Record<string, { images?: ComfyUIHistoryImage[] }>;
   status?: {
     status_str?: string;
+    /** ComfyUI 执行是否已完成（用于结果节点未产出图片时快速失败判定） */
+    completed?: boolean;
     messages?: unknown[];
   };
 }

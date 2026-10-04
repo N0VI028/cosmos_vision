@@ -155,7 +155,7 @@ async function requestComfyUIImageBlobs(
     { url: comfyui.url, loraPresets: { ...comfyui.loraPresets, activePresetId: effectiveLoraPreset.id } },
     options.signal,
   );
-  const request = buildComfyUIResolvedRequest(
+  const request = await buildComfyUIResolvedRequest(
     comfyui,
     settings.imagePromptPresets,
     { positivePrompt: prompts.positivePrompt, negativePrompt: prompts.negativePrompt },
