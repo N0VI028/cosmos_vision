@@ -59,7 +59,6 @@ describe('RandomPresetPoolPanel 组件', () => {
     const deleteBtns = wrapper.findAll('button').filter(btn => btn.attributes('title') === '删除预设池');
     expect(deleteBtns.length).toBe(2);
 
-    // 删除第一个池
     await deleteBtns[0].trigger('click');
     expect(settings.randomPresetPools.pools).toHaveLength(1);
     expect(settings.randomPresetPools.pools[0].id).toBe('pool-2');
@@ -77,7 +76,6 @@ describe('RandomPresetPoolPanel 组件', () => {
     settings.randomPresetPools.pools = [pool];
 
     const wrapper = mountPanel();
-    // 切换到 negative
     (wrapper.vm as any).handleSideChange(pool, 'negative');
 
     expect(pool.side).toBe('negative');

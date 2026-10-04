@@ -12,6 +12,16 @@ type TavernHelperInstance = NonNullable<typeof TavernHelper>;
 /** TavernHelper generateRaw 请求控制选项 */
 export interface TavernHelperGenerateRawOptions {
   timeoutSeconds?: number;
+  /** 调用方取消信号，触发时终止本次 generateRaw 请求 */
+  signal?: AbortSignal;
+}
+
+/** generateRaw 请求的终止控制句柄 */
+interface GenerateRawAbortHandle {
+  /** 终止触发时 reject 的等待 Promise */
+  promise: Promise<never>;
+  /** 释放定时器或事件监听 */
+  dispose: () => void;
 }
 
 /**
@@ -28,37 +38,77 @@ export async function requestTavernHelperGenerateRaw(
 ): Promise<TavernHelperGenerateRawOutcome> {
   const generationId = request.generation_id || createGenerateRawGenerationId();
   const resolvedRequest = resolveGenerateRawRequestMacros(tavernHelper, { ...request, generation_id: generationId });
-  const result = await requestGenerateRawWithTimeout(tavernHelper, resolvedRequest, generationId, options.timeoutSeconds);
+  const result = await requestGenerateRawWithTimeout(tavernHelper, resolvedRequest, generationId, options);
   return readGenerateRawOutcome(result);
 }
 
 /**
- * 为 generateRaw 请求执行本地超时与终止控制
+ * 为 generateRaw 请求执行本地超时与取消控制
+ * 两种终止均先按 generationId 停止底层请求，再以中文错误 reject
  * @param tavernHelper 酒馆助手实例
  * @param request 已完成宏替换的请求
  * @param generationId 请求唯一标识
- * @param timeoutSeconds 请求总超时秒数
+ * @param options 请求控制选项
  * @returns TavernHelper 原始响应
  */
 async function requestGenerateRawWithTimeout(
   tavernHelper: TavernHelperInstance,
   request: TavernHelperGenerateRawConfig,
   generationId: string,
-  timeoutSeconds: number | undefined,
+  options: TavernHelperGenerateRawOptions,
 ): Promise<Awaited<ReturnType<TavernHelperInstance['generateRaw']>>> {
-  if (!timeoutSeconds) return tavernHelper.generateRaw(request);
+  const { timeoutSeconds, signal } = options;
+  const pending = tavernHelper.generateRaw(request);
+  if (!timeoutSeconds && !signal) return pending;
+  const handles = [
+    ...(timeoutSeconds ? [createGenerateRawTimeoutHandle(timeoutSeconds, generationId)] : []),
+    ...(signal ? [createGenerateRawAbortHandle(signal, generationId)] : []),
+  ];
+  try {
+    return await Promise.race([pending, ...handles.map(handle => handle.promise)]);
+  } finally {
+    handles.forEach(handle => handle.dispose());
+  }
+}
+
+/**
+ * 创建超时终止句柄
+ * @param timeoutSeconds 请求总超时秒数
+ * @param generationId 请求唯一标识
+ * @returns 终止句柄
+ */
+function createGenerateRawTimeoutHandle(timeoutSeconds: number, generationId: string): GenerateRawAbortHandle {
   let timer = 0;
-  const timeout = new Promise<never>((_resolve, reject) => {
+  const promise = new Promise<never>((_resolve, reject) => {
     timer = window.setTimeout(() => {
       stopTavernHelperGeneration(generationId);
       reject(new Error(`Prompt LLM 请求超时（${timeoutSeconds} 秒）`));
     }, timeoutSeconds * 1000);
   });
-  try {
-    return await Promise.race([tavernHelper.generateRaw(request), timeout]);
-  } finally {
-    window.clearTimeout(timer);
-  }
+  return { promise, dispose: () => window.clearTimeout(timer) };
+}
+
+/**
+ * 创建调用方取消终止句柄
+ * @param signal 调用方取消信号
+ * @param generationId 请求唯一标识
+ * @returns 终止句柄
+ */
+function createGenerateRawAbortHandle(signal: AbortSignal, generationId: string): GenerateRawAbortHandle {
+  let dispose = () => {};
+  const promise = new Promise<never>((_resolve, reject) => {
+    const onAbort = () => {
+      stopTavernHelperGeneration(generationId);
+      reject(new Error('请求已取消'));
+    };
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    signal.addEventListener('abort', onAbort, { once: true });
+    dispose = () => signal.removeEventListener('abort', onAbort);
+  });
+  return { promise, dispose };
 }
 
 /**

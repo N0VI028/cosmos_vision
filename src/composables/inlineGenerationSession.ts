@@ -35,6 +35,7 @@ export interface InlineGenerationStatusHandle {
   /** 设置流式预览图；null 清除预览（URL 生命周期由调用方管理） */
   setStreamPreview: (preview: { imageUrl: string } | null) => void;
   remove: () => void;
+  isRemoved: () => boolean;
 }
 
 /** 内联生成会话 */
@@ -44,11 +45,12 @@ export interface InlineGenerationSession {
   controller: AbortController;
   promptGenerationId: string;
   status: InlineGenerationStatusHandle;
+  /** 用户主动取消标记：任务 rejection 时转为可重试错误态而非直接移除 */
+  cancelled: boolean;
 }
 
 interface InlineGenerationSessionController {
   start: (paragraph: HTMLElement, target: HTMLElement, initialText: string, placement?: InlineGenerationStatusPlacement) => InlineGenerationSession;
-  cancelByParagraph: (paragraph: HTMLElement) => void;
   cleanup: () => void;
   clear: (session: InlineGenerationSession) => void;
   ensureActive: (session: InlineGenerationSession) => void;
@@ -159,10 +161,26 @@ function startSession(
     initialText,
     placement,
     options,
-    () => cancelParagraphSession(activeSessions, paragraph),
+    () => cancelSessionByUser(activeSessions, paragraph),
   );
   activeSessions.set(paragraph, session);
   return session;
+}
+
+/**
+ * 用户主动取消指定段落的活动请求
+ * 保留状态条并在会话上标记 cancelled，待任务 rejection 后转为可重试错误态
+ * @param activeSessions 活动会话映射
+ * @param paragraph 目标段落
+ */
+function cancelSessionByUser(
+  activeSessions: ActiveInlineGenerationSessions,
+  paragraph: HTMLElement,
+): void {
+  const session = readActiveSession(activeSessions, paragraph);
+  if (!session) return;
+  session.cancelled = true;
+  abortSession(session);
 }
 
 /**
@@ -258,6 +276,11 @@ function handleSessionFailure(
   onRetry?: () => void,
 ): void {
   if (isInactiveSession(activeSessions, session)) {
+    if (session.cancelled && !session.status.isRemoved()) {
+      session.status.setStatus('已取消生成', 'error', onRetry);
+      if (!onRetry) scheduleStatusRemoval(session.status, ERROR_REMOVE_DELAY_MS);
+      return;
+    }
     session.status.remove();
     return;
   }
@@ -273,7 +296,6 @@ function handleSessionFailure(
   if (!onRetry) scheduleStatusRemoval(session.status, ERROR_REMOVE_DELAY_MS);
   console.error('[InlineImageGeneration]', error);
 
-  // 如果是提取错误，额外输出完整的原始内容
   if (isPromptLlmExtractionError(error)) {
     console.group('[LLM 原始输出]');
     console.log(error.rawOutput);
@@ -294,7 +316,6 @@ export function createInlineGenerationSessionController(
   return {
     start: (paragraph, target, initialText, placement) =>
       startSession(activeSessions, options, paragraph, target, initialText, placement),
-    cancelByParagraph: paragraph => cancelParagraphSession(activeSessions, paragraph),
     cleanup: () => cleanupSessions(activeSessions),
     clear: session => clearSession(activeSessions, session),
     ensureActive: session => ensureSessionActive(activeSessions, session),
@@ -329,7 +350,14 @@ function createSession(
   });
   mountStatusHost(target, status.host, placement);
   const requestId = createGenerationId();
-  return { requestId, paragraph, controller: new AbortController(), promptGenerationId: requestId, status };
+  return {
+    requestId,
+    paragraph,
+    controller: new AbortController(),
+    promptGenerationId: requestId,
+    status,
+    cancelled: false,
+  };
 }
 
 /**
@@ -426,7 +454,7 @@ function createInlineGenerationStatus(options: InlineGenerationStatusOptions): I
   }
 
   setStatus(options.initialText);
-  return { host, setStatus, setProgress, setStreamPreview, remove };
+  return { host, setStatus, setProgress, setStreamPreview, remove, isRemoved: () => removed };
 }
 
 /**

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_SETTINGS } from '@/constants/default-settings';
 import { createImagePromptPreset, type ImagePromptPresetSettings } from '@/constants/image-prompt';
 import type { CosmosVisionSettings } from '@/constants/novelai';
@@ -13,7 +13,12 @@ import type {
 } from '@/composables/inlineGenerationInput';
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import { stripImagePromptPresetText } from '@/services/image-prompt/presets';
+import { resolveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
 import { getQualityPresetPrompt, getUcPresetPrompt } from '@/services/novelai/prompt-presets';
+
+vi.mock('@/services/comfyui/lora-trigger-words', () => ({
+  resolveComfyUILoraTriggerWords: vi.fn().mockResolvedValue([]),
+}));
 
 /**
  * 创建链路测试设置（P1/P2 两个正面模板预设 + N1 负面模板预设）
@@ -67,6 +72,7 @@ function createDialogMock(
       characters: edits.characters ?? options.charactersDefaultValue ?? [],
       positivePresetId,
       negativePresetId,
+      loraPresetId: edits.loraPresetId !== undefined ? edits.loraPresetId : options.loraPresetId,
     };
   };
 }
@@ -267,18 +273,107 @@ describe('编辑提示词新交互模型：整体文本与精确剥离', () => {
     expect(edited.negativePrompt).toBe(`${uc}, broken suffix neg`);
   });
 
-  describe('ComfyUI 分支编辑行为', () => {
-    const dummyComfyUISnapshot = {
-      endpoint: 'http://127.0.0.1:8188',
-      positivePrompt: 'triggerA, template one, old core',
-      negativePrompt: 'old neg',
-      imageOutputNodeId: '9',
-      promptBindings: [],
-      seedValues: [],
-      imageBindings: [],
-      loras: [{ name: 'testLora', strength: 1.0 }],
+  /** ComfyUI 分支测试共用的请求快照 fixture */
+const dummyComfyUISnapshot = {
+  endpoint: 'http://127.0.0.1:8188',
+  positivePrompt: 'triggerA, template one, old core',
+  negativePrompt: 'old neg',
+  imageOutputNodeId: '9',
+  promptBindings: [],
+  seedValues: [],
+  imageBindings: [],
+  loras: [{ name: 'testLora', strength: 1.0 }],
+};
+
+describe('角色提示词展示与回写门控', () => {
+  const characterPrompts = [
+    { positivePrompt: 'char a', negativePrompt: 'neg a', position: { x: 0.5, y: 0.5 } },
+  ];
+
+  it('ComfyUI 快照不展示角色提示词区且不回写角色', async () => {
+    const settings = createChainSettings();
+    const snapshot: InlinePromptSnapshot = {
+      imageSource: 'comfyui',
+      comfyui: { ...dummyComfyUISnapshot },
+      promptParts: {
+        positive: { core: 'old core', presetId: 'P1' },
+        negative: { core: 'old neg', presetId: '' },
+      },
     };
 
+    let receivedOptions: InlinePromptPairInputOptions | undefined;
+    await requestEditedPromptSnapshot(
+      settings,
+      snapshot,
+      createDialogMock(settings, {}, opts => {
+        receivedOptions = opts;
+      }),
+    );
+
+    expect(receivedOptions!.enableCharacters).toBe(false);
+    expect(receivedOptions!.message).toBe('直接编辑当前图片保存的提示词，确认后生成图片');
+  });
+
+  it('NovelAI V3 模型不展示角色提示词且提交后清空角色与坐标（旧角色流经弹窗也被丢弃）', async () => {
+    const settings = createChainSettings();
+    settings.novelai.model = 'nai-diffusion-3';
+    const snapshot: InlinePromptSnapshot = {
+      positivePrompt: 'template one, core',
+      negativePrompt: 'neg',
+      imageSource: 'novelai',
+      novelai: { positivePrompt: 'template one, core', negativePrompt: 'neg', characterPrompts, useCharacterCoords: true },
+      promptParts: {
+        positive: { core: 'core', presetId: 'P1' },
+        negative: { core: 'neg', presetId: '' },
+      },
+    };
+
+    let receivedOptions: InlinePromptPairInputOptions | undefined;
+    const edited = (await requestEditedPromptSnapshot(
+      settings,
+      snapshot,
+      createDialogMock(settings, {}, opts => {
+        receivedOptions = opts;
+      }),
+    ))!;
+
+    // 弹窗回显仍收到旧角色草稿，但 UI 区隐藏
+    expect(receivedOptions!.enableCharacters).toBe(false);
+    expect(receivedOptions!.charactersDefaultValue).toHaveLength(1);
+    // 提交侧门控丢弃角色：mock 原样回传旧角色，快照仍清空
+    expect(edited.novelai?.characterPrompts).toEqual([]);
+    expect(edited.novelai?.useCharacterCoords).toBe(false);
+  });
+
+  it('NovelAI V4.5 模型展示角色提示词并原样回写', async () => {
+    const settings = createChainSettings();
+    const snapshot: InlinePromptSnapshot = {
+      positivePrompt: 'template one, core',
+      negativePrompt: 'neg',
+      imageSource: 'novelai',
+      novelai: { positivePrompt: 'template one, core', negativePrompt: 'neg', characterPrompts },
+      promptParts: {
+        positive: { core: 'core', presetId: 'P1' },
+        negative: { core: 'neg', presetId: '' },
+      },
+    };
+
+    let receivedOptions: InlinePromptPairInputOptions | undefined;
+    const edited = (await requestEditedPromptSnapshot(
+      settings,
+      snapshot,
+      createDialogMock(settings, {}, opts => {
+        receivedOptions = opts;
+      }),
+    ))!;
+
+    expect(receivedOptions!.enableCharacters).toBe(true);
+    expect(receivedOptions!.charactersDefaultValue).toHaveLength(1);
+    expect(edited.novelai?.characterPrompts).toEqual(characterPrompts);
+  });
+});
+
+describe('ComfyUI 分支编辑行为', () => {
     it('有 parts 快照编辑：仅更新 promptParts，不动最终串与 comfyui 最终串', async () => {
       const settings = createChainSettings();
       const snapshot: InlinePromptSnapshot = {
@@ -343,6 +438,115 @@ describe('编辑提示词新交互模型：整体文本与精确剥离', () => {
 
       expect(edited.promptParts?.positive).toEqual({ core: 'modified legacy prompt', presetId: '' });
       expect(edited.positivePrompt).toBe('legacy comfyui prompt');
+    });
+
+    it('旧快照（无 parts）弹窗展示前剥离旧 LoRA 触发词', async () => {
+      const settings = createChainSettings();
+      vi.mocked(resolveComfyUILoraTriggerWords).mockResolvedValueOnce(['triggerA']);
+      const legacySnapshot: InlinePromptSnapshot = {
+        imageSource: 'comfyui',
+        positivePrompt: 'triggerA, 1girl, solo',
+        negativePrompt: 'low quality',
+        comfyui: {
+          ...dummyComfyUISnapshot,
+          positivePrompt: 'triggerA, 1girl, solo',
+          loras: [{ name: 'testLora', strength: 1.0 }],
+        },
+      };
+
+      let receivedOptions: InlinePromptPairInputOptions | undefined;
+      await requestEditedPromptSnapshot(
+        settings,
+        legacySnapshot,
+        createDialogMock(settings, {}, opts => {
+          receivedOptions = opts;
+        }),
+      );
+
+      expect(receivedOptions?.enableLoraSelector).toBe(true);
+      expect(receivedOptions?.positiveDefaultValue).toBe('1girl, solo');
+      expect(receivedOptions?.positiveCore).toBe('1girl, solo');
+    });
+
+    it('提交后写回选择的 loraPresetId', async () => {
+      const settings = createChainSettings();
+      vi.mocked(resolveComfyUILoraTriggerWords).mockResolvedValueOnce([]);
+      const snapshot: InlinePromptSnapshot = {
+        imageSource: 'comfyui',
+        positivePrompt: '1girl',
+        negativePrompt: '',
+        comfyui: {
+          ...dummyComfyUISnapshot,
+          loraPresetId: 'old-preset-id',
+        },
+      };
+
+      const edited = (await requestEditedPromptSnapshot(
+        settings,
+        snapshot,
+        createDialogMock(settings, { loraPresetId: 'new-preset-id' }),
+      ))!;
+
+      expect(edited.comfyui?.loraPresetId).toBe('new-preset-id');
+    });
+
+    it('弹窗未传 loraPresetId 时沿用初始值', async () => {
+      const settings = createChainSettings();
+      vi.mocked(resolveComfyUILoraTriggerWords).mockResolvedValueOnce([]);
+      const snapshot: InlinePromptSnapshot = {
+        imageSource: 'comfyui',
+        positivePrompt: '1girl',
+        negativePrompt: '',
+        comfyui: {
+          ...dummyComfyUISnapshot,
+          loraPresetId: 'old-preset-id',
+        },
+      };
+
+      const edited = (await requestEditedPromptSnapshot(
+        settings,
+        snapshot,
+        createDialogMock(settings, { loraPresetId: undefined }),
+      ))!;
+
+      expect(edited.comfyui?.loraPresetId).toBe('old-preset-id');
+    });
+
+    it('无 parts 且无顶层的 ComfyUI 快照走 comfyui 子对象兜底', async () => {
+      const settings = createChainSettings();
+      vi.mocked(resolveComfyUILoraTriggerWords).mockResolvedValueOnce(['triggerA']);
+      const snapshotWithoutTopLevel: InlinePromptSnapshot = {
+        imageSource: 'comfyui',
+        comfyui: {
+          ...dummyComfyUISnapshot,
+          positivePrompt: 'triggerA, 1girl, solo',
+          negativePrompt: 'low quality, worst quality',
+          loras: [{ name: 'testLora', strength: 1.0 }],
+        },
+      };
+
+      let receivedOptions: InlinePromptPairInputOptions | undefined;
+      const edited = (await requestEditedPromptSnapshot(
+        settings,
+        snapshotWithoutTopLevel,
+        createDialogMock(
+          settings,
+          { positive: 'modified core prompt' },
+          opts => {
+            receivedOptions = opts;
+          },
+        ),
+      ))!;
+
+      expect(receivedOptions?.positiveDefaultValue).toBe('1girl, solo');
+      expect(receivedOptions?.positiveCore).toBe('1girl, solo');
+      expect(receivedOptions?.negativeDefaultValue).toBe('low quality, worst quality');
+      expect(receivedOptions?.negativeCore).toBe('low quality, worst quality');
+
+      expect(edited.promptParts?.positive).toEqual({ core: 'modified core prompt', presetId: '' });
+      expect(edited.positivePrompt).toBeUndefined();
+      expect(edited.negativePrompt).toBeUndefined();
+      expect(edited.comfyui?.positivePrompt).toBe('triggerA, 1girl, solo');
     });
   });
 });

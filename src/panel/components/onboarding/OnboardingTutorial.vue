@@ -60,6 +60,7 @@ interface InertSnapshot {
 const props = defineProps<Props>();
 const emit = defineEmits<{
   'select-source': [source: TutorialSource];
+  'open-api-doc': [];
   previous: [];
   next: [];
   exit: [];
@@ -608,7 +609,7 @@ onBeforeUnmount(() => {
 
         <div
           v-if="step.scene.kind === 'selection'"
-          class="grid grid-cols-2 gap-(--cv-space-xl) max-[40rem]:grid-cols-1"
+          class="grid grid-cols-3 gap-(--cv-space-md) max-[40rem]:grid-cols-1"
         >
           <Button
             v-for="option in TUTORIAL_SOURCE_OPTIONS"
@@ -619,6 +620,7 @@ onBeforeUnmount(() => {
             :aria-pressed="selectedSource === option.value"
             data-cv-tutorial-control
             :data-cv-tutorial-primary="option.value === 'novelai' ? '' : undefined"
+            class="px-(--cv-space-sm)"
             @click="emit('select-source', option.value)"
           >
             <template #icon>
@@ -655,6 +657,20 @@ onBeforeUnmount(() => {
                   d="M5.485 23.76c-.568 0-1.026-.207-1.325-.598-.307-.402-.387-.964-.22-1.54l.672-2.315a.605.605 0 00-.1-.536.622.622 0 00-.494-.243H2.085c-.568 0-1.026-.207-1.325-.598-.307-.403-.387-.964-.22-1.54l2.31-7.917.255-.87c.343-1.18 1.592-2.14 2.786-2.14h2.313c.276 0 .519-.18.595-.442l.764-2.633C9.906 1.208 11.155.249 12.35.249l4.945-.008h3.62c.568 0 1.027.206 1.325.597.307.402.387.964.22 1.54l-1.035 3.566c-.343 1.178-1.593 2.137-2.787 2.137l-4.956.01H11.37a.618.618 0 00-.594.441l-1.928 6.604a.605.605 0 00.1.537c.118.153.3.243.495.243l3.275-.006h3.61c.568 0 1.026.206 1.325.598.307.402.387.964.22 1.54l-1.036 3.565c-.342 1.179-1.592 2.138-2.786 2.138l-4.957.01h-3.61z"
                 />
               </svg>
+            </template>
+          </Button>
+
+          <Button
+            label="API接口"
+            severity="secondary"
+            outlined
+            data-cv-tutorial-control
+            class="cv-onboarding__developer-btn px-(--cv-space-sm)"
+            aria-label="API 接口文档"
+            @click="emit('open-api-doc')"
+          >
+            <template #icon>
+              <i class="fa-solid fa-code cv-onboarding__developer-icon p-button-icon p-button-icon-left" aria-hidden="true" />
             </template>
           </Button>
         </div>
@@ -717,4 +733,15 @@ onBeforeUnmount(() => {
 <!-- 模拟画廊注入到宿主 DOM，必须 unscoped -->
 <style>
 @import './mock-gallery.css';
+</style>
+
+<style scoped>
+/*
+ * ST 宿主会污染 .fa-solid 图标字号，依据 st-icon-sizing.md 规范显式反压。
+ */
+.cv-onboarding__developer-icon,
+:deep(.cv-onboarding__developer-btn .cv-prime-icon),
+:deep(.cv-onboarding__developer-btn .fa-code) {
+  font-size: 1.15em !important;
+}
 </style>

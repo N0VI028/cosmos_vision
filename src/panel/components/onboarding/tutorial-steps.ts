@@ -42,8 +42,9 @@ export const TUTORIAL_SOURCE_OPTIONS = [
 
 export const TUTORIAL_SELECTION_STEP: TutorialStep = {
   id: 'source-selection',
-  title: '选择图像来源',
-  description: '请选择你准备使用的生图后端。这个选择只决定教程路线，不会修改当前设置。',
+  title: '选择入门方式',
+  description:
+    '选择你准备使用的生图后端进入配置教程，或打开 API 接口文档供其他插件接入。这个选择只决定教程路线，不会修改当前设置。',
   scene: { kind: 'selection' },
 };
 

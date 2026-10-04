@@ -40,6 +40,7 @@ import {
   buildInlineImageDownloadBaseName,
   createComfyUISnapshot,
   createNovelAISnapshot,
+  toNovelAIRequestInfo,
 } from '@/composables/inlineGenerationSnapshot';
 import { resolveInlineRoute } from '@/services/inline-image/route-resolve';
 import { locateFrontendParagraphFromPoint } from '@/services/inline-image/frontend-paragraph-locate';
@@ -282,7 +283,6 @@ export function useInlineImageGeneration(
       return;
     }
 
-    // 点击聊天区空白处取消选中
     const host = getHostIframe(target) ?? target;
     if (host.closest('.mes_text, [mesid]')) {
       clearSelection();
@@ -505,7 +505,7 @@ export function useInlineImageGeneration(
     try {
       await applyGenerationResult(paragraph, await task(session, onSnapshotResolved), session, floorTailContext);
     } catch (error) {
-      // resolvedSnapshot 有值 → LLM 通过但生图失败 → 重试只需复用快照
+      // 生图失败或用户取消时均复用该回调（快照有值只重跑生图，无值重跑全流程）
       const retryTask = resolvedSnapshot
         ? () => void runImageGeneration(
           paragraph,
@@ -813,7 +813,10 @@ export function useInlineImageGeneration(
         signal: session.controller.signal,
         onStreamPreview: streamPreview.onStreamPreview,
       });
-      return { promptSnapshot: createNovelAISnapshot(result.prompts), imageBlobs: result.imageBlobs };
+      return {
+        promptSnapshot: createNovelAISnapshot(result.prompts, toNovelAIRequestInfo(result.snapshot)),
+        imageBlobs: result.imageBlobs,
+      };
     } finally {
       streamPreview.clear();
       if (hasPromotedTemporaryVibes(request.prompts.vibeReferences, temporarySourceHashes)) {
@@ -853,7 +856,7 @@ export function useInlineImageGeneration(
       session.controller.signal,
     );
     generationSession.ensureActive(session);
-    const request = buildComfyUIResolvedRequest(
+    const request = await buildComfyUIResolvedRequest(
       settings.comfyui,
       settings.imagePromptPresets,
       output,

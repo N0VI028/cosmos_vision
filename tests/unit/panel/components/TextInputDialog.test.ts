@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import PrimeVue from 'primevue/config';
+import Select from 'primevue/select';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { nextTick } from 'vue';
 import { createImagePromptPreset } from '@/constants/image-prompt';
@@ -58,7 +59,6 @@ describe('TextInputDialog 弹窗预设切换与整体文本联动', () => {
     expect(textareas.length).toBeGreaterThanOrEqual(2);
     expect(textareas[0].value).toBe('template one, pristine pos');
 
-    // 切换正面预设为 P2
     await wrapper.setProps({ positivePresetId: 'P2' });
     await nextTick();
 
@@ -72,7 +72,6 @@ describe('TextInputDialog 弹窗预设切换与整体文本联动', () => {
 
     const textareas = document.querySelectorAll<HTMLTextAreaElement>('textarea');
 
-    // 切回原样（空字符串）
     await wrapper.setProps({ positivePresetId: '' });
     await nextTick();
 
@@ -88,14 +87,12 @@ describe('TextInputDialog 弹窗预设切换与整体文本联动', () => {
     expect(textareas.length).toBeGreaterThanOrEqual(2);
     expect(textareas[1].value).toBe('pristine neg, no bad stuff');
 
-    // 切换负面预设为 N2
     await wrapper.setProps({ negativePresetId: 'N2' });
     await nextTick();
 
     expect(textareas[1].value).toBe('pristine neg, other bad stuff');
     expect(wrapper.emitted('update:secondaryValue')?.at(-1)).toEqual(['pristine neg, other bad stuff']);
 
-    // 切回原样
     await wrapper.setProps({ negativePresetId: '' });
     await nextTick();
 
@@ -120,5 +117,85 @@ describe('TextInputDialog 弹窗预设切换与整体文本联动', () => {
     await nextTick();
 
     expect(textareas[0].value).toBe('上次追加要求');
+  });
+
+  it('positivePresetId 为有效预设 ID 时正面下拉选项列表不含「原提示词」项', async () => {
+    const wrapper = mountDialog({ positivePresetId: 'P1' });
+    await nextTick();
+
+    const selects = wrapper.findAllComponents(Select);
+    const positiveSelect = selects[0];
+    const options = positiveSelect.props('options') as Array<{ id: string; name: string }>;
+
+    expect(options.some(opt => opt.name === '原提示词')).toBe(false);
+    expect(options).toEqual([
+      { id: 'P1', name: 'P1' },
+      { id: 'P2', name: 'P2' },
+    ]);
+  });
+
+  it('positivePresetId 为空串时正面下拉选项列表包含「原提示词」且在首位', async () => {
+    const wrapper = mountDialog({ positivePresetId: '' });
+    await nextTick();
+
+    const selects = wrapper.findAllComponents(Select);
+    const positiveSelect = selects[0];
+    const options = positiveSelect.props('options') as Array<{ id: string; name: string }>;
+
+    expect(options[0]).toEqual({ id: '', name: '原提示词' });
+    expect(options).toEqual([
+      { id: '', name: '原提示词' },
+      { id: 'P1', name: 'P1' },
+      { id: 'P2', name: 'P2' },
+    ]);
+  });
+
+  it('positivePresetId 为失效 ID（如 P404）时选项列表同时包含「原提示词」（首位）与失效项（尾位）', async () => {
+    const wrapper = mountDialog({ positivePresetId: 'P404' });
+    await nextTick();
+
+    const selects = wrapper.findAllComponents(Select);
+    const positiveSelect = selects[0];
+    const options = positiveSelect.props('options') as Array<{ id: string; name: string }>;
+
+    expect(options[0]).toEqual({ id: '', name: '原提示词' });
+    expect(options.at(-1)).toEqual({ id: 'P404', name: 'P404 (已失效)' });
+    expect(options).toEqual([
+      { id: '', name: '原提示词' },
+      { id: 'P1', name: 'P1' },
+      { id: 'P2', name: 'P2' },
+      { id: 'P404', name: 'P404 (已失效)' },
+    ]);
+  });
+
+  it('LoRA 预设组：loraPresetId 命中有效预设时选项列表不含「原图 LoRA」，为空串时包含「原图 LoRA」', async () => {
+    const { settings } = useSettingsStore();
+    settings.comfyui.loraPresets.presets = [
+      { id: 'L1', name: 'LoRA Group 1' } as any,
+    ];
+
+    const wrapper = mountDialog({
+      enableLoraSelector: true,
+      loraPresetId: 'L1',
+    });
+    await nextTick();
+
+    const selects = wrapper.findAllComponents(Select);
+    // 当 enableLoraSelector 为 true 时，首个 Select 即为 LoRA 下拉框
+    const loraSelect = selects[0];
+    const optionsHit = loraSelect.props('options') as Array<{ id: string; name: string }>;
+
+    expect(optionsHit.some(opt => opt.name === '原图 LoRA')).toBe(false);
+    expect(optionsHit).toEqual([{ id: 'L1', name: 'LoRA Group 1' }]);
+
+    await wrapper.setProps({ loraPresetId: '' });
+    await nextTick();
+
+    const optionsEmpty = loraSelect.props('options') as Array<{ id: string; name: string }>;
+    expect(optionsEmpty[0]).toEqual({ id: '', name: '原图 LoRA' });
+    expect(optionsEmpty).toEqual([
+      { id: '', name: '原图 LoRA' },
+      { id: 'L1', name: 'LoRA Group 1' },
+    ]);
   });
 });

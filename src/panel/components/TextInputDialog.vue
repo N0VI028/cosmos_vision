@@ -15,6 +15,21 @@
       class="flex max-h-[min(68dvh,34rem)] w-full flex-col gap-(--cv-space-3xl) overflow-x-hidden overflow-y-auto overscroll-contain *:shrink-0"
     >
       <div class="cv-confirm-message mb-2">{{ message }}</div>
+      <div v-if="enableLoraSelector" class="flex items-center justify-between gap-(--cv-space-md)">
+        <label class="text-(length:--cv-font-size-xs) leading-[1.4] font-semibold text-(--cv-on-surface)">
+          LoRA 预设组
+        </label>
+        <div class="w-48 max-w-[50%]">
+          <Select
+            v-model="loraPresetId"
+            :options="loraPresetOptions"
+            option-label="name"
+            option-value="id"
+            size="small"
+            fluid
+          />
+        </div>
+      </div>
       <div class="flex min-h-0 flex-col gap-(--cv-space-lg)">
         <div class="flex items-center justify-between gap-(--cv-space-md)">
           <label
@@ -260,6 +275,7 @@ export interface TextInputDialogSubmitValue {
   characters: TextInputCharacterDraft[];
   positivePresetId?: string;
   negativePresetId?: string;
+  loraPresetId?: string;
 }
 
 type TextInputRef = { $el?: HTMLElement } | HTMLElement | null;
@@ -270,6 +286,7 @@ const secondaryValue = defineModel<string>('secondaryValue', { default: '' });
 const characters = defineModel<TextInputCharacterDraft[]>('characters', { default: () => [] });
 const positivePresetId = defineModel<string>('positivePresetId', { default: '' });
 const negativePresetId = defineModel<string>('negativePresetId', { default: '' });
+const loraPresetId = defineModel<string>('loraPresetId', { default: '' });
 const positiveCore = defineModel<string>('positiveCore', { default: '' });
 const negativeCore = defineModel<string>('negativeCore', { default: '' });
 
@@ -286,6 +303,7 @@ const props = withDefaults(
     darkMode?: boolean;
     enableCharacters?: boolean;
     enablePresetSelector?: boolean;
+    enableLoraSelector?: boolean;
     quickPhrases?: string[];
   }>(),
   {
@@ -298,6 +316,7 @@ const props = withDefaults(
     darkMode: false,
     enableCharacters: false,
     enablePresetSelector: false,
+    enableLoraSelector: false,
     quickPhrases: undefined,
   },
 );
@@ -309,33 +328,59 @@ const emit = defineEmits<{
 
 const { settings } = useSettingsStore();
 
-const positivePresetOptions = computed(() => {
-  const options = [
-    { id: '', name: '原提示词' },
-    ...settings.imagePromptPresets.positive.map(preset => ({
-      id: preset.id,
-      name: preset.name?.trim() || '未命名预设',
-    })),
-  ];
-  if (positivePresetId.value && !options.some(opt => opt.id === positivePresetId.value)) {
-    options.push({ id: positivePresetId.value, name: `${positivePresetId.value} (已失效)` });
-  }
-  return options;
-});
+/** 预设下拉选项接口 */
+interface PresetOption {
+  id: string;
+  name: string;
+}
 
-const negativePresetOptions = computed(() => {
-  const options = [
-    { id: '', name: '原提示词' },
-    ...settings.imagePromptPresets.negative.map(preset => ({
-      id: preset.id,
-      name: preset.name?.trim() || '未命名预设',
-    })),
-  ];
-  if (negativePresetId.value && !options.some(opt => opt.id === negativePresetId.value)) {
-    options.push({ id: negativePresetId.value, name: `${negativePresetId.value} (已失效)` });
+/**
+ * 构建预设下拉框选项列表
+ *
+ * 规则：
+ * 1. 基础选项为预设列表映射（trim 名称，空则显示为「未命名预设」）
+ * 2. 若当前选中值为空串或未命中预设列表，在头部插入特殊项（如「原提示词」或「原图 LoRA」）
+ * 3. 若当前选中值非空且未命中预设列表，在尾部追加失效项
+ *
+ * @param presets 预设列表
+ * @param selectedId 当前选中的预设 ID
+ * @param specialLabel 空值或失效时特殊项的文案（如「原提示词」或「原图 LoRA」）
+ * @returns 预设下拉选项列表
+ */
+function buildPresetOptions(
+  presets: Array<{ id: string; name?: string }>,
+  selectedId: string,
+  specialLabel: string,
+): PresetOption[] {
+  const options: PresetOption[] = presets.map(preset => ({
+    id: preset.id,
+    name: preset.name?.trim() || '未命名预设',
+  }));
+
+  const isMatched = options.some(opt => opt.id === selectedId);
+
+  if (!selectedId || !isMatched) {
+    options.unshift({ id: '', name: specialLabel });
   }
+
+  if (selectedId && !isMatched) {
+    options.push({ id: selectedId, name: `${selectedId} (已失效)` });
+  }
+
   return options;
-});
+}
+
+const positivePresetOptions = computed(() =>
+  buildPresetOptions(settings.imagePromptPresets.positive, positivePresetId.value, '原提示词'),
+);
+
+const negativePresetOptions = computed(() =>
+  buildPresetOptions(settings.imagePromptPresets.negative, negativePresetId.value, '原提示词'),
+);
+
+const loraPresetOptions = computed(() =>
+  buildPresetOptions(settings.comfyui.loraPresets.presets, loraPresetId.value, '原图 LoRA'),
+);
 
 const inputRef = ref<TextInputRef>(null);
 const isMobile = useMediaQuery('(max-width: 87.5em)');
@@ -495,6 +540,7 @@ function submit(accept: boolean): void {
           characters: characters.value.map(cloneCharacterDraft),
           positivePresetId: positivePresetId.value,
           negativePresetId: negativePresetId.value,
+          loraPresetId: loraPresetId.value,
         }
       : null,
   );

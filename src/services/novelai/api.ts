@@ -46,15 +46,15 @@ export {
  * @param settings NovelAI 设置页参数
  * @param prompts 最终提示词
  * @param options 请求控制选项
- * @returns 官方响应中的第一张图片 Blob
+ * @returns 包含图片 Blob 与参数快照的完整生成结果
  */
 export async function generateNovelAIImageFromPrompts(
   settings: NovelAISettings,
   prompts: NovelAIFinalPrompts,
   options: NovelAIRequestOptions = {},
-): Promise<Blob> {
+): Promise<NovelAIImageResult> {
   const request = createResolvedRequest(settings, prompts);
-  return (await generateNovelAIImageFromResolvedRequest(request, options)).imageBlob;
+  return generateNovelAIImageFromResolvedRequest(request, options);
 }
 
 /**
@@ -217,6 +217,7 @@ function buildRequestSnapshot(
 ): NovelAIRequestSnapshot {
   return {
     endpoint: account ? buildEndpoint(account.url) : '未选择可用账号',
+    accountName: account?.name ?? '未选择可用账号',
     positivePrompt: prompts.positivePrompt,
     negativePrompt: prompts.negativePrompt,
     characterPrompts: prompts.characterPrompts ?? [],

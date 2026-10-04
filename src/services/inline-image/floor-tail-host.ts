@@ -47,7 +47,6 @@ export function ensureFloorTailHost(mesId: number, swipeId: number, targetAnchor
   const mes = findMessageElement(mesId);
   if (!mes) throw new Error(`未找到 ID 为 ${mesId} 的消息元素`);
 
-  // iframe 路由：在对应渲染单元后查找已有 root，找不到则精准创建在其后
   if (targetAnchor && isIframeAnchor(targetAnchor)) {
     const wrapper = resolveAnchorWrapper(targetAnchor);
     let next = wrapper.nextElementSibling;
@@ -60,7 +59,6 @@ export function ensureFloorTailHost(mesId: number, swipeId: number, targetAnchor
     return createFloorTailRootContainer(mes, mesId, swipeId, targetAnchor);
   }
 
-  // HTML 或无锚点：复用楼层末尾已有 root，不存在则创建到末尾
   const existing = findFloorTailHost(mesId, swipeId);
   if (existing) return existing;
   return createFloorTailRootContainer(mes, mesId, swipeId);
@@ -80,7 +78,6 @@ export function ensureFloorTailSlotContainer(
   slotId: string,
   targetAnchor?: HTMLElement,
 ): HTMLElement {
-  // 全局查找是否已存在该 slotId 的容器
   const existing = document.querySelector<HTMLElement>(`.${CV_FLOOR_TAIL_SLOT_CLASS}[${CV_SLOT_ATTR}="${slotId}"]`);
   if (existing) {
     return existing;
@@ -144,7 +141,6 @@ function createFloorTailRootContainer(
   host.setAttribute(CV_ROUTE_ATTR, 'frontend');
   preventInlineEventBubbling(host);
 
-  // iframe 路由：精准插入在对应渲染单元正后方
   if (targetAnchor) {
     const wrapper = resolveAnchorWrapper(targetAnchor);
     if (wrapper && mes.contains(wrapper)) {

@@ -25,6 +25,16 @@
                 <i class="fa-solid fa-magnifying-glass-minus" />
               </GalleryZoomOut>
               <button
+                type="button"
+                class="cv-lightbox-info-toggle"
+                :class="{ active: infoPanelVisible }"
+                title="图片信息"
+                aria-label="图片信息"
+                @click="infoPanelVisible = !infoPanelVisible"
+              >
+                <i class="fa-solid fa-circle-info" />
+              </button>
+              <button
                 v-if="inlineLightboxState.onDownload"
                 type="button"
                 class="cv-lightbox-download"
@@ -46,6 +56,13 @@
             </div>
           </Gallery>
         </div>
+
+        <!-- 图片生图元数据面板 -->
+        <LightboxImageInfoPanel
+          v-if="infoPanelVisible"
+          :snapshot="inlineLightboxState.snapshot"
+          @click.stop
+        />
 
         <!-- 底部提示词详情面板 -->
         <div class="cv-lightbox-info" :class="{ 'cv-info-collapsed': infoCollapsed }" @click.stop>
@@ -166,6 +183,7 @@ import type { CharacterPromptItem } from '@/constants/novelai';
 import { closeInlineImageLightbox, inlineLightboxState } from '@/composables/inlineImageLightbox';
 import { DARK_CLASS } from '@/constants/default-settings';
 import { useSettingsStore } from '@/store/settings';
+import LightboxImageInfoPanel from '@/panel/components/LightboxImageInfoPanel.vue';
 
 /** 正面提示词复制按钮的 key */
 const COPY_KEY_POS = 'pos';
@@ -182,6 +200,9 @@ const darkMode = computed(() => settingsStore.darkMode);
 /** 提示词详情面板是否折叠（默认折叠，与原命令式行为一致） */
 const infoCollapsed = ref(true);
 
+/** 是否显示图片生图元数据面板 */
+const infoPanelVisible = ref(false);
+
 /** 处于 1.5s 成功态的复制按钮 key */
 const copiedKey = ref<string | null>(null);
 
@@ -192,10 +213,18 @@ const collapsedCharIndexes = ref(new Set<number>());
 let copiedTimer = 0;
 
 /** 正面提示词文本（无快照时占位提示） */
-const positivePrompt = computed(() => inlineLightboxState.snapshot?.positivePrompt || '无正面提示词');
+const positivePrompt = computed(() => {
+  const snapshot = inlineLightboxState.snapshot;
+  const prompt = snapshot?.comfyui?.positivePrompt ?? snapshot?.positivePrompt;
+  return prompt || '无正面提示词';
+});
 
 /** 负面提示词文本（无快照时占位提示） */
-const negativePrompt = computed(() => inlineLightboxState.snapshot?.negativePrompt || '无负面提示词');
+const negativePrompt = computed(() => {
+  const snapshot = inlineLightboxState.snapshot;
+  const prompt = snapshot?.comfyui?.negativePrompt ?? snapshot?.negativePrompt;
+  return prompt || '无负面提示词';
+});
 
 /** 角色提示词列表 */
 const characters = computed(() => inlineLightboxState.snapshot?.novelai?.characterPrompts ?? []);
@@ -206,9 +235,11 @@ watch(
   open => {
     if (open) {
       infoCollapsed.value = true;
+      infoPanelVisible.value = false;
       collapsedCharIndexes.value = new Set(characters.value.map((_, index) => index));
       document.addEventListener('keydown', handleEscKey);
     } else {
+      infoPanelVisible.value = false;
       document.removeEventListener('keydown', handleEscKey);
     }
   },
@@ -217,11 +248,16 @@ watch(
 onUnmounted(() => document.removeEventListener('keydown', handleEscKey));
 
 /**
- * ESC 键关闭灯箱
+ * ESC 键关闭灯箱或元数据面板
  * @param e 键盘事件
  */
 function handleEscKey(e: KeyboardEvent): void {
-  if (e.key === 'Escape') closeInlineImageLightbox();
+  if (e.key !== 'Escape') return;
+  if (infoPanelVisible.value) {
+    infoPanelVisible.value = false;
+    return;
+  }
+  closeInlineImageLightbox();
 }
 
 /**

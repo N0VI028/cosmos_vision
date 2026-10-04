@@ -222,6 +222,12 @@ declare global {
           destination: 'prompt' | 'display' | 'both',
           options?: { depth?: number; character_name?: string },
         ): string;
+        /**
+         * 使用 SillyTavern 渲染管道将文本格式化为显示消息的 HTML 字符串
+         * @param text 待渲染的文本（支持 Markdown 等）
+         * @returns 渲染后的 HTML 字符串
+         */
+        formatAsDisplayedMessage(text: string): string;
       }
     | undefined;
 
@@ -242,6 +248,14 @@ declare global {
     async(type: 'uint8array'): Promise<Uint8Array>;
     async(type: 'arraybuffer'): Promise<ArrayBuffer>;
     async(type: 'string'): Promise<string>;
+  }
+
+  interface Window {
+    /**
+     * 本插件对外接口（浏览器中 window 即 globalThis）
+     * 插件加载完成后挂载，并派发 cosmos-vision:api-ready 事件
+     */
+    CosmosVision?: import('@/api/types').CosmosVisionApi;
   }
 }
 

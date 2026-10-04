@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_SETTINGS } from '@/constants/default-settings';
 import { DEFAULT_COMFYUI_WORKFLOW_K2_ANIMA_JSON } from '@/constants/comfyui';
-import { buildComfyUIResolvedRequest } from '@/services/comfyui/request';
+import { buildComfyUIResolvedRequest, buildComfyUIResolvedRequestFromPrompts } from '@/services/comfyui/request';
 import { clearComfyUIObjectInfoCache, fetchComfyUIObjectInfo } from '@/services/comfyui/object-info';
 import { createMockFetch } from '../../../helpers/fetch-mocks';
 
@@ -18,7 +18,7 @@ describe('comfyui request builder', () => {
     clearComfyUIObjectInfoCache();
     vi.unstubAllGlobals();
   });
-  it('builds resolved request with workflow and prompt replacements', () => {
+  it('builds resolved request with workflow and prompt replacements', async () => {
     const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
     settings.workflowPresets.presets = [
       {
@@ -38,7 +38,7 @@ describe('comfyui request builder', () => {
 
     const imagePromptPresets = DEFAULT_SETTINGS.imagePromptPresets;
 
-    const resolved = buildComfyUIResolvedRequest(settings, imagePromptPresets, {
+    const resolved = await buildComfyUIResolvedRequest(settings, imagePromptPresets, {
       positivePrompt: 'masterpiece, 1girl',
       negativePrompt: 'low quality',
     });
@@ -48,7 +48,7 @@ describe('comfyui request builder', () => {
     expect(resolved.workflow['6'].inputs.text).toContain('masterpiece, 1girl');
   });
 
-  it('prepends the passed lora trigger words to the positive prompt', () => {
+  it('prepends the passed lora trigger words to the positive prompt', async () => {
     const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
     settings.workflowPresets.presets = [
       {
@@ -78,7 +78,7 @@ describe('comfyui request builder', () => {
     settings.workflowPresets.activePresetId = 'preset-1';
     settings.loraPresets = createLoraPreset('a.safetensors');
 
-    const resolved = buildComfyUIResolvedRequest(
+    const resolved = await buildComfyUIResolvedRequest(
       settings,
       DEFAULT_SETTINGS.imagePromptPresets,
       { positivePrompt: 'masterpiece, 1girl', negativePrompt: 'low quality' },
@@ -90,7 +90,7 @@ describe('comfyui request builder', () => {
     expect(String(resolved.workflow['6'].inputs.text).startsWith('triggerA, ')).toBe(true);
   });
 
-  it('does not inject trigger words when none are passed', () => {
+  it('does not inject trigger words when none are passed', async () => {
     const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
     settings.workflowPresets.presets = [
       {
@@ -113,7 +113,7 @@ describe('comfyui request builder', () => {
     settings.workflowPresets.activePresetId = 'preset-1';
     settings.loraPresets = createLoraPreset('a.safetensors');
 
-    const resolved = buildComfyUIResolvedRequest(settings, DEFAULT_SETTINGS.imagePromptPresets, {
+    const resolved = await buildComfyUIResolvedRequest(settings, DEFAULT_SETTINGS.imagePromptPresets, {
       positivePrompt: 'masterpiece, 1girl',
       negativePrompt: 'low quality',
     });
@@ -121,20 +121,20 @@ describe('comfyui request builder', () => {
     expect(resolved.snapshot.positivePrompt).toBe('masterpiece, 1girl');
   });
 
-  it('throws error when active preset is missing', () => {
+  it('throws error when active preset is missing', async () => {
     const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
     settings.workflowPresets.presets = [];
     settings.workflowPresets.activePresetId = 'non-existent';
 
-    expect(() =>
+    await expect(
       buildComfyUIResolvedRequest(settings, DEFAULT_SETTINGS.imagePromptPresets, {
         positivePrompt: '',
         negativePrompt: '',
       }),
-    ).toThrow();
+    ).rejects.toThrow();
   });
 
-  it('overwrites the workflow lora node with the active lora preset before sending', () => {
+  it('overwrites the workflow lora node with the active lora preset before sending', async () => {
     const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
     settings.workflowPresets.presets = [
       {
@@ -173,7 +173,7 @@ describe('comfyui request builder', () => {
       ],
     };
 
-    const resolved = buildComfyUIResolvedRequest(settings, DEFAULT_SETTINGS.imagePromptPresets, {
+    const resolved = await buildComfyUIResolvedRequest(settings, DEFAULT_SETTINGS.imagePromptPresets, {
       positivePrompt: 'masterpiece, 1girl',
       negativePrompt: 'low quality',
     });
@@ -184,7 +184,7 @@ describe('comfyui request builder', () => {
     expect(resolved.snapshot.loras).toEqual([{ name: 'fresh_lora', strength: 0.8 }]);
   });
 
-  it('overwrites workflow lora node and snapshot when loraPreset passed', () => {
+  it('overwrites workflow lora node and snapshot when loraPreset passed', async () => {
     const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
     settings.workflowPresets.presets = [
       {
@@ -211,7 +211,7 @@ describe('comfyui request builder', () => {
       loras: [{ id: 'lora-1', name: 'test-lora.safetensors', strength: 0.8, enabled: true }],
     };
 
-    const resolved = buildComfyUIResolvedRequest(
+    const resolved = await buildComfyUIResolvedRequest(
       settings,
       DEFAULT_SETTINGS.imagePromptPresets,
       { positivePrompt: '1girl', negativePrompt: '' },
@@ -224,7 +224,7 @@ describe('comfyui request builder', () => {
     expect(resolved.snapshot.loras).toEqual([{ name: 'test-lora', strength: 0.8 }]);
   });
 
-  it('does not prepend trigger words when the workflow has no lora node', () => {
+  it('does not prepend trigger words when the workflow has no lora node', async () => {
     const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
     settings.workflowPresets.presets = [
       {
@@ -243,7 +243,7 @@ describe('comfyui request builder', () => {
     settings.workflowPresets.activePresetId = 'preset-1';
     settings.loraPresets = createLoraPreset('a.safetensors');
 
-    const resolved = buildComfyUIResolvedRequest(
+    const resolved = await buildComfyUIResolvedRequest(
       settings,
       DEFAULT_SETTINGS.imagePromptPresets,
       { positivePrompt: 'masterpiece, 1girl', negativePrompt: 'low quality' },
@@ -254,7 +254,7 @@ describe('comfyui request builder', () => {
     expect(resolved.snapshot.loras).toEqual([]);
   });
 
-  it('overwrites workflow with explicit snapshot loras array on playback', () => {
+  it('overwrites workflow with explicit snapshot loras array on playback', async () => {
     const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
     settings.workflowPresets.presets = [
       {
@@ -279,7 +279,7 @@ describe('comfyui request builder', () => {
     settings.loraPresets = createLoraPreset('other_lora.safetensors');
 
     // 显式传入快照 LoRA 列表，回放特定 LoRA
-    const resolved = buildComfyUIResolvedRequest(
+    const resolved = await buildComfyUIResolvedRequest(
       settings,
       DEFAULT_SETTINGS.imagePromptPresets,
       { positivePrompt: '1girl', negativePrompt: '' },
@@ -293,7 +293,7 @@ describe('comfyui request builder', () => {
     expect(resolved.snapshot.positivePrompt).toBe('playTrigger, 1girl');
   });
 
-  it('explicit empty loras array clears node and does not leak panel active preset', () => {
+  it('explicit empty loras array clears node and does not leak panel active preset', async () => {
     const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
     settings.workflowPresets.presets = [
       {
@@ -318,7 +318,7 @@ describe('comfyui request builder', () => {
     settings.loraPresets = createLoraPreset('active_lora.safetensors');
 
     // 显式传入 []（快照中没有 LoRA）
-    const resolved = buildComfyUIResolvedRequest(
+    const resolved = await buildComfyUIResolvedRequest(
       settings,
       DEFAULT_SETTINGS.imagePromptPresets,
       { positivePrompt: '1girl', negativePrompt: '' },
@@ -330,6 +330,60 @@ describe('comfyui request builder', () => {
     // 节点被清空，快照记录为空，面板激活组未混入
     expect(resolved.workflow['10'].inputs.text).toBe('');
     expect(resolved.snapshot.loras).toEqual([]);
+    expect(resolved.snapshot.loraPresetId).toBeUndefined();
+  });
+
+  it('records loraPresetId in snapshot in three states (fallback active id, explicit preset id, or omitted on snapshot array)', async () => {
+    const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
+    settings.workflowPresets.presets = [
+      {
+        id: 'preset-1',
+        name: 'SDXL Workflow',
+        workflowJson: JSON.stringify({
+          '6': {
+            class_type: 'CLIPTextEncode',
+            inputs: { text: 'positive placeholder' },
+            _meta: { cosmosVision: { promptBindings: { text: 'positive' }, imageOutput: true } },
+          },
+        }),
+        favoriteNodeIds: [],
+      },
+    ];
+    settings.workflowPresets.activePresetId = 'preset-1';
+    settings.loraPresets = {
+      activePresetId: 'active-group-1',
+      presets: [{ id: 'active-group-1', name: 'Active Group', loras: [] }],
+    };
+
+    // 1. 未传参：记录回退激活组 id
+    const resFallback = await buildComfyUIResolvedRequest(
+      settings,
+      DEFAULT_SETTINGS.imagePromptPresets,
+      { positivePrompt: '1girl', negativePrompt: '' },
+    );
+    expect(resFallback.snapshot.loraPresetId).toBe('active-group-1');
+
+    // 2. 传入真实预设组：记录其 id
+    const resExplicitPreset = await buildComfyUIResolvedRequest(
+      settings,
+      DEFAULT_SETTINGS.imagePromptPresets,
+      { positivePrompt: '1girl', negativePrompt: '' },
+      [],
+      undefined,
+      { id: 'custom-preset-2', name: 'Custom Group', loras: [] },
+    );
+    expect(resExplicitPreset.snapshot.loraPresetId).toBe('custom-preset-2');
+
+    // 3. 传入快照列表：不记录 loraPresetId
+    const resSnapshotList = await buildComfyUIResolvedRequest(
+      settings,
+      DEFAULT_SETTINGS.imagePromptPresets,
+      { positivePrompt: '1girl', negativePrompt: '' },
+      [],
+      undefined,
+      [{ name: 'some_lora', strength: 0.8 }],
+    );
+    expect(resSnapshotList.snapshot.loraPresetId).toBeUndefined();
   });
 
   it('injects preview export node when bound output node is non-output image node', async () => {
@@ -371,7 +425,7 @@ describe('comfyui request builder', () => {
     ];
     settings.workflowPresets.activePresetId = 'preset-1';
 
-    const resolved = buildComfyUIResolvedRequest(
+    const resolved = await buildComfyUIResolvedRequest(
       settings,
       DEFAULT_SETTINGS.imagePromptPresets,
       { positivePrompt: 'masterpiece', negativePrompt: '' },
@@ -385,7 +439,7 @@ describe('comfyui request builder', () => {
     });
   });
 
-  it('fills modelMatch node string with the main model name and strips private meta', () => {
+  it('fills modelMatch node string with the main model name and strips private meta', async () => {
     const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
     settings.workflowPresets.presets = [
       {
@@ -397,7 +451,7 @@ describe('comfyui request builder', () => {
     ];
     settings.workflowPresets.activePresetId = 'preset-newgen';
 
-    const resolved = buildComfyUIResolvedRequest(
+    const resolved = await buildComfyUIResolvedRequest(
       settings,
       DEFAULT_SETTINGS.imagePromptPresets,
       { positivePrompt: 'masterpiece, 1girl', negativePrompt: 'low quality' },
@@ -407,5 +461,94 @@ describe('comfyui request builder', () => {
     expect(resolved.workflow['11']._meta?.cosmosVision).toBeUndefined();
     expect(resolved.workflow['33']._meta?.cosmosVision).toBeUndefined();
     expect(resolved.workflow['20'].inputs.text).toContain('masterpiece, 1girl');
+  });
+
+  it('fetches object_info on cache miss and appends export node for non-output node', async () => {
+    const rawObjectInfo = {
+      CLIPTextEncode: {
+        output_node: false,
+        input: { required: { text: ['STRING', { multiline: true }] } },
+        output: ['CONDITIONING'],
+      },
+      VAEDecodeTiled: {
+        output_node: false,
+        input: { required: {} },
+        output: ['IMAGE'],
+      },
+    };
+    const mockFetch = createMockFetch(() => ({ json: rawObjectInfo }));
+    vi.stubGlobal('fetch', mockFetch);
+
+    const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
+    settings.url = 'http://127.0.0.1:8188';
+    settings.workflowPresets.presets = [
+      {
+        id: 'preset-miss',
+        name: 'Tiled Miss Workflow',
+        workflowJson: JSON.stringify({
+          '6': {
+            class_type: 'CLIPTextEncode',
+            inputs: { text: 'positive placeholder' },
+            _meta: { cosmosVision: { promptBindings: { text: 'positive' } } },
+          },
+          '8': {
+            class_type: 'VAEDecodeTiled',
+            inputs: {},
+            _meta: { cosmosVision: { imageOutput: true } },
+          },
+        }),
+        favoriteNodeIds: [],
+      },
+    ];
+    settings.workflowPresets.activePresetId = 'preset-miss';
+
+    const resolved = await buildComfyUIResolvedRequestFromPrompts(
+      settings,
+      { positivePrompt: 'masterpiece', negativePrompt: '' },
+    );
+
+    expect(mockFetch).toHaveBeenCalled();
+    expect(resolved.imageOutputNodeId).toBe('cosmos_vision_export');
+    expect(resolved.snapshot.imageOutputNodeId).toBe('8');
+    expect(resolved.workflow.cosmos_vision_export).toEqual({
+      class_type: 'PreviewImage',
+      inputs: { images: ['8', 0] },
+    });
+  });
+
+  it('falls back gracefully without appending export node when fetch object_info fails on cache miss', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
+
+    const settings = structuredClone(DEFAULT_SETTINGS.comfyui);
+    settings.url = 'http://127.0.0.1:8188';
+    settings.workflowPresets.presets = [
+      {
+        id: 'preset-fail',
+        name: 'Tiled Fail Workflow',
+        workflowJson: JSON.stringify({
+          '6': {
+            class_type: 'CLIPTextEncode',
+            inputs: { text: 'positive placeholder' },
+            _meta: { cosmosVision: { promptBindings: { text: 'positive' } } },
+          },
+          '8': {
+            class_type: 'VAEDecodeTiled',
+            inputs: {},
+            _meta: { cosmosVision: { imageOutput: true } },
+          },
+        }),
+        favoriteNodeIds: [],
+      },
+    ];
+    settings.workflowPresets.activePresetId = 'preset-fail';
+
+    const resolved = await buildComfyUIResolvedRequestFromPrompts(
+      settings,
+      { positivePrompt: 'masterpiece', negativePrompt: '' },
+    );
+
+    // 补拉失败降级为 null，ensureImageExportNode 静默返回原 nodeId '8'
+    expect(resolved.imageOutputNodeId).toBe('8');
+    expect(resolved.workflow.cosmos_vision_export).toBeUndefined();
   });
 });

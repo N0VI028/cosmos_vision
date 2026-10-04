@@ -68,13 +68,11 @@ export function extractMessageBlocks(mesElement: HTMLElement): BlockRef[] {
       if (isIframeElementNode(child)) {
         const doc = tryAccessIframeDocument(child);
         if (doc?.body) {
-          // 遍历 iframe 内部的子元素
           traverseIframeBody(doc.body, child);
         }
         continue;
       }
 
-      // 如果显式声明了可选标记
       if (child.hasAttribute('data-cv-selectable')) {
         const text = extractFrontendText(child);
         if (text) {
@@ -90,7 +88,6 @@ export function extractMessageBlocks(mesElement: HTMLElement): BlockRef[] {
         continue;
       }
 
-      // 如果是普通段落 <p>
       if (child.tagName === 'P') {
         const text = extractCleanText(child);
         if (text && !isSourceMarkupText(text)) {
@@ -122,11 +119,9 @@ export function extractMessageBlocks(mesElement: HTMLElement): BlockRef[] {
         continue;
       }
 
-      // 若包含更深层子节点，继续向下遍历
       if (child.children.length > 0) {
         traverse(child, currentIframe);
       } else {
-        // 叶子文本块
         const text = extractCleanText(child);
         if (text && !isSourceMarkupText(text)) {
           blocks.push({
@@ -165,12 +160,10 @@ export function extractMessageBlocks(mesElement: HTMLElement): BlockRef[] {
       return;
     }
 
-    // 查找具有 bubble 特征的子节点
     const candidates = Array.from(
       body.querySelectorAll<HTMLElement>('.bubble, .message-bubble, .chat-bubble, div[class*="bubble"], div[class*="message"]'),
     ).filter(isHTMLElementNode);
 
-    // 过滤出叶子气泡容器
     const leafBubbles = candidates.filter(
       c => !candidates.some(other => other !== c && c.contains(other)),
     );
@@ -271,7 +264,6 @@ export function extractBlocksUntil(target: HTMLElement): ExtractedBlockContext {
     };
   }
 
-  // 查找 target 对应的块
   let targetIndex = allBlocks.findIndex(
     b => b.element === target || b.element.contains(target) || target.contains(b.element),
   );

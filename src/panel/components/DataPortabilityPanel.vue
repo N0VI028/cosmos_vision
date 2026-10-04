@@ -25,7 +25,7 @@
     </div>
     <div class="flex flex-wrap items-center justify-between gap-(--cv-space-lg)">
       <Button
-        label="导出 JSON"
+        label="导出数据"
         icon="fa-solid fa-file-import"
         :loading="exportBusy"
         :disabled="!exportSections.length"
@@ -37,8 +37,8 @@
   <h2 class="cv-section-title">导入数据</h2>
   <div class="cv-section-body flex flex-col">
     <div class="flex flex-wrap items-center justify-between gap-(--cv-space-lg)">
-      <input ref="fileInput" type="file" accept="application/json,.json" class="hidden" @change="handleFileChange" />
-      <Button label="选择 JSON" icon="fa-solid fa-file-import" severity="secondary" @click="openFilePicker" />
+      <input ref="fileInput" type="file" accept="application/json,.zip,application/zip" class="hidden" @change="handleFileChange" />
+      <Button label="选择文件" icon="fa-solid fa-file-import" severity="secondary" @click="openFilePicker" />
       <span class="text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)"
         >导入前只预览识别到的数据，不会自动覆盖当前设置。</span
       >
@@ -103,7 +103,7 @@
 import { computed, inject, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { downloadPortableDataFile } from '@/services/data-portability/export';
-import { applyDataImport, buildDataImportPreview } from '@/services/data-portability/import';
+import { applyDataImport, buildDataImportPreviewFromFile } from '@/services/data-portability/import';
 import {
   DATA_PORTABILITY_SECTIONS,
   getDefaultSelectedSections,
@@ -265,7 +265,7 @@ async function handleFileChange(event: Event): Promise<void> {
  * @param file 用户选择的文件
  */
 async function parseImportFile(file: File): Promise<void> {
-  const nextPreview = buildDataImportPreview(await file.text(), { fileName: file.name });
+  const nextPreview = await buildDataImportPreviewFromFile(file, { fileName: file.name });
   preview.value = nextPreview;
   importSections.value = nextPreview.sections.map(section => section.id);
   describedImportSection.value = null;

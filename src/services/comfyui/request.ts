@@ -15,7 +15,7 @@ import {
 import { getComfyUIWorkflowValidationError, normalizeComfyUIUrl, parseComfyUIWorkflow } from '@/services/comfyui/parse';
 import { applyModelMatch } from '@/services/comfyui/model-loaders';
 import { applySeedModes } from '@/services/comfyui/seed-runtime';
-import { getCachedComfyUIObjectInfo } from '@/services/comfyui/object-info';
+import { fetchComfyUIObjectInfo, getCachedComfyUIObjectInfo } from '@/services/comfyui/object-info';
 import { getActiveComfyUIWorkflowJson } from '@/services/comfyui/workflow-presets';
 import { ensureImageExportNode } from '@/services/comfyui/export-node';
 import type {
@@ -63,6 +63,21 @@ function resolveEffectiveLoraPreset(
 }
 
 /**
+ * 解析待存入快照的 LoRA 预设组 ID
+ * @param effectiveLoraPreset 生效的 LoRA 预设组
+ * @param loraPresetOrSnapshots 传入的显式预设组或快照列表
+ * @returns 真实预设组 ID，回放合成组返回 undefined
+ */
+function resolveSnapshotLoraPresetId(
+  effectiveLoraPreset: ComfyUILoraPreset,
+  loraPresetOrSnapshots?: ComfyUILoraPreset | readonly ComfyUILoraSnapshot[],
+): string | undefined {
+  if (!loraPresetOrSnapshots) return effectiveLoraPreset.id;
+  if ('id' in loraPresetOrSnapshots) return loraPresetOrSnapshots.id;
+  return undefined;
+}
+
+/**
  * 按共享生图预设解析并构建 ComfyUI 最终请求
  * @param settings ComfyUI 设置
  * @param presetSettings 共享生图提示词预设
@@ -72,14 +87,14 @@ function resolveEffectiveLoraPreset(
  * @param loraPreset 显式指定的 LoRA 预设组或快照列表；传入则不再读取面板激活组
  * @returns 可直接发送的工作流与快照
  */
-export function buildComfyUIResolvedRequest(
+export async function buildComfyUIResolvedRequest(
   settings: ComfyUISettings,
   presetSettings: ImagePromptPresetSettings,
   prompts: ImagePromptPair,
   loraTriggerWords: readonly string[] = [],
   presetIds?: { positive: string; negative: string },
   loraPreset?: ComfyUILoraPreset | readonly ComfyUILoraSnapshot[],
-): ComfyUIResolvedRequest {
+): Promise<ComfyUIResolvedRequest> {
   const references = presetIds
     ? { positivePromptPresetId: presetIds.positive, negativePromptPresetId: presetIds.negative }
     : settings;
@@ -92,20 +107,20 @@ export function buildComfyUIResolvedRequest(
 }
 
 /**
- * 使用最终正负提示词构建 ComfyUI 请求
+ * 使用最终正负提示词构建 ComfyUI 请求（若 object_info 缓存 miss 则在线补拉，失败则降级）
  * @param settings ComfyUI 设置
  * @param prompts 已完成拼接的正负提示词
  * @param loraTriggerWords 本次生效 LoRA 的触发词
  * @param loraPresetOrSnapshots 显式指定的 LoRA 预设组或快照列表；传入则不再读取面板激活组
  * @returns 可直接发送的工作流与快照
  */
-export function buildComfyUIResolvedRequestFromPrompts(
+export async function buildComfyUIResolvedRequestFromPrompts(
   settings: ComfyUISettings,
   prompts: ImagePromptPair,
   loraTriggerWords: readonly string[] = [],
   loraPresetOrSnapshots?: ComfyUILoraPreset | readonly ComfyUILoraSnapshot[],
-): ComfyUIResolvedRequest {
-  const objectInfo = getCachedComfyUIObjectInfo(settings.url);
+): Promise<ComfyUIResolvedRequest> {
+  const objectInfo = getCachedComfyUIObjectInfo(settings.url) ?? await fetchComfyUIObjectInfo(settings.url).catch(() => null);
   const workflowJson = getActiveComfyUIWorkflowJson(settings.workflowPresets);
   const source = parseAndValidateWorkflow(workflowJson, objectInfo);
   const { positivePrompt, negativePrompt } = requirePromptPair(prompts);
@@ -124,6 +139,7 @@ export function buildComfyUIResolvedRequestFromPrompts(
   const promptBindings = readPromptBindings(workflow);
   const imageBindings = readImageBindings(workflow);
   const loras = readLoraSnapshotsFromWorkflow(workflow);
+  const loraPresetId = resolveSnapshotLoraPresetId(effectiveLoraPreset, loraPresetOrSnapshots);
   stripCosmosVisionMeta(workflow);
 
   return {
@@ -138,6 +154,7 @@ export function buildComfyUIResolvedRequestFromPrompts(
       seedValues,
       imageBindings,
       loras,
+      ...(loraPresetId ? { loraPresetId } : {}),
     },
   };
 }

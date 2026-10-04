@@ -15,7 +15,6 @@ describe('tavern-helper history-builder', () => {
   const mockFormatAsTavernRegexedString = vi.fn();
 
   beforeEach(() => {
-    // 重置 mock
     mockGetChatMessages.mockReset();
     mockFormatAsTavernRegexedString.mockReset();
 
@@ -143,10 +142,8 @@ describe('tavern-helper history-builder', () => {
         reverseOrder: false,
       });
 
-      // 验证第一次调用（user 消息）
       expect(mockFormatAsTavernRegexedString).toHaveBeenNthCalledWith(1, 'User', 'user_input', 'prompt', { depth: 2 });
 
-      // 验证第二次调用（assistant 消息）
       expect(mockFormatAsTavernRegexedString).toHaveBeenNthCalledWith(2, 'AI', 'ai_output', 'prompt', { depth: 1 });
     });
 

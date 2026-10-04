@@ -125,6 +125,31 @@ export function prependLoraTriggerWords(positivePrompt: string, triggerWords: re
 }
 
 /**
+ * 从提示词文本头部剥离连续命中的 LoRA 触发词
+ * 仅剥离头部连续命中的注入区（与前置注入对称），正文中的同名标签保留；头部无命中时原样返回
+ * @param prompt 待剥离触发词的提示词文本
+ * @param triggerWords 待剥离的触发词列表
+ * @returns 剥离触发词后的提示词文本
+ */
+export function stripLoraTriggerWords(prompt: string, triggerWords: readonly string[]): string {
+  if (!triggerWords.length) return prompt;
+  const targetSet = new Set(
+    triggerWords
+      .map(word => word.trim().toLowerCase())
+      .filter(Boolean),
+  );
+  if (!targetSet.size) return prompt;
+  const tokens = prompt
+    .split(/[\n,]+/)
+    .map(token => token.trim())
+    .filter(Boolean);
+  const coreStart = tokens.findIndex(token => !targetSet.has(token.toLowerCase()));
+  if (coreStart === -1) return '';
+  if (coreStart === 0) return prompt;
+  return tokens.slice(coreStart).join(', ');
+}
+
+/**
  * 读取提示词中的标签集合（按逗号/换行拆分，忽略大小写）
  * @param prompt 提示词文本
  * @returns 小写标签集合

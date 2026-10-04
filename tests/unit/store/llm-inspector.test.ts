@@ -1,8 +1,9 @@
 import { createPinia, setActivePinia } from 'pinia';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as tokenizers from '@sillytavern/scripts/tokenizers';
 import { eventSource } from '@sillytavern/script';
 import { useLlmInspectorStore } from '@/store/llm-inspector';
-import type { LlmInspectorRequestSnapshot } from '@/services/prompt-llm/llm-inspector';
+import { countPromptTokens, type LlmInspectorRequestSnapshot } from '@/services/prompt-llm/llm-inspector';
 
 /** 构造请求快照 */
 function buildSnapshot(id: string, overrides: Partial<LlmInspectorRequestSnapshot> = {}): LlmInspectorRequestSnapshot {
@@ -268,5 +269,91 @@ describe('useLlmInspectorStore', () => {
     eventSource.emit('js_reasoning_token_received_fully', '', 'gen-1');
     expect(store.sessions[0]!.thinkingText).toBe('推理中');
     expect(store.sessions[0]!.thinkingStreaming).toBe(true);
+  });
+
+  it('countPromptTokens 正确汇总各条指令的 token 数量', async () => {
+    const total = await countPromptTokens([
+      { role: 'system', content: 'abc' },
+      { role: 'user', content: '12345' },
+    ]);
+    expect(total).toBe(8);
+  });
+
+  it('recordRequest 后经微任务刷新，session.promptTokens 被回填为各条 content 长度之和', async () => {
+    const store = useLlmInspectorStore();
+    store.recordRequest(
+      buildSnapshot('gen-1', {
+        prompts: [
+          { role: 'system', content: '你是提示词生成器' },
+          { role: 'user', content: '生成图片' },
+        ],
+      }),
+    );
+    expect(store.sessions[0]!.promptTokens).toBeUndefined();
+
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(store.sessions[0]!.promptTokens).toBe(12);
+  });
+
+  it('模拟故障转移（同 id 二次 recordRequest 且 prompts 不同），最终 promptTokens 为第二次 prompts 的计数', async () => {
+    const store = useLlmInspectorStore();
+    store.recordRequest(
+      buildSnapshot('gen-1', {
+        prompts: [{ role: 'user', content: '第一批提示词' }],
+      }),
+    );
+    store.recordRequest(
+      buildSnapshot('gen-1', {
+        prompts: [
+          { role: 'system', content: '故障转移系统' },
+          { role: 'user', content: '第二批提示词很长' },
+        ],
+      }),
+    );
+
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(store.sessions[0]!.promptTokens).toBe(14);
+  });
+
+  it('模拟故障转移竞态：迟到的初次计数结果被丢弃，不覆盖后续重试的计数', async () => {
+    const store = useLlmInspectorStore();
+    let resolveFirstPromise!: (val: number) => void;
+    const pendingFirst = new Promise<number>(resolve => {
+      resolveFirstPromise = resolve;
+    });
+
+    const spy = vi.spyOn(tokenizers, 'getTokenCountAsync');
+    spy.mockImplementationOnce(() => pendingFirst);
+
+    store.recordRequest(
+      buildSnapshot('gen-1', {
+        prompts: [{ role: 'user', content: '初次慢请求' }],
+      }),
+    );
+    store.recordRequest(
+      buildSnapshot('gen-1', {
+        prompts: [{ role: 'user', content: '重试快请求' }],
+      }),
+    );
+
+    // 第二次请求快速完成（'重试快请求'.length === 5）
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(store.sessions[0]!.promptTokens).toBe(5);
+
+    // 第一次迟到完成，不得覆盖
+    resolveFirstPromise(100);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(store.sessions[0]!.promptTokens).toBe(5);
+
+    spy.mockRestore();
+  });
+
+  it('recordRequest 后 clearSessions，计数回调不得抛错', async () => {
+    const store = useLlmInspectorStore();
+    store.recordRequest(buildSnapshot('gen-1'));
+    store.clearSessions();
+
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(store.sessions).toEqual([]);
   });
 });

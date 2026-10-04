@@ -7,6 +7,7 @@
       contenteditable="plaintext-only"
       role="textbox"
       aria-multiline="true"
+      @keydown.stop
       @input="syncFromDom"
       @paste.prevent="pastePlainText"
     >
@@ -147,13 +148,19 @@ function ensurePlaintextOnlySupport(): void {
 }
 
 /**
- * 渲染当前结构化文本
+ * 渲染当前结构化文本：结构异常时全量重挂三节点自愈（清游离根级节点与被删 span），
+ * 结构规范时仅改文本——拖动预览高频走此路径，重挂节点会隐式释放 pointer capture 导致拖拽中断
  * @param value 结构化值
  */
 function renderValue(value: PromptPlaceholderValue): void {
   const normalized = normalizeValue(value);
-  if (beforeEl.value) beforeEl.value.textContent = normalized.text.slice(0, normalized.placeholderOffset);
-  if (afterEl.value) afterEl.value.textContent = normalized.text.slice(normalized.placeholderOffset);
+  const editor = editorEl.value;
+  const before = beforeEl.value;
+  const after = afterEl.value;
+  if (!editor || !before || !after || !tokenEl.value) return;
+  if (!isCanonicalStructure()) editor.replaceChildren(before, tokenEl.value, after);
+  before.textContent = normalized.text.slice(0, normalized.placeholderOffset);
+  after.textContent = normalized.text.slice(normalized.placeholderOffset);
 }
 
 /**
@@ -186,34 +193,26 @@ function cancelFullscreen(): void {
 }
 
 /**
- * 徽章防删恢复：框选跨徽章删除时把失联节点重挂回编辑器
- * 前后段仍在则原位插回徽章；前后段被连带删除（如全选删除）则按宿主残留文本整体重建，徽章置于文本末尾
+ * 徽章防删恢复：框选跨徽章删除时把失联徽章重挂回编辑器，文本归位交给随后的规范化重建
  */
 function recoverTokenIfNeeded(): void {
   const editor = editorEl.value;
-  const before = beforeEl.value;
   const token = tokenEl.value;
-  const after = afterEl.value;
-  if (!editor || !token || !before || !after || editor.contains(token)) return;
-  if (editor.contains(before) && editor.contains(after)) {
-    editor.insertBefore(token, after);
-    return;
-  }
-  // 前后段被连带删除（如全选删除）时游离节点仍残留旧文本，须按宿主残留文本整体重建
-  const survivingText = editor.textContent ?? '';
-  editor.textContent = '';
-  editor.append(before, token, after);
-  before.textContent = survivingText;
-  after.textContent = '';
+  if (!editor || !token || editor.contains(token)) return;
+  const anchor = editor.contains(beforeEl.value) && editor.contains(afterEl.value) ? afterEl.value : null;
+  if (anchor) editor.insertBefore(token, anchor);
+  else editor.append(token);
 }
 
 /**
- * 从 DOM 同步文本到外部模型
+ * 从 DOM 同步文本到外部模型，结构异常时先规范化重建再上报
  */
 function syncFromDom(): void {
   recoverTokenIfNeeded();
-  const before = beforeEl.value?.textContent ?? '';
-  const after = afterEl.value?.textContent ?? '';
+  const { before, after } = readEditorSegments();
+  if (!isCanonicalStructure()) {
+    rebuildEditorDom(before, after, readCaretLogicalOffset());
+  }
   emitValue({ text: before + after, placeholderOffset: before.length });
 }
 
@@ -310,7 +309,177 @@ function hasMovedEnough(event: PointerEvent, point: Point): boolean {
  * @returns 固定文本
  */
 function readFullText(): string {
-  return `${beforeEl.value?.textContent ?? ''}${afterEl.value?.textContent ?? ''}`;
+  const { before, after } = readEditorSegments();
+  return before + after;
+}
+
+/**
+ * 以徽章为界把编辑器全部子节点切分为前后两段纯文本（含游离根级节点）
+ * @returns 前后两段文本
+ */
+function readEditorSegments(): { before: string; after: string } {
+  const nodes = [...(editorEl.value?.childNodes ?? [])];
+  const segments = { before: '', after: '' };
+  let inAfter = false;
+  nodes.forEach(node => {
+    if (node === tokenEl.value) {
+      inAfter = true;
+      return;
+    }
+    const text = extractText(node);
+    if (inAfter) segments.after += text;
+    else segments.before += text;
+  });
+  return segments;
+}
+
+/**
+ * 沿文档序获取下一个节点，可跳过子节点
+ * @param node 当前节点
+ * @param skipChildren 是否跳过子节点
+ * @returns 下一个节点，遍历结束返回 null
+ */
+function getNextDocNode(node: Node, skipChildren = false): Node | null {
+  if (!skipChildren && node.firstChild) return node.firstChild;
+  let curr: Node | null = node;
+  while (curr && curr !== editorEl.value) {
+    if (curr.nextSibling) return curr.nextSibling;
+    curr = curr.parentNode;
+  }
+  return null;
+}
+
+/**
+ * 检查 BR 之后（文档序、跳过徽章子树）是否存在非空文本
+ * @param br BR 节点
+ * @returns 是否存在非空文本
+ */
+function hasTextAfterBr(br: Node): boolean {
+  let curr: Node | null = getNextDocNode(br);
+  while (curr) {
+    if (curr === tokenEl.value) {
+      curr = getNextDocNode(curr, true);
+      continue;
+    }
+    if (curr.nodeType === Node.TEXT_NODE && (curr.textContent ?? '').trim() !== '') {
+      return true;
+    }
+    curr = getNextDocNode(curr);
+  }
+  return false;
+}
+
+/**
+ * 递归提取节点纯文本，BR 按文档序规则计换行
+ * @param node 待提取节点
+ * @returns 纯文本
+ */
+function extractText(node: Node): string {
+  if (node.nodeName === 'BR') return hasTextAfterBr(node) ? '\n' : '';
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? '';
+  return [...node.childNodes].map(extractText).join('');
+}
+
+/**
+ * 判断编辑器是否处于标准结构（恰好前后段+徽章三节点且两段仅含文本）
+ * @returns 是否标准结构
+ */
+function isCanonicalStructure(): boolean {
+  const editor = editorEl.value;
+  const before = beforeEl.value;
+  const after = afterEl.value;
+  if (!editor || !before || !after) return false;
+  const nodes = [...editor.childNodes];
+  const expected = [before, tokenEl.value, after];
+  return nodes.length === 3 && nodes.every((node, index) => node === expected[index]) && isTextOnly(before) && isTextOnly(after);
+}
+
+/**
+ * 判断元素是否只含文本节点
+ * @param el 待检查元素
+ * @returns 是否仅含文本节点
+ */
+function isTextOnly(el: HTMLElement): boolean {
+  return [...el.childNodes].every(node => node.nodeType === Node.TEXT_NODE);
+}
+
+/**
+ * 全量重挂三节点并按逻辑偏移恢复光标，自愈被删 span、游离节点与残留 BR
+ * @param before 前段文本
+ * @param after 后段文本
+ * @param caret 重建前的逻辑光标偏移，null 表示无需恢复
+ */
+function rebuildEditorDom(before: string, after: string, caret: number | null): void {
+  const editor = editorEl.value;
+  const beforeNode = beforeEl.value;
+  const afterNode = afterEl.value;
+  if (!editor || !beforeNode || !afterNode || !tokenEl.value) return;
+  editor.replaceChildren(beforeNode, tokenEl.value, afterNode);
+  beforeNode.textContent = before;
+  afterNode.textContent = after;
+  if (caret !== null) placeCaretAtOffset(caret, before);
+}
+
+/**
+ * 读取当前光标在跳过徽章的纯文本坐标系中的逻辑偏移
+ * @returns 逻辑偏移，光标不在编辑器内时为 null
+ */
+function readCaretLogicalOffset(): number | null {
+  const selection = window.getSelection();
+  if (!selection?.rangeCount) return null;
+  const { startContainer, startOffset } = selection.getRangeAt(0);
+  if (!editorEl.value?.contains(startContainer)) return null;
+  return getSegmentOffset(startContainer, startOffset);
+}
+
+/**
+ * 把 DOM 节点位置换算为逻辑偏移
+ * @param container 光标容器
+ * @param offset 容器内偏移
+ * @returns 逻辑偏移
+ */
+function getSegmentOffset(container: Node, offset: number): number {
+  if (container === editorEl.value) {
+    return [...container.childNodes]
+      .slice(0, offset)
+      .reduce((sum, node) => sum + (node === tokenEl.value ? 0 : extractText(node).length), 0);
+  }
+  const prefix = textBeforeNode(container);
+  if (container.nodeType === Node.TEXT_NODE) return prefix + offset;
+  return prefix + (offset <= 0 ? 0 : extractText(container).length);
+}
+
+/**
+ * 累加节点之前（含各层前序兄弟）的逻辑文本长度
+ * @param node 目标节点
+ * @returns 逻辑文本长度
+ */
+function textBeforeNode(node: Node): number {
+  const parent = node.parentNode;
+  if (!parent || node === editorEl.value) return 0;
+  const siblings = [...parent.childNodes];
+  const index = siblings.findIndex(item => item === node);
+  // 徽章自身文本不进入逻辑坐标系
+  const prefix = siblings.slice(0, index).reduce((sum, item) => sum + (item === tokenEl.value ? 0 : extractText(item).length), 0);
+  return textBeforeNode(parent) + prefix;
+}
+
+/**
+ * 按逻辑偏移恢复光标，徽章之前的偏移落在前段，其后落在后段；越界或选区不可用时静默放弃
+ * @param offset 逻辑偏移
+ * @param before 前段文本
+ */
+function placeCaretAtOffset(offset: number, before: string): void {
+  const inBefore = offset <= before.length;
+  const target = inBefore ? beforeEl.value : afterEl.value;
+  const selection = window.getSelection();
+  if (!target || !selection) return;
+  const local = inBefore ? offset : offset - before.length;
+  const range = document.createRange();
+  range.setStart(target.firstChild ?? target, Math.max(0, Math.min(local, target.textContent?.length ?? 0)));
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
 }
 
 /**

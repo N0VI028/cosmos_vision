@@ -26,6 +26,7 @@
     v-model:characters="textInputDialogState.characters"
     v-model:positive-preset-id="textInputDialogState.positivePresetId"
     v-model:negative-preset-id="textInputDialogState.negativePresetId"
+    v-model:lora-preset-id="textInputDialogState.loraPresetId"
     v-model:positive-core="textInputDialogState.positiveCore"
     v-model:negative-core="textInputDialogState.negativeCore"
     :title="textInputDialogState.title"
@@ -39,6 +40,7 @@
     :dark-mode="darkMode"
     :enable-characters="textInputDialogState.enableCharacters"
     :enable-preset-selector="textInputDialogState.enablePresetSelector"
+    :enable-lora-selector="textInputDialogState.enableLoraSelector"
     :quick-phrases="textInputDialogState.quickPhrases"
     @submit="handleTextInputDialog"
     @update-quick-phrases="handleQuickPhrasesUpdate"
@@ -171,6 +173,7 @@ import {
   type InlineImageDownloadOptions,
 } from '@/services/inline-image/download-options';
 import { ensurePromptStripRegex } from '@/services/inline-image/prompt-strip-regex';
+import { syncThemeColorToPrimary } from '@/services/primevue/theme-adapter';
 import { checkExtensionUpdate, updateDetected } from '@/services/version-check/st-update';
 import type { TextInputCharacterDraft, TextInputDialogSubmitValue } from '@/panel/components/TextInputDialog.vue';
 
@@ -187,8 +190,10 @@ interface TextInputDialogState {
   cancelLabel: string;
   enableCharacters: boolean;
   enablePresetSelector: boolean;
+  enableLoraSelector?: boolean;
   positivePresetId: string;
   negativePresetId: string;
+  loraPresetId?: string;
   positiveCore: string;
   negativeCore: string;
   characters: TextInputCharacterDraft[];
@@ -252,8 +257,10 @@ const textInputDialogState = ref<TextInputDialogState>({
   cancelLabel: '取消',
   enableCharacters: false,
   enablePresetSelector: false,
+  enableLoraSelector: false,
   positivePresetId: '',
   negativePresetId: '',
+  loraPresetId: '',
   positiveCore: '',
   negativeCore: '',
   characters: [],
@@ -277,8 +284,14 @@ const { isSelectionMode, toggleSelectionMode, exitSelectionMode, refreshGalleryT
 
 provide(IMAGE_DOWNLOAD_OPTIONS_REQUEST_KEY, showImageDownloadDialog);
 
-/** 日夜模式切换时立即刷新画廊主题 */
-watch(darkMode, () => refreshGalleryTheme());
+/**
+ * 日夜模式切换时刷新画廊主题并重新评估同步主色
+ * 深浅切换后主题色对比度结论可能翻转，需按新背景重评估主色
+ */
+watch(darkMode, () => {
+  refreshGalleryTheme();
+  syncThemeColorToPrimary();
+});
 
 // ── 悬浮球拖动 ─────────────────────────────────────────────
 
@@ -417,8 +430,10 @@ function showTextInputDialog(options: InlineTextInputOptions): Promise<string | 
       cancelLabel: options.cancelLabel ?? '取消',
       enableCharacters: false,
       enablePresetSelector: false,
+      enableLoraSelector: false,
       positivePresetId: '',
       negativePresetId: '',
+      loraPresetId: '',
       positiveCore: '',
       negativeCore: '',
       characters: [],
@@ -449,8 +464,10 @@ function showPromptPairDialog(options: InlinePromptPairInputOptions): Promise<In
       cancelLabel: options.cancelLabel ?? '取消',
       enableCharacters: Boolean(options.enableCharacters),
       enablePresetSelector: true,
+      enableLoraSelector: Boolean(options.enableLoraSelector),
       positivePresetId: options.positivePresetId ?? '',
       negativePresetId: options.negativePresetId ?? '',
+      loraPresetId: options.loraPresetId ?? '',
       positiveCore: options.positiveCore ?? '',
       negativeCore: options.negativeCore ?? '',
       characters: toTextInputCharacterDrafts(options.charactersDefaultValue ?? []),
@@ -463,6 +480,7 @@ function showPromptPairDialog(options: InlinePromptPairInputOptions): Promise<In
                 characters: result.characters.map(toInlineCharacterDraft),
                 positivePresetId: result.positivePresetId,
                 negativePresetId: result.negativePresetId,
+                loraPresetId: result.loraPresetId,
               }
             : null,
         ),

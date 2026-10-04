@@ -49,7 +49,6 @@ const props = withDefaults(
   { tone: 'neutral' },
 );
 
-// 色调 → PrimeVue severity 映射
 const TONE_SEVERITY_MAP: Record<CvMiniButtonTone, ButtonProps['severity']> = {
   neutral: undefined,
   primary: undefined,
@@ -62,7 +61,6 @@ const TONE_SEVERITY_MAP: Record<CvMiniButtonTone, ButtonProps['severity']> = {
   help: 'help',
 } as const;
 
-// 色调 → 默认文字色
 const TONE_COLOR_MAP: Record<CvMiniButtonTone, string> = {
   neutral: 'var(--cv-on-surface-variant)',
   primary: 'var(--cvp-primary-color)',

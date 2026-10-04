@@ -1,3 +1,4 @@
+import { getTokenCountAsync } from '@sillytavern/scripts/tokenizers';
 import type { PromptLlmAccount, PromptLlmContext } from '@/constants/prompt-llm';
 import { getPromptLlmAccountDisplayName } from '@/constants/prompt-llm';
 import { buildPromptLlmAccountParamRows, type PromptLlmParamRow } from '@/services/tavern-helper/prompt-llm-test';
@@ -9,12 +10,25 @@ export interface LlmInspectorPromptEntry {
   content: string;
 }
 
+/**
+ * 统计发送指令的 token 总数（异步）
+ * 对每条 prompt.content 调用酒馆 getTokenCountAsync 后求和
+ * @param prompts 指令快照列表
+ * @returns token 总数
+ */
+export async function countPromptTokens(prompts: LlmInspectorPromptEntry[]): Promise<number> {
+  const counts = await Promise.all(prompts.map(prompt => getTokenCountAsync(prompt.content)));
+  return counts.reduce((sum, count) => sum + count, 0);
+}
+
 /** LLM 监视请求快照（发送侧，可安全展示） */
 export interface LlmInspectorRequestSnapshot {
   /** generation_id，与流式事件对账 */
   id: string;
   /** 会话标签（焦点段落摘要） */
   label: string;
+  /** 是否为 window API 外部调用（详情页徽章展示用） */
+  isExternalCall?: boolean;
   startedAt: number;
   prompts: LlmInspectorPromptEntry[];
   model: string;
@@ -33,6 +47,7 @@ export interface LlmInspectorRequestSnapshot {
  * @param request generateRaw 请求体
  * @param account 本次尝试账号
  * @param label 会话标签
+ * @param isExternalCall 是否为 window API 外部调用
  * @returns 可展示的请求快照
  */
 export function buildLlmInspectorRequestSnapshot(
@@ -40,10 +55,12 @@ export function buildLlmInspectorRequestSnapshot(
   request: TavernHelperGenerateRawConfig,
   account: PromptLlmAccount | undefined,
   label: string,
+  isExternalCall = false,
 ): LlmInspectorRequestSnapshot {
   return {
     id,
     label,
+    isExternalCall: isExternalCall || undefined,
     startedAt: Date.now(),
     prompts: readLlmInspectorPrompts(request.ordered_prompts),
     model: request.custom_api?.model?.trim() || '(未配置)',

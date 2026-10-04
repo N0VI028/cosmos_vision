@@ -1,5 +1,32 @@
 import { describe, expect, it } from 'vitest';
-import { formatLoraDisplayName } from '@/services/comfyui/lora-presets';
+import { formatLoraDisplayName, stripLoraTriggerWords } from '@/services/comfyui/lora-presets';
+
+describe('stripLoraTriggerWords', () => {
+  it('空词表原样返回', () => {
+    expect(stripLoraTriggerWords('masterpiece, 1girl', [])).toBe('masterpiece, 1girl');
+    expect(stripLoraTriggerWords('masterpiece, 1girl', ['   '])).toBe('masterpiece, 1girl');
+  });
+
+  it('剥离头部连续触发词并保留正文同名标签，忽略大小写', () => {
+    const prompt = 'triggerA, masterpiece,\nTRIGGERB, 1girl, triggerC\nsolo';
+    const stripped = stripLoraTriggerWords(prompt, ['triggera', 'triggerb']);
+    expect(stripped).toBe('masterpiece, TRIGGERB, 1girl, triggerC, solo');
+
+    const multiHeaderPrompt = 'triggerA, triggerB, masterpiece, 1girl, triggerA';
+    expect(stripLoraTriggerWords(multiHeaderPrompt, ['triggerA', 'triggerB'])).toBe('masterpiece, 1girl, triggerA');
+  });
+
+  it('全部 tag 都是触发词时返回空串', () => {
+    expect(stripLoraTriggerWords('triggerA, triggerB', ['triggerA', 'triggerB'])).toBe('');
+    expect(stripLoraTriggerWords('triggerA\ntriggerB', ['triggerA', 'triggerB'])).toBe('');
+  });
+
+  it('头部无命中时直接原样返回原文，含换行保留零扰动', () => {
+    const prompt = 'masterpiece,\n1girl';
+    expect(stripLoraTriggerWords(prompt, ['otherTrigger'])).toBe(prompt);
+    expect(stripLoraTriggerWords('1girl, triggerA', ['triggerA'])).toBe('1girl, triggerA');
+  });
+});
 
 describe('formatLoraDisplayName', () => {
   it('strips .safetensors extension, including uppercase .SAFETENSORS', () => {

@@ -244,23 +244,18 @@ function roundedRectPath(rect: TutorialRect, radii: CornerRadii): string {
   const bottom = top + height;
   const { tl, tr, br, bl } = radii;
 
-  // 全直角
   if (tl + tr + br + bl === 0) {
     return `M${left} ${top}H${right}V${bottom}H${left}Z`;
   }
 
   // 混合圆角：每个角独立处理
   let path = `M${left + tl} ${top}`;
-  // 上边 + 右上角
   path += `H${right - tr}`;
   if (tr > 0) path += `A${tr} ${tr} 0 0 1 ${right} ${top + tr}`;
-  // 右边 + 右下角
   path += `V${bottom - br}`;
   if (br > 0) path += `A${br} ${br} 0 0 1 ${right - br} ${bottom}`;
-  // 下边 + 左下角
   path += `H${left + bl}`;
   if (bl > 0) path += `A${bl} ${bl} 0 0 1 ${left} ${bottom - bl}`;
-  // 左边 + 左上角
   path += `V${top + tl}`;
   if (tl > 0) path += `A${tl} ${tl} 0 0 1 ${left + tl} ${top}`;
   return path + 'Z';

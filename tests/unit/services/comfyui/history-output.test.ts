@@ -33,3 +33,35 @@ describe('comfyui history output extraction', () => {
     expect(() => extractHistoryImages(entry, '9')).toThrow(/未返回任何图片/);
   });
 });
+
+describe('fetchComfyUIHistoryResult', () => {
+  it('throws error when execution completed but target node has no image output', async () => {
+    const { fetchComfyUIHistoryResult } = await import('@/services/comfyui/api');
+    const { createMockFetch } = await import('../../../helpers/fetch-mocks');
+
+    const historyPayload = {
+      'prompt-123': {
+        outputs: {
+          '6': { images: [{ filename: 'other.png', subfolder: '', type: 'output' }] },
+        },
+        status: {
+          completed: true,
+          status_str: 'success',
+          messages: [],
+        },
+      },
+    };
+
+    const mockFetch = createMockFetch(() => ({ json: historyPayload }));
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
+
+    try {
+      await expect(
+        fetchComfyUIHistoryResult('http://127.0.0.1:8188', 'prompt-123', '8'),
+      ).rejects.toThrow(/ComfyUI 执行完成但结果节点 8 未产出图片/);
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+});

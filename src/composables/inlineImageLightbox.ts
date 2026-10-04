@@ -3,6 +3,7 @@ import type { CharacterPromptItem } from '@/constants/novelai';
 import type { ImagePromptVibeRef } from '@/constants/novelai-vibe';
 import type { ComfyUIRequestSnapshot } from '@/services/comfyui/types';
 import type { NovelAIFinalPrompts } from '@/services/novelai/api';
+import type { NovelAIRequestInfo } from '@/services/novelai/types';
 import type { NovelAIVibeParameters } from '@/services/novelai/vibe-types';
 import { reactive } from 'vue';
 
@@ -16,13 +17,14 @@ export interface InlinePromptParts {
 
 /** 内联生图提示词快照 */
 export interface InlinePromptSnapshot {
-  positivePrompt: string;
-  negativePrompt: string;
+  positivePrompt?: string;
+  negativePrompt?: string;
   imageSource?: ImageSource;
   novelai?: NovelAIFinalPrompts;
   comfyui?: ComfyUIRequestSnapshot;
-  /** 部件分解；新链路必写，旧快照无此字段时编辑回退原样 */
   promptParts?: { positive: InlinePromptParts; negative: InlinePromptParts };
+  /** 生成成功时记录的 NovelAI 参数与命中渠道，旧快照无此字段 */
+  novelaiRequest?: NovelAIRequestInfo;
 }
 
 export interface InlineLightboxActions {
@@ -70,12 +72,13 @@ export function closeInlineImageLightbox(): void {
  */
 export function cloneInlinePromptSnapshot(snapshot: InlinePromptSnapshot): InlinePromptSnapshot {
   return {
-    positivePrompt: snapshot.positivePrompt,
-    negativePrompt: snapshot.negativePrompt,
+    ...(snapshot.positivePrompt !== undefined ? { positivePrompt: snapshot.positivePrompt } : {}),
+    ...(snapshot.negativePrompt !== undefined ? { negativePrompt: snapshot.negativePrompt } : {}),
     imageSource: snapshot.imageSource,
     novelai: snapshot.novelai ? cloneNovelAIFinalPrompts(snapshot.novelai) : undefined,
     comfyui: snapshot.comfyui ? cloneComfyUIRequestSnapshot(snapshot.comfyui) : undefined,
     promptParts: snapshot.promptParts ? cloneInlinePromptParts(snapshot.promptParts) : undefined,
+    ...(snapshot.novelaiRequest ? { novelaiRequest: { ...snapshot.novelaiRequest } } : {}),
   };
 }
 
@@ -160,6 +163,7 @@ function cloneComfyUIRequestSnapshot(snapshot: ComfyUIRequestSnapshot): ComfyUIR
     promptBindings: snapshot.promptBindings.map(item => ({ ...item })),
     seedValues: snapshot.seedValues.map(item => ({ ...item })),
     loras: snapshot.loras.map(lora => ({ name: lora.name, strength: lora.strength })),
+    ...(snapshot.loraPresetId ? { loraPresetId: snapshot.loraPresetId } : {}),
   };
 }
 

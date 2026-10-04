@@ -28,8 +28,17 @@ import type {
 import { listenComfyUIProgress, type ComfyUIProgress } from '@/services/comfyui/progress-ws';
 import type { ImagePromptPair } from '@/services/image-prompt/presets';
 
+/** ComfyUI /prompt 节点校验错误条目 */
+interface ComfyUINodeErrorItem {
+  type?: unknown;
+  message?: unknown;
+  details?: unknown;
+}
+
 interface ComfyUIPromptResponse {
   prompt_id?: string;
+  /** 节点校验错误表；非空时任务不会入队执行 */
+  node_errors?: Record<string, { errors?: ComfyUINodeErrorItem[] }>;
 }
 
 interface ComfyUICheckpointLoaderInfo {
@@ -82,9 +91,15 @@ export async function generateComfyUIImages(
   options: ComfyUIRequestOptions = {},
 ): Promise<Blob[]> {
   const loraTriggerWords = await resolveActiveComfyUILoraTriggerWords(settings, options.signal);
+  const resolvedRequest = await buildComfyUIResolvedRequest(
+    settings,
+    presetSettings,
+    prompts,
+    loraTriggerWords,
+  );
   return generateComfyUIImagesFromResolvedRequest(
     settings,
-    buildComfyUIResolvedRequest(settings, presetSettings, prompts, loraTriggerWords),
+    resolvedRequest,
     options,
   );
 }
@@ -107,7 +122,7 @@ export async function generateComfyUIImagesFromPrompts(
         ? await resolveComfyUILoraTriggerWords(settings.url, options.loras.map(l => l.name), options.signal)
         : await resolveActiveComfyUILoraTriggerWords(settings, options.signal));
 
-  const resolvedRequest = buildComfyUIResolvedRequestFromPrompts(
+  const resolvedRequest = await buildComfyUIResolvedRequestFromPrompts(
     settings,
     prompts,
     loraTriggerWords,
@@ -361,7 +376,26 @@ async function queueComfyUIPrompt(
 
   const data = await readJsonResponse<ComfyUIPromptResponse>(response, 'ComfyUI /prompt');
   if (!data.prompt_id) throw new Error('ComfyUI /prompt 未返回 prompt_id');
+  const validationError = readPromptNodeErrors(data.node_errors);
+  if (validationError) throw new Error(validationError);
   return data.prompt_id;
+}
+
+/**
+ * 汇总 /prompt 返回的节点校验错误
+ * ComfyUI 校验失败时仍返回 200 与 prompt_id 但任务不入队，必须显式拦截防止轮询空等
+ * @param nodeErrors 节点校验错误表
+ * @returns 可读错误消息；无错误时返回 null
+ */
+export function readPromptNodeErrors(nodeErrors: ComfyUIPromptResponse['node_errors']): string | null {
+  if (!nodeErrors) return null;
+  const details = Object.entries(nodeErrors).map(([nodeId, nodeError]) => {
+    const first = nodeError.errors?.[0];
+    const input = typeof first?.details === 'string' ? `（输入 ${first.details}）` : '';
+    const message = typeof first?.message === 'string' ? first.message : '未知校验错误';
+    return `节点 ${nodeId}${input}: ${message}`;
+  });
+  return details.length ? `ComfyUI 校验失败，任务未入队：${details.join('；')}` : null;
 }
 
 /**
@@ -394,7 +428,7 @@ async function pollComfyUIHistory(
  * @param signal 取消信号
  * @returns 图片列表或未完成时的 null
  */
-async function fetchComfyUIHistoryResult(
+export async function fetchComfyUIHistoryResult(
   baseUrl: string,
   promptId: string,
   imageOutputNodeId: string,
@@ -417,7 +451,12 @@ async function fetchComfyUIHistoryResult(
   }
 
   const images = extractHistoryImages(entry, imageOutputNodeId);
-  if (!images) return null;
+  if (!images) {
+    if (entry.status?.completed === true) {
+      throw new Error(`ComfyUI 执行完成但结果节点 ${imageOutputNodeId} 未产出图片（该节点可能不是输出节点，请检查工作流结果节点配置）`);
+    }
+    return null;
+  }
 
   return { images };
 }

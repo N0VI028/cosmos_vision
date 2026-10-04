@@ -50,6 +50,8 @@ export interface NovelAIFinalPrompts {
 
 export interface NovelAIRequestSnapshot {
   endpoint: string;
+  /** 命中账号名称，无可用账号时为占位文案 */
+  accountName: string;
   positivePrompt: string;
   negativePrompt: string;
   /** 从 LLM 解析并发送给 NovelAI 的角色提示词 */
@@ -74,6 +76,9 @@ export interface NovelAIRequestSnapshot {
   imageCount: number;
   vibes: NovelAIVibeSnapshot;
 }
+
+/** 剔除提示词字段后的 NovelAI 参数快照，供内联图片快照与灯箱展示使用 */
+export type NovelAIRequestInfo = Omit<NovelAIRequestSnapshot, 'positivePrompt' | 'negativePrompt' | 'characterPrompts'>;
 
 export interface NovelAIResolvedRequest {
   settings: NovelAISettings;

@@ -1,14 +1,29 @@
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
 import type { ComfyUIRequestSnapshot } from '@/services/comfyui/types';
 import type { NovelAIFinalPrompts } from '@/services/novelai/api';
+import type { NovelAIRequestInfo, NovelAIRequestSnapshot } from '@/services/novelai/types';
 import { formatTimestampForFileName } from '@/services/inline-image/filename-utils';
+
+/**
+ * 从完整 NovelAI 请求快照提取去除提示词后的参数元数据
+ * @param snapshot 完整请求快照
+ * @returns 仅保留生成参数与渠道的元数据
+ */
+export function toNovelAIRequestInfo(snapshot: NovelAIRequestSnapshot): NovelAIRequestInfo {
+  const { positivePrompt, negativePrompt, characterPrompts, ...rest } = snapshot;
+  return rest;
+}
 
 /**
  * 创建 NovelAI 内联提示词快照
  * @param prompts NovelAI 最终提示词（新鲜生图链路含 promptParts 部件分解）
+ * @param request 可选的 NovelAI 生成参数与命中渠道元数据
  * @returns 内联提示词快照
  */
-export function createNovelAISnapshot(prompts: NovelAIFinalPrompts): InlinePromptSnapshot {
+export function createNovelAISnapshot(
+  prompts: NovelAIFinalPrompts,
+  request?: NovelAIRequestInfo,
+): InlinePromptSnapshot {
   return {
     positivePrompt: prompts.positivePrompt,
     negativePrompt: prompts.negativePrompt,
@@ -17,6 +32,7 @@ export function createNovelAISnapshot(prompts: NovelAIFinalPrompts): InlinePromp
     promptParts: prompts.promptParts
       ? { positive: { ...prompts.promptParts.positive }, negative: { ...prompts.promptParts.negative } }
       : undefined,
+    ...(request ? { novelaiRequest: request } : {}),
   };
 }
 
@@ -31,8 +47,6 @@ export function createComfyUISnapshot(
   promptParts?: InlinePromptSnapshot['promptParts'],
 ): InlinePromptSnapshot {
   return {
-    positivePrompt: snapshot.positivePrompt,
-    negativePrompt: snapshot.negativePrompt,
     imageSource: 'comfyui',
     comfyui: snapshot,
     promptParts,

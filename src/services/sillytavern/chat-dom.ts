@@ -757,7 +757,6 @@ export function findChatParagraph(el: HTMLElement): HTMLElement | null {
       return null;
     }
 
-    // 如果父容器包含内联样式或自定义标记
     if (current.hasAttribute('style') || current.hasAttribute('data-cv-selectable')) {
       return null;
     }

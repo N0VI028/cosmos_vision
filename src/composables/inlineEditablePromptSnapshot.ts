@@ -117,7 +117,6 @@ export function createEditedPromptSnapshot(
 
 /**
  * 读取快照的提示词部件
- * 新链路快照直接用 parts；旧快照回退为剥质量词整串 + 原样（presetId = ''）
  * @param settings 扩展设置
  * @param snapshot 提示词快照
  * @returns 正负两侧部件
@@ -129,7 +128,10 @@ function readSnapshotPromptParts(
   if (snapshot.promptParts) return snapshot.promptParts;
   const fallback = snapshot.novelai
     ? readNovelAIEditablePrompts(settings.novelai, snapshot.novelai)
-    : { positivePrompt: snapshot.positivePrompt, negativePrompt: snapshot.negativePrompt };
+    : {
+        positivePrompt: snapshot.comfyui?.positivePrompt ?? snapshot.positivePrompt ?? '',
+        negativePrompt: snapshot.comfyui?.negativePrompt ?? snapshot.negativePrompt ?? '',
+      };
   return {
     positive: { core: fallback.positivePrompt, presetId: '' },
     negative: { core: fallback.negativePrompt, presetId: '' },

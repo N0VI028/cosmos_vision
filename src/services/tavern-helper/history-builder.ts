@@ -191,11 +191,9 @@ function finalizeHistoryText(messages: RegexedHistoryMessage[], reverseOrder: bo
  */
 function filterMessages(messages: TavernChatMessage[], ignoreUserMessages: boolean): TavernChatMessage[] {
   return messages.filter(msg => {
-    // 排除隐藏系统消息
     if (msg.is_hidden) {
       return false;
     }
-    // 可选排除用户消息
     if (ignoreUserMessages && msg.role === 'user') {
       return false;
     }

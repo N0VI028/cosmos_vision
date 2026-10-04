@@ -1,18 +1,90 @@
 import { event_types, eventSource } from '@sillytavern/script';
 
 /**
- * 读取 ST 主题色 --SmartThemeQuoteColor 并归一化为 #rrggbb
- * 如果未获取到，或颜色为纯黑 (#000000) 或纯白 (#ffffff)，则回退为默认的橙色主题色 (#e18a24)
- * @param target 计算样式来源,默认 document.documentElement
- * @returns 形如 `#rrggbb` 的不透明颜色;解析失败或为纯黑/纯白则返回默认橙色
+ * 插件默认橙色主题色
  */
-export function getThemeQuoteColorOpaque(target: HTMLElement = document.documentElement): string {
+export const DEFAULT_QUOTE_COLOR = '#e18a24';
+
+/**
+ * 主题色与背景的最低对比度阈值
+ *
+ * 注：可见性保险线而非 WCAG 无障碍达标线；
+ * 默认橙对白底约 2.67、ST 常见主题色 #f49066 对白底约 2.33，阈值必须低于它们，否则正常主题色也被拦。
+ */
+export const MIN_QUOTE_SURFACE_CONTRAST = 2;
+
+/**
+ * 计算 Hex 颜色的 WCAG 相对亮度
+ *
+ * 各通道 c/255 后线性化（c<=0.03928 ? c/12.92 : ((c+0.055)/1.055)^2.4），L = 0.2126R + 0.7152G + 0.0722B。
+ * @param hex 颜色十六进制字符串，形如 #rrggbb
+ * @returns 相对亮度值 (0 - 1)
+ */
+export function relativeLuminance(hex: string): number {
+  const fullHex = hex.trim().replace(/^#/, '');
+  const r = parseInt(fullHex.slice(0, 2), 16) / 255;
+  const g = parseInt(fullHex.slice(2, 4), 16) / 255;
+  const b = parseInt(fullHex.slice(4, 6), 16) / 255;
+  const linearize = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  return 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b);
+}
+
+/**
+ * 计算两个 Hex 颜色的 WCAG 对比度
+ *
+ * 公式为 (L1+0.05)/(L2+0.05)，L1 为较亮者。
+ * @param hexA 颜色 A (十六进制)
+ * @param hexB 颜色 B (十六进制)
+ * @returns 对比度比例 (1 - 21)
+ */
+export function contrastRatio(hexA: string, hexB: string): number {
+  const lumA = relativeLuminance(hexA);
+  const lumB = relativeLuminance(hexB);
+  const l1 = Math.max(lumA, lumB);
+  const l2 = Math.min(lumA, lumB);
+  return (l1 + 0.05) / (l2 + 0.05);
+}
+
+/**
+ * 读取当前深浅主题下的插件 surface 颜色
+ *
+ * 原理：浅色值定义在 :root（继承到探测元素），深色值定义在 `.cosmos-vision-root.cosmos-vision-app-dark`（探测元素自身匹配）。
+ * @param darkMode 是否为深色模式
+ * @returns 归一化后的 `#rrggbb` 颜色，读取或解析失败时返回 null
+ */
+function readCvSurfaceColor(darkMode: boolean): string | null {
+  const probe = document.createElement('span');
+  probe.className = darkMode ? 'cosmos-vision-root cosmos-vision-app-dark' : 'cosmos-vision-root';
+  probe.style.display = 'none';
+  document.body.appendChild(probe);
+  const raw = getComputedStyle(probe).getPropertyValue('--cv-surface').trim();
+  probe.remove();
+  return toOpaqueHex(raw);
+}
+
+/**
+ * 读取 ST 主题色 --SmartThemeQuoteColor 并归一化为 #rrggbb
+ * 如果未获取到，或颜色为纯黑 (#000000) 或纯白 (#ffffff)，或与当前 surface 对比度不足，则回退为默认的橙色主题色 (#e18a24)
+ * @param target 计算样式来源,默认 document.documentElement
+ * @param darkMode 是否为深色模式,用于计算背景对比度,默认 false
+ * @returns 形如 `#rrggbb` 的不透明颜色;解析失败或不满足对比度则返回默认橙色
+ */
+export function getThemeQuoteColorOpaque(
+  target: HTMLElement = document.documentElement,
+  darkMode = false,
+): string {
   const raw = getComputedStyle(target).getPropertyValue('--SmartThemeQuoteColor').trim();
   const color = toOpaqueHex(raw);
 
   if (!color || color === '#000000' || color === '#ffffff') {
-    return '#e18a24';
+    return DEFAULT_QUOTE_COLOR;
   }
+
+  const surface = readCvSurfaceColor(darkMode);
+  if (surface && contrastRatio(color, surface) < MIN_QUOTE_SURFACE_CONTRAST) {
+    return DEFAULT_QUOTE_COLOR;
+  }
+
   return color;
 }
 

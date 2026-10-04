@@ -100,6 +100,12 @@
                     <span class="cv-llm-inspector-meta-time">
                       {{ formatTime(selectedSession.startedAt, false) }}
                     </span>
+                    <template v-if="selectedSession.promptTokens !== undefined">
+                      <span class="cv-llm-inspector-meta-sep">/</span>
+                      <span class="cv-llm-inspector-meta-tokens">
+                        {{ selectedSession.promptTokens }} tokens
+                      </span>
+                    </template>
                     <template v-if="selectedSession.attempts.length >= 2">
                       <span class="cv-llm-inspector-meta-sep">/</span>
                       <span class="cv-llm-inspector-meta-attempts-hint">
@@ -111,6 +117,10 @@
               </div>
 
               <div class="cv-llm-inspector-meta-chips">
+                <span v-if="selectedSession.isExternalCall" class="cv-llm-inspector-chip">
+                  <i class="fa-solid fa-code" aria-hidden="true" />
+                  外部调用
+                </span>
                 <span class="cv-llm-inspector-chip" :title="selectedSession.endpoint">
                   <i class="fa-solid fa-cube" aria-hidden="true" />
                   {{ selectedSession.model }}
