@@ -11,6 +11,7 @@ import {
 import { generateComfyUIImagesFromPrompts } from '@/services/comfyui/api';
 import { resolveComfyUILoraTriggerWords } from '@/services/comfyui/lora-trigger-words';
 import { generateNovelAIImageFromPrompts } from '@/services/novelai/api';
+import type { NovelAIRequestSnapshot } from '@/services/novelai/types';
 
 vi.mock('@/services/comfyui/api', () => ({
   generateComfyUIImagesFromPrompts: vi.fn(),
@@ -26,9 +27,7 @@ vi.mock('@/services/novelai/api', () => ({
 
 function createTestSettings(): CosmosVisionSettings {
   const settings = structuredClone(DEFAULT_SETTINGS);
-  settings.imagePromptPresets.positive = [
-    createImagePromptPreset('P1', 'P1', 'template one, '),
-  ];
+  settings.imagePromptPresets.positive = [createImagePromptPreset('P1', 'P1', 'template one, ')];
   return settings;
 }
 
@@ -45,9 +44,7 @@ describe('inlineImageGenerationRequests floor-tail helpers', () => {
   });
 
   it('只返回成功持久化的楼层尾图片引用', async () => {
-    const render = vi.fn()
-      .mockResolvedValueOnce('image-1')
-      .mockResolvedValueOnce(null);
+    const render = vi.fn().mockResolvedValueOnce('image-1').mockResolvedValueOnce(null);
     const result = {
       imageBlobs: [new Blob(['one']), new Blob(['two'])],
       promptSnapshot: { positivePrompt: 'prompt', negativePrompt: '' },
@@ -276,7 +273,7 @@ describe('generateImagesFromSnapshot 再生与回放', () => {
     await expect(generateImagesFromSnapshot(settings, snapshot, controller.signal)).rejects.toThrow('ComfyUI 队列满');
   });
 
-  it('NovelAI 快照重生成保持现状', async () => {
+  it('NovelAI 快照重放时返回包含 novelaiRequest 的新快照与图片 Blob', async () => {
     const settings = createTestSettings();
     const controller = new AbortController();
     const mockImageBlob = new Blob(['novelai-blob']);
@@ -289,17 +286,50 @@ describe('generateImagesFromSnapshot 再生与回放', () => {
         negativePrompt: 'nai neg',
       },
     };
+    const expectedRequestInfo = {
+      endpoint: 'https://image.novelai.net',
+      accountName: '测试账号',
+      model: 'nai-diffusion-4-full',
+      width: 832,
+      height: 1216,
+      sampler: 'k_euler',
+      seed: 9999,
+      steps: 28,
+      guidance: 6.0,
+      autoSampler: true,
+      varietyPlus: false,
+      smea: false,
+      smeaDyn: false,
+      decrisp: false,
+      legacyPromptMode: false,
+      promptGuidanceRescale: 0,
+      noiseSchedule: 'karras',
+      ucPreset: 0,
+      qualityPreset: 'heavy',
+      imageCount: 1,
+      vibes: { count: 0, referenceStrengths: [], informationExtracted: [], resolved: true },
+    };
+    const mockRequestSnapshot: NovelAIRequestSnapshot = {
+      ...expectedRequestInfo,
+      positivePrompt: 'nai pos',
+      negativePrompt: 'nai neg',
+      characterPrompts: [],
+    };
 
-    vi.mocked(generateNovelAIImageFromPrompts).mockResolvedValueOnce(mockImageBlob);
+    vi.mocked(generateNovelAIImageFromPrompts).mockResolvedValueOnce({
+      imageBlob: mockImageBlob,
+      snapshot: mockRequestSnapshot,
+      prompts: snapshot.novelai!,
+    });
 
     const result = await generateImagesFromSnapshot(settings, snapshot, controller.signal);
 
-    expect(generateNovelAIImageFromPrompts).toHaveBeenCalledWith(
-      settings.novelai,
-      snapshot.novelai,
-      { signal: controller.signal },
-    );
-    expect(result).toEqual({ promptSnapshot: snapshot, imageBlobs: [mockImageBlob] });
+    expect(generateNovelAIImageFromPrompts).toHaveBeenCalledWith(settings.novelai, snapshot.novelai, {
+      signal: controller.signal,
+    });
+    expect(result.imageBlobs).toEqual([mockImageBlob]);
+    expect(result.promptSnapshot.novelaiRequest).toEqual(expectedRequestInfo);
+    expect(result.promptSnapshot.positivePrompt).toBe('nai pos');
   });
 
   it('ComfyUI 快照重放时支持透传 onProgress 回调', async () => {

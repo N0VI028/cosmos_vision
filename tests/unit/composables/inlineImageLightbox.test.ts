@@ -129,5 +129,45 @@ describe('cloneInlinePromptSnapshot', () => {
     expect('negativePrompt' in cloned).toBe(false);
     expect(cloned.comfyui?.positivePrompt).toBe('comfyui positive');
   });
+
+  it('克隆 novelaiRequest 独立对象，旧快照无该字段时输出无该字段', () => {
+    const withoutRequest: InlinePromptSnapshot = {
+      imageSource: 'novelai',
+      positivePrompt: 'pos',
+    };
+    const clonedWithout = cloneInlinePromptSnapshot(withoutRequest);
+    expect('novelaiRequest' in clonedWithout).toBe(false);
+    expect(clonedWithout.novelaiRequest).toBeUndefined();
+
+    const withRequest: InlinePromptSnapshot = {
+      imageSource: 'novelai',
+      positivePrompt: 'pos',
+      novelaiRequest: {
+        endpoint: 'https://image.novelai.net',
+        model: 'nai-diffusion-4-full',
+        width: 832,
+        height: 1216,
+        sampler: 'k_euler',
+        seed: 123456,
+        steps: 28,
+        guidance: 6,
+        autoSampler: true,
+        varietyPlus: false,
+        smea: false,
+        smeaDyn: false,
+        decrisp: false,
+        legacyPromptMode: false,
+        promptGuidanceRescale: 0,
+        noiseSchedule: 'karras',
+        ucPreset: 0,
+        qualityPreset: 'heavy',
+        imageCount: 1,
+        vibes: { count: 0, referenceStrengths: [], informationExtracted: [], resolved: true },
+      },
+    };
+    const clonedWith = cloneInlinePromptSnapshot(withRequest);
+    expect(clonedWith.novelaiRequest).toEqual(withRequest.novelaiRequest);
+    expect(clonedWith.novelaiRequest).not.toBe(withRequest.novelaiRequest);
+  });
 });
 

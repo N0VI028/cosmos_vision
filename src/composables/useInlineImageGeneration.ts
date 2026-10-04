@@ -40,6 +40,7 @@ import {
   buildInlineImageDownloadBaseName,
   createComfyUISnapshot,
   createNovelAISnapshot,
+  toNovelAIRequestInfo,
 } from '@/composables/inlineGenerationSnapshot';
 import { resolveInlineRoute } from '@/services/inline-image/route-resolve';
 import { locateFrontendParagraphFromPoint } from '@/services/inline-image/frontend-paragraph-locate';
@@ -813,7 +814,10 @@ export function useInlineImageGeneration(
         signal: session.controller.signal,
         onStreamPreview: streamPreview.onStreamPreview,
       });
-      return { promptSnapshot: createNovelAISnapshot(result.prompts), imageBlobs: result.imageBlobs };
+      return {
+        promptSnapshot: createNovelAISnapshot(result.prompts, toNovelAIRequestInfo(result.snapshot)),
+        imageBlobs: result.imageBlobs,
+      };
     } finally {
       streamPreview.clear();
       if (hasPromotedTemporaryVibes(request.prompts.vibeReferences, temporarySourceHashes)) {

@@ -2,6 +2,7 @@ import type { CosmosVisionSettings, PromptLlmContext } from '@/constants/novelai
 import type { PromptLlmSettings } from '@/constants/prompt-llm';
 import type { InlineGenerationBatchResult } from '@/composables/inlineGenerationInput';
 import type { InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
+import { createNovelAISnapshot, toNovelAIRequestInfo } from '@/composables/inlineGenerationSnapshot';
 import { resolveEditedImagePrompt } from '@/composables/inlineEditablePromptSnapshot';
 import { extractFrontendText } from '@/services/inline-image/frontend-text-extract';
 import type { GalleryGenerationContext } from '@/store/gallery-runtimes';
@@ -22,7 +23,7 @@ import {
  * 使用快照记录的图像源重新请求图片
  * ComfyUI 分支：回放快照 loras，有 parts 按 parts+新触发词 重建串，无 parts 回退原样；
  * 成功后提交由请求实际快照 + 编辑 parts 构成的新快照；失败/中止不提交。
- * NovelAI 分支：保持现状回放。
+ * NovelAI 分支：按当前设置回放提示词，成功后提交携带实际参数与命中渠道（novelaiRequest）的新快照。
  * @param settings 扩展设置
  * @param snapshot 提示词快照
  * @param signal 取消信号
@@ -43,8 +44,11 @@ export async function generateImagesFromSnapshot(
   }
   // 极旧 NAI 快照无 novelai 子对象，顶层必写提示词（NAI 链路始终写顶层），收窄转换安全
   const prompts = snapshot.novelai ?? (snapshot as NovelAIFinalPrompts);
-  const imageBlob = await generateNovelAIImageFromPrompts(settings.novelai, prompts, { signal, onStreamPreview });
-  return { promptSnapshot: snapshot, imageBlobs: [imageBlob] };
+  const result = await generateNovelAIImageFromPrompts(settings.novelai, prompts, { signal, onStreamPreview });
+  return {
+    promptSnapshot: createNovelAISnapshot(prompts, toNovelAIRequestInfo(result.snapshot)),
+    imageBlobs: [result.imageBlob],
+  };
 }
 
 /**

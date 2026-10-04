@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { nextTick } from 'vue';
 import {
   closeInlineImageLightbox,
   inlineLightboxState,
@@ -14,15 +15,19 @@ const snapshot: InlinePromptSnapshot = {
   negativePrompt: 'lowres',
 };
 
+let currentWrapper: ReturnType<typeof mount> | null = null;
+
 /**
  * 挂载灯箱组件（含 Pinia 与 Teleport 处理）
  */
 function mountLightbox() {
-  return mount(InlineImageLightbox, {
+  currentWrapper?.unmount();
+  currentWrapper = mount(InlineImageLightbox, {
     global: {
       stubs: { teleport: true },
     },
   });
+  return currentWrapper;
 }
 
 describe('InlineImageLightbox 组件', () => {
@@ -31,8 +36,11 @@ describe('InlineImageLightbox 组件', () => {
     closeInlineImageLightbox();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    currentWrapper?.unmount();
+    currentWrapper = null;
     closeInlineImageLightbox();
+    await nextTick();
     vi.restoreAllMocks();
   });
 
@@ -113,5 +121,55 @@ describe('InlineImageLightbox 组件', () => {
     const promptContents = wrapper.findAll('.cv-lightbox-prompt-content');
     expect(promptContents[0].text()).toBe('comfyui modern positive');
     expect(promptContents[1].text()).toBe('comfyui modern negative');
+  });
+
+  it('点击图片信息按钮切换元数据面板显隐，重新打开灯箱时重置为隐藏', async () => {
+    const wrapper = mountLightbox();
+    openInlineImageLightbox('https://example.com/a.png', snapshot);
+    await wrapper.vm.$nextTick();
+
+    const infoBtn = wrapper.find('.cv-lightbox-info-toggle');
+    expect(infoBtn.exists()).toBe(true);
+    expect(wrapper.findComponent({ name: 'LightboxImageInfoPanel' }).exists()).toBe(false);
+
+    // 点击切换为显示
+    await infoBtn.trigger('click');
+    expect(wrapper.findComponent({ name: 'LightboxImageInfoPanel' }).exists()).toBe(true);
+    expect(infoBtn.classes()).toContain('active');
+
+    // 再次点击切换为隐藏
+    await infoBtn.trigger('click');
+    expect(wrapper.findComponent({ name: 'LightboxImageInfoPanel' }).exists()).toBe(false);
+    expect(infoBtn.classes()).not.toContain('active');
+
+    // 重新打开灯箱重置为隐藏
+    await infoBtn.trigger('click');
+    expect(wrapper.findComponent({ name: 'LightboxImageInfoPanel' }).exists()).toBe(true);
+    closeInlineImageLightbox();
+    await wrapper.vm.$nextTick();
+    openInlineImageLightbox('https://example.com/b.png', snapshot);
+    await wrapper.vm.$nextTick();
+    expect(wrapper.findComponent({ name: 'LightboxImageInfoPanel' }).exists()).toBe(false);
+  });
+
+  it('信息面板展开时按 ESC 优先关闭面板，面板已关闭时按 ESC 关闭灯箱', async () => {
+    const wrapper = mountLightbox();
+    openInlineImageLightbox('https://example.com/a.png', snapshot);
+    await wrapper.vm.$nextTick();
+
+    // 展开信息面板
+    await wrapper.find('.cv-lightbox-info-toggle').trigger('click');
+    expect(wrapper.findComponent({ name: 'LightboxImageInfoPanel' }).exists()).toBe(true);
+
+    // 首次按 ESC：仅关闭信息面板，灯箱保持开启
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await wrapper.vm.$nextTick();
+    expect(wrapper.findComponent({ name: 'LightboxImageInfoPanel' }).exists()).toBe(false);
+    expect(inlineLightboxState.open).toBe(true);
+
+    // 再次按 ESC：关闭灯箱
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await wrapper.vm.$nextTick();
+    expect(inlineLightboxState.open).toBe(false);
   });
 });

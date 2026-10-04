@@ -3,6 +3,7 @@ import type { CharacterPromptItem } from '@/constants/novelai';
 import type { ImagePromptVibeRef } from '@/constants/novelai-vibe';
 import type { ComfyUIRequestSnapshot } from '@/services/comfyui/types';
 import type { NovelAIFinalPrompts } from '@/services/novelai/api';
+import type { NovelAIRequestInfo } from '@/services/novelai/types';
 import type { NovelAIVibeParameters } from '@/services/novelai/vibe-types';
 import { reactive } from 'vue';
 
@@ -22,6 +23,8 @@ export interface InlinePromptSnapshot {
   novelai?: NovelAIFinalPrompts;
   comfyui?: ComfyUIRequestSnapshot;
   promptParts?: { positive: InlinePromptParts; negative: InlinePromptParts };
+  /** 生成成功时记录的 NovelAI 参数与命中渠道，旧快照无此字段 */
+  novelaiRequest?: NovelAIRequestInfo;
 }
 
 export interface InlineLightboxActions {
@@ -75,6 +78,7 @@ export function cloneInlinePromptSnapshot(snapshot: InlinePromptSnapshot): Inlin
     novelai: snapshot.novelai ? cloneNovelAIFinalPrompts(snapshot.novelai) : undefined,
     comfyui: snapshot.comfyui ? cloneComfyUIRequestSnapshot(snapshot.comfyui) : undefined,
     promptParts: snapshot.promptParts ? cloneInlinePromptParts(snapshot.promptParts) : undefined,
+    ...(snapshot.novelaiRequest ? { novelaiRequest: { ...snapshot.novelaiRequest } } : {}),
   };
 }
 
