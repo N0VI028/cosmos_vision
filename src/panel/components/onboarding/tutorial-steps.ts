@@ -219,13 +219,13 @@ const SHARED_STEPS: readonly TutorialStep[] = [
   },
   {
     id: 'prompt-profiles-static-tags',
-    title: '固定 tag 配置',
+    title: '固定正面 tag 配置',
     description:
-      '固定 tag 描述角色长期不变的特征，会被原样保留在最终提示词中。可填入 girl、blue eyes 等标签；你也可以用“从资料解析”按钮自动生成。',
+      '固定正面 tag 描述角色长期不变的特征，会被原样保留在最终提示词中。可填入 girl、blue eyes 等标签；你也可以用“从资料解析”按钮自动生成。',
     scene: { kind: 'settings', tab: 'prompt-profiles', subTab: 'character' },
     target: {
       selectors: ['[data-cv-tutorial="prompt-profiles-static-tags"]'],
-      missingText: '固定 tag 区域暂不可见，你仍可继续教程。',
+      missingText: '固定正面 tag 区域暂不可见，你仍可继续教程。',
     },
     needsMockPerson: true,
   },
