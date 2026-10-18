@@ -521,6 +521,32 @@ export function useInlineImageGeneration(
   }
 
   /**
+   * 查找楼层尾容器中可用于放置生成蒙版的宿主目标（支持穿透 Shadow DOM 查询）
+   * @param host 楼层尾根容器
+   * @param preferredSlot 可选的优先位点容器
+   * @returns 蒙版承载目标元素或 host 自身
+   */
+  function findFloorTailOverlayTarget(host: HTMLElement, preferredSlot?: HTMLElement): HTMLElement {
+    const selector = '.cv-inline-generation-overlay-shell, .cv-inline-img-wrap';
+    if (preferredSlot?.shadowRoot) {
+      const found = preferredSlot.shadowRoot.querySelector<HTMLElement>(selector);
+      if (found) return found;
+    }
+    if (host.shadowRoot) {
+      const found = host.shadowRoot.querySelector<HTMLElement>(selector);
+      if (found) return found;
+    }
+    const slots = host.querySelectorAll<HTMLElement>('.cv-floor-tail-slot');
+    for (const slot of slots) {
+      if (slot.shadowRoot) {
+        const found = slot.shadowRoot.querySelector<HTMLElement>(selector);
+        if (found) return found;
+      }
+    }
+    return host.querySelector<HTMLElement>(selector) ?? host;
+  }
+
+  /**
    * 启动一次内联生成会话
    * 同段落若已有活动请求，会话控制器内部会先取消旧请求再创建新会话
    * @param paragraph 目标段落或气泡
@@ -536,7 +562,7 @@ export function useInlineImageGeneration(
       const hostIframe = getHostIframe(paragraph);
       const slotTarget = paragraph.closest('.cv-floor-tail-slot');
       const host = ensureFloorTailHost(mesId, swipeId, slotTarget ? undefined : hostIframe ?? paragraph);
-      const target = host.querySelector<HTMLElement>('.cv-inline-generation-overlay-shell, .cv-inline-img-wrap') ?? host;
+      const target = findFloorTailOverlayTarget(host, slotTarget instanceof HTMLElement ? slotTarget : undefined);
       const placement = target === host ? 'append' : 'overlay';
       const statusText = requiresPromptLlm ? '正在生成提示词...' : '正在生成图片...';
       return generationSession.start(paragraph, target, statusText, placement);

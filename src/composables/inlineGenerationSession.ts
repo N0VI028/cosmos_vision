@@ -11,7 +11,7 @@ import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import type { AppContext } from 'vue';
-import { Fragment, h, render } from 'vue';
+import { h, render } from 'vue';
 
 export type InlineGenerationStatusMode = 'running' | 'error';
 
@@ -494,7 +494,7 @@ function renderStatus(
   if (options.appContext) vnode.appContext = options.appContext;
   const streamStage = isRunning ? renderStreamPreview(state.streamPreview, host) : null;
   host.classList.toggle('cv-inline-generation-status--has-preview', Boolean(streamStage));
-  render(streamStage ? h(Fragment, [vnode, streamStage]) : vnode, host);
+  render(streamStage ? h('div', { class: 'cv-inline-generation-stage-container' }, [vnode, streamStage]) : vnode, host);
 }
 
 /**

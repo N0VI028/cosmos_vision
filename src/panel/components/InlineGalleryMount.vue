@@ -194,8 +194,10 @@ watch(
 onBeforeMount(() => {
   // 移除该容器下已经存在的其他画廊元素，防止因为重复挂载而产生多余画廊（与酒馆助手逻辑一致）
   const element = props.mount.element;
-  const existing = element.querySelectorAll('.cv-inline-img-wrap');
-  existing.forEach(el => el.remove());
+  element.querySelectorAll('.cv-inline-img-wrap').forEach(el => el.remove());
+  if (element.shadowRoot) {
+    element.shadowRoot.querySelectorAll('.cv-inline-img-wrap').forEach(el => el.remove());
+  }
 });
 
 void reloadItems();

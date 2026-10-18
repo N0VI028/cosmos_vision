@@ -1,6 +1,7 @@
 import { preventInlineEventBubbling } from '@/composables/inlineImageDom';
 import { encodeSlotShortcode } from '@/services/inline-image/slot-shortcode';
 import { findMessageId } from '@/services/sillytavern/chat-dom';
+import { ensureShadowMountTarget } from '@/services/inline-image/shadow-mount';
 
 /** 统一画廊承载容器 class（独立于 TH-render） */
 export const CV_RENDER_CLASS = 'cv-render';
@@ -21,6 +22,7 @@ export function ensureSlotRenderContainer(marker: HTMLElement, slotId: string): 
   marker.classList.add(CV_SLOT_MARKER_CLASS);
   marker.hidden = true;
   const element = ensureAfterContainer(marker, CV_SLOT_ATTR, slotId);
+  ensureShadowMountTarget(element);
   return element;
 }
 
@@ -34,6 +36,7 @@ export function ensureSlotRenderContainerForParagraph(paragraph: HTMLElement, sl
   const existing = findRenderContainerAfter(paragraph);
   if (existing) {
     existing.setAttribute(CV_SLOT_ATTR, slotId);
+    ensureShadowMountTarget(existing);
     return existing;
   }
   const next = paragraph.nextElementSibling;

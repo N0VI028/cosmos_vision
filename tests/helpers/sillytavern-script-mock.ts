@@ -1,5 +1,8 @@
 export const saveSettingsDebounced = () => {};
 
+/** 测试用聊天消息数组（chat-dom 经此读取楼层消息） */
+export const chat: unknown[] = [];
+
 type EventListener = (...args: unknown[]) => void;
 
 /** 测试用事件总线：模拟 ST eventSource 的 on/emit/removeListener */

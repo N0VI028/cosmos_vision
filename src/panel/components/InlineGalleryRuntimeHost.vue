@@ -17,7 +17,7 @@ const { runtimes } = storeToRefs(galleryStore);
       v-for="mount in runtime.mounts"
       :key="mount.key"
       defer
-      :to="mount.element"
+      :to="mount.teleportTarget"
     >
       <InlineGalleryMount
         v-if="mount.element.isConnected"

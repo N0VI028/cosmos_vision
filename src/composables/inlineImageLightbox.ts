@@ -188,12 +188,19 @@ export function handleInlineImageClick(
   const isTouch = window.matchMedia('(hover: none)').matches;
   if (isTouch && !wrap.classList.contains('cv-inline-img-active')) {
     wrap.classList.add('cv-inline-img-active');
+    activeInlineWraps.add(wrap);
     ensureInlineImageOutsideDismiss();
     return;
   }
   openInlineImageLightbox(img.src, snapshot, actions);
-  if (isTouch) wrap.classList.remove('cv-inline-img-active');
+  if (isTouch) {
+    wrap.classList.remove('cv-inline-img-active');
+    activeInlineWraps.delete(wrap);
+  }
 }
+
+/** 跟踪当前处于激活态的图片外层容器引用（支持 Shadow DOM 内部元素，避免 document.querySelectorAll 无法穿透） */
+const activeInlineWraps = new Set<HTMLElement>();
 
 /** 是否已绑定移动端外部点击收起监听 */
 let inlineImageOutsideDismissBound = false;
@@ -213,12 +220,22 @@ function ensureInlineImageOutsideDismiss(): void {
  * @param event 指针按下事件
  */
 function dismissActiveInlineImages(event: PointerEvent): void {
+  const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
   const target = event.target as Node | null;
-  document.querySelectorAll<HTMLElement>('.cv-inline-img-wrap.cv-inline-img-active').forEach(wrap => {
-    if (!target || !wrap.contains(target)) wrap.classList.remove('cv-inline-img-active');
-  });
+  // shadow 内容器走引用集合，降级（无 shadow）路径的光域容器走查询兜底
+  const wraps = new Set<HTMLElement>(activeInlineWraps);
+  document.querySelectorAll<HTMLElement>('.cv-inline-img-wrap.cv-inline-img-active').forEach(wrap => wraps.add(wrap));
+
+  for (const wrap of wraps) {
+    const isInside = path.length > 0 ? path.includes(wrap) : Boolean(target && wrap.contains(target));
+    if (!isInside) {
+      wrap.classList.remove('cv-inline-img-active');
+      activeInlineWraps.delete(wrap);
+    }
+  }
+
   // 无激活项时解绑,避免常驻监听
-  if (!document.querySelector('.cv-inline-img-wrap.cv-inline-img-active')) {
+  if (activeInlineWraps.size === 0 && !document.querySelector('.cv-inline-img-wrap.cv-inline-img-active')) {
     document.removeEventListener('pointerdown', dismissActiveInlineImages, true);
     inlineImageOutsideDismissBound = false;
   }
