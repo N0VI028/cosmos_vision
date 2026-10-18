@@ -1,5 +1,6 @@
 import { DEFAULT_PROMPT_LLM_OUTPUT_FIELDS } from '@/constants/default-settings';
 import type { PromptLlmMessagePresetSettings, PromptLlmSettings, PromptPerson } from '@/constants/novelai';
+import type { PromptLlmTriggerContext } from '@/services/prompt-llm/message-trigger';
 import type { PromptLlmRuntimeContent } from '@/services/prompt-llm/message-preset';
 import { buildPromptLlmRuntimeRequest, requestPromptLlmWithAccounts } from '@/services/prompt-llm/runtime-request';
 import { renderPromptPersonTemplate } from '@/services/prompt-profiles/runtime';
@@ -13,15 +14,17 @@ import type { PromptPersonTagsDraft } from '@/services/prompt-profiles/static-ta
  * @param person 人物配置
  * @param settings LLM 配置
  * @param presetSettings LLM 消息预设集合
+ * @param triggerContext 生图来源与模型触发上下文，决定按源/模型条件触发的规则条目是否参与
  * @returns 可保存到 staticTags 和 negativeTags 的草稿对象
  */
 export async function parsePromptPersonStaticTags(
   person: PromptPerson,
   settings: PromptLlmSettings,
   presetSettings: PromptLlmMessagePresetSettings,
+  triggerContext: PromptLlmTriggerContext,
 ): Promise<PromptPersonTagsDraft> {
   const sourceText = await renderPromptPersonTemplate(person);
-  return parsePromptPersonStaticTagsFromText(person.name, sourceText, settings, presetSettings);
+  return parsePromptPersonStaticTagsFromText(person.name, sourceText, settings, presetSettings, triggerContext);
 }
 
 /**
@@ -30,6 +33,7 @@ export async function parsePromptPersonStaticTags(
  * @param sourceText 人物资料
  * @param settings LLM 配置
  * @param presetSettings LLM 消息预设集合
+ * @param triggerContext 生图来源与模型触发上下文，决定按源/模型条件触发的规则条目是否参与
  * @returns 可保存到 staticTags 和 negativeTags 的草稿对象
  */
 export async function parsePromptPersonStaticTagsFromText(
@@ -37,10 +41,11 @@ export async function parsePromptPersonStaticTagsFromText(
   sourceText: string,
   settings: PromptLlmSettings,
   presetSettings: PromptLlmMessagePresetSettings,
+  triggerContext: PromptLlmTriggerContext,
 ): Promise<PromptPersonTagsDraft> {
   const contextText = buildPromptPersonTagContext(personName, sourceText);
   if (!contextText) throw new Error('没有可解析的人物资料，请先添加有效资料条目');
-  const rawText = await requestPromptPersonTags(contextText, settings, presetSettings);
+  const rawText = await requestPromptPersonTags(contextText, settings, presetSettings, triggerContext);
   const output = parsePromptLlmOutput(rawText, DEFAULT_PROMPT_LLM_OUTPUT_FIELDS);
   const characterPrompts = readCharacterPrompts(rawText, settings);
   const positiveTags = characterPrompts[0]?.positivePrompt.trim() || output.positivePrompt.trim();
@@ -54,18 +59,27 @@ export async function parsePromptPersonStaticTagsFromText(
  * @param contextText 人物资料上下文
  * @param settings LLM 配置
  * @param presetSettings LLM 消息预设集合
+ * @param triggerContext 生图来源与模型触发上下文
  * @returns LLM 原始响应文本
  */
 async function requestPromptPersonTags(
   contextText: string,
   settings: PromptLlmSettings,
   presetSettings: PromptLlmMessagePresetSettings,
+  triggerContext: PromptLlmTriggerContext,
 ): Promise<string> {
   const tavernHelper = getTavernHelper({ silent: false });
   if (!tavernHelper) throw new Error('TavernHelper 不可用，无法解析人物 tag');
   try {
     const result = await requestPromptLlmWithAccounts(tavernHelper, settings, {}, account =>
-      buildPromptLlmRuntimeRequest(settings, presetSettings, buildPromptPersonRuntimeContent(contextText), null, undefined, account),
+      buildPromptLlmRuntimeRequest(
+        settings,
+        presetSettings,
+        buildPromptPersonRuntimeContent(contextText),
+        null,
+        triggerContext,
+        account,
+      ),
     );
     return result.rawText;
   } catch (error) {

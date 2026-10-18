@@ -396,48 +396,29 @@ export function hasUnreferencedFixedNegativeTags(person: PromptPerson): boolean 
   return !person.templateEntries.some(entry => entry.enabled && entry.content.includes(PROMPT_LLM_FIXED_NEGATIVE_TAGS_TOKEN));
 }
 
-/** 一键补充固定 tag 块的结果：patched=在既有条目内启用并补充；recreated=重建默认"人物开始"条目 */
-export type AppendTemplateBlockResult = 'patched' | 'recreated';
+/** 一键覆盖"人物开始"条目的结果：overwritten=既有条目内容被整体替换；recreated=条目缺失，已重建默认结构 */
+export type OverwritePersonStartEntryResult = 'overwritten' | 'recreated';
 
 /**
- * 一键向人物模板追加固定正面 tag 块
+ * 判断人物模板是否仍存在"人物开始"条目
  * @param person 人物配置
- * @returns 补充结果
+ * @returns 是否存在内容含 <person 开标签的条目
  */
-export function appendFixedPositiveTagsBlockToPerson(person: PromptPerson): AppendTemplateBlockResult {
-  return appendTemplateBlockToPerson(
-    person,
-    DEFAULT_PROMPT_PERSON_FIXED_POSITIVE_TAGS_BLOCK,
-    content => content.includes(PROMPT_LLM_FIXED_POSITIVE_TAGS_TOKEN) || content.includes(PROMPT_LLM_FIXED_TAGS_TOKEN),
-  );
+export function hasPersonStartEntry(person: PromptPerson): boolean {
+  return Boolean(findPersonStartEntry(person));
 }
 
 /**
- * 一键向人物模板追加固定负面 tag 块
+ * 用新版默认"人物开始"条目内容整体覆盖人物模板
+ * 覆盖语义：条目存在时启用它并把 content 整体替换为默认条目内容（正负 tag 块 + 冲突规则），
+ * 原有内容不保留、不合并，条目 id/title/reference 保持不变；条目已被删除时按模板现状重建默认结构。
  * @param person 人物配置
- * @returns 补充结果
+ * @returns 'overwritten' 表示既有条目已被整体覆盖，'recreated' 表示条目缺失并已重建默认结构
  */
-export function appendFixedNegativeTagsBlockToPerson(person: PromptPerson): AppendTemplateBlockResult {
-  return appendTemplateBlockToPerson(
-    person,
-    DEFAULT_PROMPT_PERSON_FIXED_NEGATIVE_TAGS_BLOCK,
-    content => content.includes(PROMPT_LLM_FIXED_NEGATIVE_TAGS_TOKEN),
-  );
-}
-
-/**
- * 向人物模板补充 token 块
- * 按内容定位含 <person 开标签的条目（默认"人物开始"，重命名后仍可命中）：启用并在缺失时追加块；
- * 条目已被删除时重建默认"人物开始"条目（含正负块与冲突规则）恢复人物结构，模板为空时恢复完整默认条目对。
- * @param person 人物配置
- * @param block 默认模板块文本
- * @param hasToken 判断内容是否已引用对应宏
- * @returns 补充结果
- */
-function appendTemplateBlockToPerson(person: PromptPerson, block: string, hasToken: (content: string) => boolean): AppendTemplateBlockResult {
-  const startEntry = person.templateEntries.find(entry => entry.content.includes('<person'));
+export function overwritePersonStartEntryWithDefaults(person: PromptPerson): OverwritePersonStartEntryResult {
+  const defaults = createDefaultPromptPersonTemplateEntries();
+  const startEntry = findPersonStartEntry(person);
   if (!startEntry) {
-    const defaults = createDefaultPromptPersonTemplateEntries();
     if (person.templateEntries.length === 0) {
       person.templateEntries.push(...defaults);
     } else {
@@ -446,10 +427,17 @@ function appendTemplateBlockToPerson(person: PromptPerson, block: string, hasTok
     return 'recreated';
   }
   startEntry.enabled = true;
-  if (!hasToken(startEntry.content)) {
-    startEntry.content = startEntry.content.trimEnd() ? `${startEntry.content.trimEnd()}\n  ${block}\n` : block;
-  }
-  return 'patched';
+  startEntry.content = defaults[0].content;
+  return 'overwritten';
+}
+
+/**
+ * 按内容查找"人物开始"条目（默认名为"人物开始"，重命名后仍可命中）
+ * @param person 人物配置
+ * @returns 命中的条目或 undefined
+ */
+function findPersonStartEntry(person: PromptPerson): PromptPersonTemplateEntry | undefined {
+  return person.templateEntries.find(entry => entry.content.includes('<person'));
 }
 
 /**

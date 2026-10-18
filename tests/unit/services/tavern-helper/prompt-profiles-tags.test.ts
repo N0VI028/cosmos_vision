@@ -7,6 +7,13 @@ import { DEFAULT_SETTINGS } from '@/constants/default-settings';
 import * as availability from '@/services/tavern-helper/availability';
 import * as runtimeRequest from '@/services/prompt-llm/runtime-request';
 
+/** 覆盖解析链路的默认触发上下文（ComfyUI + Krea-2） */
+const TRIGGER_CONTEXT = {
+  historyContent: '',
+  imageSource: 'comfyui' as const,
+  modelIds: ['flux1_krea_2_dev'],
+};
+
 describe('prompt-profiles-tags service', () => {
   describe('buildPromptPersonTagContext', () => {
     it('returns empty string if sourceText is blank', () => {
@@ -36,7 +43,7 @@ describe('prompt-profiles-tags service', () => {
 
     it('throws error if source text is empty', async () => {
       await expect(
-        parsePromptPersonStaticTagsFromText('Alice', '  ', mockSettings, mockPresetSettings),
+        parsePromptPersonStaticTagsFromText('Alice', '  ', mockSettings, mockPresetSettings, TRIGGER_CONTEXT),
       ).rejects.toThrow('没有可解析的人物资料');
     });
 
@@ -61,6 +68,7 @@ describe('prompt-profiles-tags service', () => {
         'Profile info',
         { ...mockSettings, preferJsonSchemaExtraction: true },
         mockPresetSettings,
+        TRIGGER_CONTEXT,
       );
 
       expect(result).toEqual({
@@ -83,6 +91,7 @@ describe('prompt-profiles-tags service', () => {
         'Profile info',
         mockSettings,
         mockPresetSettings,
+        TRIGGER_CONTEXT,
       );
 
       expect(result).toEqual({
@@ -105,6 +114,7 @@ describe('prompt-profiles-tags service', () => {
         'Profile info',
         mockSettings,
         mockPresetSettings,
+        TRIGGER_CONTEXT,
       );
 
       expect(result).toEqual({
@@ -123,8 +133,34 @@ describe('prompt-profiles-tags service', () => {
       } as any);
 
       await expect(
-        parsePromptPersonStaticTagsFromText('Alice', 'Profile info', mockSettings, mockPresetSettings),
+        parsePromptPersonStaticTagsFromText('Alice', 'Profile info', mockSettings, mockPresetSettings, TRIGGER_CONTEXT),
       ).rejects.toThrow('LLM 返回值无法提取人物 tag');
+    });
+
+    it('passes triggerContext through to buildPromptLlmRuntimeRequest', async () => {
+      vi.spyOn(availability, 'getTavernHelper').mockReturnValue({} as any);
+      // 捕获注入的 buildRequest 回调，用桩账号驱动一次请求构建以验证第 5 参
+      const buildRequestSpy = vi
+        .spyOn(runtimeRequest, 'requestPromptLlmWithAccounts')
+        .mockImplementation(async (_tavernHelper, _settings, _context, buildRequest) => {
+          await buildRequest(undefined);
+          return { rawText: JSON.stringify({ positivePrompt: 'pos', negativePrompt: 'neg' }), accountName: 'stub' };
+        });
+      const runtimeRequestSpy = vi
+        .spyOn(runtimeRequest, 'buildPromptLlmRuntimeRequest')
+        .mockResolvedValue({} as any);
+
+      await parsePromptPersonStaticTagsFromText(
+        'Alice',
+        'Profile info',
+        mockSettings,
+        mockPresetSettings,
+        TRIGGER_CONTEXT,
+      );
+
+      expect(buildRequestSpy).toHaveBeenCalledTimes(1);
+      expect(runtimeRequestSpy).toHaveBeenCalledTimes(1);
+      expect(runtimeRequestSpy.mock.calls[0][4]).toBe(TRIGGER_CONTEXT);
     });
   });
 });

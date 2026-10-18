@@ -8,12 +8,12 @@ import {
 } from '@/constants/default-settings';
 import type { PromptPerson } from '@/constants/novelai';
 import {
-  appendFixedNegativeTagsBlockToPerson,
-  appendFixedPositiveTagsBlockToPerson,
   createDefaultPromptPersonTemplateEntries,
   createPromptPerson,
+  hasPersonStartEntry,
   hasUnreferencedFixedNegativeTags,
   hasUnreferencedFixedTags,
+  overwritePersonStartEntryWithDefaults,
   replacePromptPersonTemplateTokens,
   stripEmptyFixedNegativeTagsBlocks,
   stripEmptyFixedTagsBlocks,
@@ -187,82 +187,82 @@ describe('prompt-profiles runtime', () => {
     });
   });
 
-  describe('append helpers', () => {
-    it('appends block into existing start entry and returns patched', () => {
+  describe('overwritePersonStartEntryWithDefaults', () => {
+    it('overwrites existing start entry with full default content', () => {
       const person = createPromptPerson('character', 'Dan');
       person.templateEntries[0].content = '<person name="x">';
-      const result = appendFixedPositiveTagsBlockToPerson(person);
-      expect(result).toBe('patched');
+      const result = overwritePersonStartEntryWithDefaults(person);
+      expect(result).toBe('overwritten');
+      expect(person.templateEntries[0].content).toBe(createDefaultPromptPersonTemplateEntries()[0].content);
       expect(person.templateEntries[0].content).toContain(PROMPT_LLM_FIXED_POSITIVE_TAGS_TOKEN);
-      expect(person.templateEntries[0].content).toContain('<fixed_positive_tags>');
+      expect(person.templateEntries[0].content).toContain(PROMPT_LLM_FIXED_NEGATIVE_TAGS_TOKEN);
+      expect(person.templateEntries[0].content).toContain('该优先级同样适用于 <fixed_negative_tags>');
     });
 
-    it('recreates default start entry when it was deleted (structure restored, not appended after </person>)', () => {
+    it('replaces customized content entirely instead of appending missing blocks', () => {
+      const person = createPromptPerson('character', 'Dan');
+      person.templateEntries[0].content = '<person name="x">\n  user custom note\n';
+      overwritePersonStartEntryWithDefaults(person);
+      expect(person.templateEntries[0].content).not.toContain('user custom note');
+      expect(person.templateEntries[0].content).toBe(createDefaultPromptPersonTemplateEntries()[0].content);
+    });
+
+    it('enables disabled start entry while overwriting', () => {
+      const person = createPromptPerson('character', 'Dan');
+      person.templateEntries[0].enabled = false;
+      const result = overwritePersonStartEntryWithDefaults(person);
+      expect(result).toBe('overwritten');
+      expect(person.templateEntries[0].enabled).toBe(true);
+    });
+
+    it('hits renamed start entry by content detection and keeps its identity', () => {
+      const person = createPromptPerson('character', 'Dan');
+      const id = person.templateEntries[0].id;
+      person.templateEntries[0].title = '开场';
+      person.templateEntries[0].content = '<person name="x">';
+      const result = overwritePersonStartEntryWithDefaults(person);
+      expect(result).toBe('overwritten');
+      expect(person.templateEntries[0].id).toBe(id);
+      expect(person.templateEntries[0].title).toBe('开场');
+      expect(person.templateEntries[0].content).toBe(createDefaultPromptPersonTemplateEntries()[0].content);
+    });
+
+    it('recreates default start entry when it was deleted', () => {
       const person = createPromptPerson('character', 'Dan');
       // 模拟"人物开始"被删、仅剩"人物结束"
       person.templateEntries = [person.templateEntries[1]];
-      const result = appendFixedPositiveTagsBlockToPerson(person);
+      const result = overwritePersonStartEntryWithDefaults(person);
       expect(result).toBe('recreated');
       expect(person.templateEntries).toHaveLength(2);
       expect(person.templateEntries[0].title).toBe('人物开始');
-      expect(person.templateEntries[0].content).toContain(PROMPT_LLM_FIXED_POSITIVE_TAGS_TOKEN);
-      expect(person.templateEntries[0].content).toContain(PROMPT_LLM_FIXED_NEGATIVE_TAGS_TOKEN);
+      expect(person.templateEntries[0].content).toBe(createDefaultPromptPersonTemplateEntries()[0].content);
       expect(person.templateEntries[1].title).toBe('人物结束');
     });
 
     it('restores full default pair when templateEntries is empty', () => {
       const person = createPromptPerson('character', 'Dan');
       person.templateEntries = [];
-      const result = appendFixedNegativeTagsBlockToPerson(person);
+      const result = overwritePersonStartEntryWithDefaults(person);
       expect(result).toBe('recreated');
       expect(person.templateEntries).toHaveLength(2);
       expect(person.templateEntries[0].title).toBe('人物开始');
       expect(person.templateEntries[1].title).toBe('人物结束');
     });
+  });
 
-    it('enables disabled start entry and appends missing block', () => {
+  describe('hasPersonStartEntry', () => {
+    it('detects start entry by content rather than title', () => {
       const person = createPromptPerson('character', 'Dan');
-      person.templateEntries[0].enabled = false;
-      person.templateEntries[0].content = '<person name="x">';
-      const result = appendFixedPositiveTagsBlockToPerson(person);
-      expect(result).toBe('patched');
-      expect(person.templateEntries[0].enabled).toBe(true);
-      expect(person.templateEntries[0].content).toContain(PROMPT_LLM_FIXED_POSITIVE_TAGS_TOKEN);
-    });
+      expect(hasPersonStartEntry(person)).toBe(true);
 
-    it('does not duplicate block when new token already referenced', () => {
-      const person = createPromptPerson('character', 'Dan');
-      const before = person.templateEntries[0].content;
-      const result = appendFixedPositiveTagsBlockToPerson(person);
-      expect(result).toBe('patched');
-      expect(person.templateEntries[0].content).toBe(before);
-    });
-
-    it('does not duplicate block when only legacy token referenced', () => {
-      const person = createPromptPerson('character', 'Dan');
-      person.templateEntries[0].content = '<person name="x">{{fixed_tags}}';
-      const before = person.templateEntries[0].content;
-      const result = appendFixedPositiveTagsBlockToPerson(person);
-      expect(result).toBe('patched');
-      expect(person.templateEntries[0].content).toBe(before);
-    });
-
-    it('hits renamed start entry by content detection', () => {
-      const person = createPromptPerson('character', 'Dan');
       person.templateEntries[0].title = '开场';
-      person.templateEntries[0].content = '<person name="x">';
-      const result = appendFixedPositiveTagsBlockToPerson(person);
-      expect(result).toBe('patched');
-      expect(person.templateEntries[0].content).toContain(PROMPT_LLM_FIXED_POSITIVE_TAGS_TOKEN);
-    });
+      expect(hasPersonStartEntry(person)).toBe(true);
 
-    it('appends fixed negative tags block into start entry', () => {
-      const person = createPromptPerson('character', 'Dan');
-      person.templateEntries[0].content = '<person name="x">';
-      const result = appendFixedNegativeTagsBlockToPerson(person);
-      expect(result).toBe('patched');
-      expect(person.templateEntries[0].content).toContain(PROMPT_LLM_FIXED_NEGATIVE_TAGS_TOKEN);
-      expect(person.templateEntries[0].content).toContain('<fixed_negative_tags>');
+      person.templateEntries[0].content = 'no person tag here';
+      expect(hasPersonStartEntry(person)).toBe(false);
+
+      person.templateEntries = [];
+      expect(hasPersonStartEntry(person)).toBe(false);
     });
   });
 });
