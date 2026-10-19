@@ -77,11 +77,11 @@
             </div>
 
             <div
-              class="cv-field"
+              class="flex flex-col gap-(--cv-space-md)"
               :data-cv-tutorial="isTutorialMockPersonId(person.id) ? 'prompt-profiles-static-tags' : undefined"
             >
-              <div class="cv-field-header">
-                <span>固定 tag</span>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-(length:--cv-font-size-lg) text-(--cv-on-surface)">固定 tag</span>
                 <CvMiniButton
                   label="从资料解析"
                   icon="fa-regular fa-dice-d20"
@@ -89,9 +89,59 @@
                   @click="openParseTagsDialog(person)"
                 />
               </div>
-              <div class="cv-field-control">
-                <CvExpandableTextarea v-model="person.staticTags" rows="3" auto-resize class="w-full font-mono" />
-                <div class="cv-field-hint">固定tag中的内容将在发送到LLM时，被强调原样保留在最终tag中</div>
+
+              <div
+                class="flex flex-col gap-(--cv-space-4xl) rounded-(--cv-radius-sm) border-(length:--cv-border-width) border-solid border-(--cv-surface-variant) bg-(--cv-surface-container-low) p-(--cv-space-lg)"
+              >
+                <div class="cv-field">
+                  <span
+                    class="cv-static-tags-subfield-label inline-flex items-center gap-(--cv-space-xs) text-(length:--cv-font-size-xs) font-medium tracking-wide text-(--cv-on-surface-variant)"
+                  >
+                    <i class="fa-solid fa-plus shrink-0 opacity-70" aria-hidden="true" />
+                    <span>正面 tag</span>
+                  </span>
+                  <div class="cv-field-control">
+                    <CvExpandableTextarea v-model="person.staticTags" rows="3" auto-resize class="w-full font-mono" />
+                    <div class="cv-field-hint">固定正面tag中的内容将在发送到LLM时，被强调原样保留在最终tag中</div>
+                    <div
+                      v-if="hasUnreferencedFixedTags(person)"
+                      class="cv-prompt-person-unreferenced-hint flex items-center justify-between gap-(--cv-space-sm) rounded-(--cv-radius-xs) bg-[color-mix(in_srgb,var(--cvp-orange-500)_12%,transparent)] px-(--cv-space-sm) py-(--cv-space-xs) text-(length:--cv-font-size-xs) text-(--cvp-orange-500)"
+                    >
+                      <span class="min-w-0 flex-1 whitespace-normal">正面 tag 未被模板引用，生图时不会生效</span>
+                      <CvMiniButton
+                        label="一键补充"
+                        icon="fa-solid fa-plus"
+                        class="shrink-0"
+                        @click="handleOverwritePersonStartEntry(person)"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="cv-field">
+                  <span
+                    class="cv-static-tags-subfield-label inline-flex items-center gap-(--cv-space-xs) text-(length:--cv-font-size-xs) font-medium tracking-wide text-(--cv-on-surface-variant)"
+                  >
+                    <i class="fa-solid fa-minus shrink-0 opacity-70" aria-hidden="true" />
+                    <span>负面 tag</span>
+                  </span>
+                  <div class="cv-field-control">
+                    <CvExpandableTextarea v-model="person.negativeTags" rows="3" auto-resize class="w-full font-mono" />
+                    <div class="cv-field-hint">固定负面tag中的内容将在发送到LLM时，被要求归位到负面提示词中规避</div>
+                    <div
+                      v-if="hasUnreferencedFixedNegativeTags(person)"
+                      class="cv-prompt-person-unreferenced-hint flex items-center justify-between gap-(--cv-space-sm) rounded-(--cv-radius-xs) bg-[color-mix(in_srgb,var(--cvp-orange-500)_12%,transparent)] px-(--cv-space-sm) py-(--cv-space-xs) text-(length:--cv-font-size-xs) text-(--cvp-orange-500)"
+                    >
+                      <span class="min-w-0 flex-1 whitespace-normal">负面 tag 未被模板引用，生图时不会生效</span>
+                      <CvMiniButton
+                        label="一键补充"
+                        icon="fa-solid fa-plus"
+                        class="shrink-0"
+                        @click="handleOverwritePersonStartEntry(person)"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -200,15 +250,23 @@
 
 <script setup lang="ts">
 import CollapsiblePanelItem from '@/panel/components/CollapsiblePanelItem.vue';
+import CvExpandableTextarea from '@/panel/components/CvExpandableTextarea.vue';
 import CvMiniButton from '@/panel/components/CvMiniButton.vue';
 import CvMiniToggleSwitch from '@/panel/components/CvMiniToggleSwitch.vue';
-import StaticTagsDraftResult from '@/panel/components/StaticTagsDraftResult.vue';
+import StaticTagsDraftResult, { type StaticTagsApplyPayload } from '@/panel/components/StaticTagsDraftResult.vue';
 import WdTaggerSource from '@/panel/components/WdTaggerSource.vue';
 import PromptSourceEntryList from '@/panel/components/PromptSourceEntryList.vue';
 import type { PromptPerson, PromptPersonInsertMode, PromptPersonKind } from '@/constants/novelai';
 import { useSettingsStore } from '@/store/settings';
-import { appendStaticTags } from '@/services/prompt-profiles/static-tags-draft';
-import { createPromptPerson } from '@/services/prompt-profiles/runtime';
+import { appendStaticTags, type PromptPersonTagsDraft } from '@/services/prompt-profiles/static-tags-draft';
+import {
+  createPromptPerson,
+  hasPersonStartEntry,
+  hasUnreferencedFixedNegativeTags,
+  hasUnreferencedFixedTags,
+  overwritePersonStartEntryWithDefaults,
+} from '@/services/prompt-profiles/runtime';
+import { buildPromptLlmTriggerContext } from '@/services/prompt-llm/runtime-request';
 import { isTutorialMockPersonId } from '@/panel/components/onboarding/mock-person';
 import { getCurrentCharacterKey, getCurrentUserPersonaKey } from '@/services/tavern-helper/prompt-profiles-context';
 import {
@@ -263,7 +321,7 @@ const isTagParseDialogVisible = ref(false);
 const tagParseDialogPerson = ref<PromptPerson | null>(null);
 const tagParseMode = ref<TagParseMode | null>(null);
 const tagParseInput = ref('');
-const tagParseDraft = ref('');
+const tagParseDraft = ref<PromptPersonTagsDraft | null>(null);
 const taggerGeneralThreshold = ref(0.35);
 const taggerCharacterThreshold = ref(0.85);
 const taggerSource = ref<{ cancel: () => void } | null>(null);
@@ -441,7 +499,7 @@ function openParseTagsDialog(person: PromptPerson): void {
   tagParseDialogPerson.value = person;
   tagParseMode.value = null;
   tagParseInput.value = '';
-  tagParseDraft.value = '';
+  tagParseDraft.value = null;
   isTagParseDialogVisible.value = true;
 }
 
@@ -472,7 +530,7 @@ function resetParseTagsDialog(): void {
   tagParseDialogPerson.value = null;
   tagParseMode.value = null;
   tagParseInput.value = '';
-  tagParseDraft.value = '';
+  tagParseDraft.value = null;
 }
 
 /**
@@ -514,16 +572,18 @@ async function parseStaticTags(person: PromptPerson): Promise<void> {
  * @param person 人物配置
  * @returns 解析后的固定 tag 草稿
  */
-function requestParsedStaticTags(person: PromptPerson): Promise<string> {
+function requestParsedStaticTags(person: PromptPerson): Promise<PromptPersonTagsDraft> {
+  const triggerContext = buildPromptLlmTriggerContext(settings);
   if (tagParseMode.value === 'custom') {
     return parsePromptPersonStaticTagsFromText(
       person.name,
       tagParseInput.value,
       settings.promptLlm,
       settings.promptLlmMessagePresets,
+      triggerContext,
     );
   }
-  return parsePromptPersonStaticTags(person, settings.promptLlm, settings.promptLlmMessagePresets);
+  return parsePromptPersonStaticTags(person, settings.promptLlm, settings.promptLlmMessagePresets, triggerContext);
 }
 
 /**
@@ -535,7 +595,10 @@ function showTagDraft(draft: string): void {
     showTagParseError('未提取到符合当前阈值的标签，请降低阈值后重试');
     return;
   }
-  tagParseDraft.value = draft;
+  tagParseDraft.value = {
+    positiveTags: draft,
+    negativeTags: '',
+  };
   toastr.success('图片 tag 草稿已生成');
 }
 
@@ -558,32 +621,70 @@ function showTagParseError(message: string): void {
 
 /**
  * 复制当前草稿内容
- * @param draft 用户编辑后的草稿
+ * @param text 待复制文本
  */
-async function copyTagDraft(draft: string): Promise<void> {
-  await copyWithToast(draft, 'tag 草稿已复制');
+async function copyTagDraft(text: string): Promise<void> {
+  await copyWithToast(text, 'tag 草稿已复制');
 }
 
 /**
- * 用草稿替换锁定人物的固定 tag
- * @param draft 用户编辑后的草稿
+ * 用草稿替换锁定人物的固定 tag 或负面 tag（payload 只携带被操作的一侧）
+ * @param payload 用户确认应用的草稿
  */
-function replaceStaticTags(draft: string): void {
+function replaceStaticTags(payload: StaticTagsApplyPayload): void {
   const person = getLockedDialogPerson();
   if (!person) return;
-  person.staticTags = draft.trim();
-  toastr.success('固定 tag 已替换');
+  if (payload.positive !== undefined) {
+    person.staticTags = payload.positive.trim();
+    toastr.success('正面 tag 已替换');
+  }
+  if (payload.negative !== undefined) {
+    person.negativeTags = payload.negative.trim();
+    toastr.success('负面 tag 已替换');
+  }
 }
 
 /**
- * 将草稿追加到锁定人物的固定 tag
- * @param draft 用户编辑后的草稿
+ * 将草稿追加到锁定人物的固定 tag 或负面 tag（payload 只携带被操作的一侧）
+ * @param payload 用户确认应用的草稿
  */
-function appendToStaticTags(draft: string): void {
+function appendToStaticTags(payload: StaticTagsApplyPayload): void {
   const person = getLockedDialogPerson();
   if (!person) return;
-  person.staticTags = appendStaticTags(person.staticTags, draft);
-  toastr.success('固定 tag 已追加');
+  if (payload.positive !== undefined) {
+    person.staticTags = appendStaticTags(person.staticTags, payload.positive);
+    toastr.success('正面 tag 已追加');
+  }
+  if (payload.negative !== undefined) {
+    person.negativeTags = appendStaticTags(person.negativeTags, payload.negative);
+    toastr.success('负面 tag 已追加');
+  }
+}
+
+/**
+ * 一键为人物模板覆盖或重建"人物开始"条目
+ * @param person 目标人物
+ */
+async function handleOverwritePersonStartEntry(person: PromptPerson): Promise<void> {
+  if (hasPersonStartEntry(person)) {
+    if (showConfirm) {
+      const confirmed = await showConfirm({
+        title: '覆盖"人物开始"条目',
+        message:
+          '一键补充会用新版默认内容（含固定正面/负面 tag 块与冲突解决规则）完全覆盖"人物开始"条目的现有内容。如果你修改过该条目，请提前备份。',
+        acceptLabel: '覆盖',
+        cancelLabel: '取消',
+        severity: 'danger',
+      });
+      if (!confirmed) return;
+    }
+  }
+  const result = overwritePersonStartEntryWithDefaults(person);
+  if (result === 'recreated') {
+    toastr.success('已重建"人物开始"条目');
+  } else {
+    toastr.success('已用新版默认内容覆盖"人物开始"条目');
+  }
 }
 
 /**
@@ -625,3 +726,18 @@ function compactUniqueStrings(values: Array<string | null>): string[] {
   return Array.from(new Set(values.map(value => value?.trim() ?? '').filter(Boolean)));
 }
 </script>
+
+<style scoped>
+.cv-prompt-person-unreferenced-hint :deep(.cv-prime-icon) {
+  font-size: var(--cv-font-size-xs) !important;
+}
+
+.cv-static-tags-subfield-label {
+  font-size: var(--cv-font-size-xs) !important;
+  color: var(--cv-on-surface-variant) !important;
+}
+
+.cv-static-tags-subfield-label i {
+  font-size: var(--cv-font-size-xs) !important;
+}
+</style>

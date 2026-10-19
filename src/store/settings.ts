@@ -223,6 +223,7 @@ const promptPersonSchema = z.object({
   insertMode: z.enum(PROMPT_PERSON_INSERT_MODES),
   triggerKeywords: z.array(z.string()),
   staticTags: z.string(),
+  negativeTags: z.string().default(''),
   templateEntries: z.array(promptPersonTemplateEntrySchema),
 });
 

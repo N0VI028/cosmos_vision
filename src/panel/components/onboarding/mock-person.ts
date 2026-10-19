@@ -12,8 +12,11 @@ import { useSettingsStore } from '@/store/settings';
 /** 模拟人物固定 ID，用于识别与清理 */
 const MOCK_PERSON_ID = '__cv_tutorial_mock_person__';
 
-/** 模拟示例固定 tag */
+/** 模拟示例固定正面 tag */
 const MOCK_STATIC_TAGS = 'girl, blue eyes, long hair, white dress';
+
+/** 模拟示例固定负面 tag（防串色与排斥特征） */
+const MOCK_NEGATIVE_TAGS = 'red eyes, short hair, black dress';
 
 /** 教程请求打开条目编辑弹窗的响应式标记，由人物页监听并真实打开弹窗 */
 const isMockEntryEditorRequested = ref(false);
@@ -41,6 +44,7 @@ export function injectMockPerson(): void {
   const mockPerson = createPromptPerson('character', '教程示例角色', ['示例角色']);
   mockPerson.id = MOCK_PERSON_ID;
   mockPerson.staticTags = MOCK_STATIC_TAGS;
+  mockPerson.negativeTags = MOCK_NEGATIVE_TAGS;
   settings.promptProfiles.profiles.push(mockPerson);
 }
 

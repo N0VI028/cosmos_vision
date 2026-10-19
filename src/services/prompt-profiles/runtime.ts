@@ -1,6 +1,13 @@
 import { uuidv4 } from '@sillytavern/scripts/utils';
 
-import { PROMPT_LLM_FIXED_TAGS_TOKEN, PROMPT_LLM_TRIGGER_NAMES_TOKEN } from '@/constants/default-settings';
+import {
+  DEFAULT_PROMPT_PERSON_FIXED_NEGATIVE_TAGS_BLOCK,
+  DEFAULT_PROMPT_PERSON_FIXED_POSITIVE_TAGS_BLOCK,
+  PROMPT_LLM_FIXED_NEGATIVE_TAGS_TOKEN,
+  PROMPT_LLM_FIXED_POSITIVE_TAGS_TOKEN,
+  PROMPT_LLM_FIXED_TAGS_TOKEN,
+  PROMPT_LLM_TRIGGER_NAMES_TOKEN,
+} from '@/constants/default-settings';
 import type {
   PromptLlmContext,
   PromptLlmSettings,
@@ -48,6 +55,7 @@ export function createPromptPerson(kind: PromptPersonKind, name: string, trigger
     insertMode: 'keyword',
     triggerKeywords: normalizePromptPersonKeywords(triggerKeywords),
     staticTags: '',
+    negativeTags: '',
     templateEntries: createDefaultPromptPersonTemplateEntries(),
   };
 }
@@ -60,7 +68,7 @@ export function createDefaultPromptPersonTemplateEntries(): PromptPersonTemplate
   return [
     createCustomPromptPersonTemplateEntry(
       '人物开始',
-      `<person name="${PROMPT_LLM_TRIGGER_NAMES_TOKEN}">\n  <fixed_tags>以下固定tag为角色特性，必须原样体现在最终正面提示词中：${PROMPT_LLM_FIXED_TAGS_TOKEN}</fixed_tags>。\n  [人物属性冲突解决规则]：\n  1. 若不同输入源的角色特征（如发色、瞳色、服装等特征锚点）出现矛盾冲突，必须按以下权重优先级覆盖：<main_scene> (最高) > <fixed_tags> (次之) > 其他补充资料 (最低)。\n  2. 同一特征锚点在最终提示词中绝对不可重复或冲突出现（例如：若 <fixed_tags> 规定了“蓝色眼睛”，则其他补充资料中得出的“红色眼睛”结论必须被覆盖忽略，只保留高优先级的设定）。\n`,
+      `<person name="${PROMPT_LLM_TRIGGER_NAMES_TOKEN}">\n  ${DEFAULT_PROMPT_PERSON_FIXED_POSITIVE_TAGS_BLOCK}\n  ${DEFAULT_PROMPT_PERSON_FIXED_NEGATIVE_TAGS_BLOCK}\n  [人物属性冲突解决规则]：\n  1. 若不同输入源的角色特征（如发色、瞳色、服装等特征锚点）出现矛盾冲突，必须按以下权重优先级覆盖：<main_scene> (最高) > <fixed_positive_tags> (次之) > 其他补充资料 (最低)。该优先级同样适用于 <fixed_negative_tags>：与当前剧情场景冲突的负面条目必须舍弃。\n  2. 同一特征锚点在最终正面提示词中绝对不可重复或冲突出现（例如：若 <fixed_positive_tags> 规定了“蓝色眼睛”，则其他补充资料中得出的“红色眼睛”结论必须被覆盖忽略，只保留高优先级的设定）。\n`,
     ),
     createCustomPromptPersonTemplateEntry('人物结束', `</person>`),
   ];
@@ -253,13 +261,17 @@ async function renderPromptPersonTemplateEntry(
  * @param person 人物配置
  * @returns 替换后的文本
  */
-function replacePromptPersonTemplateTokens(content: string, person: PromptPerson): string {
+export function replacePromptPersonTemplateTokens(content: string, person: PromptPerson): string {
   const fixedTags = resolvePromptPersonFixedTags(person);
+  const fixedNegativeTags = resolvePromptPersonFixedNegativeTags(person);
   const triggerNames = buildPromptPersonTriggerNames(person);
-  const template = fixedTags ? content : stripEmptyFixedTagsBlocks(content);
+  let template = fixedTags ? content : stripEmptyFixedTagsBlocks(content);
+  template = fixedNegativeTags ? template : stripEmptyFixedNegativeTagsBlocks(template);
   return template
     .replaceAll(PROMPT_LLM_TRIGGER_NAMES_TOKEN, triggerNames)
+    .replaceAll(PROMPT_LLM_FIXED_POSITIVE_TAGS_TOKEN, fixedTags)
     .replaceAll(PROMPT_LLM_FIXED_TAGS_TOKEN, fixedTags)
+    .replaceAll(PROMPT_LLM_FIXED_NEGATIVE_TAGS_TOKEN, fixedNegativeTags)
     .trim();
 }
 
@@ -281,6 +293,15 @@ function buildPromptPersonTriggerNames(person: PromptPerson): string {
  */
 function resolvePromptPersonFixedTags(person: PromptPerson): string {
   return person.staticTags.trim();
+}
+
+/**
+ * 读取可用的固定负面 tag
+ * @param person 人物配置
+ * @returns 固定负面 tag 文本
+ */
+function resolvePromptPersonFixedNegativeTags(person: PromptPerson): string {
+  return person.negativeTags.trim();
 }
 
 /**
@@ -320,14 +341,103 @@ async function renderEnabledPromptPersonEntry(person: PromptPerson, entry: Promp
 }
 
 /**
- * 移除空固定 tag 包裹块
+ * 移除空固定正面 tag 包裹块（含旧版 fixed_tags 标签的存量模板）
  * @param content 原始模板文本
  * @returns 去掉空块后的模板
  */
-function stripEmptyFixedTagsBlocks(content: string): string {
-  const token = escapeRegExp(PROMPT_LLM_FIXED_TAGS_TOKEN);
-  const pattern = new RegExp(`<fixed_tags>[\\s\\S]*?${token}[\\s\\S]*?<\\/fixed_tags>`, 'g');
-  return content.replace(pattern, '');
+export function stripEmptyFixedTagsBlocks(content: string): string {
+  return (
+    content
+      .replace(stripBlockPattern('fixed_tags', PROMPT_LLM_FIXED_TAGS_TOKEN), '')
+      .replace(stripBlockPattern('fixed_positive_tags', PROMPT_LLM_FIXED_POSITIVE_TAGS_TOKEN), '')
+  );
+}
+
+/**
+ * 移除空固定负面 tag 包裹块
+ * @param content 原始模板文本
+ * @returns 去掉空块后的模板
+ */
+export function stripEmptyFixedNegativeTagsBlocks(content: string): string {
+  return content.replace(stripBlockPattern('fixed_negative_tags', PROMPT_LLM_FIXED_NEGATIVE_TAGS_TOKEN), '');
+}
+
+/**
+ * 构建指定包裹块的剥除正则（匹配 <tag>…token…</tag> 整块）
+ * @param tag 包裹块标签名
+ * @param token 块内宏
+ * @returns 全局剥除正则
+ */
+function stripBlockPattern(tag: string, token: string): RegExp {
+  return new RegExp(`<${tag}>[\\s\\S]*?${escapeRegExp(token)}[\\s\\S]*?<\\/${tag}>`, 'g');
+}
+
+/**
+ * 检查人物固定正面 tag 是否未被启用模板引用（新旧宏任一存在即视为已引用）
+ * @param person 人物配置
+ * @returns 是否未被引用
+ */
+export function hasUnreferencedFixedTags(person: PromptPerson): boolean {
+  if (!person.staticTags.trim()) return false;
+  return !person.templateEntries.some(
+    entry =>
+      entry.enabled &&
+      (entry.content.includes(PROMPT_LLM_FIXED_POSITIVE_TAGS_TOKEN) || entry.content.includes(PROMPT_LLM_FIXED_TAGS_TOKEN)),
+  );
+}
+
+/**
+ * 检查人物固定负面 tag 是否未被启用模板引用
+ * @param person 人物配置
+ * @returns 是否未被引用
+ */
+export function hasUnreferencedFixedNegativeTags(person: PromptPerson): boolean {
+  if (!person.negativeTags.trim()) return false;
+  return !person.templateEntries.some(entry => entry.enabled && entry.content.includes(PROMPT_LLM_FIXED_NEGATIVE_TAGS_TOKEN));
+}
+
+/** 一键覆盖"人物开始"条目的结果：overwritten=既有条目内容被整体替换；recreated=条目缺失，已重建默认结构 */
+export type OverwritePersonStartEntryResult = 'overwritten' | 'recreated';
+
+/**
+ * 判断人物模板是否仍存在"人物开始"条目
+ * @param person 人物配置
+ * @returns 是否存在内容含 <person 开标签的条目
+ */
+export function hasPersonStartEntry(person: PromptPerson): boolean {
+  return Boolean(findPersonStartEntry(person));
+}
+
+/**
+ * 用新版默认"人物开始"条目内容整体覆盖人物模板
+ * 覆盖语义：条目存在时启用它并把 content 整体替换为默认条目内容（正负 tag 块 + 冲突规则），
+ * 原有内容不保留、不合并，条目 id/title/reference 保持不变；条目已被删除时按模板现状重建默认结构。
+ * @param person 人物配置
+ * @returns 'overwritten' 表示既有条目已被整体覆盖，'recreated' 表示条目缺失并已重建默认结构
+ */
+export function overwritePersonStartEntryWithDefaults(person: PromptPerson): OverwritePersonStartEntryResult {
+  const defaults = createDefaultPromptPersonTemplateEntries();
+  const startEntry = findPersonStartEntry(person);
+  if (!startEntry) {
+    if (person.templateEntries.length === 0) {
+      person.templateEntries.push(...defaults);
+    } else {
+      person.templateEntries.unshift(defaults[0]);
+    }
+    return 'recreated';
+  }
+  startEntry.enabled = true;
+  startEntry.content = defaults[0].content;
+  return 'overwritten';
+}
+
+/**
+ * 按内容查找"人物开始"条目（默认名为"人物开始"，重命名后仍可命中）
+ * @param person 人物配置
+ * @returns 命中的条目或 undefined
+ */
+function findPersonStartEntry(person: PromptPerson): PromptPersonTemplateEntry | undefined {
+  return person.templateEntries.find(entry => entry.content.includes('<person'));
 }
 
 /**

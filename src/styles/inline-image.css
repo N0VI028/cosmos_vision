@@ -897,6 +897,11 @@ body.dark .cv-inline-toolbar {
   min-width: 0;
 }
 
+/* 流式预览包裹容器：消除 Vue Fragment 锚点文本节点，以 display: contents 透传布局 */
+.cv-inline-generation-stage-container {
+  display: contents;
+}
+
 /* 流式预览舞台（普通宿主）：作为底层卡片舞台，与画廊同宽并带有与 overlay 模式一致的毛玻璃模糊氛围 */
 .cv-inline-stream-stage {
   position: relative;

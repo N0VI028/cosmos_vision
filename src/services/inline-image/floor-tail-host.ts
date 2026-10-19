@@ -1,6 +1,7 @@
 import { preventInlineEventBubbling } from '@/composables/inlineImageDom';
 import { CV_MESID_ATTR, CV_RENDER_CLASS, CV_SLOT_ATTR } from '@/services/inline-image/cv-render-container';
 import { getHostIframe, isHTMLElementNode } from '@/services/inline-image/iframe-utils';
+import { ensureShadowMountTarget } from '@/services/inline-image/shadow-mount';
 
 export const CV_FLOOR_TAIL_CLASS = 'cv-floor-tail';
 export const CV_FLOOR_TAIL_SLOT_CLASS = 'cv-floor-tail-slot';
@@ -80,12 +81,14 @@ export function ensureFloorTailSlotContainer(
 ): HTMLElement {
   const existing = document.querySelector<HTMLElement>(`.${CV_FLOOR_TAIL_SLOT_CLASS}[${CV_SLOT_ATTR}="${slotId}"]`);
   if (existing) {
+    ensureShadowMountTarget(existing);
     return existing;
   }
 
   const root = ensureFloorTailHost(mesId, swipeId, targetAnchor);
   const existingInRoot = root.querySelector<HTMLElement>(`.${CV_FLOOR_TAIL_SLOT_CLASS}[${CV_SLOT_ATTR}="${slotId}"]`);
   if (existingInRoot) {
+    ensureShadowMountTarget(existingInRoot);
     return existingInRoot;
   }
 
@@ -94,6 +97,7 @@ export function ensureFloorTailSlotContainer(
   slotContainer.setAttribute(CV_SLOT_ATTR, slotId);
   preventInlineEventBubbling(slotContainer);
   root.appendChild(slotContainer);
+  ensureShadowMountTarget(slotContainer);
   return slotContainer;
 }
 
