@@ -11,8 +11,9 @@
       @append="payload => emit('append', payload)"
     />
 
-    <!-- 负面 tag 区 -->
+    <!-- 负面 tag 区（WD Tagger 图片反推渠道无负面 tag，按需隐藏） -->
     <StaticTagsDraftSection
+      v-if="showNegative"
       title="固定负面 tag"
       :raw-text="draft.negativeTags"
       placeholder="负面 tag 草稿（可留空）..."
@@ -37,6 +38,9 @@ export interface StaticTagsApplyPayload {
  * 统一解析草稿结果组件：正面/负面双区徽章点选展示，各区操作按钮仅作用于本区所选徽章
  */
 const draft = defineModel<PromptPersonTagsDraft>('draft', { required: true });
+
+/** 是否展示负面 tag 区（默认展示） */
+withDefaults(defineProps<{ showNegative?: boolean }>(), { showNegative: true });
 
 const emit = defineEmits<{
   copy: [text: string];

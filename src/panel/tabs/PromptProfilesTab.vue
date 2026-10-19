@@ -184,6 +184,7 @@
     <StaticTagsDraftResult
       v-if="tagParseDraft"
       v-model:draft="tagParseDraft"
+      :show-negative="!isWdTagDraft"
       @copy="copyTagDraft"
       @replace="replaceStaticTags"
       @append="appendToStaticTags"
@@ -322,6 +323,8 @@ const tagParseDialogPerson = ref<PromptPerson | null>(null);
 const tagParseMode = ref<TagParseMode | null>(null);
 const tagParseInput = ref('');
 const tagParseDraft = ref<PromptPersonTagsDraft | null>(null);
+/** 当前草稿是否来自 WD Tagger 图片反推（该渠道无负面 tag，UI 隐藏负面区） */
+const isWdTagDraft = ref(false);
 const taggerGeneralThreshold = ref(0.35);
 const taggerCharacterThreshold = ref(0.85);
 const taggerSource = ref<{ cancel: () => void } | null>(null);
@@ -500,6 +503,7 @@ function openParseTagsDialog(person: PromptPerson): void {
   tagParseMode.value = null;
   tagParseInput.value = '';
   tagParseDraft.value = null;
+  isWdTagDraft.value = false;
   isTagParseDialogVisible.value = true;
 }
 
@@ -531,6 +535,7 @@ function resetParseTagsDialog(): void {
   tagParseMode.value = null;
   tagParseInput.value = '';
   tagParseDraft.value = null;
+  isWdTagDraft.value = false;
 }
 
 /**
@@ -554,6 +559,7 @@ async function parseStaticTags(person: PromptPerson): Promise<void> {
     const draft = await requestParsedStaticTags(person);
     if (requestId !== tagParseRequestId || !isTagParseDialogVisible.value) return;
     tagParseDraft.value = draft;
+    isWdTagDraft.value = false;
     toastr.success('人物 tag 草稿已生成');
   } catch (error) {
     if (requestId === tagParseRequestId) {
@@ -599,6 +605,7 @@ function showTagDraft(draft: string): void {
     positiveTags: draft,
     negativeTags: '',
   };
+  isWdTagDraft.value = true;
   toastr.success('图片 tag 草稿已生成');
 }
 
