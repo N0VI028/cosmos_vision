@@ -196,7 +196,6 @@
   overflow: visible !important;
 }
 
-/* 选区挂载容器允许整体蒙版溢出 */
 .cv-inline-selection-container,
 [mesid]:has(.cv-inline-selected),
 .mes_text:has(.cv-inline-selected),
@@ -204,12 +203,12 @@
 .mes_text:has(.cv-inline-selection-shell) {
   position: relative !important;
   overflow: visible !important;
+  isolation: isolate;
 }
 
-/* 连续选区整体蒙版：按首尾段落包围盒布局，天然覆盖段间距 */
 .cv-inline-selection-shell {
   position: absolute;
-  z-index: 2;
+  z-index: 2147483647;
   box-sizing: border-box;
   pointer-events: none;
   border-radius: var(--cv-radius-sm);
