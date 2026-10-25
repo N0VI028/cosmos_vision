@@ -47,7 +47,7 @@ import { locateFrontendParagraphFromPoint } from '@/services/inline-image/fronte
 import { ensureFloorTailHost } from '@/services/inline-image/floor-tail-host';
 import { writeFloorTailSlot, findFloorTailSlotByTarget } from '@/services/inline-image/floor-tail-slot';
 import { newSlotId } from '@/services/inline-image/slot-shortcode';
-import { getHostIframe } from '@/services/inline-image/iframe-utils';
+import { getHostIframe, getViewportRect } from '@/services/inline-image/iframe-utils';
 import { FrameRegistry } from '@/services/inline-image/frame-registry';
 import {
   buildFrontendPromptContext,
@@ -588,21 +588,50 @@ export function useInlineImageGeneration(
     floorTailContext?: GalleryGenerationContext,
   ): Promise<void> {
     generationSession.ensureActive(session);
-    const route = resolveInlineRoute(paragraph);
-    if (route === 'frontend') {
+    if (resolveInlineRoute(paragraph) === 'frontend') {
       await applyFrontendGenerationResult(paragraph, result, floorTailContext);
-      await nextTick();
-      session.status.remove();
-      return;
-    }
-    for (const imageBlob of result.imageBlobs) {
-      await imageGallery.showGenerated(paragraph, {
-        imageBlob,
-        promptSnapshot: result.promptSnapshot,
-      });
+    } else {
+      for (const imageBlob of result.imageBlobs) {
+        await imageGallery.showGenerated(paragraph, {
+          imageBlob,
+          promptSnapshot: result.promptSnapshot,
+        });
+      }
     }
     await nextTick();
     session.status.remove();
+    showGenerationSuccessToast(paragraph);
+  }
+
+  /**
+   * 生图成功后弹出可点击 Toast，点击后无动画直跳到段落所在位置
+   * @param paragraph 生图锚点段落
+   */
+  function showGenerationSuccessToast(paragraph: HTMLElement): void {
+    const mesId = findMessageId(paragraph);
+    toastr?.success?.('段落生图完成，点击跳转', undefined, {
+      timeOut: 6000,
+      onclick: () => jumpToParagraph(paragraph, mesId),
+    });
+  }
+
+  /**
+   * 瞬时定位到段落：直接写 #chat 的 scrollTop，不经任何滚动动画
+   * 移动端 Edge 的平滑滚动易触发浏览器界面整体上移 bug，故禁用一切滚动动画
+   * 原段落被 ST 重渲染顶掉时按 mesId 兜底定位到当前楼层块
+   * @param paragraph 生图锚点段落
+   * @param mesId 弹 Toast 时记录的楼层 ID
+   */
+  function jumpToParagraph(paragraph: HTMLElement, mesId: string | null): void {
+    const target = paragraph.isConnected
+      ? paragraph
+      : (mesId !== null ? document.querySelector<HTMLElement>(`[mesid="${mesId}"]`) : null);
+    if (!target) return;
+    const chat = document.querySelector<HTMLElement>('#chat');
+    if (!chat) return;
+    const targetRect = getViewportRect(target);
+    const chatRect = chat.getBoundingClientRect();
+    chat.scrollTop += targetRect.top - (chatRect.top + chatRect.height / 3);
   }
 
   /**
