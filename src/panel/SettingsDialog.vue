@@ -181,21 +181,23 @@
           </Fluid>
         </div>
 
-        <!-- 浮动操作栏 -->
-        <div class="cv-action-bar">
-          <div class="cv-action-bar-inner">
-            <button type="button" class="cv-action-btn cv-action-btn--ghost" @click="requestDiscard">放弃更改</button>
-            <button
-              type="button"
-              class="cv-action-btn cv-action-btn--primary"
-              data-cv-tutorial="apply-settings"
-              @click="applySettings"
-            >
-              <i class="fa-solid fa-check" />
-              应用更改
-            </button>
+        <!-- 浮动操作栏:仅有切实修改时从底部浮现 -->
+        <Transition name="cv-action-bar">
+          <div v-if="settingsStore.isDirty" class="cv-action-bar">
+            <div class="cv-action-bar-inner">
+              <button type="button" class="cv-action-btn cv-action-btn--ghost" @click="requestDiscard">放弃更改</button>
+              <button
+                type="button"
+                class="cv-action-btn cv-action-btn--primary"
+                data-cv-tutorial="apply-settings"
+                @click="applySettings"
+              >
+                <i class="fa-solid fa-check" />
+                应用更改
+              </button>
+            </div>
           </div>
-        </div>
+        </Transition>
       </main>
     </div>
   </Dialog>

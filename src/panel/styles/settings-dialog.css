@@ -506,6 +506,20 @@
   font-size: var(--cv-font-size-xl);
 }
 
+/* 操作栏随 dirty 状态从底部浮现/沉入 */
+.cv-action-bar-enter-active,
+.cv-action-bar-leave-active {
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.cv-action-bar-enter-from,
+.cv-action-bar-leave-to {
+  opacity: 0;
+  transform: translateY(100%);
+}
+
 /* Dialog header/content/footer padding 已迁 definePreset components.dialog + bridge --cvp-dialog-* */
 
 .cosmos-vision-root .cv-confirm-message,
