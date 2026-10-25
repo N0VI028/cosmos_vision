@@ -593,19 +593,33 @@ function requestParsedStaticTags(person: PromptPerson): Promise<PromptPersonTags
 }
 
 /**
- * 显示图片分析生成的草稿
- * @param draft 可编辑 tag 草稿
+ * 显示图片分析或元数据提取生成的草稿
+ * @param draft 可编辑 tag 草稿文本或结构化草稿
  */
-function showTagDraft(draft: string): void {
-  if (!draft.trim()) {
-    showTagParseError('未提取到符合当前阈值的标签，请降低阈值后重试');
+function showTagDraft(draft: string | PromptPersonTagsDraft): void {
+  if (typeof draft === 'string') {
+    if (!draft.trim()) {
+      showTagParseError('未提取到符合当前阈值的标签，请降低阈值后重试');
+      return;
+    }
+    tagParseDraft.value = {
+      positiveTags: draft,
+      negativeTags: '',
+    };
+    isWdTagDraft.value = true;
+    toastr.success('图片 tag 草稿已生成');
+    return;
+  }
+
+  if (!draft.positiveTags.trim() && !draft.negativeTags.trim()) {
+    showTagParseError('未在图片中找到支持的生图元数据（NAI/SD/ComfyUI）');
     return;
   }
   tagParseDraft.value = {
-    positiveTags: draft,
-    negativeTags: '',
+    positiveTags: draft.positiveTags,
+    negativeTags: draft.negativeTags,
   };
-  isWdTagDraft.value = true;
+  isWdTagDraft.value = false;
   toastr.success('图片 tag 草稿已生成');
 }
 
