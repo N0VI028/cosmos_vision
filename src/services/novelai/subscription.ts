@@ -1,7 +1,7 @@
 import { NOVELAI_TIERS, type NovelAIAccount, type NovelAITierLabel } from '@/constants/novelai';
 
 /** NovelAI 订阅接口固定端点 */
-const SUBSCRIPTION_ENDPOINT = 'https://api.novelai.net/user/subscription';
+const SUBSCRIPTION_ENDPOINT = 'https://image.novelai.net/user/subscription';
 
 /** 换算系数：每 1% ≈ 17.3 张（参考官网实测校准值） */
 export const V5_IMAGES_PER_PERCENT = 17.3;
