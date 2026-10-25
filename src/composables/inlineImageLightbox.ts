@@ -5,7 +5,7 @@ import type { ComfyUIRequestSnapshot } from '@/services/comfyui/types';
 import type { NovelAIFinalPrompts } from '@/services/novelai/api';
 import type { NovelAIRequestInfo } from '@/services/novelai/types';
 import type { NovelAIVibeParameters } from '@/services/novelai/vibe-types';
-import { reactive } from 'vue';
+import { reactive, toRaw } from 'vue';
 
 /** 单侧提示词部件：可变（core）与不可变（模板）分离 */
 export interface InlinePromptParts {
@@ -66,12 +66,52 @@ export function closeInlineImageLightbox(): void {
 }
 
 /**
+ * 递归解除 Vue 响应式代理（Proxy）并深层克隆为纯 JavaScript 对象/数组
+ * 保留 Blob / File / ArrayBuffer / TypedArray / Date / RegExp 等特殊克隆兼容对象
+ * @param value 任意值
+ * @param seen 循环引用追踪
+ * @returns 剥离响应式代理后的深克隆结果
+ */
+export function deepCloneWithoutProxy<T>(value: T, seen = new WeakMap<object, any>()): T {
+  const raw = toRaw(value);
+  if (raw === null || typeof raw !== 'object') {
+    return raw;
+  }
+  if (
+    (typeof Blob !== 'undefined' && raw instanceof Blob) ||
+    (typeof ArrayBuffer !== 'undefined' && (raw instanceof ArrayBuffer || ArrayBuffer.isView(raw))) ||
+    raw instanceof Date ||
+    raw instanceof RegExp
+  ) {
+    return raw;
+  }
+  if (seen.has(raw)) {
+    return seen.get(raw);
+  }
+  if (Array.isArray(raw)) {
+    const copy: any[] = [];
+    seen.set(raw, copy);
+    for (let i = 0; i < raw.length; i++) {
+      copy[i] = deepCloneWithoutProxy(raw[i], seen);
+    }
+    return copy as unknown as T;
+  }
+  const copy: Record<string, any> = {};
+  seen.set(raw, copy);
+  for (const key of Object.keys(raw)) {
+    copy[key] = deepCloneWithoutProxy((raw as Record<string, any>)[key], seen);
+  }
+  return copy as unknown as T;
+}
+
+/**
  * 克隆为 IndexedDB 可结构化保存的纯提示词快照
+ * 深度剥离 Vue reactive Proxy 避免 DataCloneError
  * @param snapshot 原始提示词快照
- * @returns 去除响应式代理引用后的快照
+ * @returns 去除响应式代理引用后的深克隆快照
  */
 export function cloneInlinePromptSnapshot(snapshot: InlinePromptSnapshot): InlinePromptSnapshot {
-  return {
+  const cloned: InlinePromptSnapshot = {
     ...(snapshot.positivePrompt !== undefined ? { positivePrompt: snapshot.positivePrompt } : {}),
     ...(snapshot.negativePrompt !== undefined ? { negativePrompt: snapshot.negativePrompt } : {}),
     imageSource: snapshot.imageSource,
@@ -80,6 +120,8 @@ export function cloneInlinePromptSnapshot(snapshot: InlinePromptSnapshot): Inlin
     promptParts: snapshot.promptParts ? cloneInlinePromptParts(snapshot.promptParts) : undefined,
     ...(snapshot.novelaiRequest ? { novelaiRequest: { ...snapshot.novelaiRequest } } : {}),
   };
+  // 末尾统一深层净化(去 Proxy),各字段只需浅展开
+  return deepCloneWithoutProxy(cloned);
 }
 
 /**

@@ -1,4 +1,8 @@
-import { cloneInlinePromptSnapshot, type InlinePromptSnapshot } from '@/composables/inlineImageLightbox';
+import {
+  cloneInlinePromptSnapshot,
+  deepCloneWithoutProxy,
+  type InlinePromptSnapshot,
+} from '@/composables/inlineImageLightbox';
 import { uuidv4 } from '@sillytavern/scripts/utils';
 import type { InlineImageFavoriteScope } from '@/services/inline-image/favorites-cache';
 import {
@@ -26,6 +30,16 @@ export interface GallerySessionRecord {
 }
 
 const sessions = new Map<string, GallerySessionRecord>();
+const removedItemSlotCache = new Map<string, string>();
+const MAX_REMOVED_CACHE = 1000;
+
+function trackRemovedItemSlot(itemId: string, slotId: string): void {
+  if (removedItemSlotCache.size >= MAX_REMOVED_CACHE) {
+    const firstKey = removedItemSlotCache.keys().next().value;
+    if (firstKey) removedItemSlotCache.delete(firstKey);
+  }
+  removedItemSlotCache.set(itemId, slotId);
+}
 let sessionMutationQueue = Promise.resolve();
 
 /**
@@ -143,6 +157,7 @@ export async function deletePersistedSessionItem(itemId: string): Promise<void> 
 /** 清空全部会话临时图 */
 export function clearAllGallerySessions(): void {
   sessions.clear();
+  removedItemSlotCache.clear();
 }
 
 /**
@@ -207,8 +222,8 @@ function toTemporaryImageRecord(
     slotId: record.slotId,
     favoriteId: item.favoriteId,
     imageBlob: item.imageBlob,
-    // IndexedDB structured clone 无法序列化 Vue Proxy，必须落纯对象
-    promptSnapshot: cloneInlinePromptSnapshot(item.promptSnapshot),
+    // IndexedDB structured clone 无法序列化 Vue Proxy，必须落纯对象（做深层净化兜底）
+    promptSnapshot: deepCloneWithoutProxy(cloneInlinePromptSnapshot(item.promptSnapshot)),
     createdAt: item.createdAt,
   };
 }
@@ -234,14 +249,52 @@ function restoreTemporaryImageRecord(record: TemporaryImageRecord): void {
 /**
  * 从内存会话移除已淘汰图片
  * @param ids 图片 ID
+ * @returns 受影响的 slotId 列表
  */
-export function removeSessionItemsByIds(ids: string[]): void {
-  if (!ids.length) return;
+export function removeSessionItemsByIds(ids: string[]): string[] {
+  if (!ids.length) return [];
   const removed = new Set(ids);
+  const affected = new Set<string>();
   sessions.forEach((record, key) => {
-    record.items = record.items.filter(item => !removed.has(item.id));
-    if (!record.items.length) sessions.delete(key);
+    let changed = false;
+    for (const item of record.items) {
+      if (removed.has(item.id)) {
+        affected.add(record.slotId);
+        trackRemovedItemSlot(item.id, record.slotId);
+        changed = true;
+      }
+    }
+    if (changed) {
+      record.items = record.items.filter(item => !removed.has(item.id));
+      if (!record.items.length) sessions.delete(key);
+    }
   });
+  return Array.from(affected);
+}
+
+/**
+ * 根据被淘汰的图片 ID 列表反查所属的 slotId 列表
+ * @param removedIds 被淘汰图片 ID 列表
+ * @returns 对应的 slotId 列表
+ */
+export function resolveSlotIdsFromRemovedImageIds(removedIds: string[]): string[] {
+  if (!removedIds.length) return [];
+  const result = new Set<string>();
+  // 1. 先查活跃 sessions（若在删除前调用）
+  const idSet = new Set(removedIds);
+  sessions.forEach(record => {
+    if (record.items.some(item => idSet.has(item.id))) {
+      result.add(record.slotId);
+    }
+  });
+  // 2. 再查淘汰缓存（若在删除后调用）
+  for (const id of removedIds) {
+    const cachedSlotId = removedItemSlotCache.get(id);
+    if (cachedSlotId) {
+      result.add(cachedSlotId);
+    }
+  }
+  return Array.from(result);
 }
 
 /**

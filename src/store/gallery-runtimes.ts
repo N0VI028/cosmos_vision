@@ -11,6 +11,7 @@ import {
   createSessionItemId,
   persistGallerySessionItem,
   removeSessionItemsByIds,
+  resolveSlotIdsFromRemovedImageIds,
   restoreGallerySessions,
   type GallerySessionItem,
   type GallerySessionRecord,
@@ -58,6 +59,8 @@ export interface GalleryMountRuntime {
   generatedItem: GallerySessionItem | null;
   /** 类型互换就地补丁 */
   kindPatch: GalleryKindPatch | null;
+  /** 原地刷新通知计数器（零闪烁） */
+  reloadToken: number;
 }
 
 /** 楼层粒度 runtime */
@@ -93,7 +96,8 @@ interface GalleryRuntimeHandlers {
 type PendingJob =
   | { kind: 'audit' }
   | { kind: 'rerenderAll'; clearSessions: boolean }
-  | { kind: 'floor'; messageId: number };
+  | { kind: 'floor'; messageId: number }
+  | { kind: 'reloadSlots'; slotIds: string[] };
 
 /**
  * 段落画廊 runtime store：扫短码 / temp → cv-render → Teleport
@@ -360,12 +364,14 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
   }
 
   /**
-   * 移除因数量限制被淘汰的运行时挂载
+   * 移除因数量限制被淘汰的运行时挂载（原地零闪烁更新）
    * @param removedIds 被淘汰图片 ID
    */
   function removePrunedMounts(removedIds: string[]): void {
     if (!removedIds.length) return;
-    scheduleJob({ kind: 'rerenderAll', clearSessions: false });
+    const slotIds = resolveSlotIdsFromRemovedImageIds(removedIds);
+    if (!slotIds.length) return;
+    scheduleJob({ kind: 'reloadSlots', slotIds });
   }
 
   /**
@@ -458,7 +464,26 @@ export const useGalleryRuntimesStore = defineStore('cosmos_vision_gallery_runtim
       await applyFloor(job.messageId);
       return;
     }
+    if (job.kind === 'reloadSlots') {
+      reloadMountSlots(job.slotIds);
+      return;
+    }
     await audit();
+  }
+
+  /**
+   * 触发指定 slots 的画廊挂载组件原地 reload，不拆除 DOM
+   * @param slotIds 受影响的 slotId 列表
+   */
+  function reloadMountSlots(slotIds: string[]): void {
+    if (!slotIds.length || disposed || !settingsStore.savedSettings.enabled) return;
+    const targetSet = new Set(slotIds);
+    runtimes.value
+      .flatMap(runtime => runtime.mounts)
+      .filter(mount => targetSet.has(mount.mountKey.slotId))
+      .forEach(mount => {
+        mount.reloadToken = (mount.reloadToken || 0) + 1;
+      });
   }
 
   /**
@@ -697,6 +722,7 @@ function toMountRuntime(mount: GalleryMountSpec): GalleryMountRuntime {
     mountKey: mount.mountKey,
     generatedItem: null,
     kindPatch: null,
+    reloadToken: 0,
     anchor: {
       ...mount.anchor,
       target: markRaw(mount.anchor.target),

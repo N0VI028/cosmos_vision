@@ -41,14 +41,37 @@ const hostClass = computed(() =>
 
 /**
  * 加载画廊图片
+ * @param options 可选配置，silent 为 true 时不切 loading 状态以实现原地零闪烁更新
  */
-async function reloadItems(): Promise<void> {
-  loading.value = true;
+async function reloadItems(options?: { silent?: boolean }): Promise<void> {
+  if (!options?.silent) {
+    loading.value = true;
+  }
   const nextUrls = new Set<string>();
   try {
     const nextItems = await loadMountGalleryItems(props.mount, nextUrls);
-    revokeTrackedObjectUrls(objectUrls);
-    nextUrls.forEach(url => objectUrls.add(url));
+    // 复用已有 item 的 objectUrl 以免图片重新闪烁解码
+    for (const nextItem of nextItems) {
+      const prev = items.value.find(candidate => candidate.id === nextItem.id);
+      if (prev?.objectUrl) {
+        nextItem.objectUrl = prev.objectUrl;
+      }
+    }
+    const activeUrlSet = new Set(nextItems.map(item => item.objectUrl));
+    for (const url of objectUrls) {
+      if (!activeUrlSet.has(url)) {
+        URL.revokeObjectURL(url);
+        objectUrls.delete(url);
+      }
+    }
+    nextUrls.forEach(url => {
+      if (activeUrlSet.has(url)) {
+        objectUrls.add(url);
+      } else {
+        URL.revokeObjectURL(url);
+      }
+    });
+
     items.value = nextItems;
     activeItemId.value = nextItems.some(item => item.id === activeItemId.value)
       ? activeItemId.value
@@ -188,6 +211,15 @@ watch(
   patch => {
     if (!patch) return;
     applyKindPatch(patch);
+  },
+);
+
+watch(
+  () => props.mount.reloadToken,
+  token => {
+    if (token) {
+      void reloadItems({ silent: true });
+    }
   },
 );
 
