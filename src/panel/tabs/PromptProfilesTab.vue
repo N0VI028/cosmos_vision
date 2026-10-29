@@ -305,7 +305,7 @@ const TAG_PARSE_MODE_OPTIONS: Array<{
   {
     value: 'image',
     label: '从图片提取',
-    description: '使用 WD Tagger 提取 Danbooru 风格标签草稿',
+    description: 'WD Tagger 反推图片标签，或读取图片内置生成元数据（NAI/SD/ComfyUI）',
     icon: 'fa-solid fa-image',
   },
 ];

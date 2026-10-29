@@ -83,26 +83,29 @@ export function parseSdParameters(rawText: string): PromptPersonTagsDraft | null
   const trimmed = rawText.trim();
   if (!trimmed) return null;
 
-  let positive = '';
-  let negative = '';
-  const negMarker = 'Negative prompt:';
-  const negIndex = trimmed.indexOf(negMarker);
+  // 负向标记由 A1111 固定写在行首；lookbehind 锚定行首，避免正向提示词中的同名字符串被误切分
+  const negMatch = /(?<=^|\n)Negative prompt:/.exec(trimmed);
 
-  if (negIndex !== -1) {
-    positive = trimmed.slice(0, negIndex).trim();
-    const afterNeg = trimmed.slice(negIndex + negMarker.length);
-    const stepsMatch = afterNeg.match(/(?:^|\n)\s*Steps:\s*\d+/);
-    negative = stepsMatch && stepsMatch.index !== undefined
-      ? afterNeg.slice(0, stepsMatch.index).trim()
-      : afterNeg.trim();
+  let positive: string;
+  let negative = '';
+  if (negMatch) {
+    positive = stripSettingsLine(trimmed.slice(0, negMatch.index)).trim();
+    negative = stripSettingsLine(trimmed.slice(negMatch.index + negMatch[0].length)).trim();
   } else {
-    const stepsMatch = trimmed.match(/(?:^|\n)\s*Steps:\s*\d+/);
-    positive = stepsMatch && stepsMatch.index !== undefined
-      ? trimmed.slice(0, stepsMatch.index).trim()
-      : trimmed;
+    positive = stripSettingsLine(trimmed).trim();
   }
 
   return createPromptPersonTagsDraft(positive, negative);
+}
+
+/**
+ * 截掉从行首 Steps: 起的生成参数设置行
+ * @param text 提示词文本
+ * @returns 不含设置行的前段文本
+ */
+function stripSettingsLine(text: string): string {
+  const stepsMatch = /(?:^|\n)\s*Steps:\s*\d+/.exec(text);
+  return stepsMatch ? text.slice(0, stepsMatch.index) : text;
 }
 
 /**

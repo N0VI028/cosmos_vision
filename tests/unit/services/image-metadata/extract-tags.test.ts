@@ -127,6 +127,19 @@ Negative prompt: blurry`;
       expect(draft?.positiveTags).toBe('1girl, solo');
       expect(draft?.negativeTags).toBe('blurry');
     });
+
+    it('does not misinterpret the marker string appearing mid-line in the positive prompt', () => {
+      const raw = `1girl, a sign saying "Negative prompt: do not split here", solo
+Negative prompt: blurry
+Steps: 20`;
+
+      const draft = parseSdParameters(raw);
+      expect(draft).not.toBeNull();
+      expect(draft?.positiveTags).toBe(
+        '1girl, a sign saying "Negative prompt: do not split here", solo',
+      );
+      expect(draft?.negativeTags).toBe('blurry');
+    });
   });
 
   describe('parseComfyUiPrompt', () => {

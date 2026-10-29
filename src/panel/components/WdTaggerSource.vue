@@ -11,24 +11,31 @@
       aria-label="提取方式"
     >
       <template #option="{ option }">
-        <div class="flex items-center justify-center gap-(--cv-space-sm)">
-          <i :class="[option.icon, 'text-(length:--cv-font-size-xs)!']" aria-hidden="true" />
+        <div class="flex items-center justify-center gap-(--cv-space-sm) text-(length:--cv-font-size-base)">
+          <i :class="[option.icon, 'text-(length:--cv-font-size-base)!']" aria-hidden="true" />
           <span>{{ option.label }}</span>
         </div>
       </template>
     </SelectButton>
 
-    <div class="flex flex-wrap gap-(--cv-space-md)">
-      <Button
-        v-for="option in sourceOptions"
-        :key="option.value"
-        :label="option.label"
-        :icon="option.icon"
-        outlined
-        :disabled="option.disabled"
-        class="min-w-[12rem] flex-1"
-        @click="selectSource(option.value)"
-      />
+    <div class="flex flex-wrap items-center justify-between gap-(--cv-space-sm)">
+      <span class="min-w-0 flex-1 text-(length:--cv-font-size-xs) text-(--cv-on-surface-variant)">
+        可直接使用现有头像
+      </span>
+      <div class="flex shrink-0 gap-(--cv-space-sm)">
+        <Button
+          v-for="option in sourceOptions"
+          :key="option.value"
+          :label="option.label"
+          :icon="option.icon"
+          :title="option.title"
+          outlined
+          size="small"
+          :fluid="false"
+          :disabled="option.disabled"
+          @click="selectSource(option.value)"
+        />
+      </div>
     </div>
 
     <FileUpload
@@ -177,30 +184,30 @@ let abortController: AbortController | null = null;
 const sourceOptions = computed(() => [
   {
     value: 'user-avatar' as const,
-    label: '使用当前 user 头像',
+    label: 'user',
+    title: '使用当前 user 头像',
     icon: 'fa-solid fa-user',
     disabled: !getWdAvatarPath('user-avatar'),
   },
   {
     value: 'character-avatar' as const,
-    label: '使用当前 char 头像',
+    label: 'char',
+    title: '使用当前 char 头像',
     icon: 'fa-solid fa-user-astronaut',
     disabled: !getWdAvatarPath('character-avatar'),
   },
 ]);
 
 const actionButtonLabel = computed(() => {
-  if (extractMethod.value === 'wd-tagger') {
-    return isAnalyzing.value ? '停止' : hasAnalyzed.value ? '重新分析' : '分析图片';
-  }
-  return isAnalyzing.value ? '解析中...' : hasAnalyzed.value ? '重新分析' : '分析图片';
+  if (isAnalyzing.value) return extractMethod.value === 'wd-tagger' ? '停止' : '解析中...';
+  return hasAnalyzed.value ? '重新分析' : '分析图片';
 });
 
 const actionButtonIcon = computed(() => {
-  if (extractMethod.value === 'wd-tagger') {
-    return isAnalyzing.value ? 'fa-solid fa-stop' : 'fa-solid fa-wand-magic-sparkles';
+  if (isAnalyzing.value) {
+    return extractMethod.value === 'wd-tagger' ? 'fa-solid fa-stop' : 'fa-solid fa-spinner fa-spin';
   }
-  return isAnalyzing.value ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-wand-magic-sparkles';
+  return 'fa-solid fa-wand-magic-sparkles';
 });
 
 const actionButtonDisabled = computed(() => {
