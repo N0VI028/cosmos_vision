@@ -604,7 +604,7 @@ export function useInlineImageGeneration(
   }
 
   /**
-   * 生图成功后弹出可点击 Toast，点击后无动画直跳到段落所在位置
+   * 生图成功后弹出可点击 Toast，点击后无动画直跳到画廊所在位置（画廊顶对齐 #chat 顶）
    * @param paragraph 生图锚点段落
    */
   function showGenerationSuccessToast(paragraph: HTMLElement): void {
@@ -616,22 +616,23 @@ export function useInlineImageGeneration(
   }
 
   /**
-   * 瞬时定位到段落：直接写 #chat 的 scrollTop，不经任何滚动动画
+   * 瞬时定位到画廊：直接写 #chat 的 scrollTop，不经任何滚动动画
    * 移动端 Edge 的平滑滚动易触发浏览器界面整体上移 bug，故禁用一切滚动动画
+   * 优先定位画廊宿主（after 挂载时画廊在段落下方），画廊不在时退回段落本身
    * 原段落被 ST 重渲染顶掉时按 mesId 兜底定位到当前楼层块
    * @param paragraph 生图锚点段落
    * @param mesId 弹 Toast 时记录的楼层 ID
    */
   function jumpToParagraph(paragraph: HTMLElement, mesId: string | null): void {
     const target = paragraph.isConnected
-      ? paragraph
+      ? (imageGallery.getHost(paragraph) ?? paragraph)
       : (mesId !== null ? document.querySelector<HTMLElement>(`[mesid="${mesId}"]`) : null);
     if (!target) return;
     const chat = document.querySelector<HTMLElement>('#chat');
     if (!chat) return;
     const targetRect = getViewportRect(target);
     const chatRect = chat.getBoundingClientRect();
-    chat.scrollTop += targetRect.top - (chatRect.top + chatRect.height / 3);
+    chat.scrollTop += targetRect.top - chatRect.top;
   }
 
   /**
