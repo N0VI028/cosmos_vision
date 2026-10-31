@@ -161,7 +161,7 @@ async function encodeAndCacheVibe(
     stripDataUrlBase64(cache.imageData as string),
     settings.model,
     vibe.informationExtracted,
-    options,
+    { ...options, timeoutSeconds: settings.timeout },
   );
   await saveNovelAIVibeEncodedData(
     {

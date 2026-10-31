@@ -7,7 +7,7 @@ import { extractNovelAIJsonImages } from './response-images';
 import { extractImages } from './zip';
 import { getNovelAIRequestAccounts } from './router';
 import { requestNovelAIAccountImagesStream } from './stream-api';
-import { createRequestTimeoutController, throwIfRequestTimedOut } from '@/services/request-timeout';
+import { createRequestTimeoutController } from '@/services/request-timeout';
 import { beginImageGeneration, endImageGeneration } from '@/store/image-generation-activity';
 import { getActiveNovelAIVibePresetRefs, resolveNovelAIVibeParameters } from './vibe-parameters';
 import type { NovelAIVibeParameters, NovelAIVibeSnapshot } from './vibe-types';
@@ -86,15 +86,10 @@ export async function generateNovelAIImagesFromResolvedRequest(
   imageCount: number,
   options: NovelAIRequestOptions = {},
 ): Promise<NovelAIImagesResult> {
-  const timeout = createRequestTimeoutController(options.signal, request.settings.timeout);
   beginImageGeneration();
   try {
-    return await requestNovelAIImages(request, imageCount, { ...options, signal: timeout.signal });
-  } catch (error) {
-    throwIfRequestTimedOut(timeout, 'NovelAI', request.settings.timeout);
-    throw error;
+    return await requestNovelAIImages(request, imageCount, options);
   } finally {
-    timeout.dispose();
     endImageGeneration();
   }
 }
@@ -118,11 +113,22 @@ async function requestNovelAIImages(
   const prompts = await resolveRequestPrompts(request, options);
   const errors: string[] = [];
   for (const [index, account] of request.accounts.entries()) {
+    throwIfNovelAIAborted(options.signal);
+    const timeout = createRequestTimeoutController(options.signal, request.settings.timeout);
     try {
-      return await requestImagesWithAccount(request, prompts, account, imageCount, options);
+      return await requestImagesWithAccount(request, prompts, account, imageCount, {
+        ...options,
+        signal: timeout.signal,
+      });
     } catch (error) {
+      // 用户取消中止整次请求；渠道超时只算该账号失败，继续尝试下一个
       if (options.signal?.aborted) throw createNovelAIAbortError();
-      errors.push(formatAccountError(index, account, error));
+      const reason = timeout.isTimedOut()
+        ? new Error(`请求超时（${request.settings.timeout} 秒）`)
+        : error;
+      errors.push(formatAccountError(index, account, reason));
+    } finally {
+      timeout.dispose();
     }
   }
   throw new Error(buildAggregateErrorMessage(errors));

@@ -1,9 +1,12 @@
 import type { NovelAIAccount, NovelAIModel } from '@/constants/novelai';
+import { createRequestTimeoutController } from '@/services/request-timeout';
 import { arrayBufferToBase64 } from '@/services/novelai/vibe-file';
 
 /** NovelAI encode-vibe 请求控制选项 */
 export interface NovelAIVibeEncodeOptions {
   signal?: AbortSignal;
+  /** 单个账号的请求超时秒数；缺省不限时 */
+  timeoutSeconds?: number;
 }
 
 /** NovelAI encode-vibe 结果 */
@@ -38,11 +41,23 @@ export async function encodeNovelAIVibeWithAccounts(
   if (!accounts.length) throw new Error('没有可用的 NovelAI 账号，无法解析 vibe');
   const errors: string[] = [];
   for (const [index, account] of accounts.entries()) {
+    if (options.signal?.aborted) throw new Error('已取消生成');
+    const timeout = options.timeoutSeconds
+      ? createRequestTimeoutController(options.signal, options.timeoutSeconds)
+      : undefined;
     try {
-      return await encodeNovelAIVibe(account, imageBase64, model, informationExtracted, options);
+      return await encodeNovelAIVibe(account, imageBase64, model, informationExtracted, {
+        signal: timeout?.signal ?? options.signal,
+      });
     } catch (error) {
+      // 用户取消中止整次解析；渠道超时只算该账号失败，继续尝试下一个
       if (options.signal?.aborted) throw new Error('已取消生成');
-      errors.push(formatEncodeAccountError(index, account, error));
+      const reason = timeout?.isTimedOut()
+        ? new Error(`请求超时（${options.timeoutSeconds} 秒）`)
+        : error;
+      errors.push(formatEncodeAccountError(index, account, reason));
+    } finally {
+      timeout?.dispose();
     }
   }
   throw new Error(`vibe 解析失败: ${errors.join('； ')}`);
