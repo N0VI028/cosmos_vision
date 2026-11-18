@@ -10,6 +10,18 @@ import type { NovelAIFinalPrompts, NovelAIRequestOptions } from '@/services/nove
 /** PNG 文件魔数前 8 字节 */
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
+/** PNG IEND 块结尾标记（IEND 关键字 + CRC） */
+const PNG_IEND_TAIL = [0x49, 0x4e, 0x45, 0x44, 0xae, 0x42, 0x60, 0x82];
+
+/**
+ * 构建以 IEND 结尾的合成 PNG 字节（停滞抢救按结尾标记校验图像完整性）
+ * @param fill 差异填充字节
+ * @returns 字节数组
+ */
+function completePngBytes(fill: number): number[] {
+  return [...PNG_MAGIC, fill, fill, fill, ...PNG_IEND_TAIL];
+}
+
 /**
  * 编码 msgpack fixstr
  * @param value 字符串
@@ -447,7 +459,7 @@ describe('requestNovelAIAccountImagesStream', () => {
     expect(isCancelled()).toBe(true);
   });
 
-  it('SSE 流同 samp_ix 的多张 final 不去重，全部收集', async () => {
+  it('SSE 同 samp_ix 字节相同的多张 final 去重，收不齐时按数量不足报错', async () => {
     const args = createArgs();
     const stream = createStream([
       sseChunk('final', sseFinalPayload(0)),
@@ -460,8 +472,276 @@ describe('requestNovelAIAccountImagesStream', () => {
       ),
     );
 
+    await expect(
+      requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 123, 2),
+    ).rejects.toThrow('流式生成仅返回 1/2 张图片');
+  });
+
+  it('SSE 同 samp_ix 字节不同的多张 final（不规范中转）全部收集', async () => {
+    const args = createArgs();
+    const stream = createStream([
+      sseChunk('final', JSON.stringify({ samp_ix: 0, image: toBase64(completePngBytes(0x01)) })),
+      sseChunk('final', JSON.stringify({ samp_ix: 0, image: toBase64(completePngBytes(0x02)) })),
+    ]);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(stream, { status: 200, headers: { 'content-type': 'text/event-stream' } }),
+      ),
+    );
+
     const blobs = await requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 123, 2);
 
     expect(blobs).toHaveLength(2);
+  });
+
+  it('SSE final 事件缺结尾空行且中转不关连接时，停滞抢救出最终图', async () => {
+    vi.useFakeTimers();
+    const args = createArgs();
+    // 中转缺陷形态：final 数据完整送达，但事件后无空行分隔、连接挂住不关
+    const stalledStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const text = `event: final\ndata: ${JSON.stringify({ samp_ix: 0, image: toBase64(completePngBytes(0x11)) })}`;
+        controller.enqueue(new TextEncoder().encode(text));
+      },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(stalledStream, { status: 200, headers: { 'content-type': 'text/event-stream' } }),
+      ),
+    );
+
+    const assertion = expect(
+      requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 123, 1),
+    ).resolves.toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(30_001);
+    await assertion;
+  });
+
+  it('SSE final 数据行有换行仅缺结尾空行时同样可抢救（走未决事件派发路径）', async () => {
+    vi.useFakeTimers();
+    const args = createArgs();
+    // data 行以 \n 结束但无空行：事件滞留在未决缓冲，靠 dispatchEvent 抢救
+    const stalledStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const text = `event: final\ndata: ${JSON.stringify({ samp_ix: 0, image: toBase64(completePngBytes(0x21)) })}\n`;
+        controller.enqueue(new TextEncoder().encode(text));
+      },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(stalledStream, { status: 200, headers: { 'content-type': 'text/event-stream' } }),
+      ),
+    );
+
+    const assertion = expect(
+      requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 123, 1),
+    ).resolves.toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(30_001);
+    await assertion;
+  });
+
+  it('SSE 抢救仅救出部分图时按数量不足报错，触发上层故障转移', async () => {
+    vi.useFakeTimers();
+    const args = createArgs();
+    const stalledStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const text = `event: final\ndata: ${JSON.stringify({ samp_ix: 0, image: toBase64(completePngBytes(0x31)) })}`;
+        controller.enqueue(new TextEncoder().encode(text));
+      },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(stalledStream, { status: 200, headers: { 'content-type': 'text/event-stream' } }),
+      ),
+    );
+
+    const assertion = expect(
+      requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 123, 2),
+    ).rejects.toThrow('流式生成仅返回 1/2 张图片');
+    await vi.advanceTimersByTimeAsync(30_001);
+    await assertion;
+  });
+
+  it('SSE 停滞抢救支持完整 JPEG（EOI 结尾）final', async () => {
+    vi.useFakeTimers();
+    const args = createArgs();
+    const jpegBytes = [0xff, 0xd8, 0xff, 0x11, 0x22, 0xff, 0xd9];
+    const stalledStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const text = `event: final\ndata: ${JSON.stringify({ samp_ix: 0, image: toBase64(jpegBytes) })}`;
+        controller.enqueue(new TextEncoder().encode(text));
+      },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(stalledStream, { status: 200, headers: { 'content-type': 'text/event-stream' } }),
+      ),
+    );
+
+    const assertion = expect(
+      requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 123, 1),
+    ).resolves.toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(30_001);
+    await assertion;
+  });
+
+  it('SSE 停滞抢救支持完整 WebP（RIFF 长度闭合）与 GIF（trailer 结尾）final', async () => {
+    vi.useFakeTimers();
+    const args = createArgs();
+    // WebP：RIFF 头 + 小端长度(总长-8) + WEBP 标记 + 载荷；GIF：头 + 载荷 + 0x3B trailer；单事件 images 数组双图
+    const webpBytes = [0x52, 0x49, 0x46, 0x46, 8, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 1, 2, 3, 4];
+    const gifBytes = [0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 1, 2, 3, 4, 5, 6, 7, 0x3b];
+    const stalledStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const text = `event: final\ndata: ${JSON.stringify({ images: [toBase64(webpBytes), toBase64(gifBytes)] })}`;
+        controller.enqueue(new TextEncoder().encode(text));
+      },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(stalledStream, { status: 200, headers: { 'content-type': 'text/event-stream' } }),
+      ),
+    );
+
+    const assertion = expect(
+      requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 123, 2),
+    ).resolves.toHaveLength(2);
+    await vi.advanceTimersByTimeAsync(30_001);
+    await assertion;
+  });
+
+  it('SSE 停滞抢救拒绝碰巧以 EOI 结尾的假图（头部魔数校验拦截）', async () => {
+    vi.useFakeTimers();
+    const args = createArgs();
+    // 仅 2 字节 FFD9：无 JPEG 头部魔数，不是任何已知图片
+    const stalledStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const text = `event: final\ndata: ${JSON.stringify({ samp_ix: 0, image: toBase64([0xff, 0xd9]) })}`;
+        controller.enqueue(new TextEncoder().encode(text));
+      },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(stalledStream, { status: 200, headers: { 'content-type': 'text/event-stream' } }),
+      ),
+    );
+
+    const assertion = expect(
+      requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 123, 1),
+    ).rejects.toThrow('流式连接 30 秒无新数据');
+    await vi.advanceTimersByTimeAsync(30_001);
+    await assertion;
+  });
+
+  it('SSE 完整 error 事件缺结尾空行时抢救出原始错误信息', async () => {
+    vi.useFakeTimers();
+    const args = createArgs();
+    const stalledStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('event: error\ndata: {"error":"quota exceeded"}'));
+      },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(stalledStream, { status: 200, headers: { 'content-type': 'text/event-stream' } }),
+      ),
+    );
+
+    const assertion = expect(
+      requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 123, 1),
+    ).rejects.toThrow('quota exceeded');
+    await vi.advanceTimersByTimeAsync(30_001);
+    await assertion;
+  });
+
+  it('SSE 截断的 error 事件（无完整 error 字段）不被抢救，维持停滞报错', async () => {
+    vi.useFakeTimers();
+    const args = createArgs();
+    const stalledStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('event: error\ndata: {"error":"quot'));
+      },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(stalledStream, { status: 200, headers: { 'content-type': 'text/event-stream' } }),
+      ),
+    );
+
+    const assertion = expect(
+      requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 123, 1),
+    ).rejects.toThrow('流式连接 30 秒无新数据');
+    await vi.advanceTimersByTimeAsync(30_001);
+    await assertion;
+  });
+
+  it('SSE final 数据不完整（传输中断）时停滞抢救不交付截断图', async () => {
+    vi.useFakeTimers();
+    const args = createArgs();
+    // 无 IEND/EOI 结尾标记：传输中途死掉的半张图，不可当最终图交付
+    const stalledStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const text = `event: final\ndata: ${JSON.stringify({ samp_ix: 0, image: toBase64([...PNG_MAGIC, 0x11, 0x22]) })}`;
+        controller.enqueue(new TextEncoder().encode(text));
+      },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(stalledStream, { status: 200, headers: { 'content-type': 'text/event-stream' } }),
+      ),
+    );
+
+    const assertion = expect(
+      requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 123, 1),
+    ).rejects.toThrow('流式连接 30 秒无新数据');
+    await vi.advanceTimersByTimeAsync(30_001);
+    await assertion;
+  });
+
+  it('msgpack 多图 final 全部同 samp_ix 但字节不同（不规范中转）时全部收集', async () => {
+    const args = createArgs();
+    const stream = createStream([
+      frameChunk({ event_type: 'final', samp_ix: 0, gen_id: 0, image: completePngBytes(0x01) }),
+      frameChunk({ event_type: 'final', samp_ix: 0, gen_id: 0, image: completePngBytes(0x02) }),
+    ]);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(stream, { status: 200, headers: { 'content-type': 'application/msgpack' } }),
+      ),
+    );
+
+    const blobs = await requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 123, 2);
+
+    expect(blobs).toHaveLength(2);
+  });
+
+  it('msgpack final 帧不带图像时不虚增收齐计数，等待后续实图帧', async () => {
+    const args = createArgs();
+    // 第一帧 final 无 image：不应计为已收集（旧实现按 samp_ix 集合计数会提前 break 然后报"未返回最终图像"）
+    const stream = createStream([
+      frameChunk({ event_type: 'final', samp_ix: 0, gen_id: 0 }),
+      frameChunk({ event_type: 'final', samp_ix: 0, gen_id: 0, image: completePngBytes(0x03) }),
+    ]);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(stream, { status: 200, headers: { 'content-type': 'application/msgpack' } }),
+      ),
+    );
+
+    const blobs = await requestNovelAIAccountImagesStream(args.settings, args.prompts, args.account, {}, 123, 1);
+
+    expect(blobs).toHaveLength(1);
   });
 });

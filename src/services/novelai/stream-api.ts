@@ -1,8 +1,11 @@
 import type { NovelAIAccount, NovelAISettings } from '@/constants/novelai';
 import { buildPayload } from './payload';
-import { isSseContentType, parseImageFrames } from './stream-frame';
+import { parseImageFrames, sniffImageMime } from './stream-frame';
 import type { NovelAIStreamFrame } from './stream-frame';
 import type { NovelAIFinalPrompts, NovelAIRequestOptions } from './types';
+
+// 魔数识别工具迁至 stream-frame（停滞抢救的头尾完整性校验共用），此处保留导出兼容既有引用
+export { sniffImageMime };
 
 /** NovelAI 流式中间帧预览事件（供 UI 实时展示去噪进度） */
 export interface NovelAIStreamPreviewEvent {
@@ -20,48 +23,6 @@ export interface NovelAIStreamPreviewEvent {
   imageCount: number;
   /** 是否为该图的最终帧 */
   isFinal: boolean;
-}
-
-/** 常见图片魔数签名表 */
-const IMAGE_SIGNATURES = [
-  { mime: 'image/jpeg', bytes: [0xff, 0xd8, 0xff] },
-  { mime: 'image/png', bytes: [0x89, 0x50, 0x4e, 0x47] },
-  { mime: 'image/gif', bytes: [0x47, 0x49, 0x46, 0x38, 0x37, 0x61] },
-  { mime: 'image/gif', bytes: [0x47, 0x49, 0x46, 0x38, 0x39, 0x61] },
-] as const;
-
-/** WEBP 魔数（RIFF 头 + 第 8-11 字节 WEBP 标记） */
-const RIFF_SIGNATURE = [0x52, 0x49, 0x46, 0x46] as const;
-const WEBP_SIGNATURE = [0x57, 0x45, 0x42, 0x50] as const;
-
-/**
- * 按魔数识别图片 MIME 类型
- * @param bytes 图片二进制数据
- * @returns 识别出的 MIME 类型，无法识别时返回 null
- */
-export function sniffImageMime(bytes: Uint8Array): string | null {
-  const match = IMAGE_SIGNATURES.find(signature => hasPrefix(bytes, signature.bytes));
-  if (match) return match.mime;
-  return isWebpSignature(bytes) ? 'image/webp' : null;
-}
-
-/**
- * 判断字节数组是否以指定前缀开头
- * @param bytes 待检查的字节数组
- * @param prefix 期望的前缀字节
- * @returns 全部前缀字节匹配时返回 true
- */
-function hasPrefix(bytes: Uint8Array, prefix: readonly number[]): boolean {
-  return prefix.every((byte, index) => bytes[index] === byte);
-}
-
-/**
- * 判断字节数组是否为 WEBP 魔数（RIFF + WEBP）
- * @param bytes 待检查的字节数组
- * @returns 命中 WEBP 魔数时返回 true
- */
-function isWebpSignature(bytes: Uint8Array): boolean {
-  return bytes.length >= 12 && hasPrefix(bytes, RIFF_SIGNATURE) && hasPrefix(bytes.subarray(8), WEBP_SIGNATURE);
 }
 
 /**
@@ -89,19 +50,18 @@ export async function requestNovelAIAccountImagesStream(
   const blobs: Blob[] = [];
   const totalSteps = settings.steps;
   const contentType = response.headers.get('content-type') ?? '';
-  // msgpack 官方流会重复推同一 samp_ix 的 final 需去重；SSE 第三方端点 samp_ix 可能不规范，不做去重
-  const dedupeFinals = !isSseContentType(contentType);
-  const finalSamples = new Set<number>();
+  // final 去重按 samp_ix + 内容摘要判定：官方 msgpack 流会重发同一 final（字节相同跳过）；
+  // 字节不同（如中转 samp_ix 恒发 0 的多图）按新图收集。SSE 与 msgpack 统一适用
+  const finalHashBySample = new Map<number, string>();
   try {
-    await consumeStreamFrames(body, contentType, { blobs, finalSamples, dedupeFinals, options, totalSteps, imageCount });
+    await consumeStreamFrames(body, contentType, { blobs, finalHashBySample, options, totalSteps, imageCount });
   } finally {
     // 全路径统一断流：正常结束/提前退出/异常/abort 后都释放旧连接
     await disconnectStreamBody(body);
   }
   if (blobs.length === 0) throw new Error('流式生成未返回最终图像');
-  const collectedCount = dedupeFinals ? finalSamples.size : blobs.length;
   // 多图请求只收到部分 final 时判定失败，触发上层账号故障转移
-  if (collectedCount < imageCount) throw new Error(`流式生成仅返回 ${collectedCount}/${imageCount} 张图片`);
+  if (blobs.length < imageCount) throw new Error(`流式生成仅返回 ${blobs.length}/${imageCount} 张图片`);
   return blobs;
 }
 
@@ -109,16 +69,49 @@ export async function requestNovelAIAccountImagesStream(
 interface StreamConsumeContext {
   /** 已收集的最终图片数组 */
   blobs: Blob[];
-  /** 已收到的 final 帧 samp_ix 集合（仅去重模式下维护） */
-  finalSamples: Set<number>;
-  /** 是否对 final 帧按 samp_ix 去重 */
-  dedupeFinals: boolean;
+  /** 已收集 final 帧的 samp_ix → 内容摘要（用于识别重复推送） */
+  finalHashBySample: Map<number, string>;
   /** 请求控制选项 */
   options: NovelAIRequestOptions;
   /** 总去噪步数 */
   totalSteps: number;
   /** 本次请求图片总数 */
   imageCount: number;
+}
+
+/**
+ * 计算图像字节的 64 位内容摘要（FNV-1a + djb2 双散列）
+ * 以摘要代替原始字节参与去重比对，避免多图全尺寸 PNG 的原始数据长期驻留内存
+ * @param bytes 图像二进制
+ * @returns 十六进制摘要字符串
+ */
+function imageBytesDigest(bytes: Uint8Array): string {
+  let fnv = 0x811c9dc5;
+  let djb = 5381;
+  for (let i = 0; i < bytes.length; i++) {
+    fnv ^= bytes[i]!;
+    fnv = Math.imul(fnv, 0x01000193);
+    djb = Math.imul(djb, 33) ^ bytes[i]!;
+  }
+  return `${fnv >>> 0}-${djb >>> 0}`;
+}
+
+/**
+ * 登记 final 帧并判断是否为已收集图像的重复推送（官方 msgpack 流会重发同一 final）
+ * 未见过的 samp_ix 直接登记；同 samp_ix 且内容摘要一致才视为重复跳过；
+ * 摘要不同说明该流 samp_ix 不规范（如中转恒发 0），按新图收集
+ * @param frame 待检查的 final 帧
+ * @param ctx 帧消费上下文
+ */
+function shouldSkipRepeatedFinal(frame: NovelAIStreamFrame, ctx: StreamConsumeContext): boolean {
+  if (!frame.image) return false;
+  const digest = imageBytesDigest(frame.image);
+  const seen = ctx.finalHashBySample.get(frame.samp_ix);
+  if (seen === undefined) {
+    ctx.finalHashBySample.set(frame.samp_ix, digest);
+    return false;
+  }
+  return seen === digest;
 }
 
 /**
@@ -135,15 +128,11 @@ async function consumeStreamFrames(
   for await (const frame of parseImageFrames(body, contentType)) {
     throwIfStreamAborted(ctx.options.signal);
     if (frame.event_type === 'error') throw new Error(frame.error ?? frame.message ?? '流式生成失败');
-    if (frame.event_type === 'final') {
-      // 同一 samp_ix 的 final 帧可能到达两次（仅 msgpack 流去重）
-      if (ctx.dedupeFinals && ctx.finalSamples.has(frame.samp_ix)) continue;
-      ctx.finalSamples.add(frame.samp_ix);
-    }
+    // 官方重复 final 帧跳过；新 final 帧登记摘要用于后续重复判定
+    if (frame.event_type === 'final' && shouldSkipRepeatedFinal(frame, ctx)) continue;
     if (frame.image) collectStreamFrame(frame, frame.image, ctx.blobs, ctx.options, ctx.totalSteps, ctx.imageCount);
-    // SSE 流无去重，直接按已收集图片数判断收齐；收齐后无需等待服务器关闭连接
-    const collectedCount = ctx.dedupeFinals ? ctx.finalSamples.size : ctx.blobs.length;
-    if (collectedCount >= ctx.imageCount) break;
+    // 按已收集图片数判断收齐；收齐后无需等待服务器关闭连接
+    if (ctx.blobs.length >= ctx.imageCount) break;
   }
 }
 

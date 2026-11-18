@@ -834,6 +834,8 @@ export function useInlineImageGeneration(
           max: event.imageCount * event.totalSteps,
           step: event.isFinal ? event.totalSteps : event.step,
           totalSteps: event.totalSteps,
+          // 去噪步走满但最终帧未到：改显"正在接收最终图"，如实反映等待的是大体积 final 帧传输
+          awaitingFinal: !event.isFinal && event.step >= event.totalSteps,
         });
         if (currentUrl) URL.revokeObjectURL(currentUrl);
         currentUrl = URL.createObjectURL(event.previewBlob);

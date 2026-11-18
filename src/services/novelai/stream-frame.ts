@@ -33,6 +33,49 @@ type MsgpackValue =
 interface DecodeState { offset: number }
 
 const textDecoder = new TextDecoder()
+
+/** 常见图片魔数签名表 */
+const IMAGE_SIGNATURES = [
+  { mime: 'image/jpeg', bytes: [0xff, 0xd8, 0xff] },
+  { mime: 'image/png', bytes: [0x89, 0x50, 0x4e, 0x47] },
+  { mime: 'image/gif', bytes: [0x47, 0x49, 0x46, 0x38, 0x37, 0x61] },
+  { mime: 'image/gif', bytes: [0x47, 0x49, 0x46, 0x38, 0x39, 0x61] },
+] as const
+
+/** WEBP 魔数（RIFF 头 + 第 8-11 字节 WEBP 标记） */
+const RIFF_SIGNATURE = [0x52, 0x49, 0x46, 0x46] as const
+const WEBP_SIGNATURE = [0x57, 0x45, 0x42, 0x50] as const
+
+/**
+ * 按魔数识别图片 MIME 类型
+ * @param bytes 图片二进制数据
+ * @returns 识别出的 MIME 类型，无法识别时返回 null
+ */
+export function sniffImageMime(bytes: Uint8Array): string | null {
+  const match = IMAGE_SIGNATURES.find(signature => hasPrefix(bytes, signature.bytes))
+  if (match) return match.mime
+  return isWebpSignature(bytes) ? 'image/webp' : null
+}
+
+/**
+ * 判断字节数组是否以指定前缀开头
+ * @param bytes 待检查字节数组
+ * @param prefix 期望的前缀字节
+ * @returns 全部前缀字节匹配时返回 true
+ */
+function hasPrefix(bytes: Uint8Array, prefix: readonly number[]): boolean {
+  return prefix.every((byte, index) => bytes[index] === byte)
+}
+
+/**
+ * 判断字节数组是否为 WEBP 魔数（RIFF + WEBP）
+ * @param bytes 待检查字节数组
+ * @returns 命中 WEBP 魔数时返回 true
+ */
+function isWebpSignature(bytes: Uint8Array): boolean {
+  return bytes.length >= 12 && hasPrefix(bytes, RIFF_SIGNATURE) && hasPrefix(bytes.subarray(8), WEBP_SIGNATURE)
+}
+
 const MAX_FRAME_SIZE = 32 * 1024 * 1024 // 32MB
 
 /** 流式读停滞超时（毫秒）：连接中途死亡时既无数据也不关闭，需主动判定断流 */
@@ -583,9 +626,34 @@ async function* readEvents(stream: ReadableStream<Uint8Array>): AsyncGenerator<S
     }
   }
 
+  /** 停滞抢救：把缓冲中未以空行结尾的残存行并入当前事件后强制派发 */
+  function salvagePendingEvent(): SseEvent | null {
+    buffer += decoder.decode()
+    if (buffer.length > 0) {
+      const ev = processLine(buffer)
+      buffer = ''
+      searchIndex = 0
+      if (ev) return ev
+    }
+    return dispatchEvent()
+  }
+
   try {
     while (true) {
-      const { done, value } = await readChunkWithStall(reader, receivedData)
+      let chunk: ReadableStreamReadResult<Uint8Array>
+      try {
+        chunk = await readChunkWithStall(reader, receivedData)
+      } catch (error) {
+        // 停滞看门狗触发：部分中转 final 事件后缺结尾空行且不关连接，完整图片滞留缓冲区。
+        // 抢救出可安全交付的 final/error 事件时正常产出，否则维持原停滞报错
+        const salvaged = salvagePendingEvent()
+        if (salvaged && isRescuableEvent(salvaged)) {
+          yield salvaged
+          return
+        }
+        throw error
+      }
+      const { done, value } = chunk
       if (done) break
       if (!value?.length) continue
       receivedData = true
@@ -622,6 +690,58 @@ async function* readEvents(stream: ReadableStream<Uint8Array>): AsyncGenerator<S
   } finally {
     reader.releaseLock()
   }
+}
+
+/** PNG IEND 块结尾标记（IEND 关键字 + CRC） */
+const PNG_IEND_TAIL = [0x49, 0x4e, 0x45, 0x44, 0xae, 0x42, 0x60, 0x82] as const
+
+/**
+ * 判断图像字节是否携带完整结尾标记（按头部魔数分派：PNG IEND / JPEG EOI / GIF trailer / WebP RIFF 长度）
+ * 头尾双重校验防止截断数据碰巧以标记结尾（如仅 2 字节 FFD9 的假图）
+ * @param bytes 待检查的图像二进制
+ * @returns 头部可识别且结尾标记齐全时返回 true，用于区分完整图像与传输中断的截断数据
+ */
+function hasCompleteImageTail(bytes: Uint8Array): boolean {
+  const mime = sniffImageMime(bytes)
+  if (!mime) return false
+  if (mime === 'image/png') {
+    const offset = bytes.length - PNG_IEND_TAIL.length
+    return offset >= 0 && PNG_IEND_TAIL.every((byte, index) => bytes[offset + index] === byte)
+  }
+  if (mime === 'image/jpeg') {
+    return bytes.length >= 4 && bytes[bytes.length - 1] === 0xd9 && bytes[bytes.length - 2] === 0xff
+  }
+  if (mime === 'image/gif') {
+    // GIF 最小结构约 14 字节，trailer 为单字节 0x3B
+    return bytes.length >= 14 && bytes[bytes.length - 1] === 0x3b
+  }
+  // WebP：RIFF 头第 4-7 字节为小端文件长度（不含 8 字节 RIFF 头），与总长相等才算完整。
+  // 第 4 字节（最高位）用乘法而非 <<24，避免 0x80+ 时溢出成负数
+  const riffSize = bytes[4]! + (bytes[5]! << 8) + (bytes[6]! << 16) + bytes[7]! * 2 ** 24
+  return bytes.length >= 12 && riffSize === bytes.length - 8
+}
+
+/**
+ * 判断停滞抢救出的事件是否可安全交付
+ * 仅接受带明确 error/message 字段的 error 事件（截断的裸 JSON 不放行），
+ * 或所有图像字节均携带完整结尾标记的 final 事件，
+ * 防止把传输中断产生的截断图像或半截错误文案当作结果交付
+ * @param event 抢救出的残存事件
+ */
+function isRescuableEvent(event: SseEvent): boolean {
+  const payload = parsePayload(event.data)
+  const type = frameType(event.event, payload)
+  if (type === 'error') {
+    const hasExplicitError = (typeof payload.error === 'string' && payload.error !== '') || (typeof payload.message === 'string' && payload.message !== '')
+    return hasExplicitError
+  }
+  if (type !== 'final') return false
+  const entries = imageEntries(payload)
+  if (entries.length === 0) return false
+  return entries.every(entry => {
+    const bytes = decodeBase64Image(entry.value)
+    return bytes != null && hasCompleteImageTail(bytes)
+  })
 }
 
 /**

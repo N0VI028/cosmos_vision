@@ -33,6 +33,30 @@ describe('inlineGenerationSession setProgress and ProgressBar', () => {
     controller.cleanup();
   });
 
+  it('awaitingFinal 时状态文本追加"正在接收最终图"提示', () => {
+    const controller = createInlineGenerationSessionController({
+      getDarkMode: () => false,
+    });
+    const paragraph = document.createElement('div');
+    const target = document.createElement('div');
+    document.body.appendChild(target);
+
+    const session = controller.start(paragraph, target, '正在生图...');
+    const host = session.status.host;
+
+    session.status.setProgress({ value: 28, max: 28, step: 28, totalSteps: 28, awaitingFinal: true });
+    const textEl = host.querySelector('.cv-inline-generation-text');
+    expect(textEl?.textContent).toBe('正在生图... 100%（28/28 步），正在接收最终图…');
+
+    // final 帧到达后 awaitingFinal 复位，提示消失
+    session.status.setProgress({ value: 28, max: 28, step: 28, totalSteps: 28, awaitingFinal: false });
+    expect(textEl?.textContent).toBe('正在生图... 100%（28/28 步）');
+
+    session.status.remove();
+    controller.cleanup();
+    target.remove();
+  });
+
   it('错误态下不显示 ProgressBar', () => {
     const controller = createInlineGenerationSessionController({
       getDarkMode: () => false,
