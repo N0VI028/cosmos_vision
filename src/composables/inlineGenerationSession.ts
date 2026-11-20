@@ -25,6 +25,8 @@ export interface InlineGenerationProgress {
   step?: number;
   /** 总步数 */
   totalSteps?: number;
+  /** 去噪步已走满、正在等待最终图传输：状态文本改显"正在接收最终图" */
+  awaitingFinal?: boolean;
 }
 
 /** 段落内生成状态句柄 */
@@ -556,7 +558,8 @@ function renderStatusButtons(
 }
 
 /**
- * 格式化状态文本（运行中且包含进度时附加百分比，带步数时再附加 X/Y 步）
+ * 格式化状态文本（运行中且包含进度时附加百分比，带步数时再附加 X/Y 步；
+ * 步数走满等待最终图时改显"正在接收最终图"，避免 100% 停格被误读为卡死）
  * @param state 当前状态
  * @param isRunning 是否正在运行
  * @returns 状态文本
@@ -564,9 +567,10 @@ function renderStatusButtons(
 function resolveStatusText(state: InlineGenerationStatusState, isRunning: boolean): string {
   if (isRunning && state.progress) {
     const percent = Math.round((state.progress.value / state.progress.max) * 100);
-    const { step, totalSteps } = state.progress;
+    const { step, totalSteps, awaitingFinal } = state.progress;
     const stepText = step != null && totalSteps != null ? `（${step}/${totalSteps} 步）` : '';
-    return `${state.text} ${percent}%${stepText}`;
+    const finalText = awaitingFinal ? '，正在接收最终图…' : '';
+    return `${state.text} ${percent}%${stepText}${finalText}`;
   }
   return state.text;
 }

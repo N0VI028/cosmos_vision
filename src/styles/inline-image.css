@@ -433,7 +433,9 @@ body.dark .cv-inline-toolbar {
   box-sizing: border-box;
   pointer-events: none;
   overflow: hidden;
-  border-radius: var(--cv-radius-sm);
+  /* 底部两角归零：有缩略图条时主图区底边直角衔接条带，蒙版底部圆角会让旧图从缺口透出；
+     单图时卡片底部圆角由外层 .cv-inline-favorite-content 的裁剪负责，视觉不变 */
+  border-radius: var(--cv-radius-sm) var(--cv-radius-sm) 0 0;
 }
 
 .cv-inline-img-wrap img {
@@ -868,13 +870,13 @@ body.dark .cv-inline-toolbar {
 }
 
 /* 当普通宿主存在流式预览图时：状态条卡片转为舞台壳，Message 悬浮在图片正上方，过程图在底层并带毛玻璃遮罩 */
-.cv-inline-generation-status--has-preview {
+.cv-inline-generation-status--has-preview:not(.cv-inline-generation-status--overlay) {
   position: relative;
   overflow: hidden;
   border-radius: var(--cv-radius-sm);
 }
 
-.cv-inline-generation-status--has-preview .cv-prime-message {
+.cv-inline-generation-status--has-preview:not(.cv-inline-generation-status--overlay) .cv-prime-message {
   position: absolute;
   top: 0;
   left: 0;
